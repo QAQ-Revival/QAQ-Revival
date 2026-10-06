@@ -49,6 +49,9 @@ const { registerPawchiveIpc } = require("./pawchive.cjs");
 const { registerRevivalIpc } = require("./mega-task-manager.cjs");
 const { registerArchiveDownloads } = require("./archive-downloads.cjs");
 const { registerSoftwareUpdates } = require("./software-updates.cjs");
+const { registerHotkeyTranslation } = require("./hotkey-translation.cjs");
+const { createHiddenCharactersStore, applyDisablePlan } = require("./hidden-characters.cjs");
+registerHotkeyTranslation({ ipcMain: electron.ipcMain, fetch: (...args) => electron.net.fetch(...args) });
 const windowsLauncher = createWindowsLauncher({ isElevated: isProcessElevated });
 const crypto = require("crypto");
 const pathTo7zip = require("7zip-bin");
@@ -1276,6 +1279,24 @@ function migrateFromV3() {
 }
 migrateFromV3();
 let currentConfig = loadConfig();
+const hiddenCharacters = createHiddenCharactersStore({
+  read: () => currentConfig.hiddenCharactersByGame,
+  write: (next) => {
+    const previous = currentConfig.hiddenCharactersByGame;
+    currentConfig.hiddenCharactersByGame = next;
+    if (!saveConfig(currentConfig)) {
+      currentConfig.hiddenCharactersByGame = previous;
+      throw new Error("隐藏角色设置保存失败，请检查磁盘空间和写入权限");
+    }
+  },
+  normalize: normalizeCharacterFolderKey
+});
+function isCharacterHidden(name, gameId = getActiveGameScopeId()) {
+  return hiddenCharacters.has(gameId, getCharacterMappingEntry(name, gameId)?.displayName || name);
+}
+function assertCharacterVisible(name, gameId = getActiveGameScopeId()) {
+  if (isCharacterHidden(name, gameId)) throw new Error("该角色已隐藏，请先在「隐藏角色」中恢复显示");
+}
 // Keep a stable local identity for anonymous market comments and favorites.
 if (!currentConfig.clientId) {
   currentConfig.clientId = crypto.randomUUID();
@@ -5422,6 +5443,7 @@ function findNevernessDx12ModDirectory(characterName, modName, enable, paths) {
 async function importNevernessDx12PakMod(characterName, filePath, modInfo = {}, options = {}) {
   const gameId2 = options.gameId || modInfo.gameId || getActiveGameScopeId();
   characterName = assertSafeAppearancePathSegment(characterName, "角色名称");
+  assertCharacterVisible(characterName, gameId2);
   let charPath = getNevernessDx12CharacterPath(characterName, { ensure: true, gameId: gameId2 }) || resolveCharacterPath(characterName, gameId2);
   if (!charPath) return { error: "Character folder not found" };
   const paths = ensureNevernessDx12GamePaths(gameId2);
@@ -5583,6 +5605,7 @@ function getNevernessDx12Mods(characterName) {
 }
 function toggleNevernessDx12PakMod(characterName, modName, enable) {
   const gameId2 = getActiveGameScopeId();
+  if (enable && isCharacterHidden(characterName, gameId2)) return { error: "该角色已隐藏，请先恢复显示" };
   const charPath = getNevernessDx12CharacterPath(characterName, { ensure: true }) || resolveCharacterPath(characterName, gameId2);
   if (!charPath) return { error: "Character folder not found" };
   const paths = getNevernessDx12Paths();
@@ -6853,6 +6876,7 @@ function resolveCharacterPath(characterName, gameId2 = getActiveGameScopeId()) {
 }
 function resolveCanonicalCharacterInstallTarget(characterName, gameId2 = getActiveGameScopeId(), { ensure = true } = {}) {
   const rawName = assertSafeAppearancePathSegment(characterName, "角色名称");
+  if (ensure) assertCharacterVisible(rawName, gameId2);
   if (!rawName) return { characterName: "", characterPath: null };
   const canonicalCharacterName = assertSafeAppearancePathSegment(
     getCanonicalCharacterConfigKey(rawName, gameId2),
@@ -7028,6 +7052,7 @@ function ensureDefaultCharacterFolders(modsPath, gameId2 = getActiveGameScopeId(
   let createdCount = 0;
   let copiedCoverCount = 0;
   getDefaultCharactersForGame(gameId2).forEach((charName) => {
+    if (isCharacterHidden(charName, gameId2)) return;
     const existingEntry = existingByKey.get(normalizeCharacterFolderKey(charName));
     const charDir = existingEntry?.characterRootPath || path.join(characterBasePath, charName);
     if (!fs.existsSync(charDir)) {
@@ -7067,7 +7092,7 @@ function getCharacterListResponse(modsPath, gameId2 = getActiveGameScopeId(), { 
       searchTerms: getCharacterAliasCandidates(entry.displayName, gameId2, entry)
     })
   );
-  return { characters };
+  return { characters: characters.filter(character => !isCharacterHidden(character.name, gameId2)), hiddenCount: hiddenCharacters.list(gameId2).length };
 }
 function buildLegacyImportResponse(modsPath, gameId2 = getActiveGameScopeId()) {
   return buildImportPreview(scanImportCandidates(modsPath, gameId2), modsPath);
@@ -7711,7 +7736,7 @@ electron.ipcMain.handle("overlay-get-characters", async () => {
         coverUrl: getCharacterCoverUrl(entry.displayName)
       })
     );
-    return { success: true, characters };
+    return { success: true, characters: characters.filter(character => !isCharacterHidden(character.name, gameId2)) };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -7828,6 +7853,7 @@ electron.ipcMain.handle("overlay-set-mod-marked", async (_, { characterName, mod
 electron.ipcMain.handle("overlay-toggle-mod", async (_, { characterName, modName, enabled }) => {
   try {
     const gameId2 = getActiveGameScopeId();
+    if (enabled) assertCharacterVisible(characterName, gameId2);
     if (isNevernessDx12Mode(gameId2)) {
       const result = toggleNevernessDx12PakMod(characterName, modName, enabled);
       if (!result?.success) return { success: false, error: result?.error || "切换 Pak Mod 失败" };
@@ -8065,6 +8091,7 @@ electron.ipcMain.handle("overlay-apply-hotkey", async (_, { keys, hotkey } = {})
 let lastSideWidths = currentConfig.sidePanelWidths || { detail: 300, characters: 220 };
 let currentSidePanelType = "detail";
 electron.ipcMain.handle("overlay-show-side", async (_, { width, content }) => {
+  const gameId = getActiveGameScopeId();
   try {
     const panelType = content && content.type || "detail";
     currentSidePanelType = panelType;
@@ -8090,6 +8117,7 @@ electron.ipcMain.handle("overlay-show-side", async (_, { width, content }) => {
       if (overlaySideWindow && !overlaySideWindow.isDestroyed()) {
         overlaySideWindow.webContents.send("side-panel-content", {
           ...content || {},
+          gameId,
           currentWidth: useWidth
         });
       }
@@ -8161,7 +8189,7 @@ electron.ipcMain.handle("overlay-resize-side", async (_, newWidth) => {
 });
 electron.ipcMain.handle("overlay-update-side", async (_, content) => {
   if (overlaySideWindow && !overlaySideWindow.isDestroyed()) {
-    overlaySideWindow.webContents.send("side-panel-content", content);
+    overlaySideWindow.webContents.send("side-panel-content", { ...content, gameId: getActiveGameScopeId() });
   }
   return { success: true };
 });
@@ -9191,6 +9219,74 @@ async function readCurrentCharacters() {
   }
 }
 electron.ipcMain.handle("character:refresh", readCurrentCharacters);
+function buildCharacterDisablePlan(characterName, gameId) {
+  const canonical = getCharacterMappingEntry(characterName, gameId)?.displayName || characterName;
+  const aliases = new Set(getCharacterAliasCandidates(canonical, gameId).map(normalizeCharacterFolderKey));
+  const plan = [];
+  const seen = new Set();
+  const scanRoot = (root, pakPaths = null) => {
+    if (!root || !fs.existsSync(root)) return;
+    if (fs.lstatSync(root).isSymbolicLink()) throw new Error(`请先处理链接目录：${root}`);
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+      if (!aliases.has(normalizeCharacterFolderKey(entry.name))) continue;
+      if (entry.isSymbolicLink()) throw new Error(`请先处理链接目录：${entry.name}`);
+      if (!entry.isDirectory()) continue;
+      const charPath = path.join(root, entry.name);
+      for (const mod of fs.readdirSync(charPath, { withFileTypes: true })) {
+        if (!pakPaths && /^DISABLED_/i.test(mod.name)) continue;
+        if (mod.isSymbolicLink()) throw new Error(`请先处理链接 Mod：${mod.name}`);
+        if (!mod.isDirectory()) continue;
+        const from = path.join(charPath, mod.name);
+        if (pakPaths && !getNevernessDx12ModDirectoryInfo(from, pakPaths)) continue;
+        const key = path.resolve(from).toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const to = pakPaths ? path.join(getNevernessDx12DisabledCharacterPath(canonical, pakPaths, { gameId }), mod.name.replace(/^DISABLED_/i, "")) : path.join(charPath, `DISABLED_${mod.name}`);
+        plan.push({ from, to, pak: !!pakPaths });
+      }
+    }
+  };
+  const modsPath = getModsPath(gameId);
+  const pakPaths = gameId === NEVERNESS_GAME_ID ? getNevernessDx12Paths(gameId) : null;
+  const pakRoots = new Set(Object.values(pakPaths?.pakModsDirs || {}).filter(Boolean).map(root => path.resolve(root).toLowerCase()));
+  if (modsPath && !pakRoots.has(path.resolve(modsPath).toLowerCase())) {
+    scanRoot(modsPath);
+    for (const container of LEGACY_CHARACTER_CONTAINER_NAMES) scanRoot(path.join(modsPath, container));
+  }
+  if (pakPaths) for (const root of Object.values(pakPaths.pakModsDirs)) scanRoot(root, pakPaths);
+  return plan;
+}
+electron.ipcMain.handle("character:list-hidden", async (_, requestedGameId) => {
+  try {
+    const gameId = getSettingsGame(requestedGameId)?.id;
+    if (!gameId) throw new Error("游戏不存在");
+    return { success: true, gameId, characters: hiddenCharacters.list(gameId).map(name => ({ name, coverUrl: getCharacterCoverUrl(name, gameId) })) };
+  } catch (error) { return { success: false, error: error.message }; }
+});
+electron.ipcMain.handle("character:set-hidden", async (_, { characterName, hidden, gameId: requestedGameId } = {}) => {
+  try {
+    const gameId = getSettingsGame(requestedGameId)?.id;
+    if (!gameId) throw new Error("游戏不存在");
+    if (typeof hidden !== "boolean") throw new Error("隐藏状态无效");
+    characterName = assertSafeAppearancePathSegment(characterName, "角色名称");
+    characterName = getCharacterMappingEntry(characterName, gameId)?.displayName || characterName;
+    const plan = hidden ? buildCharacterDisablePlan(characterName, gameId) : [];
+    const stateFiles = [];
+    if (currentConfig.persistBridgeEnabled) for (const item of plan.filter(item => !item.pak)) {
+      if (dirUsesManagedPersistBridge(item.from)) syncPersistBridgeStateForModDir(item.from);
+      stateFiles.push(...collectHostedPersistStateFilesForModDir(item.from));
+    }
+    const disabledCount = applyDisablePlan(plan, () => hiddenCharacters.set(gameId, characterName, hidden), moveDirectoryWithFallback);
+    if (stateFiles.length) {
+      const env = resolveActiveGameEnvRoot(gameId);
+      if (env?.root) updateActivePersistBridgeIncludesIncremental(env.root, { disableStateFiles: stateFiles });
+    }
+    clearConflictCache(characterName, gameId);
+    notifyCharacterListChanged(characterName, { gameId, reason: hidden ? "character-hidden" : "character-restored" });
+    if (hidden && gameId === getActiveGameScopeId()) hideSideWindow();
+    return { success: true, gameId, hidden, disabledCount };
+  } catch (error) { return { success: false, error: error.message }; }
+});
 electron.ipcMain.handle("get-characters", readCurrentCharacters);
 electron.ipcMain.handle("character:update-catalog", async (_, requestedGameId) => {
   const gameId = requestedGameId || getActiveGameScopeId();
@@ -10110,6 +10206,7 @@ electron.ipcMain.handle("toggle-mod", async (_, { characterName, modName, enable
     const gameId2 = getActiveGameScopeId();
     characterName = assertSafeAppearancePathSegment(characterName, "角色名称");
     modName = assertSafeAppearancePathSegment(modName, "Mod 名称");
+    if (enable) assertCharacterVisible(characterName, gameId2);
     if (isNevernessDx12Mode(gameId2)) {
       return toggleNevernessDx12PakMod(characterName, modName, enable);
     }
@@ -10810,7 +10907,8 @@ async function buildIntegratedCopyPlan(sourceModsDir, targetModsDir, gameId2 = g
     for (const entry of childEntries) {
       if (entry.name.startsWith(".")) continue;
       const sourcePath = path.join(sourceCharacterDir, entry.name);
-      const targetPath = path.join(targetCharacterDir, entry.name);
+      const targetName = entry.isDirectory() && isCharacterHidden(canonicalCharacterName, gameId2) && !/^DISABLED_/i.test(entry.name) ? `DISABLED_${entry.name}` : entry.name;
+      const targetPath = path.join(targetCharacterDir, targetName);
       const label = canonicalCharacterName === characterDir.name ? `${canonicalCharacterName} / ${entry.name}` : `${characterDir.name} -> ${canonicalCharacterName} / ${entry.name}`;
       if (entry.isDirectory()) {
         if (!directoryHasAnyFile(sourcePath)) continue;
@@ -14240,6 +14338,7 @@ electron.ipcMain.handle(
       const targetContext = resolveAppearanceCharacterContext(targetCharacterName, gameId2);
       const sourceName = sourceContext.characterName;
       const targetName = targetContext.characterName;
+      assertCharacterVisible(targetName, gameId2);
       const cleanModName = assertSafeAppearancePathSegment(modName, "Mod 名称");
       if (sourceName === targetName) return { error: "目标分类与当前分类相同" };
       organizeLegacyCharacterFoldersIfNeeded(gameId2);
@@ -14456,7 +14555,7 @@ function snapshotEnabledPresetMods(gameId2 = getActiveGameScopeId()) {
 }
 async function applyPresetModsForGame(preset, gameId2 = getActiveGameScopeId()) {
   const enableSet = new Set(
-    normalizePresetMods(preset.mods, gameId2).filter((mod) => mod.enabled !== false).map((mod) => `${mod.characterName}/${mod.modName}`)
+    normalizePresetMods(preset.mods, gameId2).filter((mod) => mod.enabled !== false && !isCharacterHidden(mod.characterName, gameId2)).map((mod) => `${mod.characterName}/${mod.modName}`)
   );
   const results = { enabled: 0, disabled: 0, missing: 0, errors: [] };
   if (isNevernessDx12Mode(gameId2)) {

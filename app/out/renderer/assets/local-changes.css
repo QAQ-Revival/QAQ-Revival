@@ -67,6 +67,16 @@ button.nav-item:focus-visible { outline: 2px solid var(--color-accent-primary, #
 .character-tool-button:focus-visible { outline: 2px solid var(--color-accent-primary, #ff8fa3); outline-offset: 1px; }
 .character-tool-button:disabled { opacity: .45; cursor: default; }
 .character-external-tools { margin-left: auto; }
+.hidden-characters-dialog { width: min(580px, calc(100vw - 40px)); max-height: calc(100vh - 80px); display: flex; flex-direction: column; gap: 16px; }
+.hidden-characters-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.hidden-characters-description { margin: 0; color: var(--color-text-secondary); font-size: 13px; line-height: 1.7; }
+.hidden-characters-list { min-height: 120px; overflow-y: auto; overscroll-behavior: contain; }
+.hidden-character-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(128,128,128,.12); }
+.hidden-character-row img { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; }
+.hidden-character-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.hidden-character-row .btn { flex-shrink: 0; }
+.hidden-characters-empty { padding: 20px 0; text-align: center; color: var(--color-text-secondary); line-height: 1.7; }
+.hidden-characters-error { color: var(--color-danger, #c25324); font-size: 13px; }
 @media (max-width: 1000px) {
   .character-import-actions { justify-content: flex-start; }
   .character-toolbar-actions { gap: 8px 16px; }
