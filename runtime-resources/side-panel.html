@@ -81,6 +81,16 @@ body {
 .detail-hotkey-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
 .detail-hotkey-row:last-child { border-bottom: none; }
 .detail-hotkey-desc { color: #666; font-weight: 500; flex: 1; min-width: 0; }
+.detail-hotkey-name { overflow-wrap: anywhere; }
+.detail-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 8px; margin-bottom: 6px; }
+.detail-status { flex: 1 1 120px; font-size: 10px; color: #999; }
+.detail-translate-btn { flex: none; padding: 5px 9px; border: 1px solid rgba(126, 96, 203, 0.2); border-radius: 7px; background: rgba(126, 96, 203, 0.07); color: #7e60cb; font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.detail-translate-btn:hover:not(:disabled) { background: rgba(126, 96, 203, 0.14); }
+.detail-translate-btn:focus-visible { outline: 2px solid #7e60cb; outline-offset: 2px; }
+.detail-translate-btn:disabled { opacity: 0.55; cursor: default; }
+.detail-translate-status { font-size: 10px; color: #888; line-height: 1.5; overflow-wrap: anywhere; }
+.detail-translate-status:empty { display: none; }
+.detail-translate-status.error { color: #c25324; }
 .detail-hotkey-keys { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 58%; }
 .detail-hotkey-alt { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; }
 .detail-hotkey-or { font-size: 9px; color: #aaa; align-self: center; }
@@ -220,6 +230,72 @@ html.overlay-compat *::after {
         }
     }
 
+    function bindDetailTranslation(sideBody, data) {
+        const button = sideBody.querySelector('#detailTranslateBtn');
+        const status = sideBody.querySelector('#detailTranslateStatus');
+        const labels = [...sideBody.querySelectorAll('.detail-hotkey-name')];
+        if (!button || !status) return;
+        const originals = labels.map(label => label.textContent);
+        const storageKey = 'hotkey-translation:v1:' + JSON.stringify([data.gameId, data.charName, data.modName]);
+        let translations = null;
+        let translated = false;
+        let saved = null;
+        try { saved = JSON.parse(localStorage.getItem(storageKey)); } catch {}
+        if (JSON.stringify(saved?.originals) === JSON.stringify(originals) && Array.isArray(saved?.translations) && saved.translations.length === originals.length && saved.translations.every(name => typeof name === 'string')) {
+            translations = saved.translations;
+        }
+
+        function renderTranslation(enabled, persist = true) {
+            translated = enabled;
+            labels.forEach((label, index) => {
+                const name = translated ? translations[index] : originals[index];
+                label.textContent = name;
+                label.title = translated ? originals[index] : '';
+                label.closest('.detail-hotkey-row').dataset.hotkeyDesc = name;
+            });
+            button.textContent = translated ? '显示原文' : '谷歌翻译';
+            button.setAttribute('aria-pressed', String(translated));
+            status.textContent = translated ? '已翻译为简体中文 · 悬停名称可查看原文' : '';
+            if (persist) {
+                try { localStorage.setItem(storageKey, JSON.stringify({ enabled: translated, originals, translations })); }
+                catch { status.textContent = '当前显示已切换，但未能保存翻译状态，请检查磁盘空间'; }
+            }
+        }
+        button.disabled = !originals.some(name => name.trim());
+        button.addEventListener('click', async () => {
+            if (button.disabled) return;
+            if (!translations) {
+                button.disabled = true;
+                button.textContent = '翻译中…';
+                button.setAttribute('aria-busy', 'true');
+                status.classList.remove('error');
+                status.textContent = '正在通过谷歌翻译快捷键名称…';
+                try {
+                    const result = await window.overlayApi.translateHotkeyNames(originals);
+                    // Content can change while the request is in flight.
+                    if (!button.isConnected) return;
+                    if (!result?.success) throw Error(result?.error || '翻译失败，请重试');
+                    if (!Array.isArray(result.translations) || result.translations.length !== originals.length || result.translations.some(name => typeof name !== 'string')) throw Error('翻译结果不完整，请重试');
+                    translations = result.translations;
+                } catch (error) {
+                    if (!button.isConnected) return;
+                    status.textContent = error?.message || '翻译失败，请重试';
+                    status.classList.add('error');
+                    button.textContent = '重试翻译';
+                    return;
+                } finally {
+                    button.disabled = false;
+                    button.setAttribute('aria-busy', 'false');
+                }
+            }
+            renderTranslation(!translated);
+        });
+        if (saved?.enabled && !button.disabled) {
+            if (translations) renderTranslation(true, false);
+            else button.click();
+        }
+    }
+
     async function applyDetailHotkey(row) {
         const hotkey = parseHotkeyPayload(row.dataset.hotkeyPayload);
         const description = row.dataset.hotkeyDesc || '快捷键';
@@ -285,6 +361,7 @@ html.overlay-compat *::after {
 
         // Bind toggle button for detail view
         if (data.type === 'detail') {
+            bindDetailTranslation(sideBody, data);
             const toggleBtn = document.getElementById('detailToggleBtn');
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', async () => {

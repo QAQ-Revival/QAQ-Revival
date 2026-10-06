@@ -1022,6 +1022,7 @@ html.overlay-compat *::after {
     let toastTimer = null;
     let isPinned = false;
     let selectedModName = null;
+    let detailRequestId = 0;
     let overlaySortMethod = 'name';
     let overlayExclusive = (() => {
         try {
@@ -1363,6 +1364,7 @@ html.overlay-compat *::after {
     }
 
     function clearOverlaySelectionState() {
+        detailRequestId++;
         selectedChar = null;
         selectedCharIndex = 0;
         selectedModName = null;
@@ -2604,6 +2606,9 @@ html.overlay-compat *::after {
 
     // ===== Detail Panel (side window) =====
     async function openDetail(modName) {
+        const requestId = ++detailRequestId;
+        const detailCharacter = selectedChar;
+        const isCurrentDetail = () => requestId === detailRequestId && selectedChar === detailCharacter && selectedModName === modName;
         const mod = currentMods.find(m => m.name === modName);
         if (!mod) {
             showToast('Mod 信息已更新，请重试');
@@ -2629,7 +2634,7 @@ html.overlay-compat *::after {
             if (mod.previewUrl) {
                 detailHtml += `<img class="detail-preview-img" src="${mod.previewUrl}" alt="">`;
             }
-            detailHtml += `<div style="font-size:10px;color:#999;margin-bottom:6px;">状态: ${mod.enabled ? '✅ 已启用' : '⬜ 已禁用'} | 角色: ${escapeHtml(selectedChar)}</div>`;
+            detailHtml += `<div class="detail-meta"><span class="detail-status">状态: ${mod.enabled ? '✅ 已启用' : '⬜ 已禁用'} | 角色: ${escapeHtml(selectedChar)}</span><button type="button" class="detail-translate-btn" id="detailTranslateBtn" disabled aria-pressed="false" title="使用谷歌翻译将下方快捷键名称翻译成简体中文">谷歌翻译</button></div><div class="detail-translate-status" id="detailTranslateStatus" role="status" aria-live="polite"></div>`;
             if (mod.hasConflict && mod.enabled) {
                 detailHtml += `<div style="font-size:10px;color:#e67e22;background:#fff8e1;padding:4px 8px;border-radius:6px;margin-bottom:6px;">⚠️ 哈希冲突</div>`;
             }
@@ -2654,6 +2659,7 @@ html.overlay-compat *::after {
             }
         });
 
+        if (!isCurrentDetail()) return;
         if (!sideResult || !sideResult.success) {
             showToast(sideResult?.error || '打开详情失败');
             return;
@@ -2662,7 +2668,8 @@ html.overlay-compat *::after {
         document.querySelectorAll('.mod-item, .mod-gallery-item').forEach(el => el.classList.toggle('selected', el.dataset.mod === modName));
 
         try {
-            const details = await window.overlayApi.getModDetails(selectedChar, modName);
+            const details = await window.overlayApi.getModDetails(detailCharacter, modName);
+            if (!isCurrentDetail()) return;
             let hkHtml = '';
             if (details.success && details.hotkeys && details.hotkeys.length > 0) {
                 hkHtml = '<div style="font-size:10px;font-weight:700;color:#555;margin-bottom:4px;">⌨️ 快捷键</div>' +
@@ -2684,7 +2691,7 @@ html.overlay-compat *::after {
                             : '';
                         return `
                             <div class="detail-hotkey-row${clickableClass}" ${clickableAttr} data-hotkey-index="${index}" data-hotkey-desc="${desc}" data-hotkey-payload="${encodedPayload}">
-                                <span class="detail-hotkey-desc">${desc}${unsupportedHint}</span>
+                                <span class="detail-hotkey-desc"><span class="detail-hotkey-name">${desc}</span>${unsupportedHint}</span>
                                 <span class="detail-hotkey-keys">${alternatives.map((alt, altIndex) => {
                                     const keys = Array.isArray(alt.displayKeys) ? alt.displayKeys : [];
                                     return `<span class="detail-hotkey-alt">${keys.map(k => `<span class="detail-kbd">${escapeHtml(k)}</span>`).join('')}</span>${altIndex < alternatives.length - 1 ? '<span class="detail-hotkey-or">或</span>' : ''}`;
@@ -2710,6 +2717,7 @@ html.overlay-compat *::after {
                 clickableHotkeysEnabled: !!overlaySettings.clickableHotkeysEnabled
             });
         } catch (error) {
+            if (!isCurrentDetail()) return;
             showToast(error?.message || '快捷键读取失败');
             window.overlayApi.updateSide({
                 type: 'detail',

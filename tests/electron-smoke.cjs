@@ -15,7 +15,7 @@ const fixerExe = path.join(root, "独立修复器 & Tester's tool.exe");
 const replacementFixerExe = path.join(root, '另一个修复器.exe');
 const attachmentRequests = [], externalLinks = [];
 const softwareUpdateRequests = [];
-let softwareReleaseVersion = '1.0.1';
+let softwareReleaseVersion = require('../app/package.json').version;
 const attachmentZip = new (runtimeRequire('adm-zip'))();
 attachmentZip.addFile('FixtureMod/mod.ini', Buffer.from('[TextureOverrideFixture]\nhash = 12345678\n'));
 const attachmentBytes = attachmentZip.toBuffer();
@@ -46,7 +46,10 @@ fs.writeFileSync(path.join(profile, 'config.json'), JSON.stringify({
   independentFixerPaths: { 'wuthering-waves': path.join(root, 'missing-fixer.exe'), endfield: path.join(root, 'missing-endfield-fixer.exe') },
   games: [
     { id: 'wuthering-waves', name: '鸣潮', shortName: '鸣潮', modFolderPath: mods, modLoaderPath: loader, launchMode: 'WWMI', supportedLaunchModes: ['WWMI', 'XXMI'] },
-    { id: 'endfield', name: '明日方舟终末地', shortName: '终末地', modFolderPath: endfield, modLoaderPath: loader, launchMode: 'EFMI', supportedLaunchModes: ['EFMI', 'XXMI'] }
+    { id: 'endfield', name: '明日方舟终末地', shortName: '终末地', modFolderPath: endfield, modLoaderPath: loader, launchMode: 'EFMI', supportedLaunchModes: ['EFMI', 'XXMI'] },
+    ...(process.env.QAQM_SMOKE_SCOPE === 'hidden-characters' ? [{ id: 'neverness-to-everness', name: '异环', shortName: '异环',
+      gamePath: path.join(root, 'nte-game', 'NTELauncher.exe'), modFolderPath: path.join(root, 'nte-mods'), nevernessDx12DisabledModsDir: path.join(root, 'nte-disabled'),
+      launchMode: 'NEMI', supportedLaunchModes: ['NEMI', 'XXMI'] }] : [])
   ]
 }));
 fs.writeFileSync(path.join(profile, 'skin-config.json'), JSON.stringify({ activeSkinId: 'supporter', activatedSkins: [{ skinId: 'supporter', skinName: '旧功能包', cssVariables: { '--color-accent-primary': '#000000' } }] }));
@@ -259,6 +262,16 @@ async function main() {
   assert.equal(await evaluate(`!!document.querySelector('.disclaimer-overlay, .startup-notice-overlay')`), false);
   assert.equal(await evaluate(`localStorage.getItem('hideDisclaimer_v3')`), null);
   assert.ok(await evaluate(`!('getDisclaimerDismissed' in window.api) && !('setDisclaimerDismissed' in window.api)`));
+  if (process.env.QAQM_SMOKE_SCOPE === 'translation') {
+    await require('./hotkey-translation-smoke.cjs')({ electron, root, mods, passed });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'hidden-characters') {
+    await require('./hidden-characters-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, profile, mods, handlers, passed });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
   assert.equal(handlers.has('get-disclaimer-dismissed') || handlers.has('set-disclaimer-dismissed'), false);
   passed('Fresh profile opens directly without a disclaimer, author popup, or dismissal APIs');
   assert.deepEqual(retiredMainRequests, []);

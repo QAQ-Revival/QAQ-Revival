@@ -20,11 +20,13 @@ if (prepareRunner.error || prepareRunner.status !== 0) {
   fs.unlinkSync(testExecutable);
   throw prepareRunner.error || Error(prepareRunner.stderr || 'Could not prepare the smoke runner');
 }
-const testEntry = process.argv.includes('--single-instance') ? 'single-instance-smoke.cjs' : 'electron-smoke.cjs';
+const testEntry = process.argv.includes('--single-instance') ? 'single-instance-smoke.cjs' : process.argv.includes('--hidden-characters-restart') ? 'hidden-characters-restart.cjs' : 'electron-smoke.cjs';
 fs.writeFileSync(entry, `require(${JSON.stringify(path.join(root, 'tests', testEntry))});`);
 manifest.main = './smoke-entry.cjs';
 fs.writeFileSync(manifestPath, JSON.stringify(manifest));
 const env = { ...process.env, QAQM_TEST_RESULTS: results, QAQM_USER_DATA: path.join(results, 'AppData/QAQ-Revival') };
+if (process.argv.includes('--translation')) env.QAQM_SMOKE_SCOPE = 'translation';
+if (process.argv.includes('--hidden-characters')) env.QAQM_SMOKE_SCOPE = 'hidden-characters';
 delete env.ELECTRON_RUN_AS_NODE;
 const log = fs.openSync(path.join(results, 'electron.log'), 'w');
 const child = spawn(testExecutable, [], { cwd: runtime, env, windowsHide: true, stdio: ['ignore', log, log] });

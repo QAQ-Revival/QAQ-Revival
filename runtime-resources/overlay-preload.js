@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('overlayApi', {
     togglePin: (pinned) => ipcRenderer.invoke('overlay-toggle-pin', pinned),
     changeHotkey: (hotkey) => ipcRenderer.invoke('overlay-change-hotkey', hotkey),
     getModDetails: (characterName, modName) => ipcRenderer.invoke('get-mod-details', { characterName, modName }),
+    translateHotkeyNames: (names) => ipcRenderer.invoke('overlay-translate-hotkey-names', names),
     showSide: (opts) => ipcRenderer.invoke('overlay-show-side', opts || {}),
     hideSide: () => ipcRenderer.invoke('overlay-hide-side'),
     updateSide: (content) => ipcRenderer.invoke('overlay-update-side', content),

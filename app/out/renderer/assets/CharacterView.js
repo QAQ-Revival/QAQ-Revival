@@ -1,5 +1,6 @@
 import { g as getDefaultExportFromCjs, r as reactExports, R as ReactDOM, j as jsxRuntimeExports, _ as __vitePreload } from "./index.js";
 import { i as isManagedInstallContentType, M as MANAGED_INSTALL_OPTIONS, n as normalizeInstallContentType, g as getInstallContentTypeLabel, a as getManagedInstallResultMessage } from "./managedInstall.js";
+import HiddenCharactersDialog from "./HiddenCharactersDialog.js";
 var extendStatics = function(d, b) {
   extendStatics = Object.setPrototypeOf || { __proto__: [] } instanceof Array && function(d2, b2) {
     d2.__proto__ = b2;
@@ -1701,6 +1702,9 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
   const [loadError, setLoadError] = reactExports.useState(() => initialCache?.loadError || "");
   const [showAddModal, setShowAddModal] = reactExports.useState(false);
   const [showDeleteModal, setShowDeleteModal] = reactExports.useState(null);
+  const [showHiddenCharacters, setShowHiddenCharacters] = reactExports.useState(false);
+  const [hiddenCharacterCount, setHiddenCharacterCount] = reactExports.useState(0);
+  const [hidingCharacter, setHidingCharacter] = reactExports.useState(false);
   const [newCharName, setNewCharName] = reactExports.useState("");
   const [toast, setToast] = reactExports.useState(null);
   const [draggingOver, setDraggingOver] = reactExports.useState(null);
@@ -1744,7 +1748,7 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
   const [renameValue, setRenameValue] = reactExports.useState("");
   const renameInputRef = reactExports.useRef(null);
   const [showScrollTop, setShowScrollTop] = reactExports.useState(false);
-  const isManagementModalOpen = showAddModal || !!showDeleteModal;
+  const isManagementModalOpen = showAddModal || !!showDeleteModal || showHiddenCharacters;
   const canDragReorder = sortMethod === "common" && !searchQuery.trim();
   const [characterContextMenu, setCharacterContextMenu] = reactExports.useState(null);
   const [fixRunning, setFixRunning] = reactExports.useState(false);
@@ -1982,6 +1986,8 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
   }
   reactExports.useEffect(() => {
     fetchCharacters({ keepVisible: !!initialCache || initialized });
+    setShowHiddenCharacters(false);
+    setHiddenCharacterCount(0);
   }, [activeGame?.id]);
   reactExports.useEffect(() => {
     if (initialCache?.needsRefresh) {
@@ -2167,6 +2173,7 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
         setMissingPath(false);
         setLoadError("");
         setCharacters(nextCharacters);
+        setHiddenCharacterCount(result.hiddenCount || 0);
         setCharacterCovers(nextCovers);
         setLegacyImportPreview(null);
         setLooseRootFolders(null);
@@ -2707,6 +2714,19 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
       setToast({ type: "error", message: "删除出错: " + e.message });
     }
   }
+  async function handleHideCharacter(charName) {
+    if (hidingCharacter) return;
+    setCharacterContextMenu(null);
+    setHidingCharacter(true);
+    try {
+      const result = await window.api.setCharacterHidden(charName, true, activeGame?.id);
+      if (!result?.success) throw Error(result?.error || "隐藏角色失败");
+      await fetchCharacters({ keepVisible: true });
+      setToast({ type: "success", message: `已隐藏「${charName}」，禁用 ${result.disabledCount} 个 Mod；可在顶部「隐藏角色」中恢复` });
+    } catch (error) {
+      setToast({ type: "error", message: error.message || "隐藏角色失败" });
+    } finally { setHidingCharacter(false); }
+  }
   async function handleDropCover(charName, e) {
     const files = e.dataTransfer.files;
     const file = files && files.length > 0 ? files[0] : null;
@@ -3024,7 +3044,7 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
   }
   function openCharacterContextMenu(event, charName, pinned) {
     const menuWidth = 220;
-    const menuHeight = (isWuwa ? 236 : 190) + (pendingMoveMod ? 44 : 0);
+    const menuHeight = (isWuwa ? 236 : 190) + 44 + (pendingMoveMod ? 44 : 0);
     const viewportPadding = 12;
     const desiredX = event.clientX + 8;
     const desiredY = event.clientY + 8;
@@ -3062,7 +3082,8 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
     const group = (label, className, ...children) => h("div", { className: "character-action-group " + className, role: "group", "aria-label": label }, h("span", { className: "character-action-label" }, label), ...children);
     return h("div", { className: "character-toolbar-actions" },
       group("角色资料", "",
-        button(updatingCharacters ? "更新中..." : "更新角色", "联网更新角色资料，补充缺少的空分类，保留现有目录和 Mod", handleUpdateCharacters)),
+        button(updatingCharacters ? "更新中..." : "更新角色", "联网更新角色资料，补充缺少的空分类，保留现有目录和 Mod", handleUpdateCharacters),
+        button(`隐藏角色${hiddenCharacterCount ? ` (${hiddenCharacterCount})` : ""}`, "管理当前游戏的隐藏角色，恢复显示不会自动启用 Mod", () => setShowHiddenCharacters(true), hidingCharacter)),
       group("本地文件", "",
         button(refreshingCharacters ? "刷新中..." : "刷新", "重新读取本地最新内容，不移动文件", handleRefreshCharacters),
         button(scanningOrganization ? "扫描中..." : "整理", "按规则预览移动计划，确认后才整理文件", () => handleOrganizeCharacters(), busy || missingPath)),
@@ -4208,6 +4229,11 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
         onSave: onCropSave
       }
     ),
+    showHiddenCharacters && reactExports.createElement(HiddenCharactersDialog, {
+      key: activeGame?.id, gameId: activeGame?.id, gameName: activeGame?.name,
+      onClose: () => setShowHiddenCharacters(false),
+      onRestored: (name) => { fetchCharacters({ keepVisible: true }); setToast({ type: "success", message: `已恢复显示「${name}」，Mod 保持禁用` }); }
+    }),
     showAddModal && renderManagementModal(
       /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-h2", style: { marginBottom: "20px", color: "var(--color-accent-primary)" }, children: "✨ 新增角色" }),
@@ -4304,6 +4330,7 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
           children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "character-context-item", onClick: () => handlePinCharacter(characterContextMenu.name), children: characterContextMenu.pinned ? "📍 取消置顶" : "📌 置顶到最上方" }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "character-context-item", onClick: () => handleOpenCharacterFolder(characterContextMenu.name), children: "📂 打开源文件夹" }),
+            reactExports.createElement("button", { className: "character-context-item", disabled: hidingCharacter, title: "保留角色文件，禁用该角色的全部 Mod，并从列表中隐藏", onClick: () => handleHideCharacter(characterContextMenu.name) }, "隐藏角色（禁用全部 Mod）"),
             pendingMoveMod && characterContextMenu.name !== pendingMoveMod.characterName && /* @__PURE__ */ jsxRuntimeExports.jsx(
               "button",
               {

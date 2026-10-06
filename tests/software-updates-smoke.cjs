@@ -1,6 +1,8 @@
 const assert = require('node:assert/strict');
 const path = require('node:path');
 module.exports = async ({ evaluate, waitFor, window, passed, requests, externalLinks, setRelease }) => {
+  const currentVersion = require('../app/package.json').version.split('.').map(Number);
+  const nextVersion = [currentVersion[0], currentVersion[1], currentVersion[2] + 1].join('.');
   await evaluate(`document.querySelector('.sidebar-settings').click()`);
   await waitFor(`!!document.querySelector('[data-category="about"]')`, 'settings categories');
   await evaluate(`document.querySelector('[data-category="about"]').click()`);
@@ -17,14 +19,14 @@ module.exports = async ({ evaluate, waitFor, window, passed, requests, externalL
   await days('7'); await waitFor(`window.api.softwareUpdateState().then(result=>result.state.intervalDays===7)`, 'weekly setting saved');
   await evaluate(`document.querySelector('[aria-label="自动检查 GitHub 更新"]').click()`);
   await waitFor(`window.api.softwareUpdateState().then(result=>result.state.enabled===false)`, 'automatic checking disabled');
-  setRelease('1.0.2');
+  setRelease(nextVersion);
   await evaluate(`Array.from(document.querySelectorAll('#settings-software-update button')).find(button=>button.textContent==='立即检查').click()`);
-  await waitFor(`document.querySelector('.software-update-summary')?.textContent.includes('1.0.2')`, 'manual check while disabled');
+  await waitFor(`document.querySelector('.software-update-summary')?.textContent.includes(${JSON.stringify(nextVersion)})`, 'manual check while disabled');
   assert.equal(requests.length, 2);
   for (const options of requests) assert.equal(Object.hasOwn(options.headers, 'Authorization'), false);
   await evaluate(`Array.from(document.querySelectorAll('#settings-software-update button')).find(button=>button.textContent==='查看 GitHub 发布页').click()`);
   await waitFor(`!Array.from(document.querySelectorAll('#settings-software-update button')).some(button=>button.disabled)`, 'release page opened');
-  assert.ok(externalLinks.includes('https://github.com/QAQ-Revival/QAQ-Revival/releases/tag/v1.0.2'));
+  assert.ok(externalLinks.includes('https://github.com/QAQ-Revival/QAQ-Revival/releases/tag/v' + nextVersion));
   await evaluate(`document.querySelector('[aria-label="不再提醒此版本"]').click()`);
   await waitFor(`!document.querySelector('.software-update-notice')`, 'notice dismissed');
   await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));
