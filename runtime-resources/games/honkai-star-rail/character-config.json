@@ -1,0 +1,1982 @@
+{
+  "gameId": "honkai-star-rail",
+  "defaultCharacters": [
+    "黄泉",
+    "阿格莱雅",
+    "那刻夏",
+    "Archer",
+    "银枝",
+    "阿兰",
+    "不死途",
+    "艾丝妲",
+    "砂金",
+    "白露",
+    "黑天鹅",
+    "刃",
+    "波提欧",
+    "布洛妮娅",
+    "男主",
+    "遐蝶",
+    "刻律德菈",
+    "赛飞儿",
+    "克拉拉",
+    "昔涟",
+    "丹恒",
+    "丹恒-饮月",
+    "丹恒-腾荒",
+    "真理医生",
+    "绯英",
+    "长夜月",
+    "飞霄",
+    "流萤",
+    "符玄",
+    "忘归人",
+    "加拉赫",
+    "杰帕德",
+    "桂乃芬",
+    "寒鸦",
+    "黑塔",
+    "姬子",
+    "虎克",
+    "藿藿",
+    "风堇",
+    "海瑟音",
+    "翡翠",
+    "椒丘",
+    "景元",
+    "镜流",
+    "卡芙卡",
+    "灵砂",
+    "卢卡",
+    "罗刹",
+    "玲可",
+    "三月七-存护",
+    "三月七-巡猎",
+    "米沙",
+    "刃-千治",
+    "貊泽",
+    "万敌",
+    "娜塔莎",
+    "佩拉",
+    "白厄",
+    "青雀",
+    "乱破",
+    "知更鸟",
+    "阮梅",
+    "Saber",
+    "桑博",
+    "希儿",
+    "希露瓦",
+    "银狼",
+    "银狼LV.999",
+    "花火",
+    "火花",
+    "女主",
+    "星期日",
+    "素裳",
+    "大丽花",
+    "大黑塔",
+    "停云",
+    "托帕&账账",
+    "缇宝",
+    "瓦尔特",
+    "雪衣",
+    "彦卿",
+    "爻光",
+    "驭空",
+    "云璃",
+    "真珠",
+    "远坂凛",
+    "吉尔伽美什",
+    "姬子•启行",
+    "知更鸟•晴歌",
+    "砂金•戏浪",
+    "NPC",
+    "大世界",
+    "UI",
+    "功能",
+    "其他",
+    "光锥"
+  ],
+  "manualMappings": {
+    "黄泉": {
+      "displayName": "黄泉",
+      "canonicalEnName": "Acheron"
+    },
+    "acheron": {
+      "displayName": "黄泉",
+      "canonicalEnName": "Acheron"
+    },
+    "阿格莱雅": {
+      "displayName": "阿格莱雅",
+      "canonicalEnName": "Aglaea"
+    },
+    "aglaea": {
+      "displayName": "阿格莱雅",
+      "canonicalEnName": "Aglaea"
+    },
+    "那刻夏": {
+      "displayName": "那刻夏",
+      "canonicalEnName": "Anaxa"
+    },
+    "anaxa": {
+      "displayName": "那刻夏",
+      "canonicalEnName": "Anaxa"
+    },
+    "archer": {
+      "displayName": "Archer",
+      "canonicalEnName": "Archer"
+    },
+    "银枝": {
+      "displayName": "银枝",
+      "canonicalEnName": "Argenti"
+    },
+    "argenti": {
+      "displayName": "银枝",
+      "canonicalEnName": "Argenti"
+    },
+    "阿兰": {
+      "displayName": "阿兰",
+      "canonicalEnName": "Arlan"
+    },
+    "arlan": {
+      "displayName": "阿兰",
+      "canonicalEnName": "Arlan"
+    },
+    "不死途": {
+      "displayName": "不死途",
+      "canonicalEnName": "Ashveil"
+    },
+    "ashveil": {
+      "displayName": "不死途",
+      "canonicalEnName": "Ashveil"
+    },
+    "艾丝妲": {
+      "displayName": "艾丝妲",
+      "canonicalEnName": "Asta"
+    },
+    "asta": {
+      "displayName": "艾丝妲",
+      "canonicalEnName": "Asta"
+    },
+    "砂金": {
+      "displayName": "砂金",
+      "canonicalEnName": "Aventurine"
+    },
+    "aventurine": {
+      "displayName": "砂金",
+      "canonicalEnName": "Aventurine"
+    },
+    "白露": {
+      "displayName": "白露",
+      "canonicalEnName": "Bailu"
+    },
+    "bailu": {
+      "displayName": "白露",
+      "canonicalEnName": "Bailu"
+    },
+    "黑天鹅": {
+      "displayName": "黑天鹅",
+      "canonicalEnName": "Black Swan"
+    },
+    "black swan": {
+      "displayName": "黑天鹅",
+      "canonicalEnName": "Black Swan"
+    },
+    "blackswan": {
+      "displayName": "黑天鹅",
+      "canonicalEnName": "Black Swan"
+    },
+    "刃": {
+      "displayName": "刃",
+      "canonicalEnName": "Blade"
+    },
+    "blade": {
+      "displayName": "刃",
+      "canonicalEnName": "Blade"
+    },
+    "波提欧": {
+      "displayName": "波提欧",
+      "canonicalEnName": "Boothill"
+    },
+    "boothill": {
+      "displayName": "波提欧",
+      "canonicalEnName": "Boothill"
+    },
+    "布洛妮娅": {
+      "displayName": "布洛妮娅",
+      "canonicalEnName": "Bronya"
+    },
+    "bronya": {
+      "displayName": "布洛妮娅",
+      "canonicalEnName": "Bronya"
+    },
+    "男主": {
+      "displayName": "男主",
+      "canonicalEnName": "Caelus"
+    },
+    "caelus": {
+      "displayName": "男主",
+      "canonicalEnName": "Caelus"
+    },
+    "male trailblazer": {
+      "displayName": "男主",
+      "canonicalEnName": "Caelus"
+    },
+    "trailblazer male": {
+      "displayName": "男主",
+      "canonicalEnName": "Caelus"
+    },
+    "trailblazer (male)": {
+      "displayName": "男主",
+      "canonicalEnName": "Caelus"
+    },
+    "遐蝶": {
+      "displayName": "遐蝶",
+      "canonicalEnName": "Castorice"
+    },
+    "castorice": {
+      "displayName": "遐蝶",
+      "canonicalEnName": "Castorice"
+    },
+    "刻律德菈": {
+      "displayName": "刻律德菈",
+      "canonicalEnName": "Cerydra"
+    },
+    "cerydra": {
+      "displayName": "刻律德菈",
+      "canonicalEnName": "Cerydra"
+    },
+    "赛飞儿": {
+      "displayName": "赛飞儿",
+      "canonicalEnName": "Cipher"
+    },
+    "cipher": {
+      "displayName": "赛飞儿",
+      "canonicalEnName": "Cipher"
+    },
+    "克拉拉": {
+      "displayName": "克拉拉",
+      "canonicalEnName": "Clara"
+    },
+    "clara": {
+      "displayName": "克拉拉",
+      "canonicalEnName": "Clara"
+    },
+    "昔涟": {
+      "displayName": "昔涟",
+      "canonicalEnName": "Cyrene"
+    },
+    "cyrene": {
+      "displayName": "昔涟",
+      "canonicalEnName": "Cyrene"
+    },
+    "丹恒": {
+      "displayName": "丹恒",
+      "canonicalEnName": "Dan Heng"
+    },
+    "dan heng": {
+      "displayName": "丹恒",
+      "canonicalEnName": "Dan Heng"
+    },
+    "danheng": {
+      "displayName": "丹恒",
+      "canonicalEnName": "Dan Heng"
+    },
+    "丹恒-饮月": {
+      "displayName": "丹恒-饮月",
+      "canonicalEnName": "Dan Heng - Imbibitor Lunae"
+    },
+    "dan heng - imbibitor lunae": {
+      "displayName": "丹恒-饮月",
+      "canonicalEnName": "Dan Heng - Imbibitor Lunae"
+    },
+    "dhil": {
+      "displayName": "丹恒-饮月",
+      "canonicalEnName": "Dan Heng - Imbibitor Lunae"
+    },
+    "imbibitor lunae": {
+      "displayName": "丹恒-饮月",
+      "canonicalEnName": "Dan Heng - Imbibitor Lunae"
+    },
+    "dan heng imbibitor lunae": {
+      "displayName": "丹恒-饮月",
+      "canonicalEnName": "Dan Heng - Imbibitor Lunae"
+    },
+    "dan heng-imbibitor lunae": {
+      "displayName": "丹恒-饮月",
+      "canonicalEnName": "Dan Heng - Imbibitor Lunae"
+    },
+    "丹恒-腾荒": {
+      "displayName": "丹恒-腾荒",
+      "canonicalEnName": "Dan Heng - Permansor Terrae"
+    },
+    "dan heng - permansor terrae": {
+      "displayName": "丹恒-腾荒",
+      "canonicalEnName": "Dan Heng - Permansor Terrae"
+    },
+    "dhpt": {
+      "displayName": "丹恒-腾荒",
+      "canonicalEnName": "Dan Heng - Permansor Terrae"
+    },
+    "permansor terrae": {
+      "displayName": "丹恒-腾荒",
+      "canonicalEnName": "Dan Heng - Permansor Terrae"
+    },
+    "dan heng permansor terrae": {
+      "displayName": "丹恒-腾荒",
+      "canonicalEnName": "Dan Heng - Permansor Terrae"
+    },
+    "dan heng-permansor terrae": {
+      "displayName": "丹恒-腾荒",
+      "canonicalEnName": "Dan Heng - Permansor Terrae"
+    },
+    "真理医生": {
+      "displayName": "真理医生",
+      "canonicalEnName": "Dr. Ratio"
+    },
+    "dr. ratio": {
+      "displayName": "真理医生",
+      "canonicalEnName": "Dr. Ratio"
+    },
+    "drratio": {
+      "displayName": "真理医生",
+      "canonicalEnName": "Dr. Ratio"
+    },
+    "dr ratio": {
+      "displayName": "真理医生",
+      "canonicalEnName": "Dr. Ratio"
+    },
+    "ratio": {
+      "displayName": "真理医生",
+      "canonicalEnName": "Dr. Ratio"
+    },
+    "绯英": {
+      "displayName": "绯英",
+      "canonicalEnName": "Evanescia"
+    },
+    "evanescia": {
+      "displayName": "绯英",
+      "canonicalEnName": "Evanescia"
+    },
+    "长夜月": {
+      "displayName": "长夜月",
+      "canonicalEnName": "Evernight"
+    },
+    "evernight": {
+      "displayName": "长夜月",
+      "canonicalEnName": "Evernight"
+    },
+    "飞霄": {
+      "displayName": "飞霄",
+      "canonicalEnName": "Feixiao"
+    },
+    "feixiao": {
+      "displayName": "飞霄",
+      "canonicalEnName": "Feixiao"
+    },
+    "流萤": {
+      "displayName": "流萤",
+      "canonicalEnName": "Firefly"
+    },
+    "firefly": {
+      "displayName": "流萤",
+      "canonicalEnName": "Firefly"
+    },
+    "符玄": {
+      "displayName": "符玄",
+      "canonicalEnName": "Fu Xuan"
+    },
+    "fu xuan": {
+      "displayName": "符玄",
+      "canonicalEnName": "Fu Xuan"
+    },
+    "fuxuan": {
+      "displayName": "符玄",
+      "canonicalEnName": "Fu Xuan"
+    },
+    "忘归人": {
+      "displayName": "忘归人",
+      "canonicalEnName": "Fugue"
+    },
+    "fugue": {
+      "displayName": "忘归人",
+      "canonicalEnName": "Fugue"
+    },
+    "tingyun5s": {
+      "displayName": "忘归人",
+      "canonicalEnName": "Fugue"
+    },
+    "tingyun 5s": {
+      "displayName": "忘归人",
+      "canonicalEnName": "Fugue"
+    },
+    "加拉赫": {
+      "displayName": "加拉赫",
+      "canonicalEnName": "Gallagher"
+    },
+    "gallagher": {
+      "displayName": "加拉赫",
+      "canonicalEnName": "Gallagher"
+    },
+    "杰帕德": {
+      "displayName": "杰帕德",
+      "canonicalEnName": "Gepard"
+    },
+    "gepard": {
+      "displayName": "杰帕德",
+      "canonicalEnName": "Gepard"
+    },
+    "桂乃芬": {
+      "displayName": "桂乃芬",
+      "canonicalEnName": "Guinaifen"
+    },
+    "guinaifen": {
+      "displayName": "桂乃芬",
+      "canonicalEnName": "Guinaifen"
+    },
+    "寒鸦": {
+      "displayName": "寒鸦",
+      "canonicalEnName": "Hanya"
+    },
+    "hanya": {
+      "displayName": "寒鸦",
+      "canonicalEnName": "Hanya"
+    },
+    "黑塔": {
+      "displayName": "黑塔",
+      "canonicalEnName": "Herta"
+    },
+    "herta": {
+      "displayName": "黑塔",
+      "canonicalEnName": "Herta"
+    },
+    "姬子": {
+      "displayName": "姬子",
+      "canonicalEnName": "Himeko"
+    },
+    "himeko": {
+      "displayName": "姬子",
+      "canonicalEnName": "Himeko"
+    },
+    "虎克": {
+      "displayName": "虎克",
+      "canonicalEnName": "Hook"
+    },
+    "hook": {
+      "displayName": "虎克",
+      "canonicalEnName": "Hook"
+    },
+    "藿藿": {
+      "displayName": "藿藿",
+      "canonicalEnName": "Huohuo"
+    },
+    "huohuo": {
+      "displayName": "藿藿",
+      "canonicalEnName": "Huohuo"
+    },
+    "风堇": {
+      "displayName": "风堇",
+      "canonicalEnName": "Hyacine"
+    },
+    "hyacine": {
+      "displayName": "风堇",
+      "canonicalEnName": "Hyacine"
+    },
+    "海瑟音": {
+      "displayName": "海瑟音",
+      "canonicalEnName": "Hysilens"
+    },
+    "hysilens": {
+      "displayName": "海瑟音",
+      "canonicalEnName": "Hysilens"
+    },
+    "翡翠": {
+      "displayName": "翡翠",
+      "canonicalEnName": "Jade"
+    },
+    "jade": {
+      "displayName": "翡翠",
+      "canonicalEnName": "Jade"
+    },
+    "椒丘": {
+      "displayName": "椒丘",
+      "canonicalEnName": "Jiaoqiu"
+    },
+    "jiaoqiu": {
+      "displayName": "椒丘",
+      "canonicalEnName": "Jiaoqiu"
+    },
+    "景元": {
+      "displayName": "景元",
+      "canonicalEnName": "Jing Yuan"
+    },
+    "jing yuan": {
+      "displayName": "景元",
+      "canonicalEnName": "Jing Yuan"
+    },
+    "jingyuan": {
+      "displayName": "景元",
+      "canonicalEnName": "Jing Yuan"
+    },
+    "镜流": {
+      "displayName": "镜流",
+      "canonicalEnName": "Jingliu"
+    },
+    "jingliu": {
+      "displayName": "镜流",
+      "canonicalEnName": "Jingliu"
+    },
+    "卡芙卡": {
+      "displayName": "卡芙卡",
+      "canonicalEnName": "Kafka"
+    },
+    "kafka": {
+      "displayName": "卡芙卡",
+      "canonicalEnName": "Kafka"
+    },
+    "灵砂": {
+      "displayName": "灵砂",
+      "canonicalEnName": "Lingsha"
+    },
+    "lingsha": {
+      "displayName": "灵砂",
+      "canonicalEnName": "Lingsha"
+    },
+    "卢卡": {
+      "displayName": "卢卡",
+      "canonicalEnName": "Luka"
+    },
+    "luka": {
+      "displayName": "卢卡",
+      "canonicalEnName": "Luka"
+    },
+    "罗刹": {
+      "displayName": "罗刹",
+      "canonicalEnName": "Luocha"
+    },
+    "luocha": {
+      "displayName": "罗刹",
+      "canonicalEnName": "Luocha"
+    },
+    "玲可": {
+      "displayName": "玲可",
+      "canonicalEnName": "Lynx"
+    },
+    "lynx": {
+      "displayName": "玲可",
+      "canonicalEnName": "Lynx"
+    },
+    "三月七-存护": {
+      "displayName": "三月七-存护",
+      "canonicalEnName": "March 7th"
+    },
+    "march 7th": {
+      "displayName": "三月七-存护",
+      "canonicalEnName": "March 7th"
+    },
+    "march7": {
+      "displayName": "三月七-存护",
+      "canonicalEnName": "March 7th"
+    },
+    "三月七": {
+      "displayName": "三月七-存护",
+      "canonicalEnName": "March 7th"
+    },
+    "march": {
+      "displayName": "三月七-存护",
+      "canonicalEnName": "March 7th"
+    },
+    "march 7": {
+      "displayName": "三月七-存护",
+      "canonicalEnName": "March 7th"
+    },
+    "三月七-巡猎": {
+      "displayName": "三月七-巡猎",
+      "canonicalEnName": "March 7th: The Hunt"
+    },
+    "march 7th: the hunt": {
+      "displayName": "三月七-巡猎",
+      "canonicalEnName": "March 7th: The Hunt"
+    },
+    "米沙": {
+      "displayName": "米沙",
+      "canonicalEnName": "Misha"
+    },
+    "misha": {
+      "displayName": "米沙",
+      "canonicalEnName": "Misha"
+    },
+    "刃-千治": {
+      "displayName": "刃-千治",
+      "canonicalEnName": "Mortenax Blade"
+    },
+    "mortenax blade": {
+      "displayName": "刃-千治",
+      "canonicalEnName": "Mortenax Blade"
+    },
+    "貊泽": {
+      "displayName": "貊泽",
+      "canonicalEnName": "Moze"
+    },
+    "moze": {
+      "displayName": "貊泽",
+      "canonicalEnName": "Moze"
+    },
+    "万敌": {
+      "displayName": "万敌",
+      "canonicalEnName": "Mydei"
+    },
+    "mydei": {
+      "displayName": "万敌",
+      "canonicalEnName": "Mydei"
+    },
+    "娜塔莎": {
+      "displayName": "娜塔莎",
+      "canonicalEnName": "Natasha"
+    },
+    "natasha": {
+      "displayName": "娜塔莎",
+      "canonicalEnName": "Natasha"
+    },
+    "佩拉": {
+      "displayName": "佩拉",
+      "canonicalEnName": "Pela"
+    },
+    "pela": {
+      "displayName": "佩拉",
+      "canonicalEnName": "Pela"
+    },
+    "白厄": {
+      "displayName": "白厄",
+      "canonicalEnName": "Phainon"
+    },
+    "phainon": {
+      "displayName": "白厄",
+      "canonicalEnName": "Phainon"
+    },
+    "青雀": {
+      "displayName": "青雀",
+      "canonicalEnName": "Qingque"
+    },
+    "qingque": {
+      "displayName": "青雀",
+      "canonicalEnName": "Qingque"
+    },
+    "乱破": {
+      "displayName": "乱破",
+      "canonicalEnName": "Rappa"
+    },
+    "rappa": {
+      "displayName": "乱破",
+      "canonicalEnName": "Rappa"
+    },
+    "知更鸟": {
+      "displayName": "知更鸟",
+      "canonicalEnName": "Robin"
+    },
+    "robin": {
+      "displayName": "知更鸟",
+      "canonicalEnName": "Robin"
+    },
+    "阮梅": {
+      "displayName": "阮梅",
+      "canonicalEnName": "Ruan Mei"
+    },
+    "ruan mei": {
+      "displayName": "阮梅",
+      "canonicalEnName": "Ruan Mei"
+    },
+    "ruanmei": {
+      "displayName": "阮梅",
+      "canonicalEnName": "Ruan Mei"
+    },
+    "saber": {
+      "displayName": "Saber",
+      "canonicalEnName": "Saber"
+    },
+    "桑博": {
+      "displayName": "桑博",
+      "canonicalEnName": "Sampo"
+    },
+    "sampo": {
+      "displayName": "桑博",
+      "canonicalEnName": "Sampo"
+    },
+    "希儿": {
+      "displayName": "希儿",
+      "canonicalEnName": "Seele"
+    },
+    "seele": {
+      "displayName": "希儿",
+      "canonicalEnName": "Seele"
+    },
+    "希露瓦": {
+      "displayName": "希露瓦",
+      "canonicalEnName": "Serval"
+    },
+    "serval": {
+      "displayName": "希露瓦",
+      "canonicalEnName": "Serval"
+    },
+    "银狼": {
+      "displayName": "银狼",
+      "canonicalEnName": "Silver Wolf"
+    },
+    "silver wolf": {
+      "displayName": "银狼",
+      "canonicalEnName": "Silver Wolf"
+    },
+    "silverwolf": {
+      "displayName": "银狼",
+      "canonicalEnName": "Silver Wolf"
+    },
+    "银狼lv.999": {
+      "displayName": "银狼LV.999",
+      "canonicalEnName": "Silver Wolf LV.999"
+    },
+    "silver wolf lv.999": {
+      "displayName": "银狼LV.999",
+      "canonicalEnName": "Silver Wolf LV.999"
+    },
+    "花火": {
+      "displayName": "花火",
+      "canonicalEnName": "Sparkle"
+    },
+    "sparkle": {
+      "displayName": "花火",
+      "canonicalEnName": "Sparkle"
+    },
+    "火花": {
+      "displayName": "火花",
+      "canonicalEnName": "Sparxie"
+    },
+    "sparxie": {
+      "displayName": "火花",
+      "canonicalEnName": "Sparxie"
+    },
+    "女主": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "stelle": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer: elation": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "开拓者-欢愉": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer elation": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer - remembrance": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "开拓者-记忆": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer remembrance": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer - the harmony": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "开拓者-同谐": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer the harmony": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer - the preservation": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "开拓者-存护": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer the preservation": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer - the destruction": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "开拓者-毁灭": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer the destruction": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "开拓者": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "female trailblazer": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer female": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "trailblazer (female)": {
+      "displayName": "女主",
+      "canonicalEnName": "Stelle"
+    },
+    "星期日": {
+      "displayName": "星期日",
+      "canonicalEnName": "Sunday"
+    },
+    "sunday": {
+      "displayName": "星期日",
+      "canonicalEnName": "Sunday"
+    },
+    "素裳": {
+      "displayName": "素裳",
+      "canonicalEnName": "Sushang"
+    },
+    "sushang": {
+      "displayName": "素裳",
+      "canonicalEnName": "Sushang"
+    },
+    "大丽花": {
+      "displayName": "大丽花",
+      "canonicalEnName": "The Dahlia"
+    },
+    "the dahlia": {
+      "displayName": "大丽花",
+      "canonicalEnName": "The Dahlia"
+    },
+    "dahlia": {
+      "displayName": "大丽花",
+      "canonicalEnName": "The Dahlia"
+    },
+    "大黑塔": {
+      "displayName": "大黑塔",
+      "canonicalEnName": "The Herta"
+    },
+    "the herta": {
+      "displayName": "大黑塔",
+      "canonicalEnName": "The Herta"
+    },
+    "herta5s": {
+      "displayName": "大黑塔",
+      "canonicalEnName": "The Herta"
+    },
+    "herta 5s": {
+      "displayName": "大黑塔",
+      "canonicalEnName": "The Herta"
+    },
+    "停云": {
+      "displayName": "停云",
+      "canonicalEnName": "Tingyun"
+    },
+    "tingyun": {
+      "displayName": "停云",
+      "canonicalEnName": "Tingyun"
+    },
+    "托帕&账账": {
+      "displayName": "托帕&账账",
+      "canonicalEnName": "Topaz & Numby"
+    },
+    "topaz & numby": {
+      "displayName": "托帕&账账",
+      "canonicalEnName": "Topaz & Numby"
+    },
+    "topaz": {
+      "displayName": "托帕&账账",
+      "canonicalEnName": "Topaz & Numby"
+    },
+    "numby": {
+      "displayName": "托帕&账账",
+      "canonicalEnName": "Topaz & Numby"
+    },
+    "topaz and numby": {
+      "displayName": "托帕&账账",
+      "canonicalEnName": "Topaz & Numby"
+    },
+    "缇宝": {
+      "displayName": "缇宝",
+      "canonicalEnName": "Tribbie"
+    },
+    "tribbie": {
+      "displayName": "缇宝",
+      "canonicalEnName": "Tribbie"
+    },
+    "瓦尔特": {
+      "displayName": "瓦尔特",
+      "canonicalEnName": "Welt"
+    },
+    "welt": {
+      "displayName": "瓦尔特",
+      "canonicalEnName": "Welt"
+    },
+    "雪衣": {
+      "displayName": "雪衣",
+      "canonicalEnName": "Xueyi"
+    },
+    "xueyi": {
+      "displayName": "雪衣",
+      "canonicalEnName": "Xueyi"
+    },
+    "彦卿": {
+      "displayName": "彦卿",
+      "canonicalEnName": "Yanqing"
+    },
+    "yanqing": {
+      "displayName": "彦卿",
+      "canonicalEnName": "Yanqing"
+    },
+    "爻光": {
+      "displayName": "爻光",
+      "canonicalEnName": "Yao Guang"
+    },
+    "yao guang": {
+      "displayName": "爻光",
+      "canonicalEnName": "Yao Guang"
+    },
+    "yaoguang": {
+      "displayName": "爻光",
+      "canonicalEnName": "Yao Guang"
+    },
+    "驭空": {
+      "displayName": "驭空",
+      "canonicalEnName": "Yukong"
+    },
+    "yukong": {
+      "displayName": "驭空",
+      "canonicalEnName": "Yukong"
+    },
+    "云璃": {
+      "displayName": "云璃",
+      "canonicalEnName": "Yunli"
+    },
+    "yunli": {
+      "displayName": "云璃",
+      "canonicalEnName": "Yunli"
+    },
+    "others": {
+      "displayName": "其他",
+      "canonicalEnName": "Others"
+    },
+    "other": {
+      "displayName": "其他",
+      "canonicalEnName": "Other"
+    },
+    "characters": {
+      "displayName": "其他",
+      "canonicalEnName": "Characters"
+    },
+    "character_others": {
+      "displayName": "其他",
+      "canonicalEnName": "character_others"
+    },
+    "collection": {
+      "displayName": "其他",
+      "canonicalEnName": "Collection"
+    },
+    "collections": {
+      "displayName": "其他",
+      "canonicalEnName": "Collections"
+    },
+    "function": {
+      "displayName": "功能",
+      "canonicalEnName": "Function"
+    },
+    "functions": {
+      "displayName": "功能",
+      "canonicalEnName": "Functions"
+    },
+    "tools": {
+      "displayName": "功能",
+      "canonicalEnName": "Tools"
+    },
+    "ui": {
+      "displayName": "UI",
+      "canonicalEnName": "UI"
+    },
+    "openworld": {
+      "displayName": "大世界",
+      "canonicalEnName": "OpenWorld"
+    },
+    "open world": {
+      "displayName": "大世界",
+      "canonicalEnName": "Open World"
+    },
+    "npc": {
+      "displayName": "NPC",
+      "canonicalEnName": "NPC"
+    },
+    "大世界": {
+      "displayName": "大世界",
+      "canonicalEnName": "OpenWorld"
+    },
+    "光锥": {
+      "displayName": "光锥",
+      "canonicalEnName": "Light Cone"
+    },
+    "光椎": {
+      "displayName": "光锥",
+      "canonicalEnName": "Light Cone"
+    },
+    "light cone": {
+      "displayName": "光锥",
+      "canonicalEnName": "Light Cone"
+    },
+    "light cones": {
+      "displayName": "光锥",
+      "canonicalEnName": "Light Cones"
+    },
+    "lightcone": {
+      "displayName": "光锥",
+      "canonicalEnName": "LightCone"
+    },
+    "lightcones": {
+      "displayName": "光锥",
+      "canonicalEnName": "LightCones"
+    },
+    "weapon": {
+      "displayName": "光锥",
+      "canonicalEnName": "Weapon"
+    },
+    "weapons": {
+      "displayName": "光锥",
+      "canonicalEnName": "Weapons"
+    },
+    "dan heng • imbibitor lunae": {
+      "displayName": "丹恒-饮月",
+      "canonicalEnName": "Dan Heng • Imbibitor Lunae"
+    },
+    "阮•梅": {
+      "displayName": "阮梅",
+      "canonicalEnName": "Ruan Mei"
+    },
+    "dan heng • permansor terrae": {
+      "displayName": "丹恒-腾荒",
+      "canonicalEnName": "Dan Heng • Permansor Terrae"
+    },
+    "真珠": {
+      "displayName": "真珠",
+      "canonicalEnName": "Pearl"
+    },
+    "pearl": {
+      "displayName": "真珠",
+      "canonicalEnName": "Pearl"
+    },
+    "千冶•刃": {
+      "displayName": "刃-千治",
+      "canonicalEnName": "Mortenax Blade"
+    },
+    "远坂凛": {
+      "displayName": "远坂凛",
+      "canonicalEnName": "Rin Tohsaka"
+    },
+    "rin tohsaka": {
+      "displayName": "远坂凛",
+      "canonicalEnName": "Rin Tohsaka"
+    },
+    "吉尔伽美什": {
+      "displayName": "吉尔伽美什",
+      "canonicalEnName": "Gilgamesh"
+    },
+    "gilgamesh": {
+      "displayName": "吉尔伽美什",
+      "canonicalEnName": "Gilgamesh"
+    },
+    "姬子•启行": {
+      "displayName": "姬子•启行",
+      "canonicalEnName": "Himeko • Nova"
+    },
+    "himeko • nova": {
+      "displayName": "姬子•启行",
+      "canonicalEnName": "Himeko • Nova"
+    },
+    "知更鸟•晴歌": {
+      "displayName": "知更鸟•晴歌",
+      "canonicalEnName": "Robin • Summeretto"
+    },
+    "robin • summeretto": {
+      "displayName": "知更鸟•晴歌",
+      "canonicalEnName": "Robin • Summeretto"
+    },
+    "砂金•戏浪": {
+      "displayName": "砂金•戏浪",
+      "canonicalEnName": "Aventurine • Waveflair"
+    },
+    "aventurine • waveflair": {
+      "displayName": "砂金•戏浪",
+      "canonicalEnName": "Aventurine • Waveflair"
+    }
+  },
+  "characterNameMap": {
+    "gameId": "honkai-star-rail",
+    "updatedAt": "2026-05-15",
+    "scope": "HoYoLAB HoYoWiki Honkai: Star Rail character aggregate synced for QAQManager resources and review mapping",
+    "note": "Source list is HoYoLAB HoYoWiki menu 104. Trailblazer path variants are folded into manager folders female protagonist and male protagonist. Chinese display names use hyphen separators instead of middle dots; Ruan Mei is displayed as ??, and Mortenax Blade is displayed as ?-??. Light cones are kept as ??, while ?? is not created as a display/default category. Existing jasmName values are retained only for backward-compatible local folder/image-stem lookup.",
+    "sources": [
+      "https://wiki.hoyolab.com/pc/hsr/aggregate/character?lang=en-us",
+      "https://wiki.hoyolab.com/pc/hsr/aggregate/character?lang=zh-cn",
+      "https://sg-act-public-api.hoyoverse.com/hoyowiki/hsr/wapi/get_entry_page_list"
+    ],
+    "foldedEntries": {
+      "trailblazer": [
+        {
+          "zh": "开拓者-欢愉",
+          "en": "Trailblazer: Elation",
+          "hoyoWikiEntryPageId": "5006",
+          "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2026/04/23/5308864/3fbf433b9e673b329833104f7c3a978e_4042614445748365638.gif"
+        },
+        {
+          "zh": "开拓者-记忆",
+          "en": "Trailblazer - Remembrance",
+          "hoyoWikiEntryPageId": "3287",
+          "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2025/01/15/46746754/d27dcfb432f6d37bbaee53ad2fc10806_3954952725968266044.gif"
+        },
+        {
+          "zh": "开拓者-同谐",
+          "en": "Trailblazer - The Harmony",
+          "hoyoWikiEntryPageId": "2511",
+          "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/05/07/9f98e014cdff0dc0e3993121fc0926db_5009274647413414611.gif"
+        },
+        {
+          "zh": "开拓者-存护",
+          "en": "Trailblazer - The Preservation",
+          "hoyoWikiEntryPageId": "23",
+          "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/9d99c7926e8519f151abeac02a1f7210_8780278128209122769.gif"
+        },
+        {
+          "zh": "开拓者-毁灭",
+          "en": "Trailblazer - The Destruction",
+          "hoyoWikiEntryPageId": "6",
+          "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/a9edba85fe403f0d2b7d69e48540634d_4987547298490400207.gif"
+        }
+      ]
+    },
+    "pairs": [
+      {
+        "zh": "黄泉",
+        "en": "Acheron",
+        "hoyoWikiEntryPageId": "1919",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/03/20/9cb4a2305547a5dabf6c30ee58f8245a_185738241261815724.png",
+        "jasmName": "acheron"
+      },
+      {
+        "zh": "阿格莱雅",
+        "en": "Aglaea",
+        "hoyoWikiEntryPageId": "3286",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2025/01/23/9ee894bafdf7f133df0ea84853584d95_2215993949928521727.png",
+        "jasmName": "aglaea"
+      },
+      {
+        "zh": "那刻夏",
+        "en": "Anaxa",
+        "hoyoWikiEntryPageId": "3561",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2025/04/18/620060559c78e5d6deb730e0db54ab4f_4758946096267394893.png",
+        "jasmName": "anaxa"
+      },
+      {
+        "zh": "Archer",
+        "en": "Archer",
+        "hoyoWikiEntryPageId": "3768",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2025/07/11/5308864/568dbef02f723809350999ea43ec2b4a_7484837625971522836.png",
+        "jasmName": "archer"
+      },
+      {
+        "zh": "银枝",
+        "en": "Argenti",
+        "hoyoWikiEntryPageId": "1535",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/12/05/5308864/9448edefb4d1253e987da31271c15981_2765074313465488246.png",
+        "jasmName": "argenti"
+      },
+      {
+        "zh": "阿兰",
+        "en": "Arlan",
+        "hoyoWikiEntryPageId": "11",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/ec16879888ecb38f5e4a793d596817b5_7471037767326702542.png",
+        "jasmName": "arlan"
+      },
+      {
+        "zh": "不死途",
+        "en": "Ashveil",
+        "hoyoWikiEntryPageId": "4781",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2026/03/25/5308864/2d558a71382b1420320b210c228ed89b_5052716581699232545.png",
+        "jasmName": "ashveil"
+      },
+      {
+        "zh": "艾丝妲",
+        "en": "Asta",
+        "hoyoWikiEntryPageId": "12",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/9ac18d37eab70ad1b7485d8025ec7499_4987547298490400207.png",
+        "jasmName": "asta"
+      },
+      {
+        "zh": "砂金",
+        "en": "Aventurine",
+        "hoyoWikiEntryPageId": "1920",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/04/03/3912553045c7ee6d816b6f1224d25ce7_5596945107422903292.png",
+        "jasmName": "aventurine"
+      },
+      {
+        "zh": "白露",
+        "en": "Bailu",
+        "hoyoWikiEntryPageId": "29",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/9c766b0feb6256141c1ec7afcd3dff35_6990891585355987615.png",
+        "jasmName": "bailu"
+      },
+      {
+        "zh": "黑天鹅",
+        "en": "Black Swan",
+        "hoyoWikiEntryPageId": "1806",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/02/04/2262abfd4d364802d02de83985ce2ccc_1374510882608270077.png",
+        "jasmName": "blackswan",
+        "aliases": [
+          "BlackSwan"
+        ]
+      },
+      {
+        "zh": "刃",
+        "en": "Blade",
+        "hoyoWikiEntryPageId": "789",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/05/24/5308864/64c098cc21d7f053a020f4e051407e41_4906678554337574546.png",
+        "jasmName": "blade"
+      },
+      {
+        "zh": "波提欧",
+        "en": "Boothill",
+        "hoyoWikiEntryPageId": "2367",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/05/16/2e87ab79a2514476e7a737a633c999a9_2708128530537338369.png",
+        "jasmName": "boothill"
+      },
+      {
+        "zh": "布洛妮娅",
+        "en": "Bronya",
+        "hoyoWikiEntryPageId": "14",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/7c97499ec8dac5bd41a0ab91b8bba9a2_9011443874790929649.png",
+        "jasmName": "bronya"
+      },
+      {
+        "zh": "男主",
+        "en": "Caelus",
+        "hoyoWikiEntryPageId": "trailblazer-male",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/a9edba85fe403f0d2b7d69e48540634d_4987547298490400207.gif",
+        "aliases": [
+          "Male Trailblazer",
+          "Trailblazer Male",
+          "Trailblazer (Male)"
+        ]
+      },
+      {
+        "zh": "遐蝶",
+        "en": "Castorice",
+        "hoyoWikiEntryPageId": "3560",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2025/04/09/5308864/ba59a0f78b8b0fd5eae4b82d7003f87d_6739656017708403485.png",
+        "jasmName": "castorice"
+      },
+      {
+        "zh": "刻律德菈",
+        "en": "Cerydra",
+        "hoyoWikiEntryPageId": "3886",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2025/09/03/e463ff55f41eba2695b9f2dd94866896_5685635774999642472.png",
+        "jasmName": "cerydra"
+      },
+      {
+        "zh": "赛飞儿",
+        "en": "Cipher",
+        "hoyoWikiEntryPageId": "3691",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2025/06/03/ca21832c7d70a46b019dd60a8bae852b_1543742098100123953.png",
+        "jasmName": "cipher"
+      },
+      {
+        "zh": "克拉拉",
+        "en": "Clara",
+        "hoyoWikiEntryPageId": "20",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/36ac7d1e87145434d0617a511066a3db_1713347165320581354.png",
+        "jasmName": "clara"
+      },
+      {
+        "zh": "昔涟",
+        "en": "Cyrene",
+        "hoyoWikiEntryPageId": "4003",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2025/11/04/5308864/368b8b55d0faf6c73837202b4edbb2c9_4316669831143238073.png",
+        "jasmName": "Cyrene"
+      },
+      {
+        "zh": "丹恒",
+        "en": "Dan Heng",
+        "hoyoWikiEntryPageId": "8",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/f22589fcc8472c64f735d67ca72f0432_7471037767326702542.png",
+        "jasmName": "danheng",
+        "aliases": [
+          "DanHeng"
+        ]
+      },
+      {
+        "zh": "丹恒-饮月",
+        "en": "Dan Heng - Imbibitor Lunae",
+        "hoyoWikiEntryPageId": "1226",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/07/24/250281765/8f0c086968f504bde0b12d6b94b4622c_2558772353835707790.png",
+        "jasmName": "DHIL",
+        "aliases": [
+          "Imbibitor Lunae",
+          "Dan Heng Imbibitor Lunae",
+          "Dan Heng-Imbibitor Lunae"
+        ]
+      },
+      {
+        "zh": "丹恒-腾荒",
+        "en": "Dan Heng - Permansor Terrae",
+        "hoyoWikiEntryPageId": "3957",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2025/10/13/d135f7ff305d974c82ba46de8a337f86_4542786094767954183.png",
+        "jasmName": "DHPT",
+        "aliases": [
+          "Permansor Terrae",
+          "Dan Heng Permansor Terrae",
+          "Dan Heng-Permansor Terrae"
+        ]
+      },
+      {
+        "zh": "真理医生",
+        "en": "Dr. Ratio",
+        "hoyoWikiEntryPageId": "1639",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/01/15/3fb391fb0d308ea8e89ea3ca32e8dc3b_8950865032730427405.png",
+        "jasmName": "drratio",
+        "aliases": [
+          "Dr Ratio",
+          "Ratio"
+        ]
+      },
+      {
+        "zh": "绯英",
+        "en": "Evanescia",
+        "hoyoWikiEntryPageId": "5005",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2026/05/13/5308864/42bb4d4c1a3481106721ac61ccee1067_6735346516755203707.png"
+      },
+      {
+        "zh": "长夜月",
+        "en": "Evernight",
+        "hoyoWikiEntryPageId": "3956",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2025/09/24/5308864/637803b8f4aef81eab5a79dec0757579_7020059619893800264.png",
+        "jasmName": "evernight"
+      },
+      {
+        "zh": "飞霄",
+        "en": "Feixiao",
+        "hoyoWikiEntryPageId": "2947",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/09/03/7f4bec62392b7e08bf91b3231d8f3134_3308390208226913806.png",
+        "jasmName": "feixiao"
+      },
+      {
+        "zh": "流萤",
+        "en": "Firefly",
+        "hoyoWikiEntryPageId": "2494",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2024/06/12/5308864/7b9020cf084a8592afa259673e9bdcf3_2683978553091249897.png",
+        "jasmName": "firefly"
+      },
+      {
+        "zh": "符玄",
+        "en": "Fu Xuan",
+        "hoyoWikiEntryPageId": "804",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/07/07/5308864/973836d5f252e7c09d7e7759c785b777_5344259552714082513.png",
+        "jasmName": "fuxuan",
+        "aliases": [
+          "FuXuan"
+        ]
+      },
+      {
+        "zh": "忘归人",
+        "en": "Fugue",
+        "hoyoWikiEntryPageId": "3151",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/12/18/920d73741a3983357bdaacf0f02257ad_2990798908524761453.png",
+        "jasmName": "tingyun5s",
+        "aliases": [
+          "Tingyun 5S"
+        ]
+      },
+      {
+        "zh": "加拉赫",
+        "en": "Gallagher",
+        "hoyoWikiEntryPageId": "1924",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/03/20/c21f99431377dfc00a2e5ff5e1933d3f_7709442928600875177.png",
+        "jasmName": "gallagher"
+      },
+      {
+        "zh": "杰帕德",
+        "en": "Gepard",
+        "hoyoWikiEntryPageId": "17",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/21ae001edc80f597d35df15f35537d00_4983283866355038276.png",
+        "jasmName": "gepard"
+      },
+      {
+        "zh": "桂乃芬",
+        "en": "Guinaifen",
+        "hoyoWikiEntryPageId": "1392",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/10/24/5308864/84ffbf653003216af56d77d293856eec_5367308371199080506.png",
+        "jasmName": "guinaifen"
+      },
+      {
+        "zh": "寒鸦",
+        "en": "Hanya",
+        "hoyoWikiEntryPageId": "1537",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/12/06/5308864/2645332fb60980c541394c70976f81ca_4303281471540817699.png",
+        "jasmName": "hanya"
+      },
+      {
+        "zh": "黑塔",
+        "en": "Herta",
+        "hoyoWikiEntryPageId": "13",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/a755d7167aa226264cb5aa26f70f9736_6990891585355987615.png",
+        "jasmName": "herta"
+      },
+      {
+        "zh": "姬子",
+        "en": "Himeko",
+        "hoyoWikiEntryPageId": "9",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/6170656b26d7383d0ee34f002284d3ff_7335309365701961860.png",
+        "jasmName": "himeko"
+      },
+      {
+        "zh": "虎克",
+        "en": "Hook",
+        "hoyoWikiEntryPageId": "22",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/22823e36686017767fa0310dd44d2eb4_115117260001571580.png",
+        "jasmName": "hook"
+      },
+      {
+        "zh": "藿藿",
+        "en": "Huohuo",
+        "hoyoWikiEntryPageId": "1533",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/11/13/6799252/03d42b83135aed98ab433ba450dce0e6_6220915316382370419.png",
+        "jasmName": "huohuo"
+      },
+      {
+        "zh": "风堇",
+        "en": "Hyacine",
+        "hoyoWikiEntryPageId": "3688",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2025/05/20/5308864/f6850c2e49a9cfb50da9c672d5e659ee_890968678122815643.png",
+        "jasmName": "hyacine"
+      },
+      {
+        "zh": "海瑟音",
+        "en": "Hysilens",
+        "hoyoWikiEntryPageId": "3885",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2025/08/12/5308864/dea51d0a487fadcc5c612a235435b174_9166971654010195217.png",
+        "jasmName": "hysilens"
+      },
+      {
+        "zh": "翡翠",
+        "en": "Jade",
+        "hoyoWikiEntryPageId": "2495",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/07/01/38b9cbe10fa924f10b14d2c2f272dfa5_3494595402307116422.png",
+        "jasmName": "jade"
+      },
+      {
+        "zh": "椒丘",
+        "en": "Jiaoqiu",
+        "hoyoWikiEntryPageId": "2643",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/08/12/d3aadc0440493c83499888df97057eec_2741926748671552018.png",
+        "jasmName": "jiaoqiu"
+      },
+      {
+        "zh": "景元",
+        "en": "Jing Yuan",
+        "hoyoWikiEntryPageId": "26",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/df37aacd31ab40efdcb16ef03a5b68ed_4983283866355038276.png",
+        "jasmName": "jingyuan",
+        "aliases": [
+          "JingYuan"
+        ]
+      },
+      {
+        "zh": "镜流",
+        "en": "Jingliu",
+        "hoyoWikiEntryPageId": "1387",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/08/28/6799252/2455cabb24d079ba955efe42d0321787_749698389243962827.png",
+        "jasmName": "jingliu"
+      },
+      {
+        "zh": "卡芙卡",
+        "en": "Kafka",
+        "hoyoWikiEntryPageId": "791",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/05/27/5308864/4893a52c54b02106778799cbebd289f6_452357800696146209.png",
+        "jasmName": "kafka"
+      },
+      {
+        "zh": "灵砂",
+        "en": "Lingsha",
+        "hoyoWikiEntryPageId": "2948",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/09/23/0d39def2cfde0e142e0b417ca8cea94d_2045776560976689463.png",
+        "jasmName": "lingsha"
+      },
+      {
+        "zh": "卢卡",
+        "en": "Luka",
+        "hoyoWikiEntryPageId": "801",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/05/27/5308864/c6d6b8bef93b257573df2eab95302f0e_1251386704248841120.png",
+        "jasmName": "luka"
+      },
+      {
+        "zh": "罗刹",
+        "en": "Luocha",
+        "hoyoWikiEntryPageId": "711",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/05/11/5308864/65121c1056e26cfe184da72a5bf3ef0c_8289176652754699928.png",
+        "jasmName": "luocha"
+      },
+      {
+        "zh": "玲可",
+        "en": "Lynx",
+        "hoyoWikiEntryPageId": "1228",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/09/19/5308864/021e173536079b09ced5d996b8d1f638_3304858479084497764.png",
+        "jasmName": "lynx"
+      },
+      {
+        "zh": "三月七-存护",
+        "en": "March 7th",
+        "hoyoWikiEntryPageId": "7",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/0047e5284a840424de8b21d1ccd042cd_933159568797000001.png",
+        "jasmName": "march7",
+        "aliases": [
+          "三月七",
+          "March",
+          "March 7"
+        ]
+      },
+      {
+        "zh": "三月七-巡猎",
+        "en": "March 7th: The Hunt",
+        "hoyoWikiEntryPageId": "2657",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/07/23/d36e559a0a718d050fc2c911fa3d3365_3686857019305661695.png"
+      },
+      {
+        "zh": "米沙",
+        "en": "Misha",
+        "hoyoWikiEntryPageId": "1808",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/02/04/cb544dfa0bbac9570be20fe13f044026_561198420637866337.png",
+        "jasmName": "misha"
+      },
+      {
+        "zh": "刃-千治",
+        "en": "Mortenax Blade",
+        "hoyoWikiEntryPageId": "5217",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2026/04/07/5308864/fa41979bc024248709e81f8f970b0552_3341242563555309671.png"
+      },
+      {
+        "zh": "貊泽",
+        "en": "Moze",
+        "hoyoWikiEntryPageId": "2949",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/09/03/52fdc9fa18b6f6ee6579d87fcfcb8bbc_3706451518418557464.png",
+        "jasmName": "moze"
+      },
+      {
+        "zh": "万敌",
+        "en": "Mydei",
+        "hoyoWikiEntryPageId": "3324",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2025/03/13/57f705fccc23ffb78b84df8b7d3c5b08_7299343108790016405.png",
+        "jasmName": "mydei"
+      },
+      {
+        "zh": "娜塔莎",
+        "en": "Natasha",
+        "hoyoWikiEntryPageId": "18",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/59abc9abc0795ead8a3d3ac2c03530f1_1713347165320581354.png",
+        "jasmName": "natasha"
+      },
+      {
+        "zh": "佩拉",
+        "en": "Pela",
+        "hoyoWikiEntryPageId": "19",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/9ca6f9a8509b3e8dd05fb551056d273d_933159568797000001.png",
+        "jasmName": "pela"
+      },
+      {
+        "zh": "白厄",
+        "en": "Phainon",
+        "hoyoWikiEntryPageId": "3769",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2025/07/01/5308864/b76dcc45fa870bee443532ad25eb30d4_567465952074113117.png",
+        "jasmName": "phainon"
+      },
+      {
+        "zh": "青雀",
+        "en": "Qingque",
+        "hoyoWikiEntryPageId": "24",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/e8150c747e37c2b29ebb426291a062d9_7335309365701961860.png",
+        "jasmName": "qingque"
+      },
+      {
+        "zh": "乱破",
+        "en": "Rappa",
+        "hoyoWikiEntryPageId": "3057",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/10/15/2c37ae42aa895d46d1e223bb26be372d_5310808099397300549.png",
+        "jasmName": "Rappa"
+      },
+      {
+        "zh": "知更鸟",
+        "en": "Robin",
+        "hoyoWikiEntryPageId": "2366",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/04/28/e1714be4caece69c5515e59f5bec8612_179118072871566612.png",
+        "jasmName": "robin"
+      },
+      {
+        "zh": "阮梅",
+        "en": "Ruan Mei",
+        "hoyoWikiEntryPageId": "1638",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2023/12/25/d8ac43b6abd3b9210deebd8a50eae5d1_4760046445899355689.png",
+        "jasmName": "ruanmei",
+        "aliases": [
+          "RuanMei"
+        ]
+      },
+      {
+        "zh": "Saber",
+        "en": "Saber",
+        "hoyoWikiEntryPageId": "3767",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2025/07/10/ea53741e3c1d3c18430b02c2ed713309_5539779096135615996.png",
+        "jasmName": "saber"
+      },
+      {
+        "zh": "桑博",
+        "en": "Sampo",
+        "hoyoWikiEntryPageId": "21",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/8cc98741a00c642fd5e47c86b22bf8d9_1867355418239514355.png",
+        "jasmName": "sampo"
+      },
+      {
+        "zh": "希儿",
+        "en": "Seele",
+        "hoyoWikiEntryPageId": "15",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/51d48aafbbf69b8e92256a381445ad07_4740490797942876174.png",
+        "jasmName": "seele"
+      },
+      {
+        "zh": "希露瓦",
+        "en": "Serval",
+        "hoyoWikiEntryPageId": "16",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/6660b8c2be9a0db0130a8a2bd1825e0c_115117260001571580.png",
+        "jasmName": "serval"
+      },
+      {
+        "zh": "银狼",
+        "en": "Silver Wolf",
+        "hoyoWikiEntryPageId": "710",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/06/05/5308864/b59604087f67ed3d1828c08a104be302_1832310283239375798.png",
+        "jasmName": "silverwolf",
+        "aliases": [
+          "SilverWolf"
+        ]
+      },
+      {
+        "zh": "银狼LV.999",
+        "en": "Silver Wolf LV.999",
+        "hoyoWikiEntryPageId": "4997",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2026/04/20/5308864/fe2943d5ec89d9774d9c8d4f891c2b8e_9183256673056037462.png"
+      },
+      {
+        "zh": "花火",
+        "en": "Sparkle",
+        "hoyoWikiEntryPageId": "1807",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/02/27/e036508b1ca8c5732a77e34b682e05b9_1612166978437617005.png",
+        "jasmName": "sparkle"
+      },
+      {
+        "zh": "火花",
+        "en": "Sparxie",
+        "hoyoWikiEntryPageId": "4737",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2026/03/03/5308864/ee8f8967ca7f156547da8dca56686fb7_4922247769215685311.png",
+        "jasmName": "sparxie"
+      },
+      {
+        "zh": "女主",
+        "en": "Stelle",
+        "hoyoWikiEntryPageId": "trailblazer-female",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/a9edba85fe403f0d2b7d69e48540634d_4987547298490400207.gif",
+        "jasmName": "trailblazer",
+        "aliases": [
+          "Trailblazer: Elation",
+          "开拓者-欢愉",
+          "Trailblazer Elation",
+          "Trailblazer - Remembrance",
+          "开拓者-记忆",
+          "Trailblazer Remembrance",
+          "Trailblazer - The Harmony",
+          "开拓者-同谐",
+          "Trailblazer The Harmony",
+          "Trailblazer - The Preservation",
+          "开拓者-存护",
+          "Trailblazer The Preservation",
+          "Trailblazer - The Destruction",
+          "开拓者-毁灭",
+          "Trailblazer The Destruction",
+          "Trailblazer",
+          "开拓者",
+          "Female Trailblazer",
+          "Trailblazer Female",
+          "Trailblazer (Female)"
+        ]
+      },
+      {
+        "zh": "星期日",
+        "en": "Sunday",
+        "hoyoWikiEntryPageId": "3150",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2024/11/25/46746754/20d74df8e863811c1741b606833d4a95_1491553858769133498.png",
+        "jasmName": "sunday"
+      },
+      {
+        "zh": "素裳",
+        "en": "Sushang",
+        "hoyoWikiEntryPageId": "27",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/34ed53d517bff61c71243b3ef9985a2a_9011443874790929649.png",
+        "jasmName": "sushang"
+      },
+      {
+        "zh": "大丽花",
+        "en": "The Dahlia",
+        "hoyoWikiEntryPageId": "4060",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2025/12/17/5308864/7acc9d94a3d8535b60f30323c423ee35_6126113485912600556.png",
+        "jasmName": "dahlia",
+        "aliases": [
+          "Dahlia"
+        ]
+      },
+      {
+        "zh": "大黑塔",
+        "en": "The Herta",
+        "hoyoWikiEntryPageId": "3285",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2025/01/14/5308864/d8d11f089c9d5ada7b8c770897e800e8_2979630765322342319.png",
+        "jasmName": "herta5s",
+        "aliases": [
+          "Herta 5S"
+        ]
+      },
+      {
+        "zh": "停云",
+        "en": "Tingyun",
+        "hoyoWikiEntryPageId": "25",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/96067b8aa9c14528544fbc50c8ce7ec5_4740490797942876174.png",
+        "jasmName": "tingyun"
+      },
+      {
+        "zh": "托帕&账账",
+        "en": "Topaz & Numby",
+        "hoyoWikiEntryPageId": "1389",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/10/23/5308864/8db3447086f853f39d5065f09896f667_7842448134509710943.png",
+        "jasmName": "topaz",
+        "aliases": [
+          "Topaz",
+          "Numby",
+          "Topaz and Numby"
+        ]
+      },
+      {
+        "zh": "缇宝",
+        "en": "Tribbie",
+        "hoyoWikiEntryPageId": "3322",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2025/02/25/5308864/83099e7b881e89d090df4f000a9298c7_6767464368154500207.png",
+        "jasmName": "tribbie"
+      },
+      {
+        "zh": "瓦尔特",
+        "en": "Welt",
+        "hoyoWikiEntryPageId": "10",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/131c3de4c924022727ce61ac726d051a_4490115586020920921.png",
+        "jasmName": "welt"
+      },
+      {
+        "zh": "雪衣",
+        "en": "Xueyi",
+        "hoyoWikiEntryPageId": "1640",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2023/12/25/167256510/c4c71675cb2e2b0ecd158de74ee4bd50_6591375477037031331.png",
+        "jasmName": "xueyi"
+      },
+      {
+        "zh": "彦卿",
+        "en": "Yanqing",
+        "hoyoWikiEntryPageId": "28",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyowiki/2023/02/21/2fbbdcb50ff8388ec2c6723c6385fb84_4490115586020920921.png",
+        "jasmName": "yanqing"
+      },
+      {
+        "zh": "爻光",
+        "en": "Yao Guang",
+        "hoyoWikiEntryPageId": "4736",
+        "hoyoWikiIconUrl": "https://act-upload.hoyoverse.com/event-ugc-hoyowiki/2026/02/13/5308864/2ced130b6cdbe08275400efdbebc0a4e_6751846365568406502.png",
+        "jasmName": "yaoguang",
+        "aliases": [
+          "Yaoguang"
+        ]
+      },
+      {
+        "zh": "驭空",
+        "en": "Yukong",
+        "hoyoWikiEntryPageId": "712",
+        "hoyoWikiIconUrl": "https://upload-static.hoyoverse.com/hoyolab-wiki/2023/05/12/6799252/767cb7131b41bb1058c2ee329b77593e_1356198414386477791.png",
+        "jasmName": "yukong"
+      },
+      {
+        "zh": "云璃",
+        "en": "Yunli",
+        "hoyoWikiEntryPageId": "2642",
+        "hoyoWikiIconUrl": "https://act-webstatic.hoyoverse.com/event-static-hoyowiki-admin/2024/07/23/974192119b3f17e13fac2014f98a0d40_6234648188106281351.png",
+        "jasmName": "yunli"
+      },
+      {
+        "zh": "光锥",
+        "en": "Light Cone",
+        "jasmName": "Weapons",
+        "aliases": [
+          "Light Cones",
+          "LightCone",
+          "LightCones",
+          "Weapon",
+          "Weapons",
+          "光椎"
+        ]
+      },
+      {
+        "zh": "真珠",
+        "en": "Pearl",
+        "jasmName": "Pearl"
+      },
+      {
+        "zh": "远坂凛",
+        "en": "Rin Tohsaka",
+        "jasmName": "Rin Tohsaka"
+      },
+      {
+        "zh": "吉尔伽美什",
+        "en": "Gilgamesh",
+        "jasmName": "Gilgamesh"
+      },
+      {
+        "zh": "姬子•启行",
+        "en": "Himeko • Nova",
+        "jasmName": "Himeko • Nova"
+      },
+      {
+        "zh": "知更鸟•晴歌",
+        "en": "Robin • Summeretto",
+        "jasmName": "Robin • Summeretto"
+      },
+      {
+        "zh": "砂金•戏浪",
+        "en": "Aventurine • Waveflair",
+        "jasmName": "Aventurine • Waveflair"
+      }
+    ]
+  },
+  "characterImages": {
+    "三月七-存护": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1001.png",
+    "丹恒": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1002.png",
+    "姬子": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1003.png",
+    "瓦尔特": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1004.png",
+    "卡芙卡": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1005.png",
+    "银狼": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1006.png",
+    "阿兰": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1008.png",
+    "艾丝妲": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1009.png",
+    "黑塔": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1013.png",
+    "Saber": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1014.png",
+    "Archer": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1015.png",
+    "布洛妮娅": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1101.png",
+    "希儿": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1102.png",
+    "希露瓦": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1103.png",
+    "杰帕德": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1104.png",
+    "娜塔莎": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1105.png",
+    "佩拉": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1106.png",
+    "克拉拉": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1107.png",
+    "桑博": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1108.png",
+    "虎克": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1109.png",
+    "玲可": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1110.png",
+    "卢卡": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1111.png",
+    "托帕&账账": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1112.png",
+    "青雀": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1201.png",
+    "停云": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1202.png",
+    "罗刹": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1203.png",
+    "景元": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1204.png",
+    "刃": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1205.png",
+    "素裳": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1206.png",
+    "驭空": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1207.png",
+    "符玄": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1208.png",
+    "彦卿": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1209.png",
+    "桂乃芬": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1210.png",
+    "白露": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1211.png",
+    "镜流": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1212.png",
+    "丹恒-饮月": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1213.png",
+    "雪衣": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1214.png",
+    "寒鸦": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1215.png",
+    "藿藿": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1217.png",
+    "椒丘": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1218.png",
+    "飞霄": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1220.png",
+    "云璃": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1221.png",
+    "灵砂": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1222.png",
+    "貊泽": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1223.png",
+    "三月七-巡猎": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1224.png",
+    "忘归人": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1225.png",
+    "加拉赫": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1301.png",
+    "银枝": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1302.png",
+    "阮梅": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1303.png",
+    "砂金": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1304.png",
+    "真理医生": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1305.png",
+    "花火": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1306.png",
+    "黑天鹅": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1307.png",
+    "黄泉": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1308.png",
+    "知更鸟": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1309.png",
+    "流萤": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1310.png",
+    "米沙": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1312.png",
+    "星期日": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1313.png",
+    "翡翠": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1314.png",
+    "波提欧": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1315.png",
+    "乱破": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1317.png",
+    "大丽花": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1321.png",
+    "大黑塔": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1401.png",
+    "阿格莱雅": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1402.png",
+    "缇宝": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1403.png",
+    "万敌": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1404.png",
+    "那刻夏": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1405.png",
+    "赛飞儿": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1406.png",
+    "遐蝶": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1407.png",
+    "白厄": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1408.png",
+    "风堇": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1409.png",
+    "海瑟音": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1410.png",
+    "刻律德菈": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1412.png",
+    "长夜月": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1413.png",
+    "丹恒-腾荒": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1414.png",
+    "昔涟": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1415.png",
+    "火花": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1501.png",
+    "爻光": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1502.png",
+    "真珠": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1503.png",
+    "不死途": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1504.png",
+    "绯英": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1505.png",
+    "银狼LV.999": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1506.png",
+    "刃-千治": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1507.png",
+    "远坂凛": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1508.png",
+    "吉尔伽美什": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1509.png",
+    "姬子•启行": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1510.png",
+    "知更鸟•晴歌": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1512.png",
+    "砂金•戏浪": "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/image/character_preview/1513.png"
+  },
+  "onlineSource": {
+    "urls": [
+      "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/index_new/cn/characters.json",
+      "https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/index_new/en/characters.json"
+    ],
+    "checkedAt": "2026-10-06"
+  }
+}

@@ -1,0 +1,84 @@
+name: Portable Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portable-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: startsWith(github.event.head_commit.message, '[P] ')
+    runs-on: windows-2022
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out source and pinned MEGA submodule
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Read version from app/package.json
+        id: release
+        run: |
+          node -e 'const fs = require("fs"); const { releaseNames } = require("./tools/package-release.cjs"); const names = releaseNames(require("./app/package.json").version); fs.appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(names).map(([k,v]) => `${k}=${v}`).join("\n") + "\n");'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "QAQM_BUILD_DIR=$env:GITHUB_WORKSPACE/build/portable" >> $env:GITHUB_ENV
+
+      - name: Reject an existing release or tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          $tags = gh api --paginate "repos/$env:GITHUB_REPOSITORY/git/matching-refs/tags/$env:RELEASE_TAG" --jq '.[].ref'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($tags -contains "refs/tags/$env:RELEASE_TAG") { throw "Tag already exists: $env:RELEASE_TAG. Bump app/package.json before publishing again." }
+          $releases = gh api --paginate "repos/$env:GITHUB_REPOSITORY/releases" --jq '.[].tag_name'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($releases -contains $env:RELEASE_TAG) { throw "Release already exists: $env:RELEASE_TAG" }
+
+      - name: Install locked application dependencies
+        run: npm ci --prefix app --omit=dev --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+
+      - name: Download and verify Electron and RAR
+        run: node tools/prepare-release.cjs
+
+      - name: Refresh all five character catalogs before packaging
+        run: node tools/update-character-catalogs.cjs
+
+      - name: Build Windows x64 portable application
+        run: node tools/build.cjs
+
+      - name: Run regression and Electron smoke tests
+        run: npm test
+
+      - name: Create and verify RAR archive
+        run: node tools/package-release.cjs
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_TITLE: ${{ steps.release.outputs.title }}
+          RELEASE_ARCHIVE: ${{ steps.release.outputs.archive }}
+        run: |
+          $notesPath = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          [System.IO.File]::WriteAllText($notesPath, '')
+          gh release create $env:RELEASE_TAG "release/$env:RELEASE_ARCHIVE" "release/$env:RELEASE_ARCHIVE.sha256" --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title $env:RELEASE_TITLE --notes-file $notesPath
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

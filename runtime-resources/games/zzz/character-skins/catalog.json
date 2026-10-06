@@ -1,0 +1,639 @@
+{
+  "schemaVersion": 1,
+  "gameId": "zzz",
+  "generatedAt": "2026-07-13T17:14:54Z",
+  "source": {
+    "name": "Zenless Zone Zero Wiki",
+    "url": "https://zenless-zone-zero.fandom.com/wiki/Agent_Outfit",
+    "license": "CC-BY-SA (community wiki content); game images remain property of their respective owner",
+    "categories": [
+      "Category:Paid Outfits",
+      "Category:Event Reward Outfits",
+      "Category:Commission Reward Outfits"
+    ]
+  },
+  "outfitCount": 22,
+  "characterCount": 18,
+  "characters": [
+    {
+      "nameZh": "男主",
+      "nameEn": "Wise",
+      "skins": [
+        {
+          "id": "zzz-outfit-4120112",
+          "sectionId": "skin:zzz-outfit-4120112",
+          "characterNameZh": "男主",
+          "characterNameEn": "Wise",
+          "wikiCharacterNameEn": "Wise",
+          "nameZh": "浪影闲庭",
+          "nameEn": "Peaceful Waves",
+          "aliases": [
+            "浪影闲庭",
+            "Peaceful Waves"
+          ],
+          "type": [
+            "Event Reward",
+            "Paid"
+          ],
+          "releaseVersion": "2.1",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/f/f2/Agent_Wise_Peaceful_Waves_Portrait.png/revision/latest?cb=20250716042924",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Peaceful_Waves",
+          "sourceImageFile": "Agent Wise Peaceful Waves Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/f/f2/Agent_Wise_Peaceful_Waves_Portrait.png/revision/latest?cb=20250716042924",
+          "sourceImageWidth": 824,
+          "sourceImageHeight": 2548
+        },
+        {
+          "id": "zzz-outfit-oath-of-skies",
+          "sectionId": "skin:zzz-outfit-oath-of-skies",
+          "characterNameZh": "男主",
+          "characterNameEn": "Wise",
+          "wikiCharacterNameEn": "Wise",
+          "nameZh": "苍穹执誓",
+          "nameEn": "Oath of Skies",
+          "aliases": [
+            "苍穹执誓",
+            "Oath of Skies"
+          ],
+          "type": [
+            "Commission Reward"
+          ],
+          "releaseVersion": "3.0",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/8/89/Agent_Wise_Oath_of_Skies_Portrait.png/revision/latest?cb=20260617080657",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Oath_of_Skies",
+          "sourceImageFile": "Agent Wise Oath of Skies Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/8/89/Agent_Wise_Oath_of_Skies_Portrait.png/revision/latest?cb=20260617080657",
+          "sourceImageWidth": 864,
+          "sourceImageHeight": 2508
+        },
+        {
+          "id": "zzz-outfit-4120111",
+          "sectionId": "skin:zzz-outfit-4120111",
+          "characterNameZh": "男主",
+          "characterNameEn": "Wise",
+          "wikiCharacterNameEn": "Wise",
+          "nameZh": "鹤唳青霄",
+          "nameEn": "Soaring Crane",
+          "aliases": [
+            "鹤唳青霄",
+            "Soaring Crane"
+          ],
+          "type": [
+            "Commission Reward"
+          ],
+          "releaseVersion": "2.0",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/e/e5/Agent_Wise_Soaring_Crane_Portrait.png/revision/latest?cb=20250606202031",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Soaring_Crane",
+          "sourceImageFile": "Agent Wise Soaring Crane Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/e/e5/Agent_Wise_Soaring_Crane_Portrait.png/revision/latest?cb=20250606202031",
+          "sourceImageWidth": 812,
+          "sourceImageHeight": 2057
+        }
+      ]
+    },
+    {
+      "nameZh": "女主",
+      "nameEn": "Belle",
+      "skins": [
+        {
+          "id": "zzz-outfit-4120012",
+          "sectionId": "skin:zzz-outfit-4120012",
+          "characterNameZh": "女主",
+          "characterNameEn": "Belle",
+          "wikiCharacterNameEn": "Belle",
+          "nameZh": "夏日晴空",
+          "nameEn": "Summer Skies",
+          "aliases": [
+            "夏日晴空",
+            "Summer Skies"
+          ],
+          "type": [
+            "Event Reward",
+            "Paid"
+          ],
+          "releaseVersion": "2.1",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/2/2a/Agent_Belle_Summer_Skies_Portrait.png/revision/latest?cb=20250905093339",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Summer_Skies",
+          "sourceImageFile": "Agent Belle Summer Skies Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/2/2a/Agent_Belle_Summer_Skies_Portrait.png/revision/latest?cb=20250905093339",
+          "sourceImageWidth": 1920,
+          "sourceImageHeight": 5790
+        },
+        {
+          "id": "zzz-outfit-4120011",
+          "sectionId": "skin:zzz-outfit-4120011",
+          "characterNameZh": "女主",
+          "characterNameEn": "Belle",
+          "wikiCharacterNameEn": "Belle",
+          "nameZh": "曦色玲珑",
+          "nameEn": "Delicate Sunlight",
+          "aliases": [
+            "曦色玲珑",
+            "Delicate Sunlight"
+          ],
+          "type": [
+            "Commission Reward"
+          ],
+          "releaseVersion": "2.0",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/c/ce/Agent_Belle_Delicate_Sunlight_Portrait.png/revision/latest?cb=20250606130037",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Delicate_Sunlight",
+          "sourceImageFile": "Agent Belle Delicate Sunlight Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/c/ce/Agent_Belle_Delicate_Sunlight_Portrait.png/revision/latest?cb=20250606130037",
+          "sourceImageWidth": 840,
+          "sourceImageHeight": 2028
+        },
+        {
+          "id": "zzz-outfit-brilliance-of-stars",
+          "sectionId": "skin:zzz-outfit-brilliance-of-stars",
+          "characterNameZh": "女主",
+          "characterNameEn": "Belle",
+          "wikiCharacterNameEn": "Belle",
+          "nameZh": "极星澄明",
+          "nameEn": "Brilliance of Stars",
+          "aliases": [
+            "极星澄明",
+            "Brilliance of Stars"
+          ],
+          "type": [
+            "Commission Reward"
+          ],
+          "releaseVersion": "3.0",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/7/75/Agent_Belle_Brilliance_of_Stars_Portrait.png/revision/latest?cb=20260617080726",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Brilliance_of_Stars",
+          "sourceImageFile": "Agent Belle Brilliance of Stars Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/7/75/Agent_Belle_Brilliance_of_Stars_Portrait.png/revision/latest?cb=20260617080726",
+          "sourceImageWidth": 724,
+          "sourceImageHeight": 2216
+        }
+      ]
+    },
+    {
+      "nameZh": "妮可",
+      "nameEn": "Nicole Demara",
+      "skins": [
+        {
+          "id": "zzz-outfit-3110311",
+          "sectionId": "skin:zzz-outfit-3110311",
+          "characterNameZh": "妮可",
+          "characterNameEn": "Nicole Demara",
+          "wikiCharacterNameEn": "Nicole Demara",
+          "nameZh": "狡黠甜心",
+          "nameEn": "Cunning Cutie",
+          "aliases": [
+            "狡黠甜心",
+            "Cunning Cutie"
+          ],
+          "type": [
+            "Event Reward",
+            "Paid"
+          ],
+          "releaseVersion": "1.5",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/7/7f/Agent_Nicole_Demara_Cunning_Cutie_Portrait.png/revision/latest?cb=20250124021147",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Cunning_Cutie",
+          "sourceImageFile": "Agent Nicole Demara Cunning Cutie Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/7/7f/Agent_Nicole_Demara_Cunning_Cutie_Portrait.png/revision/latest?cb=20250124021147",
+          "sourceImageWidth": 1180,
+          "sourceImageHeight": 2048
+        }
+      ]
+    },
+    {
+      "nameZh": "艾莲",
+      "nameEn": "Ellen Joe",
+      "skins": [
+        {
+          "id": "zzz-outfit-3111911",
+          "sectionId": "skin:zzz-outfit-3111911",
+          "characterNameZh": "艾莲",
+          "characterNameEn": "Ellen Joe",
+          "wikiCharacterNameEn": "Ellen Joe",
+          "nameZh": "从周一到周五",
+          "nameEn": "On Campus",
+          "aliases": [
+            "从周一到周五",
+            "On Campus"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "1.5",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/9/97/Agent_Ellen_Joe_On_Campus_Portrait.png/revision/latest?cb=20250122220814",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/On_Campus",
+          "sourceImageFile": "Agent Ellen Joe On Campus Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/9/97/Agent_Ellen_Joe_On_Campus_Portrait.png/revision/latest?cb=20250122220814",
+          "sourceImageWidth": 1434,
+          "sourceImageHeight": 1890
+        }
+      ]
+    },
+    {
+      "nameZh": "简",
+      "nameEn": "Jane Doe",
+      "skins": [
+        {
+          "id": "zzz-outfit-3112611",
+          "sectionId": "skin:zzz-outfit-3112611",
+          "characterNameZh": "简",
+          "characterNameEn": "Jane Doe",
+          "wikiCharacterNameEn": "Jane Doe",
+          "nameZh": "漪光夜曲",
+          "nameEn": "Nocturne of Light",
+          "aliases": [
+            "漪光夜曲",
+            "Nocturne of Light"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "2.5",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/5/53/Agent_Jane_Doe_Nocturne_of_Light_Portrait.png/revision/latest?cb=20251230075948",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Nocturne_of_Light",
+          "sourceImageFile": "Agent Jane Doe Nocturne of Light Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/5/53/Agent_Jane_Doe_Nocturne_of_Light_Portrait.png/revision/latest?cb=20251230075948",
+          "sourceImageWidth": 776,
+          "sourceImageHeight": 2088
+        }
+      ]
+    },
+    {
+      "nameZh": "耀嘉音",
+      "nameEn": "Astra Yao",
+      "skins": [
+        {
+          "id": "zzz-outfit-3113111",
+          "sectionId": "skin:zzz-outfit-3113111",
+          "characterNameZh": "耀嘉音",
+          "characterNameEn": "Astra Yao",
+          "wikiCharacterNameEn": "Astra Yao",
+          "nameZh": "水晶灯下",
+          "nameEn": "Chandelier",
+          "aliases": [
+            "水晶灯下",
+            "Chandelier"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "1.5",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/1/15/Agent_Astra_Yao_Chandelier_Portrait.png/revision/latest?cb=20250425232347",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Chandelier",
+          "sourceImageFile": "Agent Astra Yao Chandelier Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/1/15/Agent_Astra_Yao_Chandelier_Portrait.png/revision/latest?cb=20250425232347",
+          "sourceImageWidth": 1098,
+          "sourceImageHeight": 2048
+        }
+      ]
+    },
+    {
+      "nameZh": "雅",
+      "nameEn": "Hoshimi Miyabi",
+      "skins": [
+        {
+          "id": "zzz-outfit-3110911",
+          "sectionId": "skin:zzz-outfit-3110911",
+          "characterNameZh": "雅",
+          "characterNameEn": "Hoshimi Miyabi",
+          "wikiCharacterNameEn": "Hoshimi Miyabi",
+          "nameZh": "银庭花信",
+          "nameEn": "Dignified Blossom",
+          "aliases": [
+            "银庭花信",
+            "Dignified Blossom"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "2.8",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/d/d3/Agent_Hoshimi_Miyabi_Dignified_Blossom_Portrait.png/revision/latest?cb=20260506082652",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Dignified_Blossom",
+          "sourceImageFile": "Agent Hoshimi Miyabi Dignified Blossom Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/d/d3/Agent_Hoshimi_Miyabi_Dignified_Blossom_Portrait.png/revision/latest?cb=20260506082652",
+          "sourceImageWidth": 1536,
+          "sourceImageHeight": 2224
+        }
+      ]
+    },
+    {
+      "nameZh": "仪玄",
+      "nameEn": "Yixuan",
+      "skins": [
+        {
+          "id": "zzz-outfit-3113711",
+          "sectionId": "skin:zzz-outfit-3113711",
+          "characterNameZh": "仪玄",
+          "characterNameEn": "Yixuan",
+          "wikiCharacterNameEn": "Yixuan",
+          "nameZh": "墨形影踪",
+          "nameEn": "Trails of Ink",
+          "aliases": [
+            "墨形影踪",
+            "Trails of Ink"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "2.0",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/b/b2/Agent_Yixuan_Trails_of_Ink_Portrait.png/revision/latest?cb=20250606125902",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Trails_of_Ink",
+          "sourceImageFile": "Agent Yixuan Trails of Ink Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/b/b2/Agent_Yixuan_Trails_of_Ink_Portrait.png/revision/latest?cb=20250606125902",
+          "sourceImageWidth": 1056,
+          "sourceImageHeight": 2048
+        }
+      ]
+    },
+    {
+      "nameZh": "薇薇安",
+      "nameEn": "Vivian Banshee",
+      "skins": [
+        {
+          "id": "zzz-outfit-3113311",
+          "sectionId": "skin:zzz-outfit-3113311",
+          "characterNameZh": "薇薇安",
+          "characterNameEn": "Vivian Banshee",
+          "wikiCharacterNameEn": "Vivian Banshee",
+          "nameZh": "鸢花池畔",
+          "nameEn": "Iris of the Shore",
+          "aliases": [
+            "鸢花池畔",
+            "Iris of the Shore"
+          ],
+          "type": [
+            "Event Reward",
+            "Paid"
+          ],
+          "releaseVersion": "2.3",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/a/a3/Agent_Vivian_Banshee_Iris_of_the_Shore_Portrait.png/revision/latest?cb=20251015180206",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Iris_of_the_Shore",
+          "sourceImageFile": "Agent Vivian Banshee Iris of the Shore Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/a/a3/Agent_Vivian_Banshee_Iris_of_the_Shore_Portrait.png/revision/latest?cb=20251015180206",
+          "sourceImageWidth": 1280,
+          "sourceImageHeight": 2704
+        }
+      ]
+    },
+    {
+      "nameZh": "柚叶",
+      "nameEn": "Ukinami Yuzuha",
+      "skins": [
+        {
+          "id": "zzz-outfit-3114111",
+          "sectionId": "skin:zzz-outfit-3114111",
+          "characterNameZh": "柚叶",
+          "characterNameEn": "Ukinami Yuzuha",
+          "wikiCharacterNameEn": "Ukinami Yuzuha",
+          "nameZh": "晴空化狸",
+          "nameEn": "Tanuki in Broad Daylight",
+          "aliases": [
+            "晴空化狸",
+            "Tanuki in Broad Daylight"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "2.1",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/b/b4/Agent_Ukinami_Yuzuha_Tanuki_in_Broad_Daylight_Portrait.png/revision/latest?cb=20250716042730",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Tanuki_in_Broad_Daylight",
+          "sourceImageFile": "Agent Ukinami Yuzuha Tanuki in Broad Daylight Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/b/b4/Agent_Ukinami_Yuzuha_Tanuki_in_Broad_Daylight_Portrait.png/revision/latest?cb=20250716042730",
+          "sourceImageWidth": 1176,
+          "sourceImageHeight": 1812
+        }
+      ]
+    },
+    {
+      "nameZh": "爱丽丝",
+      "nameEn": "Alice Thymefield",
+      "skins": [
+        {
+          "id": "zzz-outfit-3114011",
+          "sectionId": "skin:zzz-outfit-3114011",
+          "characterNameZh": "爱丽丝",
+          "characterNameEn": "Alice Thymefield",
+          "wikiCharacterNameEn": "Alice Thymefield",
+          "nameZh": "百里香之海",
+          "nameEn": "Sea of Thyme",
+          "aliases": [
+            "百里香之海",
+            "Sea of Thyme"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "2.1",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/f/f7/Agent_Alice_Thymefield_Sea_of_Thyme_Portrait.png/revision/latest?cb=20250717205336",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Sea_of_Thyme",
+          "sourceImageFile": "Agent Alice Thymefield Sea of Thyme Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/f/f7/Agent_Alice_Thymefield_Sea_of_Thyme_Portrait.png/revision/latest?cb=20250717205336",
+          "sourceImageWidth": 1216,
+          "sourceImageHeight": 2028
+        }
+      ]
+    },
+    {
+      "nameZh": "潘引壶",
+      "nameEn": "Pan Yinhu",
+      "skins": [
+        {
+          "id": "zzz-outfit-3114211",
+          "sectionId": "skin:zzz-outfit-3114211",
+          "characterNameZh": "潘引壶",
+          "characterNameEn": "Pan Yinhu",
+          "wikiCharacterNameEn": "Pan Yinhu",
+          "nameZh": "馔玉烹金",
+          "nameEn": "Culinary Jewel",
+          "aliases": [
+            "馔玉烹金",
+            "Culinary Jewel"
+          ],
+          "type": [
+            "Event Reward",
+            "Paid"
+          ],
+          "releaseVersion": "2.6",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/2/2a/Agent_Pan_Yinhu_Culinary_Jewel_Portrait.png/revision/latest?cb=20260206214559",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Culinary_Jewel",
+          "sourceImageFile": "Agent Pan Yinhu Culinary Jewel Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/2/2a/Agent_Pan_Yinhu_Culinary_Jewel_Portrait.png/revision/latest?cb=20260206214559",
+          "sourceImageWidth": 1604,
+          "sourceImageHeight": 2100
+        }
+      ]
+    },
+    {
+      "nameZh": "真斗",
+      "nameEn": "Komano Manato",
+      "skins": [
+        {
+          "id": "zzz-outfit-3114411",
+          "sectionId": "skin:zzz-outfit-3114411",
+          "characterNameZh": "真斗",
+          "characterNameEn": "Komano Manato",
+          "wikiCharacterNameEn": "Komano Manato",
+          "nameZh": "白心旧影",
+          "nameEn": "White Heart Silhouette",
+          "aliases": [
+            "白心旧影",
+            "White Heart Silhouette"
+          ],
+          "type": [
+            "Commission Reward",
+            "Paid"
+          ],
+          "releaseVersion": "2.3",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/6/65/Agent_Komano_Manato_White_Heart_Silhouette_Portrait.png/revision/latest?cb=20251015180619",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/White_Heart_Silhouette",
+          "sourceImageFile": "Agent Komano Manato White Heart Silhouette Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/6/65/Agent_Komano_Manato_White_Heart_Silhouette_Portrait.png/revision/latest?cb=20251015180619",
+          "sourceImageWidth": 1668,
+          "sourceImageHeight": 2684
+        }
+      ]
+    },
+    {
+      "nameZh": "叶瞬光",
+      "nameEn": "Ye Shunguang",
+      "skins": [
+        {
+          "id": "zzz-outfit-3114311",
+          "sectionId": "skin:zzz-outfit-3114311",
+          "characterNameZh": "叶瞬光",
+          "characterNameEn": "Ye Shunguang",
+          "wikiCharacterNameEn": "Ye Shunguang",
+          "nameZh": "暖霞拾光",
+          "nameEn": "Touch of Dawnlight",
+          "aliases": [
+            "暖霞拾光",
+            "Touch of Dawnlight"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "2.5",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/0/06/Agent_Ye_Shunguang_Touch_of_Dawnlight_Portrait.png/revision/latest?cb=20251230064529",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Touch_of_Dawnlight",
+          "sourceImageFile": "Agent Ye Shunguang Touch of Dawnlight Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/0/06/Agent_Ye_Shunguang_Touch_of_Dawnlight_Portrait.png/revision/latest?cb=20251230064529",
+          "sourceImageWidth": 1636,
+          "sourceImageHeight": 2376
+        }
+      ]
+    },
+    {
+      "nameZh": "爱芮",
+      "nameEn": "Aria",
+      "skins": [
+        {
+          "id": "zzz-outfit-3115011",
+          "sectionId": "skin:zzz-outfit-3115011",
+          "characterNameZh": "爱芮",
+          "characterNameEn": "Aria",
+          "wikiCharacterNameEn": "Aria",
+          "nameZh": "不协和音",
+          "nameEn": "Discordant Note",
+          "aliases": [
+            "不协和音",
+            "Discordant Note"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "2.6",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/8/83/Agent_Aria_Discordant_Note_Portrait.png/revision/latest?cb=20260206213808",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Discordant_Note",
+          "sourceImageFile": "Agent Aria Discordant Note Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/8/83/Agent_Aria_Discordant_Note_Portrait.png/revision/latest?cb=20260206213808",
+          "sourceImageWidth": 1002,
+          "sourceImageHeight": 1991
+        }
+      ]
+    },
+    {
+      "nameZh": "千夏",
+      "nameEn": "Sunna",
+      "skins": [
+        {
+          "id": "zzz-outfit-3114911",
+          "sectionId": "skin:zzz-outfit-3114911",
+          "characterNameZh": "千夏",
+          "characterNameEn": "Sunna",
+          "wikiCharacterNameEn": "Sunna",
+          "nameZh": "午后茶歇",
+          "nameEn": "Afternoon Tea Break",
+          "aliases": [
+            "午后茶歇",
+            "Afternoon Tea Break"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "2.6",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/2/22/Agent_Sunna_Afternoon_Tea_Break_Portrait.png/revision/latest?cb=20260206213318",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Afternoon_Tea_Break",
+          "sourceImageFile": "Agent Sunna Afternoon Tea Break Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/2/22/Agent_Sunna_Afternoon_Tea_Break_Portrait.png/revision/latest?cb=20260206213318",
+          "sourceImageWidth": 856,
+          "sourceImageHeight": 1956
+        }
+      ]
+    },
+    {
+      "nameZh": "南宫羽",
+      "nameEn": "Nangong Yu",
+      "skins": [
+        {
+          "id": "zzz-outfit-3115111",
+          "sectionId": "skin:zzz-outfit-3115111",
+          "characterNameZh": "南宫羽",
+          "characterNameEn": "Nangong Yu",
+          "wikiCharacterNameEn": "Nangong Yu",
+          "nameZh": "狂想缪斯",
+          "nameEn": "Rhapsody's Muse",
+          "aliases": [
+            "狂想缪斯",
+            "Rhapsody's Muse"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "2.7",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/0/0e/Agent_Nangong_Yu_Rhapsody%27s_Muse_Portrait.png/revision/latest?cb=20260324141945",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Rhapsody%27s_Muse",
+          "sourceImageFile": "Agent Nangong Yu Rhapsody's Muse Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/0/0e/Agent_Nangong_Yu_Rhapsody%27s_Muse_Portrait.png/revision/latest?cb=20260324141945",
+          "sourceImageWidth": 1260,
+          "sourceImageHeight": 2212
+        }
+      ]
+    },
+    {
+      "nameZh": "维琳娜",
+      "nameEn": "Velina",
+      "skins": [
+        {
+          "id": "zzz-outfit-3115611",
+          "sectionId": "skin:zzz-outfit-3115611",
+          "characterNameZh": "维琳娜",
+          "characterNameEn": "Velina",
+          "wikiCharacterNameEn": "Velina Airgid",
+          "nameZh": "暇时闲影",
+          "nameEn": "Shade of Leisure",
+          "aliases": [
+            "暇时闲影",
+            "Shade of Leisure"
+          ],
+          "type": [
+            "Paid"
+          ],
+          "releaseVersion": "3.0",
+          "image": "https://static.wikia.nocookie.net/zenless-zone-zero/images/4/47/Agent_Velina_Airgid_Shade_of_Leisure_Portrait.png/revision/latest?cb=20260617071454",
+          "sourcePageUrl": "https://zenless-zone-zero.fandom.com/wiki/Shade_of_Leisure",
+          "sourceImageFile": "Agent Velina Airgid Shade of Leisure Portrait.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/zenless-zone-zero/images/4/47/Agent_Velina_Airgid_Shade_of_Leisure_Portrait.png/revision/latest?cb=20260617071454",
+          "sourceImageWidth": 1272,
+          "sourceImageHeight": 2036
+        }
+      ]
+    }
+  ]
+}

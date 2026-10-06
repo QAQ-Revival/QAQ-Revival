@@ -1,0 +1,20 @@
+{
+  "name": "qaq-revival",
+  "productName": "QAQ-Revival",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "QAQ-Revival — locally maintained Mod manager",
+  "main": "./out/main/index.js",
+  "dependencies": {
+    "@electron-toolkit/preload": "^3.0.0",
+    "@electron-toolkit/utils": "^3.0.0",
+    "7zip-bin": "^5.2.0",
+    "adm-zip": "^0.5.16",
+    "iconv-lite": "^0.7.2",
+    "node-7z": "^3.0.0",
+    "pinyin-pro": "^3.28.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-easy-crop": "^5.5.6"
+  }
+}

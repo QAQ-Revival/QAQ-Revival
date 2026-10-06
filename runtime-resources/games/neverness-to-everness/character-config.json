@@ -1,0 +1,715 @@
+{
+  "gameId": "neverness-to-everness",
+  "defaultCharacters": [
+    "九原",
+    "伊洛伊",
+    "凛子",
+    "哈尼娅",
+    "哈索尔",
+    "埃德加",
+    "女主",
+    "娜娜莉",
+    "安魂曲",
+    "小吱",
+    "尼察",
+    "早雾",
+    "真红",
+    "法蒂亚",
+    "浔",
+    "海月",
+    "男主",
+    "白藏",
+    "翳",
+    "薄荷",
+    "赤音",
+    "达芙迪尔",
+    "阿尔法德",
+    "阿德勒",
+    "黑鸟",
+    "卡厄斯",
+    "塔吉多",
+    "明音凛",
+    "残虹",
+    "NPC",
+    "大世界",
+    "UI",
+    "功能",
+    "武器",
+    "载具"
+  ],
+  "manualMappings": {
+    "jiuyuan": {
+      "displayName": "九原",
+      "canonicalEnName": "Jiuyuan"
+    },
+    "Jiuyuan": {
+      "displayName": "九原",
+      "canonicalEnName": "Jiuyuan"
+    },
+    "九原": {
+      "displayName": "九原",
+      "canonicalEnName": "Jiuyuan"
+    },
+    "lingko": {
+      "displayName": "凛子",
+      "canonicalEnName": "Lingko"
+    },
+    "Lingko": {
+      "displayName": "凛子",
+      "canonicalEnName": "Lingko"
+    },
+    "凛子": {
+      "displayName": "凛子",
+      "canonicalEnName": "Lingko"
+    },
+    "haniel": {
+      "displayName": "哈尼娅",
+      "canonicalEnName": "Haniel"
+    },
+    "Haniel": {
+      "displayName": "哈尼娅",
+      "canonicalEnName": "Haniel"
+    },
+    "哈尼娅": {
+      "displayName": "哈尼娅",
+      "canonicalEnName": "Haniel"
+    },
+    "哈尼尔": {
+      "displayName": "哈尼娅",
+      "canonicalEnName": "Haniel"
+    },
+    "hathor": {
+      "displayName": "哈索尔",
+      "canonicalEnName": "Hathor"
+    },
+    "Hathor": {
+      "displayName": "哈索尔",
+      "canonicalEnName": "Hathor"
+    },
+    "哈索尔": {
+      "displayName": "哈索尔",
+      "canonicalEnName": "Hathor"
+    },
+    "edgar": {
+      "displayName": "埃德加",
+      "canonicalEnName": "Edgar"
+    },
+    "Edgar": {
+      "displayName": "埃德加",
+      "canonicalEnName": "Edgar"
+    },
+    "埃德加": {
+      "displayName": "埃德加",
+      "canonicalEnName": "Edgar"
+    },
+    "zero-female": {
+      "displayName": "女主",
+      "canonicalEnName": "Zero (Female)"
+    },
+    "zerofemale": {
+      "displayName": "女主",
+      "canonicalEnName": "Zero (Female)"
+    },
+    "zero female": {
+      "displayName": "女主",
+      "canonicalEnName": "Zero (Female)"
+    },
+    "Zero (Female)": {
+      "displayName": "女主",
+      "canonicalEnName": "Zero (Female)"
+    },
+    "zero (female)": {
+      "displayName": "女主",
+      "canonicalEnName": "Zero (Female)"
+    },
+    "女主": {
+      "displayName": "女主",
+      "canonicalEnName": "Zero (Female)"
+    },
+    "零（女）": {
+      "displayName": "女主",
+      "canonicalEnName": "Zero (Female)"
+    },
+    "零女": {
+      "displayName": "女主",
+      "canonicalEnName": "Zero (Female)"
+    },
+    "女零": {
+      "displayName": "女主",
+      "canonicalEnName": "Zero (Female)"
+    },
+    "Female Protagonist": {
+      "displayName": "女主",
+      "canonicalEnName": "Zero (Female)"
+    },
+    "Heroine": {
+      "displayName": "女主",
+      "canonicalEnName": "Zero (Female)"
+    },
+    "nanally": {
+      "displayName": "娜娜莉",
+      "canonicalEnName": "Nanally"
+    },
+    "Nanally": {
+      "displayName": "娜娜莉",
+      "canonicalEnName": "Nanally"
+    },
+    "娜娜莉": {
+      "displayName": "娜娜莉",
+      "canonicalEnName": "Nanally"
+    },
+    "requiem": {
+      "displayName": "安魂曲",
+      "canonicalEnName": "Requiem"
+    },
+    "Requiem": {
+      "displayName": "安魂曲",
+      "canonicalEnName": "Requiem"
+    },
+    "Lacrimosa": {
+      "displayName": "安魂曲",
+      "canonicalEnName": "Lacrimosa"
+    },
+    "lacrimosa": {
+      "displayName": "安魂曲",
+      "canonicalEnName": "Lacrimosa"
+    },
+    "安魂曲": {
+      "displayName": "安魂曲",
+      "canonicalEnName": "Requiem"
+    },
+    "xiaozhi": {
+      "displayName": "小吱",
+      "canonicalEnName": "Xiaozhi"
+    },
+    "Xiaozhi": {
+      "displayName": "小吱",
+      "canonicalEnName": "Xiaozhi"
+    },
+    "小吱": {
+      "displayName": "小吱",
+      "canonicalEnName": "Xiaozhi"
+    },
+    "nitsa": {
+      "displayName": "尼察",
+      "canonicalEnName": "Nitsa"
+    },
+    "Nitsa": {
+      "displayName": "尼察",
+      "canonicalEnName": "Nitsa"
+    },
+    "尼察": {
+      "displayName": "尼察",
+      "canonicalEnName": "Nitsa"
+    },
+    "sayuri": {
+      "displayName": "早雾",
+      "canonicalEnName": "Sayuri"
+    },
+    "Sayuri": {
+      "displayName": "早雾",
+      "canonicalEnName": "Sayuri"
+    },
+    "早雾": {
+      "displayName": "早雾",
+      "canonicalEnName": "Sayuri"
+    },
+    "shinku": {
+      "displayName": "真红",
+      "canonicalEnName": "Shinku"
+    },
+    "Shinku": {
+      "displayName": "真红",
+      "canonicalEnName": "Shinku"
+    },
+    "沁红": {
+      "displayName": "真红",
+      "canonicalEnName": "Shinku"
+    },
+    "fadia": {
+      "displayName": "法蒂亚",
+      "canonicalEnName": "Fadia"
+    },
+    "Fadia": {
+      "displayName": "法蒂亚",
+      "canonicalEnName": "Fadia"
+    },
+    "法蒂亚": {
+      "displayName": "法蒂亚",
+      "canonicalEnName": "Fadia"
+    },
+    "xun": {
+      "displayName": "浔",
+      "canonicalEnName": "Xun"
+    },
+    "Xun": {
+      "displayName": "浔",
+      "canonicalEnName": "Xun"
+    },
+    "浔": {
+      "displayName": "浔",
+      "canonicalEnName": "Xun"
+    },
+    "mitsuki": {
+      "displayName": "海月",
+      "canonicalEnName": "Mitsuki"
+    },
+    "Mitsuki": {
+      "displayName": "海月",
+      "canonicalEnName": "Mitsuki"
+    },
+    "海月": {
+      "displayName": "海月",
+      "canonicalEnName": "Mitsuki"
+    },
+    "zero-male": {
+      "displayName": "男主",
+      "canonicalEnName": "Zero (Male)"
+    },
+    "zeromale": {
+      "displayName": "男主",
+      "canonicalEnName": "Zero (Male)"
+    },
+    "zero male": {
+      "displayName": "男主",
+      "canonicalEnName": "Zero (Male)"
+    },
+    "Zero (Male)": {
+      "displayName": "男主",
+      "canonicalEnName": "Zero (Male)"
+    },
+    "zero (male)": {
+      "displayName": "男主",
+      "canonicalEnName": "Zero (Male)"
+    },
+    "男主": {
+      "displayName": "男主",
+      "canonicalEnName": "Zero (Male)"
+    },
+    "零（男）": {
+      "displayName": "男主",
+      "canonicalEnName": "Zero (Male)"
+    },
+    "零男": {
+      "displayName": "男主",
+      "canonicalEnName": "Zero (Male)"
+    },
+    "男零": {
+      "displayName": "男主",
+      "canonicalEnName": "Zero (Male)"
+    },
+    "Male Protagonist": {
+      "displayName": "男主",
+      "canonicalEnName": "Zero (Male)"
+    },
+    "Hero": {
+      "displayName": "男主",
+      "canonicalEnName": "Zero (Male)"
+    },
+    "baicang": {
+      "displayName": "白藏",
+      "canonicalEnName": "Baicang"
+    },
+    "Baicang": {
+      "displayName": "白藏",
+      "canonicalEnName": "Baicang"
+    },
+    "白藏": {
+      "displayName": "白藏",
+      "canonicalEnName": "Baicang"
+    },
+    "skia": {
+      "displayName": "翳",
+      "canonicalEnName": "Skia"
+    },
+    "Skia": {
+      "displayName": "翳",
+      "canonicalEnName": "Skia"
+    },
+    "翳": {
+      "displayName": "翳",
+      "canonicalEnName": "Skia"
+    },
+    "mint": {
+      "displayName": "薄荷",
+      "canonicalEnName": "Mint"
+    },
+    "Mint": {
+      "displayName": "薄荷",
+      "canonicalEnName": "Mint"
+    },
+    "薄荷": {
+      "displayName": "薄荷",
+      "canonicalEnName": "Mint"
+    },
+    "chiz": {
+      "displayName": "小吱",
+      "canonicalEnName": "Chiz"
+    },
+    "Chiz": {
+      "displayName": "小吱",
+      "canonicalEnName": "Chiz"
+    },
+    "赤子": {
+      "displayName": "小吱",
+      "canonicalEnName": "Chiz"
+    },
+    "akane": {
+      "displayName": "赤音",
+      "canonicalEnName": "Akane"
+    },
+    "Akane": {
+      "displayName": "赤音",
+      "canonicalEnName": "Akane"
+    },
+    "赤音": {
+      "displayName": "赤音",
+      "canonicalEnName": "Akane"
+    },
+    "daffodil": {
+      "displayName": "达芙迪尔",
+      "canonicalEnName": "Daffodil"
+    },
+    "Daffodil": {
+      "displayName": "达芙迪尔",
+      "canonicalEnName": "Daffodil"
+    },
+    "达芙迪尔": {
+      "displayName": "达芙迪尔",
+      "canonicalEnName": "Daffodil"
+    },
+    "alphard": {
+      "displayName": "阿尔法德",
+      "canonicalEnName": "Alphard"
+    },
+    "Alphard": {
+      "displayName": "阿尔法德",
+      "canonicalEnName": "Alphard"
+    },
+    "阿尔法德": {
+      "displayName": "阿尔法德",
+      "canonicalEnName": "Alphard"
+    },
+    "adler": {
+      "displayName": "阿德勒",
+      "canonicalEnName": "Adler"
+    },
+    "Adler": {
+      "displayName": "阿德勒",
+      "canonicalEnName": "Adler"
+    },
+    "阿德勒": {
+      "displayName": "阿德勒",
+      "canonicalEnName": "Adler"
+    },
+    "black-bird": {
+      "displayName": "黑鸟",
+      "canonicalEnName": "Black Bird"
+    },
+    "blackbird": {
+      "displayName": "黑鸟",
+      "canonicalEnName": "Black Bird"
+    },
+    "black bird": {
+      "displayName": "黑鸟",
+      "canonicalEnName": "Black Bird"
+    },
+    "Black Bird": {
+      "displayName": "黑鸟",
+      "canonicalEnName": "Black Bird"
+    },
+    "黑鸟": {
+      "displayName": "黑鸟",
+      "canonicalEnName": "Black Bird"
+    },
+    "chaos": {
+      "displayName": "卡厄斯",
+      "canonicalEnName": "Chaos"
+    },
+    "Chaos": {
+      "displayName": "卡厄斯",
+      "canonicalEnName": "Chaos"
+    },
+    "卡厄斯": {
+      "displayName": "卡厄斯",
+      "canonicalEnName": "Chaos"
+    },
+    "npc": {
+      "displayName": "NPC",
+      "canonicalEnName": "NPC"
+    },
+    "NPC": {
+      "displayName": "NPC",
+      "canonicalEnName": "NPC"
+    },
+    "vehicles": {
+      "displayName": "载具",
+      "canonicalEnName": "Vehicles"
+    },
+    "vehicle": {
+      "displayName": "载具",
+      "canonicalEnName": "Vehicles"
+    },
+    "载具": {
+      "displayName": "载具",
+      "canonicalEnName": "Vehicles"
+    },
+    "iroi": {
+      "displayName": "伊洛伊",
+      "canonicalEnName": "Iroi"
+    },
+    "Iroi": {
+      "displayName": "伊洛伊",
+      "canonicalEnName": "Iroi"
+    },
+    "伊洛伊": {
+      "displayName": "伊洛伊",
+      "canonicalEnName": "Iroi"
+    },
+    "真红": {
+      "displayName": "真红",
+      "canonicalEnName": "Shinku"
+    },
+    "qinhong": {
+      "displayName": "真红",
+      "canonicalEnName": "Shinku"
+    },
+    "Qinhong": {
+      "displayName": "真红",
+      "canonicalEnName": "Shinku"
+    },
+    "qin hong": {
+      "displayName": "真红",
+      "canonicalEnName": "Shinku"
+    },
+    "Qin Hong": {
+      "displayName": "真红",
+      "canonicalEnName": "Shinku"
+    },
+    "埃德嘉": {
+      "displayName": "埃德加",
+      "canonicalEnName": "埃德加"
+    },
+    "塔吉多": {
+      "displayName": "塔吉多",
+      "canonicalEnName": "塔吉多"
+    },
+    "明音凛": {
+      "displayName": "明音凛",
+      "canonicalEnName": "明音凛"
+    },
+    "残虹": {
+      "displayName": "残虹",
+      "canonicalEnName": "残虹"
+    },
+    "法帝娅": {
+      "displayName": "法蒂亚",
+      "canonicalEnName": "法蒂亚"
+    },
+    "灵可": {
+      "displayName": "凛子",
+      "canonicalEnName": "凛子"
+    },
+    "达芙蒂尔": {
+      "displayName": "达芙迪尔",
+      "canonicalEnName": "达芙迪尔"
+    },
+    "黑羽": {
+      "displayName": "黑鸟",
+      "canonicalEnName": "黑鸟"
+    }
+  },
+  "characterNameMap": {
+    "pairs": [
+      {
+        "cn": "九原",
+        "en": "Jiuyuan",
+        "jasmName": "jiuyuan"
+      },
+      {
+        "cn": "伊洛伊",
+        "en": "Iroi",
+        "jasmName": "iroi"
+      },
+      {
+        "cn": "凛子",
+        "en": "Lingko",
+        "jasmName": "lingko"
+      },
+      {
+        "cn": "哈尼娅",
+        "en": "Haniel",
+        "jasmName": "haniel"
+      },
+      {
+        "cn": "哈索尔",
+        "en": "Hathor",
+        "jasmName": "hathor"
+      },
+      {
+        "cn": "埃德加",
+        "en": "Edgar",
+        "jasmName": "edgar"
+      },
+      {
+        "cn": "女主",
+        "en": "Zero (Female)",
+        "jasmName": "zero-female"
+      },
+      {
+        "cn": "娜娜莉",
+        "en": "Nanally",
+        "jasmName": "nanally"
+      },
+      {
+        "cn": "安魂曲",
+        "en": "Requiem",
+        "jasmName": "requiem"
+      },
+      {
+        "cn": "安魂曲",
+        "en": "Lacrimosa",
+        "jasmName": "lacrimosa"
+      },
+      {
+        "cn": "小吱",
+        "en": "Xiaozhi",
+        "jasmName": "xiaozhi"
+      },
+      {
+        "cn": "尼察",
+        "en": "Nitsa",
+        "jasmName": "nitsa"
+      },
+      {
+        "cn": "早雾",
+        "en": "Sayuri",
+        "jasmName": "sayuri"
+      },
+      {
+        "cn": "真红",
+        "en": "Shinku",
+        "jasmName": "shinku",
+        "aliases": [
+          "沁红",
+          "qinhong",
+          "Qinhong",
+          "qin hong",
+          "Qin Hong"
+        ]
+      },
+      {
+        "cn": "法蒂亚",
+        "en": "Fadia",
+        "jasmName": "fadia"
+      },
+      {
+        "cn": "浔",
+        "en": "Xun",
+        "jasmName": "xun"
+      },
+      {
+        "cn": "海月",
+        "en": "Mitsuki",
+        "jasmName": "mitsuki"
+      },
+      {
+        "cn": "男主",
+        "en": "Zero (Male)",
+        "jasmName": "zero-male"
+      },
+      {
+        "cn": "白藏",
+        "en": "Baicang",
+        "jasmName": "baicang"
+      },
+      {
+        "cn": "翳",
+        "en": "Skia",
+        "jasmName": "skia"
+      },
+      {
+        "cn": "薄荷",
+        "en": "Mint",
+        "jasmName": "mint"
+      },
+      {
+        "cn": "小吱",
+        "en": "Chiz",
+        "jasmName": "chiz"
+      },
+      {
+        "cn": "赤音",
+        "en": "Akane",
+        "jasmName": "akane"
+      },
+      {
+        "cn": "达芙迪尔",
+        "en": "Daffodil",
+        "jasmName": "daffodil"
+      },
+      {
+        "cn": "阿尔法德",
+        "en": "Alphard",
+        "jasmName": "alphard"
+      },
+      {
+        "cn": "阿德勒",
+        "en": "Adler",
+        "jasmName": "adler"
+      },
+      {
+        "cn": "黑鸟",
+        "en": "Black Bird",
+        "jasmName": "black-bird"
+      },
+      {
+        "cn": "卡厄斯",
+        "en": "Chaos",
+        "jasmName": "chaos"
+      },
+      {
+        "cn": "NPC",
+        "en": "NPC",
+        "jasmName": "npc"
+      },
+      {
+        "cn": "载具",
+        "en": "Vehicles",
+        "jasmName": "vehicles"
+      }
+    ]
+  },
+  "characterImages": {
+    "哈尼娅": "https://wiki.mysqil.com/images/characters/haniya-icon.webp",
+    "埃德加": "https://wiki.mysqil.com/images/characters/edjia-icon.webp",
+    "海月": "https://wiki.mysqil.com/images/characters/haiyue-icon.webp",
+    "翳": "https://wiki.mysqil.com/images/characters/yi-icon.webp",
+    "薄荷": "https://wiki.mysqil.com/images/characters/bohe-icon.webp",
+    "阿德勒": "https://wiki.mysqil.com/images/characters/adeler-icon.webp",
+    "九原": "https://wiki.mysqil.com/images/characters/jiuyuan-icon.webp",
+    "伊洛伊": "https://wiki.mysqil.com/images/characters/yiluoyi-icon.webp",
+    "卡厄斯": "https://wiki.mysqil.com/images/characters/kaesi-icon.webp",
+    "哈索尔": "https://wiki.mysqil.com/images/characters/hasuoer-icon.webp",
+    "塔吉多": "https://wiki.mysqil.com/images/characters/tajiduo-icon.png",
+    "娜娜莉": "https://wiki.mysqil.com/images/characters/nanali-icon.webp",
+    "安魂曲": "https://wiki.mysqil.com/images/characters/anhunqu-icon.webp",
+    "小吱": "https://wiki.mysqil.com/images/characters/xiaozhi-icon.webp",
+    "早雾": "https://wiki.mysqil.com/images/characters/zaowu-icon.webp",
+    "明音凛": "https://wiki.mysqil.com/images/characters/mingyin-icon.webp",
+    "残虹": "https://wiki.mysqil.com/images/characters/canhong-icon.webp",
+    "法蒂亚": "https://wiki.mysqil.com/images/characters/fadiya-icon.webp",
+    "浔": "https://wiki.mysqil.com/images/characters/xun-icon.webp",
+    "凛子": "https://wiki.mysqil.com/images/characters/lingke-icon.webp",
+    "白藏": "https://wiki.mysqil.com/images/characters/baizang-icon.webp",
+    "真红": "https://wiki.mysqil.com/images/characters/zhenhong-icon.webp",
+    "达芙迪尔": "https://wiki.mysqil.com/images/characters/dafutier-icon.webp",
+    "黑鸟": "https://wiki.mysqil.com/images/characters/heiyu-icon.webp"
+  },
+  "onlineSource": {
+    "urls": [
+      "https://wiki.mysqil.com/characters/"
+    ],
+    "checkedAt": "2026-10-06"
+  }
+}

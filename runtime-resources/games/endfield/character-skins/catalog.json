@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "gameId": "endfield",
+  "generatedAt": "2026-07-14T13:59:14Z",
+  "source": {
+    "name": "Arknights: Endfield official site and Endfield Talos Wiki",
+    "url": "https://endfield.hypergryph.com/operator",
+    "license": "CC BY-SA 4.0 (community wiki text); game materials remain property of their respective owners",
+    "dataAsOf": "2026-07-14",
+    "scope": "Released, user-selectable, non-default full-character appearance replacements",
+    "references": [
+      {
+        "name": "Arknights: Endfield official operator roster",
+        "url": "https://endfield.hypergryph.com/operator"
+      },
+      {
+        "name": "Endfield Talos Wiki - Operator",
+        "url": "https://endfield.wiki.gg/wiki/Operator"
+      },
+      {
+        "name": "Endfield Talos Wiki search API",
+        "url": "https://endfield.wiki.gg/api.php"
+      }
+    ],
+    "verification": {
+      "status": "verified-empty",
+      "officialAppearanceLinks": [],
+      "officialAppearanceTerms": [],
+      "wikiRelevantCategories": [],
+      "wikiUnexpectedSearchResults": [],
+      "wikiSearchResults": {
+        "intitle:Outfit": [
+          "\"Landbreaker\" Outfit in the Trash Can"
+        ],
+        "intitle:Costume": [],
+        "intitle:Skin": [],
+        "intitle:Appearance": [],
+        "intitle:Fashion": [],
+        "intitle:Wardrobe": [],
+        "\"alternate outfit\"": [],
+        "\"operator outfit\"": [],
+        "\"character outfit\"": []
+      },
+      "knownExcludedPages": [
+        {
+          "title": "\"Landbreaker\" Outfit in the Trash Can",
+          "reason": "Archive item describing charred clothing, not a selectable operator appearance"
+        }
+      ],
+      "operatorAppearanceNote": "Full Potential may add an equipment glow effect; it is not a selectable full-character outfit."
+    }
+  },
+  "outfitCount": 0,
+  "characterCount": 0,
+  "characters": []
+}

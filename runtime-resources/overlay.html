@@ -1,0 +1,2886 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QAQManager Overlay</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --overlay-ui-scale: 1;
+}
+
+body {
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    background: transparent;
+    color: #333;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+}
+
+.overlay-root {
+    height: calc(100vh / var(--overlay-ui-scale));
+    width: calc(100vw / var(--overlay-ui-scale));
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    padding: 8px;
+    zoom: var(--overlay-ui-scale);
+}
+
+/* ===== Main Panel - fills the entire window ===== */
+.overlay-panel {
+    width: 100%;
+    background: rgba(255, 255, 255, var(--panel-opacity, 0.88));
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Header - draggable */
+.overlay-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border-bottom: 1px solid rgba(0,0,0,0.06);
+    flex-shrink: 0; background: linear-gradient(135deg, rgba(255,154,158,0.15), rgba(254,207,239,0.15));
+    cursor: move; -webkit-app-region: drag;
+}
+.overlay-title { font-size: 14px; font-weight: 700; color: #333; display: flex; align-items: center; gap: 6px; }
+.overlay-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; -webkit-app-region: no-drag; }
+
+.overlay-btn {
+    padding: 4px 9px; border: 1px solid rgba(0,0,0,0.08); border-radius: 8px;
+    background: rgba(255,255,255,0.6); color: #555; font-size: 11px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.overlay-btn:hover { background: rgba(255,255,255,0.9); color: #333; }
+.overlay-btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+.overlay-btn.compact { min-width: 30px; padding: 4px 7px; text-align: center; }
+.overlay-scale-label {
+    min-width: 42px;
+    padding: 4px 6px;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.45);
+    color: #777;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: center;
+}
+.overlay-btn.primary { background: linear-gradient(135deg, #ff9a9e, #fecfef); border-color: transparent; color: #fff; }
+.overlay-btn.danger { color: #e74c3c; background: rgba(231,76,60,0.08); }
+.overlay-btn.pin-active { background: rgba(255,154,158,0.2); border-color: rgba(255,154,158,0.4); color: #e74c3c; }
+
+/* ===== Character Strip ===== */
+.char-strip {
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px 10px; flex-shrink: 0; border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.char-bubble-btn {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; background: rgba(255,154,158,0.15); border: 2px solid transparent;
+    cursor: pointer; transition: all 0.2s;
+}
+.char-bubble-btn:hover { background: rgba(255,154,158,0.3); }
+.char-bubble-btn.open { background: linear-gradient(135deg, #ff9a9e, #fecfef); color: white; }
+.char-bubble-btn.active { background: linear-gradient(135deg, #ff9a9e, #fecfef); color: white; border-color: rgba(255,255,255,0.6); }
+
+.char-chip-count {
+    margin-left: 4px; padding: 0 4px; font-size: 9px; font-weight: 700;
+    border-radius: 8px; background: rgba(255,154,158,0.18); color: #c0392b;
+}
+.char-chip.active .char-chip-count { background: rgba(231,76,60,0.18); color: #c0392b; }
+
+.char-strip-scroll {
+    display: flex; gap: 3px; overflow-x: auto; scroll-behavior: smooth;
+    -ms-overflow-style: none; scrollbar-width: none; flex: 1;
+}
+.char-strip-scroll::-webkit-scrollbar { display: none; }
+
+.char-chip {
+    padding: 3px 8px; border-radius: 6px; flex-shrink: 0;
+    font-size: 10px; font-weight: 600; color: #888;
+    background: rgba(255,255,255,0.5); border: 1px solid transparent;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.char-chip:hover { background: rgba(255,255,255,0.8); color: #555; }
+.char-chip.active { border-color: #ff9a9e; background: white; color: #e74c3c; }
+
+/* ===== Sort Bar ===== */
+.sort-bar {
+    display: flex; align-items: center; gap: 3px;
+    padding: 4px 10px; border-bottom: 1px solid rgba(0,0,0,0.05); flex-shrink: 0;
+}
+.sort-bar-label { color: #999; font-size: 9px; margin-right: 2px; }
+.sort-btn {
+    padding: 2px 7px; border: 1px solid rgba(0,0,0,0.06); border-radius: 5px;
+    background: rgba(255,255,255,0.4); color: #888; font-size: 9px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.sort-btn:hover { background: rgba(255,255,255,0.8); color: #555; }
+.sort-btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+.sort-btn.active { background: linear-gradient(135deg, #ff9a9e, #fecfef); color: white; border-color: transparent; }
+
+/* ===== Mod List ===== */
+.mod-list { flex: 1; overflow-y: auto; padding: 4px 8px; }
+.mod-list.soft-refreshing {
+    opacity: 0.97;
+    transition: opacity 0.12s ease;
+}
+.mod-list::-webkit-scrollbar { width: 3px; }
+.mod-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+
+/* ===== View-mode toggle (mirrors the manager's pill button) ===== */
+.view-mode-toggle-overlay {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px 2px 6px; border-radius: 10px;
+    border: 1px solid var(--accent, #ff9a9e);
+    background: linear-gradient(135deg, #ff9a9e, #fecfef);
+    color: white; font-size: 9px; font-weight: 700;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    box-shadow: 0 1px 4px rgba(255,154,158,0.3);
+    transition: transform 0.12s ease, box-shadow 0.18s ease;
+    font-family: inherit; line-height: 1.2;
+}
+.view-mode-toggle-overlay:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(255,154,158,0.4); }
+.view-mode-toggle-overlay:active { transform: scale(0.96); }
+.view-mode-toggle-overlay svg { display: block; }
+
+/* ===== Gallery mode ===== */
+/* Tighter scrollbar gutter + grid layout when toggled. Keeps the same
+   .mod-list container so scroll/focus logic just works; only the inner
+   children differ between modes. */
+.mod-list.is-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+    gap: 10px;
+    padding: 10px;
+    align-content: start;
+    grid-auto-rows: max-content;
+}
+
+.mod-gallery-item {
+    position: relative;
+    min-width: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    background: rgba(255,255,255,0.9);
+    border: 1.5px solid rgba(0,0,0,0.06);
+    transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+    display: flex; flex-direction: column;
+    min-height: 0;
+    align-self: start;
+}
+.mod-gallery-item.collection-menu-open {
+    overflow: visible;
+    z-index: 20;
+}
+.mod-gallery-item.collection-menu-open .mod-gallery-image {
+    overflow: hidden;
+}
+.mod-gallery-item:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,154,158,0.5);
+    box-shadow: 0 4px 12px rgba(255,154,158,0.22);
+}
+.mod-gallery-item.enabled {
+    border-color: rgba(255,154,158,0.7);
+    box-shadow: 0 0 0 1px rgba(255,154,158,0.5), 0 4px 12px rgba(255,154,158,0.25);
+}
+.mod-gallery-item.selected {
+    border-color: #ff7a92;
+    box-shadow: 0 0 0 2px rgba(255,122,146,0.5), 0 6px 16px rgba(255,122,146,0.3);
+}
+.mod-gallery-item.focus-pulse {
+    animation: modFocusPulse 1s ease;
+}
+
+.mod-gallery-image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    min-height: 0;
+    height: auto;
+    max-height: 220px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(0,0,0,0.04));
+    display: flex; align-items: center; justify-content: center;
+    flex: 0 0 auto;
+    font-size: 28px; color: #aaa;
+    overflow: hidden;
+}
+.mod-gallery-image img {
+    width: 100%; height: 100%; object-fit: cover; object-position: center 30%; display: block;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.mod-gallery-item:hover .mod-gallery-image img { transform: scale(1.04); }
+.mod-gallery-placeholder {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px;
+    background: linear-gradient(135deg, rgba(255,154,158,0.07), rgba(165,180,252,0.08));
+}
+.mod-gallery-footer {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 8px;
+    background: rgba(255,255,255,0.94);
+    border-top: 1px solid rgba(0,0,0,0.04);
+}
+.mod-gallery-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px; font-weight: 700; color: #444;
+    line-height: 1.25;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mod-gallery-item.enabled .mod-gallery-name { color: #c0392b; }
+
+.mod-gallery-switch {
+    flex: 0 0 auto;
+    width: 38px; height: 20px;
+    border-radius: 20px;
+    background: #dfe6e9;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s ease, transform 0.12s ease;
+}
+.mod-gallery-switch:hover { transform: scale(1.04); }
+.mod-gallery-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.18);
+    transition: transform 0.2s ease;
+}
+.mod-gallery-switch.active {
+    background: linear-gradient(135deg, #ff9a9e, #fecfef);
+}
+.mod-gallery-switch.active::after {
+    transform: translateX(18px);
+}
+.mod-gallery-pin {
+    position: absolute; top: 6px; left: 6px;
+    font-size: 13px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+.mod-gallery-mark {
+    position: absolute; right: 6px; bottom: 6px;
+    width: 26px; height: 26px; border-radius: 999px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.86);
+    font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0.62; transition: all 0.16s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.16);
+}
+.mod-gallery-mark:hover { opacity: 1; transform: scale(1.06); }
+.mod-gallery-mark.active { opacity: 1; background: linear-gradient(135deg, #ff9a9e, #fecfef); color: #fff; border-color: transparent; }
+.mod-gallery-item.has-collection .mod-gallery-mark { left: 6px; right: auto; }
+.mod-gallery-conflict {
+    position: absolute; top: 6px; right: 6px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 999px;
+}
+.overlay-collection-badge {
+    display: inline-flex; align-items: center;
+    margin-left: 4px; padding: 1px 5px;
+    border-radius: 999px;
+    background: rgba(255,154,158,0.13);
+    color: #d14b66;
+    font-size: 9px; font-weight: 800;
+    vertical-align: middle;
+}
+.overlay-collection-variants {
+    display: flex; gap: 4px; flex-wrap: wrap;
+    margin-top: 4px;
+}
+.overlay-collection-chip {
+    border: 1px solid rgba(255,154,158,0.22);
+    background: rgba(255,255,255,0.82);
+    color: #9f3951;
+    border-radius: 999px;
+    padding: 2px 6px;
+    font-size: 9px; font-weight: 800;
+    cursor: pointer;
+    max-width: 92px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.overlay-collection-chip:hover,
+.overlay-collection-chip.active {
+    background: linear-gradient(135deg, #ff9a9e, #fecfef);
+    color: #fff;
+    border-color: transparent;
+}
+.overlay-collection-dropdown {
+    position: absolute;
+    right: 6px; bottom: 6px;
+    z-index: 30;
+}
+.overlay-collection-trigger {
+    display: inline-flex; align-items: center; gap: 3px;
+    min-width: 42px; max-width: 82px;
+    height: 24px;
+    border: 1px solid rgba(255,255,255,0.72);
+    border-radius: 999px;
+    background: rgba(20,20,24,0.48);
+    color: #fff;
+    font-size: 10px; font-weight: 900;
+    padding: 0 8px;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.22);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+.overlay-collection-trigger span {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.overlay-collection-trigger svg {
+    width: 9px; height: 9px; flex: 0 0 auto;
+}
+.overlay-collection-menu,
+.overlay-collection-floating-menu {
+    position: absolute;
+    bottom: 30px;
+    width: 150px;
+    max-height: 154px;
+    overflow-y: auto;
+    padding: 5px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.98);
+    border: 1px solid rgba(255,154,158,0.26);
+    box-shadow: 0 12px 28px rgba(36,28,34,0.22);
+    z-index: 40;
+    pointer-events: auto;
+    -webkit-app-region: no-drag;
+    user-select: none;
+}
+.overlay-collection-floating-menu {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: auto;
+    z-index: 9999;
+}
+.overlay-collection-dropdown.menu-right .overlay-collection-menu { right: 0; }
+.overlay-collection-dropdown.menu-left .overlay-collection-menu { left: 0; }
+.overlay-collection-option {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: #4b5563;
+    border-radius: 7px;
+    padding: 5px 6px;
+    font-size: 10px; font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+    display: flex; justify-content: space-between; gap: 6px;
+}
+.overlay-collection-option:hover,
+.overlay-collection-option.active {
+    background: rgba(255,154,158,0.14);
+    color: #be185d;
+}
+.overlay-collection-option em {
+    color: #9ca3af;
+    font-style: normal;
+    font-size: 9px;
+    flex: 0 0 auto;
+}
+
+.mod-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: 8px; margin-bottom: 2px;
+    transition: all 0.15s; border: 1px solid transparent; cursor: pointer;
+}
+.mod-item:hover { background: rgba(0,0,0,0.02); }
+.mod-item:active { transform: scale(0.995); }
+.mod-item.enabled { background: rgba(255,154,158,0.08); border-color: rgba(255,154,158,0.15); }
+.mod-item.selected { background: rgba(102,126,234,0.08); border-color: rgba(102,126,234,0.2); }
+.mod-item.focus-pulse {
+    animation: modFocusPulse 1s ease;
+    box-shadow: 0 0 0 2px rgba(255,154,158,0.28), 0 10px 26px rgba(255,154,158,0.16);
+}
+
+@keyframes modFocusPulse {
+    0% { transform: scale(0.985); box-shadow: 0 0 0 0 rgba(255,154,158,0.05); }
+    35% { transform: scale(1.01); box-shadow: 0 0 0 3px rgba(255,154,158,0.24), 0 14px 28px rgba(255,154,158,0.2); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,154,158,0.05); }
+}
+
+.mod-preview {
+    width: 36px; height: 36px; border-radius: 6px; overflow: hidden;
+    background: rgba(0,0,0,0.03); flex-shrink: 0; display: flex;
+    align-items: center; justify-content: center; font-size: 16px;
+}
+.mod-preview img { width: 100%; height: 100%; object-fit: cover; }
+.mod-info { flex: 1; min-width: 0; }
+.mod-name { font-size: 11px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mod-pin-icon { font-size: 10px; margin-left: 4px; vertical-align: middle; }
+.mod-status-text { font-size: 9px; color: #999; margin-top: 1px; }
+.mod-item.enabled .mod-status-text { color: #27ae60; }
+.mod-conflict-icon { font-size: 10px; }
+.mod-mark-btn {
+    width: 24px; height: 24px; border: none; border-radius: 8px;
+    background: rgba(0,0,0,0.04); color: #999; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0; transition: all 0.16s;
+    font-family: inherit;
+}
+.mod-mark-btn:hover { background: rgba(255,154,158,0.16); color: #e57373; transform: scale(1.04); }
+.mod-mark-btn.active { background: linear-gradient(135deg, #ff9a9e, #fecfef); color: #fff; }
+
+/* Toggle */
+.toggle {
+    width: 32px; height: 18px; border-radius: 9px; background: rgba(0,0,0,0.1);
+    position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+}
+.toggle.on { background: linear-gradient(135deg, #ff9a9e, #fecfef); }
+.toggle::after {
+    content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; top: 2px; left: 2px; transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle.on::after { transform: translateX(14px); }
+
+/* ===== Internal Overlay Panels (bubble menu, detail, settings) ===== */
+.internal-panel {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255,255,255,0.96); backdrop-filter: blur(24px);
+    z-index: 20; display: none; flex-direction: column;
+    -webkit-app-region: no-drag;
+    animation: panelFadeIn 0.2s ease-out backwards;
+}
+.internal-panel.visible { display: flex; }
+
+@keyframes panelFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.panel-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 14px; border-bottom: 1px solid rgba(0,0,0,0.06); flex-shrink: 0;
+    -webkit-app-region: no-drag;
+}
+.panel-header-title { flex: 1; font-size: 14px; font-weight: 700; }
+.panel-close {
+    width: 28px; height: 28px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.6); cursor: pointer; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.panel-close:hover { background: rgba(231,76,60,0.1); color: #e74c3c; }
+.panel-body { flex: 1; overflow-y: auto; padding: 12px; }
+.panel-body::-webkit-scrollbar { width: 3px; }
+.panel-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+
+/* Bubble grid for character selection */
+.bubble-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 8px;
+}
+.bubble-avatar {
+    width: 100%; aspect-ratio: 1; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.8); border: 2px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); cursor: pointer;
+    transition: all 0.2s; overflow: hidden; font-size: 18px; font-weight: 700; color: #aaa;
+}
+.bubble-avatar:hover { transform: scale(1.08); border-color: #ff9a9e; box-shadow: 0 4px 16px rgba(255,154,158,0.3); }
+.bubble-avatar.active { border-color: #ff9a9e; box-shadow: 0 4px 16px rgba(255,154,158,0.3); }
+.bubble-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Detail panel specifics */
+.detail-preview-img { width: 100%; border-radius: 10px; margin-bottom: 10px; }
+.detail-hotkey-section { font-size: 11px; }
+.detail-hotkey-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+.detail-hotkey-row:last-child { border-bottom: none; }
+.detail-hotkey-desc { color: #666; font-weight: 500; flex: 1; min-width: 0; }
+.detail-hotkey-keys { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 58%; }
+.detail-hotkey-alt { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; }
+.detail-hotkey-or { font-size: 9px; color: #aaa; align-self: center; }
+.detail-hotkey-note { display: block; font-size: 9px; color: #d35400; margin-top: 3px; font-weight: 600; }
+.detail-kbd {
+    background: linear-gradient(145deg, #fff, #f0f0f0); border: 1px solid #d1d1d1;
+    border-bottom: 2px solid #b0b0b0; border-radius: 4px; padding: 1px 5px;
+    font-family: 'Consolas', monospace; font-size: 9px; font-weight: bold; color: #555;
+}
+.detail-toggle-btn {
+    width: 100%; padding: 10px; border: none; border-radius: 10px;
+    font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    margin-top: 10px; font-family: inherit;
+}
+.detail-toggle-btn.enable { background: linear-gradient(135deg, #ff9a9e, #fecfef); color: white; }
+.detail-toggle-btn.disable { background: rgba(0,0,0,0.06); color: #666; }
+
+/* Settings */
+.settings-slider-row { display: flex; align-items: center; gap: 8px; }
+.settings-slider {
+    flex: 1; height: 5px; -webkit-appearance: none; appearance: none;
+    background: #e0e0e0; border-radius: 3px; outline: none;
+}
+.settings-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px;
+    background: linear-gradient(135deg, #ff9a9e, #fecfef); border-radius: 50%;
+    cursor: pointer;
+}
+.settings-value { font-size: 11px; color: #888; min-width: 30px; text-align: right; }
+.settings-label { font-size: 11px; font-weight: 700; color: #555; margin-bottom: 6px; }
+.settings-group { margin-bottom: 16px; }
+.settings-switch-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.55);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+.settings-switch-copy { flex: 1; }
+.settings-switch-title { font-size: 11px; font-weight: 700; color: #555; }
+.settings-switch-hint {
+    font-size: 10px;
+    color: #555;
+    margin-top: 4px;
+    line-height: 1.5;
+}
+.settings-switch-hint div {
+    margin-top: 2px;
+}
+.settings-switch {
+    width: 34px; height: 20px; border-radius: 10px; background: rgba(0,0,0,0.12);
+    position: relative; transition: background 0.2s; flex-shrink: 0;
+}
+.settings-switch::after {
+    content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px; transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.settings-switch-input {
+    position: absolute; opacity: 0; pointer-events: none;
+}
+.settings-switch-input:checked + .settings-switch {
+    background: linear-gradient(135deg, #ff9a9e, #fecfef);
+}
+.settings-switch-input:checked + .settings-switch::after {
+    transform: translateX(14px);
+}
+.detail-hotkey-row.clickable {
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 4px;
+    background: rgba(255,154,158,0.07);
+    border: 1px solid rgba(255,154,158,0.15);
+    transition: all 0.15s;
+}
+.detail-hotkey-row.clickable:hover {
+    background: rgba(255,154,158,0.12);
+    border-color: rgba(255,154,158,0.28);
+}
+.detail-hotkey-row.clickable:last-child { margin-bottom: 0; }
+.hotkey-input {
+    width: 100%; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px;
+    font-size: 12px; text-align: center; background: rgba(255,255,255,0.8);
+    cursor: pointer; font-family: inherit; color: #555; font-weight: 600;
+}
+.hotkey-input:focus { border-color: #ff9a9e; outline: none; }
+
+/* Presets */
+.preset-section { padding: 5px 10px; border-top: 1px solid rgba(0,0,0,0.05); flex-shrink: 0; }
+.preset-section-title { font-size: 10px; font-weight: 700; color: #999; margin-bottom: 3px; }
+.preset-list { display: flex; flex-wrap: wrap; gap: 3px; }
+.preset-chip {
+    padding: 3px 8px; border-radius: 5px; font-size: 9px; font-weight: 600;
+    color: #888; background: rgba(255,255,255,0.6); border: 1px solid rgba(0,0,0,0.06);
+    cursor: pointer; transition: all 0.15s; font-family: inherit;
+}
+.preset-chip:hover { color: #333; background: white; }
+.preset-chip.active { color: #e74c3c; background: white; border-color: rgba(255,154,158,0.4); }
+
+/* Footer */
+.overlay-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 10px; border-top: 1px solid rgba(0,0,0,0.05); flex-shrink: 0;
+}
+.footer-hint { font-size: 8px; color: #aaa; }
+
+/* Toast */
+.overlay-toast {
+    position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, #ff9a9e, #fecfef); color: white;
+    padding: 6px 16px; border-radius: 8px; font-size: 11px; font-weight: 600;
+    z-index: 50; pointer-events: none; opacity: 0; transition: opacity 0.2s;
+}
+.overlay-toast.show { opacity: 1; }
+
+.cute-context-menu {
+    position: absolute;
+    min-width: 220px;
+    max-width: 280px;
+    padding: 10px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,245,248,0.98));
+    border: 1px solid rgba(255,154,158,0.28);
+    box-shadow: 0 18px 40px rgba(236, 112, 140, 0.24);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 65;
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 0.16s ease, transform 0.16s ease;
+    -webkit-app-region: no-drag;
+}
+.cute-context-menu.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+.cute-context-menu::before,
+.cute-context-menu::after {
+    content: '';
+    position: absolute;
+    border-radius: 999px;
+    background: rgba(255, 190, 201, 0.45);
+    pointer-events: none;
+}
+.cute-context-menu::before {
+    width: 34px;
+    height: 34px;
+    right: 12px;
+    top: 10px;
+}
+.cute-context-menu::after {
+    width: 18px;
+    height: 18px;
+    right: 44px;
+    top: 34px;
+}
+.cute-menu-header {
+    position: relative;
+    padding: 4px 4px 10px;
+    border-bottom: 1px dashed rgba(255,154,158,0.25);
+    margin-bottom: 8px;
+}
+.cute-menu-title {
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #444;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.cute-menu-subtitle {
+    margin-top: 3px;
+    font-size: 10px;
+    color: #888;
+}
+.cute-menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.7);
+    color: #444;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    transition: transform 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+    margin-bottom: 6px;
+}
+.cute-menu-item:last-child { margin-bottom: 0; }
+.cute-menu-item:hover {
+    background: linear-gradient(135deg, rgba(255,154,158,0.22), rgba(254,207,239,0.22));
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(255,154,158,0.18);
+}
+.cute-menu-item-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,154,158,0.16);
+    flex-shrink: 0;
+    font-size: 14px;
+}
+.cute-menu-item-copy { display: flex; flex-direction: column; gap: 2px; }
+.cute-menu-item-label { color: #444; }
+.cute-menu-item-hint { font-size: 10px; color: #999; font-weight: 600; }
+
+.empty-state { padding: 30px 16px; text-align: center; color: #aaa; font-size: 12px; }
+.loading { display: flex; align-items: center; justify-content: center; padding: 30px; color: #aaa; font-size: 12px; }
+
+html.overlay-compat body {
+    background: #f8fafc;
+}
+
+html.overlay-compat .overlay-root {
+    padding: 0;
+}
+
+html.overlay-compat .overlay-panel,
+html.overlay-compat .internal-panel {
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: 0;
+    border: 1px solid #d1d5db;
+    box-shadow: none;
+}
+
+html.overlay-compat .overlay-header {
+    background: #f3f4f6;
+    border-bottom-color: #d1d5db;
+}
+
+html.overlay-compat .char-strip,
+html.overlay-compat .sort-bar,
+html.overlay-compat .overlay-footer {
+    background: #fff;
+    border-color: #e5e7eb;
+}
+
+html.overlay-compat .view-mode-toggle-overlay,
+html.overlay-compat #overlayZoomOut,
+html.overlay-compat #overlayScaleLabel,
+html.overlay-compat #overlayZoomIn {
+    display: none;
+}
+
+html.overlay-compat .mod-list {
+    display: block !important;
+    padding: 6px;
+}
+
+html.overlay-compat .mod-item {
+    margin-bottom: 4px;
+    background: #fff;
+    border-color: #e5e7eb;
+    transition: none;
+}
+
+html.overlay-compat .mod-item.enabled {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+html.overlay-compat .mod-preview {
+    display: none;
+}
+
+html.overlay-compat *,
+html.overlay-compat *::before,
+html.overlay-compat *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation: none !important;
+    transition: none !important;
+    text-shadow: none !important;
+}
+</style>
+</head>
+<body>
+<div class="overlay-root">
+    <div class="overlay-panel" id="overlayPanel">
+
+        <div class="overlay-header">
+            <div class="overlay-title">
+                <span>🎮</span>
+                <span>Mod 切换</span>
+            </div>
+            <div class="overlay-actions">
+                <button class="overlay-btn compact" id="overlayZoomOut" title="Zoom out">A-</button>
+                <button class="overlay-scale-label" id="overlayScaleLabel" title="Reset zoom">100%</button>
+                <button class="overlay-btn compact" id="overlayZoomIn" title="Zoom in">A+</button>
+                <button class="overlay-btn" id="settingsBtn" title="设置">⚙️</button>
+                <button class="overlay-btn" id="pinBtn" title="置顶窗口">📌</button>
+                <button class="overlay-btn danger" id="closeBtn" title="关闭">✕</button>
+            </div>
+        </div>
+
+        <div class="char-strip" id="charStrip">
+            <div class="char-bubble-btn" id="bubbleToggleBtn" title="角色头像菜单">☰</div>
+            <div class="char-strip-scroll" id="charList">
+                <div class="loading" style="padding:6px;font-size:10px;">加载中...</div>
+            </div>
+            <button class="char-bubble-btn" id="charFilterBtn" title="只显示有 Mod 的角色">🎯</button>
+        </div>
+
+        <div class="sort-bar">
+            <span class="sort-bar-label">排序:</span>
+            <button class="sort-btn active" data-sort="name">名称</button>
+            <button class="sort-btn" data-sort="status">状态</button>
+            <button class="sort-btn" data-sort="time">时间</button>
+            <button class="sort-btn" data-sort="custom">自定义</button>
+            <div style="flex:1"></div>
+            <button class="sort-btn" id="focusEnabledBtn" title="定位当前启用 Mod">🎯 定位</button>
+            <button class="sort-btn active" id="overlayCollectionBtn" title="关闭合集展示" aria-pressed="true">合集</button>
+            <button class="sort-btn active" id="exclusiveBtn" data-sort="exclusive">🔘 单选</button>
+            <button class="view-mode-toggle-overlay" id="viewModeBtn" title="切换列表/画廊">
+                <span id="viewModeIcon"></span>
+                <span id="viewModeLabel">画廊</span>
+            </button>
+        </div>
+
+        <div class="mod-list" id="modList">
+            <div class="empty-state">选择一个角色查看 Mod</div>
+        </div>
+
+        <div class="preset-section" id="presetSection" style="display:none;">
+            <div class="preset-section-title">📦 预设</div>
+            <div class="preset-list" id="presetList"></div>
+        </div>
+
+        <div class="overlay-footer">
+            <span class="footer-hint">Alt+F 显示/隐藏 | 滚轮切换角色</span>
+            <span class="footer-hint" id="modCount"></span>
+        </div>
+
+        <!-- Settings panel (only internal panel remaining - bubble & detail now use side window) -->
+        <div class="internal-panel" id="settingsPanel">
+            <div class="panel-header">
+                <div class="panel-header-title">⚙️ 设置</div>
+                <button class="panel-close" id="settingsPanelClose">✕</button>
+            </div>
+            <div class="panel-body">
+                <div class="settings-group">
+                    <div class="settings-label">背景透明度</div>
+                    <div class="settings-slider-row">
+                        <span style="font-size:10px;color:#aaa;">透明</span>
+                        <input type="range" class="settings-slider" id="opacitySlider" min="20" max="100" value="88">
+                        <span style="font-size:10px;color:#aaa;">不透明</span>
+                        <span class="settings-value" id="opacityValue">88%</span>
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <div class="settings-label">唤出快捷键</div>
+                    <input type="text" class="hotkey-input" id="hotkeyInput" value="Alt + F" readonly>
+                    <div style="font-size:9px;color:#aaa;margin-top:4px;">点击后按下快捷键组合</div>
+                </div>
+                <div class="settings-group">
+                    <label class="settings-switch-row" for="autoReloadToggle">
+                        <div class="settings-switch-copy">
+                            <div class="settings-switch-title">自动装载（启用 Mod 时自动刷新）</div>
+                            <div class="settings-switch-hint">
+                                <div>1. 勾选本开关</div>
+                                <div>2. 回到游戏中亲手按一次 F10（只需要按一次）</div>
+                                <div>3. 之后在这里启用/禁用 Mod 时，由外部脚本负责刷新，且游戏可在后台响应键盘输入</div>
+                            </div>
+                        </div>
+                        <input type="checkbox" class="settings-switch-input" id="autoReloadToggle">
+                        <span class="settings-switch"></span>
+                    </label>
+                </div>
+                <div class="settings-group">
+                    <label class="settings-switch-row" for="presetAutoReloadToggle">
+                        <div class="settings-switch-copy">
+                            <div class="settings-switch-title">预设自动装载（应用预设后自动刷新）</div>
+                            <div class="settings-switch-hint">
+                                <div>1. 勾选后，在浮窗里点击预设会自动发送一次 F10</div>
+                                <div>2. 第一次使用前，同样需要你先在游戏里手动按一次 F10</div>
+                                <div>3. 若你只想切整套预设而不立即刷新，可单独关闭这里</div>
+                            </div>
+                        </div>
+                        <input type="checkbox" class="settings-switch-input" id="presetAutoReloadToggle">
+                        <span class="settings-switch"></span>
+                    </label>
+                </div>
+                <div class="settings-group">
+                    <label class="settings-switch-row" for="clickableHotkeysToggle">
+                        <div class="settings-switch-copy">
+                            <div class="settings-switch-title">允许点击快捷键直接应用</div>
+                            <div class="settings-switch-hint">
+                                <div>1. 先开启上方“自动装载”并在游戏中按一次 F10</div>
+                                <div>2. 在左侧 Mod 详情里点击某一行快捷键（或按 Enter）</div>
+                                <div>3. 若已配置外部脚本，将尝试在游戏中按下对应键位</div>
+                            </div>
+                        </div>
+                        <input type="checkbox" class="settings-switch-input" id="clickableHotkeysToggle">
+                        <span class="settings-switch"></span>
+                    </label>
+                </div>
+                <div class="settings-group">
+                    <div class="settings-label">最近缓存 Mod 数量</div>
+                    <div class="settings-slider-row">
+                        <span style="font-size:10px;color:#aaa;">0</span>
+                        <input type="range" class="settings-slider" id="persistCacheSlider" min="0" max="200" value="50">
+                        <span class="settings-value" id="persistCacheValue">50 个</span>
+                    </div>
+                    <div style="font-size:9px;color:#888;margin-top:6px;line-height:1.5;">控制切走后仍保留状态的 Mod 数量，默认 50 个，上限 200 个。0 表示只保留当前启用的 Mod。</div>
+                </div>
+                <div class="settings-group">
+                    <label class="settings-switch-row" for="persistBridgeToggle">
+                        <div class="settings-switch-copy">
+                            <div class="settings-switch-title">由 QAQ 接管 Mod 持久化</div>
+                            <div class="settings-switch-hint">
+                                <div>开启后，管理器会修改 Mod 的 .ini 文件，将 global persist 变量接管为由管理器统一管理，以支持预设功能。</div>
+                                <div style="margin-top:4px;color:#e8a87c;">开启或关闭此功能后，都需要完全退出并重启 QAQ 管理器和游戏才会生效；如果 Mod 按键或菜单有问题（确保 Mod 本身没问题），也请关闭后按此方式重启。默认关闭。</div>
+                            </div>
+                        </div>
+                        <input type="checkbox" class="settings-switch-input" id="persistBridgeToggle">
+                        <span class="settings-switch"></span>
+                    </label>
+                </div>
+                <div class="settings-group">
+                    <div class="settings-label">清空 Persist Bridge 缓存</div>
+                    <div style="font-size:9px;color:#888;margin-bottom:8px;line-height:1.5;">如果 Mod 按键失效、丝袜/配件无法切换，或出现作品弹窗反复弹出等异常，可尝试清空缓存后重启游戏。</div>
+                    <button id="clearPersistCacheBtn" style="padding:5px 14px;background:#3a3a4a;border:1px solid #555;border-radius:6px;color:#ccc;font-size:11px;cursor:pointer;">清空缓存</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="overlay-toast" id="toast"></div>
+        <div class="cute-context-menu" id="cuteContextMenu">
+            <div class="cute-menu-header">
+                <div class="cute-menu-title" id="cuteMenuTitle">选择一个 Mod</div>
+                <div class="cute-menu-subtitle">想对它做点什么呢？</div>
+            </div>
+            <button class="cute-menu-item" id="cuteMenuOpenFolder">
+                <span class="cute-menu-item-icon">📂</span>
+                <span class="cute-menu-item-copy">
+                    <span class="cute-menu-item-label">打开源文件夹</span>
+                    <span class="cute-menu-item-hint">直接查看这个 Mod 的真实目录</span>
+                </span>
+            </button>
+            <button class="cute-menu-item" id="cuteMenuOpenManager">
+                <span class="cute-menu-item-icon">🪄</span>
+                <span class="cute-menu-item-copy">
+                    <span class="cute-menu-item-label">打开管理器界面</span>
+                    <span class="cute-menu-item-hint">回到主界面并定位到这个 Mod</span>
+                </span>
+            </button>
+            <button class="cute-menu-item" id="cuteMenuPinTop">
+                <span class="cute-menu-item-icon" id="cuteMenuPinIcon">📌</span>
+                <span class="cute-menu-item-copy">
+                    <span class="cute-menu-item-label" id="cuteMenuPinLabel">置顶到最上方</span>
+                    <span class="cute-menu-item-hint" id="cuteMenuPinHint">这个 Mod 会固定排在前面</span>
+                </span>
+            </button>
+            <button class="cute-menu-item" id="cuteMenuMarkMod">
+                <span class="cute-menu-item-icon" id="cuteMenuMarkIcon">🔖</span>
+                <span class="cute-menu-item-copy">
+                    <span class="cute-menu-item-label" id="cuteMenuMarkLabel">标记此 Mod</span>
+                    <span class="cute-menu-item-hint" id="cuteMenuMarkHint">加入开发者标记列表</span>
+                </span>
+            </button>
+            <button class="cute-menu-item" id="cuteMenuFixMod">
+                <span class="cute-menu-item-icon">🔧</span>
+                <span class="cute-menu-item-copy">
+                    <span class="cute-menu-item-label">打开独立修复器</span>
+                    <span class="cute-menu-item-hint">打开该游戏保存的独立修复器</span>
+                </span>
+            </button>
+            <button class="cute-menu-item" id="cuteMenuResetMod">
+                <span class="cute-menu-item-icon">🔄</span>
+                <span class="cute-menu-item-copy">
+                    <span class="cute-menu-item-label">重置 Mod ini</span>
+                    <span class="cute-menu-item-hint">恢复原始 ini 并重新应用 Persist Bridge</span>
+                </span>
+            </button>
+        </div>
+        <div class="cute-context-menu" id="charContextMenu">
+            <div class="cute-menu-header">
+                <div class="cute-menu-title" id="charMenuTitle">角色操作</div>
+                <div class="cute-menu-subtitle">选择要执行的操作</div>
+            </div>
+            <button class="cute-menu-item" id="charMenuResetIni">
+                <span class="cute-menu-item-icon">🔄</span>
+                <span class="cute-menu-item-copy">
+                    <span class="cute-menu-item-label">恢复全部 Mod ini</span>
+                    <span class="cute-menu-item-hint">还原该角色下所有 Mod 的 ini 文件</span>
+                </span>
+            </button>
+        </div>
+    </div>
+</div>
+<div class="overlay-collection-floating-menu" id="overlayCollectionFloatingMenu" hidden></div>
+
+<script>
+    let selectedChar = null;
+    let selectedCharIndex = 0;
+    let characters = [];
+    let currentMods = [];
+    let currentCharacterAliases = [];
+    let presets = [];
+    let toastTimer = null;
+    let isPinned = false;
+    let selectedModName = null;
+    let overlaySortMethod = 'name';
+    let overlayExclusive = (() => {
+        try {
+            const v = localStorage.getItem('qaqm.overlay.exclusiveMode');
+            // First use defaults to single-select; an explicit false must survive every reopen.
+            return v === 'false' ? false : true;
+        } catch { return true; }
+    })();
+    // Persisted in localStorage so the user's preference survives game/manager
+    // restarts. Same key shape as other overlay settings — kept simple.
+    let overlayViewMode = (() => {
+        try {
+            const v = localStorage.getItem('qaqm.overlay.viewMode');
+            // Default to gallery if user has never set the preference
+            if (v === 'gallery' || v === 'list') return v;
+            return 'gallery';
+        } catch { return 'gallery'; }
+    })();
+    let overlayCharFilterModOnly = (() => {
+        try {
+            const v = localStorage.getItem('qaqm.overlay.charFilterModOnly');
+            // Default to true so empty-character entries are hidden out of the box
+            return v === 'false' ? false : true;
+        } catch { return true; }
+    })();
+    let overlayCollectionsEnabled = (() => {
+        try {
+            const v = localStorage.getItem('qaqm.overlay.collectionsEnabled');
+            // Preserve the previous overlay behavior: collections are on until the user turns them off.
+            return v === 'false' ? false : true;
+        } catch { return true; }
+    })();
+    let overlayInteractionOrder = {};
+    let overlaySettings = {
+        autoReloadEnabled: true,
+        presetAutoReloadEnabled: true,
+        clickableHotkeysEnabled: true,
+        overlayScale: 1,
+        persistBridgeEnabled: false,
+        persistBridgeCacheSize: 50,
+        compatibilityMode: false
+    };
+    let contextMenuModName = null;
+    let charContextMenuName = null;
+    let pendingFocusState = null;
+    let overlayLastLocalChangeAt = 0;
+    let overlayRefreshingForGameChange = false;
+    let enabledFocusCursor = -1;
+    let overlayCollectionSelections = {};
+    let openOverlayCollectionMenu = null;
+    let overlayCollectionGroupsByIdentity = new Map();
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function cleanCollectionText(value) {
+        return String(value || '').trim().replace(/\s+/g, ' ');
+    }
+
+    function normalizeCollectionKey(value) {
+        return cleanCollectionText(value)
+            .toLowerCase()
+            .replace(/[【】\[\]（）(){}<>《》"'`]/g, '')
+            .replace(/[\s_\-－–—.:：/\\]+/g, '');
+    }
+
+    function buildCharacterPrefixKeys(characterName, characterAliases = []) {
+        return Array.from(new Set([characterName, ...characterAliases]
+            .map(alias => normalizeCollectionKey(alias))
+            .filter(Boolean)));
+    }
+
+    function splitCollectionNameParts(name) {
+        return cleanCollectionText(name)
+            .replace(/^DISABLED_/i, '')
+            .split(/[-－–—]+/)
+            .map(part => part.trim())
+            .filter(Boolean);
+    }
+
+    function stripCollectionVersion(value) {
+        const text = cleanCollectionText(value);
+        if (!text) return { text: '', version: '' };
+        const compactVersion = text.match(/^(.*?)(v\s*\d+(?:\.\d+){0,3}[a-z]?)$/i);
+        if (compactVersion && cleanCollectionText(compactVersion[1])) {
+            return {
+                text: cleanCollectionText(compactVersion[1]).replace(/[-_－–—\s]+$/, ''),
+                version: compactVersion[2]
+            };
+        }
+        const separatedVersion = text.match(/^(.*?)[\s_\-－–—]+(\d+(?:\.\d+){1,3}[a-z]?)$/i);
+        if (separatedVersion && cleanCollectionText(separatedVersion[1])) {
+            return {
+                text: cleanCollectionText(separatedVersion[1]).replace(/[-_－–—\s]+$/, ''),
+                version: separatedVersion[2]
+            };
+        }
+        return { text, version: '' };
+    }
+
+    function normalizeVersionLabel(value) {
+        const text = cleanCollectionText(value);
+        if (!text) return '';
+        const collapsed = text.replace(/^v+/i, 'v');
+        const match = collapsed.match(/^v?\s*(\d+(?:\.\d+){0,3}[a-z]?)$/i);
+        if (match) return `V${match[1]}`;
+        return text.replace(/^v/i, 'V');
+    }
+
+    function parseVersionWeight(value) {
+        const text = normalizeVersionLabel(value);
+        const match = text.match(/^V(\d+(?:\.\d+){0,3})([a-z]?)$/i);
+        if (!match) return { parts: [0], suffix: '', hasVersion: false };
+        const rawParts = match[1].split('.');
+        const parts = rawParts.length === 2 && /^\d{2}$/.test(rawParts[1])
+            ? [rawParts[0], rawParts[1][0], rawParts[1][1]]
+            : rawParts;
+        return {
+            parts: parts.map(part => Number(part) || 0),
+            suffix: match[2] || '',
+            hasVersion: true
+        };
+    }
+
+    function compareVersionLabels(left, right) {
+        const a = parseVersionWeight(left);
+        const b = parseVersionWeight(right);
+        if (a.hasVersion !== b.hasVersion) return a.hasVersion ? -1 : 1;
+        const max = Math.max(a.parts.length, b.parts.length);
+        for (let i = 0; i < max; i += 1) {
+            const diff = (b.parts[i] || 0) - (a.parts[i] || 0);
+            if (diff !== 0) return diff;
+        }
+        return String(a.suffix).localeCompare(String(b.suffix), 'zh-CN');
+    }
+
+    function parseOverlayCollectionName(mod, characterName, characterAliases = []) {
+        const name = cleanCollectionText(mod?.name);
+        if (!name) return null;
+        const parts = splitCollectionNameParts(name);
+        if (parts.length < 1) return null;
+        const characterKeys = buildCharacterPrefixKeys(characterName, characterAliases);
+        const firstPartIsCharacter = characterKeys.includes(normalizeCollectionKey(parts[0]));
+        const bodyParts = firstPartIsCharacter ? parts.slice(1) : parts;
+        if (!bodyParts.length) return null;
+
+        const base = stripCollectionVersion(bodyParts[0]);
+        const collectionName = cleanCollectionText(base.text || bodyParts[0]);
+        if (!collectionName) return null;
+
+        let version = normalizeVersionLabel(base.version);
+        const variantParts = [];
+        bodyParts.slice(1).forEach(part => {
+            const stripped = stripCollectionVersion(part);
+            const explicitVersion = normalizeVersionLabel(stripped.version || part);
+            const partIsPureVersion = /^v?\s*\d+(?:\.\d+){0,3}[a-z]?$/i.test(cleanCollectionText(part));
+            if (!version && (stripped.version || partIsPureVersion)) {
+                version = explicitVersion;
+            }
+            if (stripped.text && !partIsPureVersion) {
+                variantParts.push(stripped.text);
+            }
+        });
+
+        return {
+            mod,
+            collectionName,
+            collectionKey: normalizeCollectionKey(collectionName),
+            variantName: cleanCollectionText(variantParts.join('-')),
+            variantVersion: version
+        };
+    }
+
+    function getCollectionVariantLabel(variant) {
+        const version = cleanCollectionText(variant?._collectionVersionLabel);
+        const variantName = cleanCollectionText(variant?._collectionVariantName);
+        if (version && variantName) return `${version} · ${variantName}`;
+        return version || variantName || 'V1.0';
+    }
+
+    function buildOverlayCollectionView(sortedMods, characterName, characterAliases = []) {
+        const characterIdentityKey = buildCharacterPrefixKeys(characterName, characterAliases)[0] || normalizeCollectionKey(characterName);
+        const records = sortedMods
+            .map((mod, index) => {
+                const parsed = parseOverlayCollectionName(mod, characterName, characterAliases);
+                return parsed ? { ...parsed, index } : null;
+            })
+            .filter(Boolean);
+        const candidateNames = new Map(records.map(record => [record.collectionKey, record.collectionName]));
+        const groups = new Map();
+        const identityByName = new Map();
+
+        records.forEach(record => {
+            let collectionKey = record.collectionKey;
+            let collectionName = record.collectionName;
+            for (const [candidateKey, candidateName] of candidateNames.entries()) {
+                if (!candidateKey || candidateKey === collectionKey || candidateKey.length < 2) continue;
+                if (collectionKey.startsWith(candidateKey)) {
+                    collectionKey = candidateKey;
+                    collectionName = candidateName;
+                    break;
+                }
+            }
+
+            let variantName = record.variantName;
+            if (!variantName && collectionName !== record.collectionName) {
+                const suffix = cleanCollectionText(record.collectionName.slice(collectionName.length));
+                if (suffix) variantName = suffix;
+            }
+
+            const identity = `${characterIdentityKey}:${collectionKey}`;
+            if (!groups.has(identity)) {
+                groups.set(identity, { identity, name: collectionName, records: [] });
+            }
+            groups.get(identity).records.push({ ...record, collectionName, collectionKey, variantName, identity });
+            identityByName.set(record.mod.name, identity);
+        });
+
+        const displayMods = [];
+        const displayedIdentities = new Set();
+        for (const [identity, group] of groups.entries()) {
+            const hasV10 = group.records.some(record => normalizeVersionLabel(record.variantVersion) === 'V1.0');
+            group.variants = group.records
+                .map(record => {
+                    const version = normalizeVersionLabel(record.variantVersion) || (hasV10 ? 'V0.5' : 'V1.0');
+                    return {
+                        ...record.mod,
+                        _collectionIdentity: identity,
+                        _collectionName: group.name,
+                        _collectionVariantName: record.variantName,
+                        _collectionVersionLabel: version,
+                        _collectionOriginalIndex: record.index
+                    };
+                })
+                .sort((a, b) =>
+                    compareVersionLabels(a._collectionVersionLabel, b._collectionVersionLabel) ||
+                    cleanCollectionText(a._collectionVariantName).localeCompare(cleanCollectionText(b._collectionVariantName), 'zh-CN') ||
+                    (a._collectionOriginalIndex || 0) - (b._collectionOriginalIndex || 0)
+                );
+        }
+
+        sortedMods.forEach(mod => {
+            const identity = identityByName.get(mod.name);
+            const group = identity ? groups.get(identity) : null;
+            if (!group || group.variants.length < 2) {
+                displayMods.push(mod);
+                return;
+            }
+            if (displayedIdentities.has(identity)) return;
+            displayedIdentities.add(identity);
+            const selectedName = overlayCollectionSelections[identity];
+            const selectedVariant =
+                group.variants.find(variant => variant.name === selectedName) ||
+                group.variants.find(variant => variant.enabled) ||
+                group.variants[0];
+            displayMods.push({
+                ...selectedVariant,
+                _collection: {
+                    identity,
+                    name: group.name,
+                    variants: group.variants
+                }
+            });
+        });
+
+        return displayMods;
+    }
+
+    function encodeHotkeyPayload(payload) {
+        return encodeURIComponent(JSON.stringify(payload || null));
+    }
+
+    const OVERLAY_SCALE_MIN = 0.85;
+    const OVERLAY_SCALE_MAX = 1.45;
+    const OVERLAY_SCALE_STEP = 0.15;
+
+    function normalizeOverlayScale(value) {
+        const scale = Number(value);
+        if (!Number.isFinite(scale)) return 1;
+        return Math.max(OVERLAY_SCALE_MIN, Math.min(OVERLAY_SCALE_MAX, scale));
+    }
+
+    function applyOverlayScale(scale) {
+        overlaySettings.overlayScale = normalizeOverlayScale(scale);
+        document.documentElement.style.setProperty('--overlay-ui-scale', overlaySettings.overlayScale.toFixed(2));
+        syncOverlayScaleUI();
+    }
+
+    function syncOverlayScaleUI() {
+        const label = document.getElementById('overlayScaleLabel');
+        const zoomIn = document.getElementById('overlayZoomIn');
+        const zoomOut = document.getElementById('overlayZoomOut');
+        const scale = normalizeOverlayScale(overlaySettings.overlayScale);
+        if (label) label.textContent = `${Math.round(scale * 100)}%`;
+        if (zoomIn) zoomIn.disabled = scale >= OVERLAY_SCALE_MAX - 0.001;
+        if (zoomOut) zoomOut.disabled = scale <= OVERLAY_SCALE_MIN + 0.001;
+    }
+
+    async function requestOverlayScale(nextScale) {
+        const scale = normalizeOverlayScale(nextScale);
+        applyOverlayScale(scale);
+        try {
+            const result = await window.overlayApi.resizeOverlay(scale);
+            if (result?.success) {
+                applyOverlayScale(result.scale);
+            } else {
+                showToast(result?.error || 'Zoom failed');
+            }
+        } catch {
+            showToast('Zoom failed');
+        }
+    }
+
+    function syncSettingsUI() {
+        applyOverlayScale(overlaySettings.overlayScale);
+        document.documentElement.classList.toggle('overlay-compat', !!overlaySettings.compatibilityMode);
+        document.getElementById('autoReloadToggle').checked = !!overlaySettings.autoReloadEnabled;
+        document.getElementById('presetAutoReloadToggle').checked = !!overlaySettings.presetAutoReloadEnabled;
+        document.getElementById('clickableHotkeysToggle').checked = !!overlaySettings.clickableHotkeysEnabled;
+        document.getElementById('persistBridgeToggle').checked = !!overlaySettings.persistBridgeEnabled;
+        document.getElementById('persistCacheSlider').value = String(overlaySettings.persistBridgeCacheSize ?? 50);
+        document.getElementById('persistCacheValue').textContent = `${overlaySettings.persistBridgeCacheSize ?? 50} 个`;
+    }
+
+    function showToast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.classList.remove('show');
+        void el.offsetWidth;
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { el.classList.remove('show'); }, 2000);
+    }
+
+    function clearOverlaySelectionState() {
+        selectedChar = null;
+        selectedCharIndex = 0;
+        selectedModName = null;
+        currentMods = [];
+        openOverlayCollectionMenu = null;
+        enabledFocusCursor = -1;
+        bubbleSideOpen = false;
+        hideCuteContextMenu();
+        document.querySelectorAll('.mod-item.selected, .mod-gallery-item.selected').forEach(el => el.classList.remove('selected'));
+        document.getElementById('modCount').textContent = '0/0';
+        document.getElementById('modList').innerHTML = '<div class="empty-state">暂无角色</div>';
+        syncFocusEnabledUI();
+    }
+
+    function renderCharacterEmptyState(message) {
+        document.getElementById('charList').innerHTML = `<div class="empty-state">${escapeHtml(message)}</div>`;
+        clearOverlaySelectionState();
+    }
+
+    function findModRow(modName) {
+        const container = document.getElementById('modList');
+        if (!container || !modName) return null;
+        // Match both list rows (.mod-item) and gallery cards (.mod-gallery-item)
+        // since renderMods() now branches between them.
+        if (typeof CSS !== 'undefined' && CSS.escape) {
+            const match = container.querySelector(`.mod-item[data-mod="${CSS.escape(modName)}"], .mod-gallery-item[data-mod="${CSS.escape(modName)}"]`);
+            if (match) return match;
+        }
+        return Array.from(container.querySelectorAll('.mod-item, .mod-gallery-item')).find(el => el.dataset.mod === modName) || null;
+    }
+
+    function findOverlayCollectionIdentityForMod(modName) {
+        if (!overlayCollectionsEnabled || !modName) return null;
+        for (const [identity, group] of overlayCollectionGroupsByIdentity.entries()) {
+            if (Array.isArray(group?.variants) && group.variants.some(variant => variant.name === modName)) {
+                return identity;
+            }
+        }
+        const sorted = sortMods(currentMods);
+        const displayMods = buildOverlayCollectionView(sorted, selectedChar, currentCharacterAliases);
+        const direct = displayMods.find(mod => mod?.name === modName && mod?._collection?.identity)?._collection?.identity;
+        if (direct) return direct;
+        for (const mod of displayMods) {
+            const variants = mod?._collection?.variants;
+            if (Array.isArray(variants) && variants.some(variant => variant.name === modName)) {
+                return mod._collection.identity;
+            }
+        }
+        return null;
+    }
+
+    function prepareModFocusState(modName, options = {}) {
+        const container = document.getElementById('modList');
+        if (!modName || !container) return;
+        const identity = options.collectionIdentity || findOverlayCollectionIdentityForMod(modName);
+        if (identity) overlayCollectionSelections[identity] = modName;
+        selectedModName = modName;
+        pendingFocusState = {
+            modName,
+            scrollTop: Number.isFinite(Number(options.scrollTop)) ? Number(options.scrollTop) : container.scrollTop,
+            collectionIdentity: identity || null,
+            center: options.center !== false
+        };
+    }
+
+    function applyOptimisticModState(modName, patch = {}) {
+        let changed = false;
+        currentMods = currentMods.map(mod => {
+            if (mod.name !== modName) return mod;
+            changed = true;
+            return { ...mod, ...patch };
+        });
+        return changed;
+    }
+
+    function focusModRow(modName, options = {}) {
+        const container = document.getElementById('modList');
+        const target = findModRow(modName);
+        if (!target || !container) return;
+        target.classList.remove('focus-pulse');
+        void target.offsetWidth;
+        target.classList.add('focus-pulse');
+
+        const firstVisibleRow = container.querySelector('.mod-item, .mod-gallery-item');
+        const isFirstRow = firstVisibleRow === target;
+        const targetOffsetTop = target.offsetTop;
+        const targetHeight = target.offsetHeight || 0;
+        const paddingTop = options.center === false
+            ? Math.max(Math.min(container.clientHeight * 0.18, 56), 8)
+            : overlaySortMethod === 'status' ? 0 : Math.max((container.clientHeight - targetHeight) / 2, 8);
+        const nextScrollTop = isFirstRow
+            ? 0
+            : Math.max(0, Math.min(
+                targetOffsetTop - paddingTop,
+                Math.max(container.scrollHeight - container.clientHeight, 0)
+            ));
+
+        container.scrollTo({ top: nextScrollTop, behavior: 'smooth' });
+        clearTimeout(target._focusPulseTimer);
+        target._focusPulseTimer = setTimeout(() => target.classList.remove('focus-pulse'), 1200);
+    }
+
+    function getEnabledModsInCurrentOrder() {
+        return sortMods(currentMods).filter(mod => mod.enabled);
+    }
+
+    function syncFocusEnabledUI() {
+        const btn = document.getElementById('focusEnabledBtn');
+        if (!btn) return;
+        const enabledCount = currentMods.filter(mod => mod.enabled).length;
+        btn.disabled = enabledCount === 0;
+        btn.title = enabledCount > 0
+            ? `定位当前启用 Mod（${enabledCount} 个）`
+            : '当前没有启用的 Mod';
+    }
+
+    function focusNextEnabledMod() {
+        const enabledMods = getEnabledModsInCurrentOrder();
+        if (enabledMods.length === 0) {
+            enabledFocusCursor = -1;
+            syncFocusEnabledUI();
+            showToast('当前没有启用的 Mod');
+            return;
+        }
+
+        enabledFocusCursor = (enabledFocusCursor + 1) % enabledMods.length;
+        const targetMod = enabledMods[enabledFocusCursor];
+        document.querySelectorAll('.mod-item, .mod-gallery-item').forEach(el => {
+            el.classList.toggle('selected', el.dataset.mod === targetMod.name);
+        });
+        hideCuteContextMenu();
+        focusModRow(targetMod.name);
+        showToast(enabledMods.length > 1
+            ? `已定位 ${targetMod.name} (${enabledFocusCursor + 1}/${enabledMods.length})`
+            : `已定位 ${targetMod.name}`);
+    }
+
+    function syncExclusiveUI() {
+        document.getElementById('exclusiveBtn').classList.toggle('active', !!overlayExclusive);
+    }
+
+    function syncOverlayCollectionsUI() {
+        const btn = document.getElementById('overlayCollectionBtn');
+        if (!btn) return;
+        btn.classList.toggle('active', !!overlayCollectionsEnabled);
+        btn.setAttribute('aria-pressed', overlayCollectionsEnabled ? 'true' : 'false');
+        btn.title = overlayCollectionsEnabled ? '关闭合集展示' : '按名称合并同一 Mod 的版本/变体';
+    }
+
+    function toggleOverlayCollectionsEnabled() {
+        const container = document.getElementById('modList');
+        const focusName = selectedModName || container?.querySelector('.mod-item.selected, .mod-gallery-item.selected')?.dataset.mod || null;
+        const scrollTop = container ? container.scrollTop : 0;
+
+        overlayCollectionsEnabled = !overlayCollectionsEnabled;
+        try { localStorage.setItem('qaqm.overlay.collectionsEnabled', String(overlayCollectionsEnabled)); } catch {}
+
+        if (!overlayCollectionsEnabled) {
+            overlayCollectionSelections = {};
+        }
+        closeOverlayCollectionMenus();
+        syncOverlayCollectionsUI();
+
+        if (focusName && selectedChar) {
+            prepareModFocusState(focusName, { scrollTop, center: false });
+        }
+        if (selectedChar) renderMods();
+        showToast(overlayCollectionsEnabled ? '已开启合集展示' : '已关闭合集展示');
+    }
+
+    // Renders the small SVG icon + label inside the view-mode pill so the
+    // button always reflects the CURRENT mode (and its label hints at where
+    // a click will take you). Mirrors the manager's behaviour.
+    function syncViewModeUI() {
+        const btn = document.getElementById('viewModeBtn');
+        const iconSpan = document.getElementById('viewModeIcon');
+        const labelSpan = document.getElementById('viewModeLabel');
+        if (!btn || !iconSpan || !labelSpan) return;
+        if (overlayViewMode === 'gallery') {
+            // currently gallery → clicking goes back to list
+            iconSpan.innerHTML = '<svg width="10" height="10" viewBox="0 0 14 14"><rect x="1" y="2" width="12" height="2" rx="1" fill="currentColor"/><rect x="1" y="6" width="12" height="2" rx="1" fill="currentColor"/><rect x="1" y="10" width="12" height="2" rx="1" fill="currentColor"/></svg>';
+            labelSpan.textContent = '列表';
+        } else {
+            iconSpan.innerHTML = '<svg width="10" height="10" viewBox="0 0 14 14"><rect x="1" y="1" width="5" height="5" rx="1" fill="currentColor"/><rect x="8" y="1" width="5" height="5" rx="1" fill="currentColor"/><rect x="1" y="8" width="5" height="5" rx="1" fill="currentColor"/><rect x="8" y="8" width="5" height="5" rx="1" fill="currentColor"/></svg>';
+            labelSpan.textContent = '画廊';
+        }
+    }
+
+    function hideAllContextMenus() {
+        document.getElementById('cuteContextMenu').classList.remove('show');
+        document.getElementById('charContextMenu').classList.remove('show');
+        closeOverlayCollectionMenus();
+        contextMenuModName = null;
+        charContextMenuName = null;
+    }
+
+    function hideOnlyCuteContextMenus() {
+        document.getElementById('cuteContextMenu').classList.remove('show');
+        document.getElementById('charContextMenu').classList.remove('show');
+        contextMenuModName = null;
+        charContextMenuName = null;
+    }
+
+    function closeOverlayCollectionMenus() {
+        openOverlayCollectionMenu = null;
+        document.querySelectorAll('.overlay-collection-menu').forEach(menu => {
+            menu.hidden = true;
+        });
+        const floatingMenu = document.getElementById('overlayCollectionFloatingMenu');
+        if (floatingMenu) {
+            floatingMenu.hidden = true;
+            floatingMenu.innerHTML = '';
+            floatingMenu.removeAttribute('data-collection');
+        }
+        document.querySelectorAll('.overlay-collection-dropdown').forEach(dropdown => {
+            dropdown.classList.remove('menu-left', 'menu-right');
+        });
+        document.querySelectorAll('.mod-gallery-item.collection-menu-open').forEach(card => {
+            card.classList.remove('collection-menu-open');
+        });
+    }
+
+    function selectOverlayCollectionVariant(identity, modName) {
+        if (!identity || !modName) return;
+        prepareModFocusState(modName, { collectionIdentity: identity, scrollTop: document.getElementById('modList').scrollTop });
+        closeOverlayCollectionMenus();
+        renderMods();
+        requestAnimationFrame(() => focusModRow(modName));
+    }
+
+    function positionOverlayCollectionFloatingMenu(trigger, menu) {
+        if (!trigger || !menu) return;
+        const rect = trigger.getBoundingClientRect();
+        const menuWidth = 150;
+        const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        const desiredTop = rect.bottom + 6;
+        const measuredHeight = menu.offsetHeight || 154;
+        let left = rect.right - menuWidth;
+        let top = desiredTop;
+
+        if (left < 8) left = rect.left;
+        left = Math.max(8, Math.min(left, viewportWidth - menuWidth - 8));
+        if (desiredTop + measuredHeight > viewportHeight - 8) {
+            top = Math.max(8, rect.top - measuredHeight - 6);
+        }
+
+        menu.style.left = `${Math.round(left)}px`;
+        menu.style.top = `${Math.round(top)}px`;
+    }
+
+    function showOverlayCollectionFloatingMenu(trigger, identity) {
+        const menu = document.getElementById('overlayCollectionFloatingMenu');
+        const group = overlayCollectionGroupsByIdentity.get(identity);
+        if (!menu || !group || !Array.isArray(group.variants)) return;
+        openOverlayCollectionMenu = identity;
+        menu.dataset.collection = identity;
+        menu.innerHTML = group.variants.map(variant => `
+            <button class="overlay-collection-option ${variant.name === group.currentName ? 'active' : ''}" data-collection-option="1" data-collection="${escapeHtml(identity)}" data-mod="${escapeHtml(variant.name)}" title="${escapeHtml(variant.name)}">
+                <span>${escapeHtml(getCollectionVariantLabel(variant))}</span>
+                <em>${variant.name === group.currentName ? '&#24403;&#21069;' : (variant.enabled ? '&#21551;&#29992;' : '')}</em>
+            </button>
+        `).join('');
+        menu.hidden = false;
+        positionOverlayCollectionFloatingMenu(trigger, menu);
+
+        menu.querySelectorAll('[data-collection-option="1"]').forEach(option => {
+            option.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            });
+            option.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            });
+            option.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                selectOverlayCollectionVariant(option.dataset.collection, option.dataset.mod);
+            });
+        });
+
+        document.querySelectorAll('.mod-gallery-item.collection-menu-open').forEach(card => {
+            card.classList.remove('collection-menu-open');
+        });
+        trigger.closest('.mod-gallery-item')?.classList.add('collection-menu-open');
+    }
+
+    ['pointerdown', 'mousedown', 'click'].forEach(eventName => {
+        document.getElementById('overlayCollectionFloatingMenu')?.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+        });
+    });
+
+    function hideCuteContextMenu() {
+        hideAllContextMenus();
+    }
+
+    function getCurrentContextMenuMod() {
+        if (!contextMenuModName) return null;
+        return currentMods.find((mod) => mod.name === contextMenuModName) || null;
+    }
+
+    function showCuteContextMenu(event, modName) {
+        hideAllContextMenus();
+        const menu = document.getElementById('cuteContextMenu');
+        const panel = document.getElementById('overlayPanel');
+        const title = document.getElementById('cuteMenuTitle');
+        const pinIcon = document.getElementById('cuteMenuPinIcon');
+        const pinLabel = document.getElementById('cuteMenuPinLabel');
+        const pinHint = document.getElementById('cuteMenuPinHint');
+        const markIcon = document.getElementById('cuteMenuMarkIcon');
+        const markLabel = document.getElementById('cuteMenuMarkLabel');
+        const markHint = document.getElementById('cuteMenuMarkHint');
+        const mod = currentMods.find((item) => item.name === modName);
+        contextMenuModName = modName;
+        title.textContent = modName;
+
+        if (mod?.pinned) {
+            pinIcon.textContent = '📍';
+            pinLabel.textContent = '取消置顶';
+            pinHint.textContent = '恢复到普通排序，但不会影响启用状态';
+        } else {
+            pinIcon.textContent = '📌';
+            pinLabel.textContent = '置顶到最上方';
+            pinHint.textContent = '这个 Mod 会固定排在前面';
+        }
+
+        if (mod?.marked) {
+            markIcon.textContent = '🏷️';
+            markLabel.textContent = '取消标记';
+            markHint.textContent = '从开发者标记列表中移除';
+        } else {
+            markIcon.textContent = '🔖';
+            markLabel.textContent = '标记此 Mod';
+            markHint.textContent = '加入开发者标记列表';
+        }
+
+        menu.style.left = '12px';
+        menu.style.top = '12px';
+        menu.classList.add('show');
+
+        const panelRect = panel.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        let left = event.clientX - panelRect.left + 6;
+        let top = event.clientY - panelRect.top + 6;
+
+        left = Math.max(12, Math.min(left, panelRect.width - menuRect.width - 12));
+        top = Math.max(12, Math.min(top, panelRect.height - menuRect.height - 12));
+
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+    }
+
+    function showCharContextMenu(event, charName) {
+        hideAllContextMenus();
+        const menu = document.getElementById('charContextMenu');
+        const panel = document.getElementById('overlayPanel');
+        charContextMenuName = charName;
+        document.getElementById('charMenuTitle').textContent = charName;
+
+        menu.style.left = '12px';
+        menu.style.top = '12px';
+        menu.classList.add('show');
+
+        const panelRect = panel.getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        let left = event.clientX - panelRect.left + 6;
+        let top = event.clientY - panelRect.top + 6;
+
+        left = Math.max(12, Math.min(left, panelRect.width - menuRect.width - 12));
+        top = Math.max(12, Math.min(top, panelRect.height - menuRect.height - 12));
+
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+    }
+
+    async function handleCuteMenuAction(action) {
+        if (!selectedChar || !contextMenuModName) {
+            showToast('未找到对应的 Mod');
+            hideCuteContextMenu();
+            return;
+        }
+
+        const modName = contextMenuModName;
+        hideCuteContextMenu();
+
+        try {
+            let result = null;
+            if (action === 'open-folder') {
+                result = await window.overlayApi.openModFolder(selectedChar, modName);
+                showToast(result.success ? `已打开 ${modName} 的源文件夹` : (result.error || '打开源文件夹失败'));
+                return;
+            }
+
+            if (action === 'open-manager') {
+                result = await window.overlayApi.openManagerView(selectedChar, modName);
+                showToast(result.success ? `已打开管理器界面并定位到 ${modName}` : (result.error || '打开管理器界面失败'));
+                return;
+            }
+
+            if (action === 'pin-top') {
+                const currentMod = currentMods.find((mod) => mod.name === modName);
+                const nextPinned = !currentMod?.pinned;
+                const container = document.getElementById('modList');
+                prepareModFocusState(modName, {
+                    scrollTop: nextPinned ? 0 : container.scrollTop,
+                    center: false
+                });
+                overlayLastLocalChangeAt = Date.now();
+                result = await window.overlayApi.pinMod(selectedChar, modName, nextPinned);
+                if (result.success) {
+                    overlayLastLocalChangeAt = Date.now();
+                    applyOptimisticModState(modName, { pinned: nextPinned });
+                    showToast(nextPinned ? `${modName} 已置顶` : `已取消 ${modName} 的置顶`);
+                } else {
+                    pendingFocusState = null;
+                    showToast(result.error || '置顶失败');
+                }
+            }
+
+            if (action === 'mark-mod') {
+                const currentMod = currentMods.find((mod) => mod.name === modName);
+                const nextMarked = !currentMod?.marked;
+                const container = document.getElementById('modList');
+                prepareModFocusState(modName, { scrollTop: container.scrollTop, center: false });
+                overlayLastLocalChangeAt = Date.now();
+                result = await window.overlayApi.setModMarked(selectedChar, modName, nextMarked);
+                if (result.success) {
+                    overlayLastLocalChangeAt = Date.now();
+                    applyOptimisticModState(modName, { marked: nextMarked });
+                    renderMods();
+                    showToast(nextMarked ? `${modName} 已标记` : `已取消 ${modName} 的标记`);
+                } else {
+                    pendingFocusState = null;
+                    showToast(result.error || '标记失败');
+                }
+            }
+
+            if (action === 'fix-mod') {
+                result = await window.overlayApi.fixRunMod(selectedChar, modName);
+                if (!result?.canceled) showToast(result?.success ? '独立修复器已打开' : (result?.error || '打开修复器失败'));
+            }
+
+            if (action === 'reset-mod-ini') {
+                result = await window.overlayApi.resetModIni(selectedChar, modName);
+                if (result?.success) {
+                    const msg = result.restoredCount > 0
+                        ? `ini 已重置并重新处理，请按 F10 重载生效`
+                        : `已重新处理 ini，请按 F10 重载生效`;
+                    showToast(msg);
+                } else {
+                    showToast(result?.error || '重置失败');
+                }
+                return;
+            }
+        } catch (error) {
+            pendingFocusState = null;
+            showToast(error?.message || '操作失败');
+        }
+    }
+
+    // ===== Pin =====
+    document.getElementById('pinBtn').addEventListener('click', () => {
+        isPinned = !isPinned;
+        document.getElementById('pinBtn').classList.toggle('pin-active', isPinned);
+        window.overlayApi.togglePin(isPinned);
+    });
+
+    document.getElementById('overlayZoomOut').addEventListener('click', () => {
+        requestOverlayScale((overlaySettings.overlayScale || 1) - OVERLAY_SCALE_STEP);
+    });
+    document.getElementById('overlayZoomIn').addEventListener('click', () => {
+        requestOverlayScale((overlaySettings.overlayScale || 1) + OVERLAY_SCALE_STEP);
+    });
+    document.getElementById('overlayScaleLabel').addEventListener('click', () => {
+        requestOverlayScale(1);
+    });
+
+    document.getElementById('focusEnabledBtn').addEventListener('click', focusNextEnabledMod);
+    document.getElementById('overlayCollectionBtn').addEventListener('click', toggleOverlayCollectionsEnabled);
+
+    document.getElementById('closeBtn').addEventListener('click', () => window.overlayApi.hideOverlay());
+    document.getElementById('cuteMenuOpenFolder').addEventListener('click', () => handleCuteMenuAction('open-folder'));
+    document.getElementById('cuteMenuOpenManager').addEventListener('click', () => handleCuteMenuAction('open-manager'));
+    document.getElementById('cuteMenuPinTop').addEventListener('click', () => handleCuteMenuAction('pin-top'));
+    document.getElementById('cuteMenuMarkMod').addEventListener('click', () => handleCuteMenuAction('mark-mod'));
+    document.getElementById('cuteMenuFixMod').addEventListener('click', () => handleCuteMenuAction('fix-mod'));
+    document.getElementById('cuteMenuResetMod').addEventListener('click', () => handleCuteMenuAction('reset-mod-ini'));
+
+    document.getElementById('charMenuResetIni').addEventListener('click', async () => {
+        if (!charContextMenuName) return;
+        const charName = charContextMenuName;
+        hideAllContextMenus();
+        try {
+            const result = await window.overlayApi.resetCharacterIni(charName);
+            if (result?.success) {
+                const msg = result.restoredCount > 0
+                    ? `${charName} 的 ${result.restoredCount} 个 ini 已重置，请按 F10 重载生效`
+                    : `${charName} 没有需要重置的 ini`;
+                showToast(msg);
+            } else {
+                showToast(result?.error || '重置失败');
+            }
+        } catch {
+            showToast('重置失败');
+        }
+    });
+
+    document.addEventListener('pointerdown', (e) => {
+        const cuteMenu = document.getElementById('cuteContextMenu');
+        const charMenu = document.getElementById('charContextMenu');
+        if (!cuteMenu.contains(e.target) && !charMenu.contains(e.target)) {
+            hideAllContextMenus();
+        }
+    });
+
+    // Close context menus on right-click; if right-click lands ON the open menu, re-dispatch to underlying element
+    document.addEventListener('contextmenu', (e) => {
+        const cuteMenu = document.getElementById('cuteContextMenu');
+        const charMenu = document.getElementById('charContextMenu');
+        const menuWasOpen = cuteMenu.classList.contains('show') || charMenu.classList.contains('show');
+        if (!menuWasOpen) return;
+        if (!cuteMenu.contains(e.target) && !charMenu.contains(e.target)) {
+            hideAllContextMenus();
+            return;
+        }
+        // Right-clicked ON the menu itself — close menu, find underlying element, re-dispatch
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        hideAllContextMenus();
+        const underlying = document.elementFromPoint(e.clientX, e.clientY);
+        if (underlying && underlying !== e.target) {
+            const newEvent = new PointerEvent('contextmenu', {
+                bubbles: true, cancelable: true,
+                clientX: e.clientX, clientY: e.clientY,
+                button: 2
+            });
+            underlying.dispatchEvent(newEvent);
+        }
+    }, true);
+
+    document.getElementById('modList').addEventListener('scroll', hideAllContextMenus);
+
+    document.addEventListener('keydown', (e) => {
+        if (document.getElementById('cuteContextMenu').classList.contains('show') ||
+            document.getElementById('charContextMenu').classList.contains('show')) {
+            hideAllContextMenus();
+            if (e.key === 'Escape') return;
+        }
+        if (e.key === 'Escape') {
+            if (document.getElementById('settingsPanel').classList.contains('visible')) {
+                document.getElementById('settingsPanel').classList.remove('visible');
+                return;
+            }
+            // Hide side window if open
+            window.overlayApi.hideSide();
+            selectedModName = null;
+            document.querySelectorAll('.mod-item.selected, .mod-gallery-item.selected').forEach(el => el.classList.remove('selected'));
+            window.overlayApi.hideOverlay();
+        }
+    });
+
+    // ===== Scroll wheel to switch characters =====
+    document.getElementById('charStrip').addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const pool = getVisibleCharacters();
+        if (pool.length <= 1) return;
+        let idx = pool.findIndex(c => c.name === selectedChar);
+        if (idx < 0) idx = 0;
+        if (e.deltaY > 0) idx = (idx + 1) % pool.length;
+        else idx = (idx - 1 + pool.length) % pool.length;
+        selectChar(pool[idx].name);
+    }, { passive: false });
+
+    document.getElementById('charFilterBtn').addEventListener('click', () => {
+        overlayCharFilterModOnly = !overlayCharFilterModOnly;
+        try { localStorage.setItem('qaqm.overlay.charFilterModOnly', String(overlayCharFilterModOnly)); } catch (_) {}
+        syncCharFilterUI();
+        renderCharChips();
+        if (bubbleSideOpen) showCharacterBubbleSide();
+        // If the current selection got filtered out, jump to the first visible.
+        const pool = getVisibleCharacters();
+        if (pool.length > 0 && !pool.some(c => c.name === selectedChar)) {
+            selectChar(pool[0].name);
+        }
+        showToast(overlayCharFilterModOnly ? '已切换为只显示有 Mod 的角色' : '已显示全部角色');
+    });
+
+    // ===== Settings =====
+    document.getElementById('settingsBtn').addEventListener('click', () => document.getElementById('settingsPanel').classList.add('visible'));
+    document.getElementById('settingsPanelClose').addEventListener('click', () => document.getElementById('settingsPanel').classList.remove('visible'));
+
+    document.getElementById('autoReloadToggle').addEventListener('change', async (e) => {
+        const checked = e.target.checked;
+        try {
+            const result = await window.overlayApi.updateSettings({ autoReloadEnabled: checked });
+            if (result.success && result.settings) {
+                overlaySettings = {
+                    ...overlaySettings,
+                    ...result.settings
+                };
+                syncSettingsUI();
+                showToast(
+                    overlaySettings.autoReloadEnabled
+                        ? '已开启自动装载，请在游戏中按一次 F10 让设置生效'
+                        : '已关闭自动装载，请在游戏中按一次 F10 让设置生效'
+                );
+            } else {
+                e.target.checked = !checked;
+                showToast(result.error || '设置失败');
+            }
+        } catch {
+            e.target.checked = !checked;
+            showToast('设置失败');
+        }
+    });
+
+    document.getElementById('presetAutoReloadToggle').addEventListener('change', async (e) => {
+        const checked = e.target.checked;
+        try {
+            const result = await window.overlayApi.updateSettings({ presetAutoReloadEnabled: checked });
+            if (result.success && result.settings) {
+                overlaySettings = {
+                    ...overlaySettings,
+                    ...result.settings
+                };
+                syncSettingsUI();
+                showToast(
+                    overlaySettings.presetAutoReloadEnabled
+                        ? '已开启预设自动装载，请在游戏中按一次 F10 让设置生效'
+                        : '已关闭预设自动装载'
+                );
+            } else {
+                e.target.checked = !checked;
+                showToast(result.error || '设置失败');
+            }
+        } catch {
+            e.target.checked = !checked;
+            showToast('设置失败');
+        }
+    });
+
+    document.getElementById('clickableHotkeysToggle').addEventListener('change', async (e) => {
+        const checked = e.target.checked;
+        try {
+            const result = await window.overlayApi.updateSettings({ clickableHotkeysEnabled: checked });
+            if (result.success && result.settings) {
+                overlaySettings = {
+                    ...overlaySettings,
+                    ...result.settings
+                };
+                syncSettingsUI();
+                showToast(overlaySettings.clickableHotkeysEnabled ? '已开启快捷键点击应用' : '已关闭快捷键点击应用');
+                if (selectedModName) {
+                    openDetail(selectedModName);
+                }
+            } else {
+                e.target.checked = !checked;
+                showToast(result.error || '设置失败');
+            }
+        } catch {
+            e.target.checked = !checked;
+            showToast('设置失败');
+        }
+    });
+
+    document.getElementById('persistCacheSlider').addEventListener('input', (e) => {
+        document.getElementById('persistCacheValue').textContent = `${e.target.value} 个`;
+    });
+
+    document.getElementById('persistCacheSlider').addEventListener('change', async (e) => {
+        const nextValue = Number(e.target.value);
+        try {
+            const result = await window.overlayApi.updateSettings({ persistBridgeCacheSize: nextValue });
+            if (result.success && result.settings) {
+                overlaySettings = {
+                    ...overlaySettings,
+                    ...result.settings
+                };
+                syncSettingsUI();
+                showToast(`最近缓存数量已设为 ${overlaySettings.persistBridgeCacheSize} 个`);
+            } else {
+                syncSettingsUI();
+                showToast(result.error || '设置失败');
+            }
+        } catch {
+            syncSettingsUI();
+            showToast('设置失败');
+        }
+    });
+
+    document.getElementById('persistBridgeToggle').addEventListener('change', async (e) => {
+        const checked = e.target.checked;
+        try {
+            const result = await window.overlayApi.updateSettings({ persistBridgeEnabled: checked });
+            if (result.success && result.settings) {
+                overlaySettings = {
+                    ...overlaySettings,
+                    ...result.settings
+                };
+                syncSettingsUI();
+                showToast(checked ? 'Persist Bridge 已开启，请完全退出并重启 QAQ 管理器和游戏生效' : 'Persist Bridge 已关闭，ini 已还原，请完全退出并重启 QAQ 管理器和游戏生效');
+            } else {
+                e.target.checked = !checked;
+                showToast(result.error || '设置失败');
+            }
+        } catch {
+            e.target.checked = !checked;
+            showToast('设置失败');
+        }
+    });
+
+    document.getElementById('clearPersistCacheBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('clearPersistCacheBtn');
+        btn.disabled = true;
+        btn.textContent = '清空中...';
+        try {
+            const result = await window.overlayApi.clearPersistBridgeCache();
+            if (result.success) {
+                showToast(`缓存已清空（${result.deletedCount} 个状态文件），请重启游戏生效`);
+            } else {
+                showToast(result.error || '清空失败');
+            }
+        } catch {
+            showToast('清空失败');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '清空缓存';
+        }
+    });
+
+    document.getElementById('opacitySlider').addEventListener('input', (e) => {
+        const val = e.target.value;
+        document.getElementById('opacityValue').textContent = val + '%';
+        document.querySelector('.overlay-panel').style.setProperty('--panel-opacity', (val / 100).toFixed(2));
+    });
+
+    // Hotkey capture
+    const hotkeyInput = document.getElementById('hotkeyInput');
+    let capturingHotkey = false;
+    hotkeyInput.addEventListener('click', () => { capturingHotkey = true; hotkeyInput.value = '按下快捷键...'; });
+    hotkeyInput.addEventListener('keydown', async (e) => {
+        if (!capturingHotkey) return;
+        e.preventDefault();
+        let parts = [];
+        if (e.ctrlKey) parts.push('Ctrl');
+        if (e.altKey) parts.push('Alt');
+        if (e.shiftKey) parts.push('Shift');
+        const key = e.key.toUpperCase();
+        if (!['CONTROL', 'ALT', 'SHIFT'].includes(key)) {
+            parts.push(key.length === 1 ? key : e.key);
+            const newHotkey = parts.join(' + ');
+            hotkeyInput.value = newHotkey;
+            capturingHotkey = false;
+            try {
+                const result = await window.overlayApi.changeHotkey(newHotkey);
+                if (result.success) showToast('快捷键: ' + newHotkey);
+                else { showToast(result.error || '设置失败'); hotkeyInput.value = 'Alt + F'; }
+            } catch { hotkeyInput.value = 'Alt + F'; }
+        }
+    });
+    hotkeyInput.addEventListener('blur', () => { if (capturingHotkey) { capturingHotkey = false; hotkeyInput.value = 'Alt + F'; } });
+
+    // ===== View-mode toggle =====
+    // Flips between list and gallery, persists choice in localStorage, and
+    // re-renders so the user sees the new layout immediately.
+    document.getElementById('viewModeBtn').addEventListener('click', () => {
+        overlayViewMode = (overlayViewMode === 'gallery') ? 'list' : 'gallery';
+        try { localStorage.setItem('qaqm.overlay.viewMode', overlayViewMode); } catch {}
+        syncViewModeUI();
+        if (selectedChar) renderMods();
+    });
+    syncViewModeUI();
+
+    // ===== Sort bar =====
+    document.querySelectorAll('.sort-btn[data-sort]').forEach(btn => {
+        if (btn.id === 'exclusiveBtn') {
+            btn.addEventListener('click', () => {
+                overlayExclusive = !overlayExclusive;
+                try { localStorage.setItem('qaqm.overlay.exclusiveMode', String(overlayExclusive)); } catch {}
+                syncExclusiveUI();
+                showToast(overlayExclusive ? '🔘 单选已开启' : '多选模式');
+            });
+        } else {
+            btn.addEventListener('click', () => {
+                overlaySortMethod = btn.dataset.sort;
+                document.querySelectorAll('.sort-btn[data-sort]:not(#exclusiveBtn)').forEach(b => b.classList.toggle('active', b === btn));
+                if (selectedChar) renderMods();
+            });
+        }
+    });
+
+    function sortMods(mods) {
+        const pinned = mods
+            .filter((mod) => mod.pinned)
+            .sort((a, b) => {
+                const diff = (a.pinnedIndex ?? Number.MAX_SAFE_INTEGER) - (b.pinnedIndex ?? Number.MAX_SAFE_INTEGER);
+                if (diff !== 0) return diff;
+                return a.name.localeCompare(b.name, 'zh-CN');
+            });
+        const sorted = mods.filter((mod) => !mod.pinned);
+        if (overlaySortMethod === 'name') {
+            sorted.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+        } else if (overlaySortMethod === 'time') {
+            sorted.sort((a, b) => {
+                const timeDiff = (b.addedAtMs || 0) - (a.addedAtMs || 0);
+                if (timeDiff !== 0) return timeDiff;
+                return a.name.localeCompare(b.name, 'zh-CN');
+            });
+        } else if (overlaySortMethod === 'status') {
+            const order = overlayInteractionOrder[selectedChar] || [];
+            sorted.sort((a, b) => {
+                const aIdx = order.indexOf(a.name), bIdx = order.indexOf(b.name);
+                const aI = aIdx !== -1, bI = bIdx !== -1;
+                if (aI && !bI) return -1;
+                if (!aI && bI) return 1;
+                if (aI && bI) return aIdx - bIdx;
+                return a.name.localeCompare(b.name, 'zh-CN');
+            });
+        }
+        return [...pinned, ...sorted];
+    }
+
+    function trackInteraction(charName, modName) {
+        if (!overlayInteractionOrder[charName]) overlayInteractionOrder[charName] = [];
+        const arr = overlayInteractionOrder[charName];
+        const idx = arr.indexOf(modName);
+        if (idx !== -1) arr.splice(idx, 1);
+        arr.unshift(modName);
+    }
+
+    // ===== Bubble Menu (side window) =====
+    let bubbleSideOpen = false;
+
+    function showCharacterBubbleSide() {
+        const bubbleCharacters = getVisibleCharacters();
+        const bubblesHtml = '<div class="bubble-grid">' + bubbleCharacters.map((c, i) => {
+            const escapedName = escapeHtml(c.name);
+            const initial = escapeHtml(c.name.substring(0, 1));
+            return `<div class="bubble-avatar ${selectedChar === c.name ? 'active' : ''}" data-name="${escapedName}" data-idx="${i}" title="${escapedName}">
+                ${c.coverUrl ? `<img src="${c.coverUrl}" alt="">` : `<span>${initial}</span>`}
+            </div>`;
+        }).join('') + '</div>';
+        window.overlayApi.showSide({
+            content: {
+                type: 'characters',
+                title: `🎭 选择角色 (${bubbleCharacters.length})`,
+                html: bubblesHtml
+            }
+        });
+    }
+
+    document.getElementById('bubbleToggleBtn').addEventListener('click', () => {
+        if (bubbleSideOpen) {
+            window.overlayApi.hideSide();
+            bubbleSideOpen = false;
+            return;
+        }
+        bubbleSideOpen = true;
+        showCharacterBubbleSide();
+    });
+
+    // ===== Load characters =====
+    function getVisibleCharacters() {
+        if (!overlayCharFilterModOnly) return characters;
+        return characters.filter(c => (c?.modCount || 0) > 0);
+    }
+
+    function syncCharFilterUI() {
+        const btn = document.getElementById('charFilterBtn');
+        if (!btn) return;
+        btn.classList.toggle('active', !!overlayCharFilterModOnly);
+        btn.textContent = overlayCharFilterModOnly ? '🎯' : '🌐';
+        btn.title = overlayCharFilterModOnly ? '只显示有 Mod 的角色（点击显示全部）' : '显示全部角色（点击仅显示有 Mod 的）';
+    }
+
+    async function loadCharacters({ reloadSelectedMods = true } = {}) {
+        try {
+            const result = await window.overlayApi.getCharacters();
+            if (result.success) {
+                const previousSelectedChar = selectedChar;
+                characters = Array.isArray(result.characters) ? result.characters : [];
+                renderCharChips();
+                if (characters.length === 0) {
+                    clearOverlaySelectionState();
+                    return;
+                }
+                const visible = getVisibleCharacters();
+                const pool = visible.length > 0 ? visible : characters;
+                const nextChar = pool.find(c => c.name === previousSelectedChar)?.name || pool[0].name;
+                if (!reloadSelectedMods && nextChar === previousSelectedChar) {
+                    selectedCharIndex = characters.findIndex(c => c.name === nextChar);
+                } else {
+                    await selectChar(nextChar);
+                }
+                if (bubbleSideOpen) showCharacterBubbleSide();
+            } else {
+                characters = [];
+                renderCharacterEmptyState(result.error || '角色加载失败');
+                showToast(result.error || '角色加载失败');
+            }
+        } catch (e) {
+            characters = [];
+            renderCharacterEmptyState('角色加载失败');
+            showToast('角色加载失败');
+        }
+    }
+
+    function renderCharChips() {
+        const container = document.getElementById('charList');
+        syncCharFilterUI();
+        if (characters.length === 0) {
+            container.innerHTML = '<div class="empty-state">暂无角色</div>';
+            return;
+        }
+        const visible = getVisibleCharacters();
+        if (visible.length === 0) {
+            container.innerHTML = '<div class="empty-state">没有装载 Mod 的角色</div>';
+            return;
+        }
+        container.innerHTML = visible.map((c, i) =>
+            `<div class="char-chip ${selectedChar === c.name ? 'active' : ''}" data-name="${c.name}" data-idx="${i}">${escapeHtml(c.name)}${(c.modCount || 0) > 0 ? `<span class="char-chip-count">${c.enabledCount || 0}/${c.modCount}</span>` : ''}</div>`
+        ).join('');
+        container.querySelectorAll('.char-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                // Index now points into the visible pool, but selectChar resolves
+                // by name + recomputes selectedCharIndex against the full list.
+                selectChar(chip.dataset.name);
+            });
+            chip.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showCharContextMenu(e, chip.dataset.name);
+            });
+        });
+    }
+
+    async function selectChar(name) {
+        if (!name) {
+            clearOverlaySelectionState();
+            return;
+        }
+        selectedChar = name;
+        selectedCharIndex = characters.findIndex(c => c.name === name);
+        renderCharChips();
+        const active = document.querySelector('.char-chip.active');
+        if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        // Keep the character browser state in sync with the still-visible side window.
+        // The side-panel selection callback explicitly clears this flag after main closes it.
+        selectedModName = null;
+        enabledFocusCursor = -1;
+        hideCuteContextMenu();
+        document.querySelectorAll('.mod-item.selected, .mod-gallery-item.selected').forEach(el => el.classList.remove('selected'));
+        await loadMods(name);
+    }
+
+    // ===== Load & Render Mods =====
+    async function loadMods(characterName, options = {}) {
+        const container = document.getElementById('modList');
+        const silent = !!options.silent;
+        const keepFocus = options.keepFocus !== false;
+        if (!silent) {
+            container.innerHTML = '<div class="loading">加载中...</div>';
+        } else {
+            container.classList.add('soft-refreshing');
+            if (keepFocus && options.focusModName) {
+                prepareModFocusState(options.focusModName, {
+                    scrollTop: Number.isFinite(Number(options.scrollTop)) ? Number(options.scrollTop) : container.scrollTop,
+                    center: options.center
+                });
+            } else if (keepFocus && selectedModName && !pendingFocusState) {
+                prepareModFocusState(selectedModName, { scrollTop: container.scrollTop, center: false });
+            }
+        }
+        try {
+            const result = await window.overlayApi.getMods(characterName);
+            if (result.success) {
+                const nextMods = Array.isArray(result.mods) ? result.mods : [];
+                const nextAliases = Array.isArray(result.characterAliases) ? result.characterAliases : [];
+                currentMods = nextMods;
+                currentCharacterAliases = nextAliases;
+                const names = new Set(currentMods.map(mod => mod.name));
+                Object.entries(overlayCollectionSelections).forEach(([identity, modName]) => {
+                    if (!names.has(modName)) delete overlayCollectionSelections[identity];
+                });
+                if (selectedModName && !names.has(selectedModName)) selectedModName = null;
+                renderMods();
+            } else {
+                currentCharacterAliases = [];
+                pendingFocusState = null;
+                if (!silent) container.innerHTML = '<div class="empty-state">加载失败</div>';
+                showToast(result.error || 'Mod 列表加载失败');
+            }
+        } catch (e) {
+            pendingFocusState = null;
+            if (!silent) container.innerHTML = '<div class="empty-state">加载失败</div>';
+            showToast('Mod 列表加载失败');
+        } finally {
+            container.classList.remove('soft-refreshing');
+        }
+    }
+
+    function renderMods() {
+        const container = document.getElementById('modList');
+        hideOnlyCuteContextMenus();
+        if (overlaySettings.compatibilityMode && overlayViewMode !== 'list') {
+            overlayViewMode = 'list';
+        }
+        // Toggle the gallery class so CSS swaps to grid layout. List mode
+        // keeps the original block-flow padding via the absence of this class.
+        container.classList.toggle('is-gallery', overlayViewMode === 'gallery' && !overlaySettings.compatibilityMode);
+        const sorted = sortMods(currentMods);
+        const displayMods = overlayCollectionsEnabled
+            ? buildOverlayCollectionView(sorted, selectedChar, currentCharacterAliases)
+            : sorted;
+        overlayCollectionGroupsByIdentity = new Map();
+        if (overlayCollectionsEnabled) {
+            displayMods.forEach(mod => {
+                if (mod?._collection?.identity) {
+                    overlayCollectionGroupsByIdentity.set(mod._collection.identity, {
+                        ...mod._collection,
+                        currentName: mod.name
+                    });
+                }
+            });
+        }
+        const enabledCount = currentMods.filter(m => m.enabled).length;
+        document.getElementById('modCount').textContent = `${enabledCount}/${currentMods.length}`;
+
+        if (currentMods.length === 0) {
+            container.innerHTML = '<div class="empty-state">该角色没有 Mod</div>';
+            syncFocusEnabledUI();
+            return;
+        }
+
+        if (overlayViewMode === 'gallery') {
+            // Gallery card mirrors the manager view: fixed 4:3 preview plus
+            // a footer row with the mod name and enable switch.
+            container.innerHTML = displayMods.map(m => {
+                const collection = m._collection;
+                const collectionLabel = collection ? (cleanCollectionText(m._collectionVersionLabel) || getCollectionVariantLabel(m)) : '';
+                return `
+                <div class="mod-gallery-item ${m.enabled ? 'enabled' : ''} ${selectedModName === m.name ? 'selected' : ''} ${collection ? 'has-collection' : ''} ${collection && openOverlayCollectionMenu === collection.identity ? 'collection-menu-open' : ''}" data-mod="${m.name}" data-enabled="${m.enabled}">
+                    <div class="mod-gallery-image">
+                        ${m.previewUrl ? `<img src="${m.previewUrl}" alt="" loading="lazy" onerror="this.style.display='none'">` : '<div class="mod-gallery-placeholder">📦</div>'}
+                        ${m.pinned ? '<span class="mod-gallery-pin" title="已置顶">📌</span>' : ''}
+                        <button class="mod-gallery-mark ${m.marked ? 'active' : ''}" data-mark-toggle="1" data-mod="${m.name}" data-marked="${m.marked}" title="${m.marked ? '取消标记' : '标记此 Mod'}">🔖</button>
+                        ${m.hasConflict && m.enabled ? '<span class="mod-gallery-conflict" title="哈希冲突">⚠️</span>' : ''}
+                        ${collection ? `
+                            <div class="overlay-collection-dropdown" data-collection="${escapeHtml(collection.identity)}">
+                                <button class="overlay-collection-trigger" data-collection-trigger="1" data-collection="${escapeHtml(collection.identity)}" title="合集：${escapeHtml(collection.name)}">
+                                    <span>${escapeHtml(collectionLabel)}</span>
+                                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="mod-gallery-footer">
+                        <div class="mod-gallery-name" title="${escapeHtml(m.name)}">${escapeHtml(m.name)}${collection ? ` <span class="overlay-collection-badge">${collection.variants.length}</span>` : ''}</div>
+                        <div class="mod-gallery-switch ${m.enabled ? 'active' : ''}" data-toggle="1" data-mod="${m.name}" data-enabled="${m.enabled}" title="${m.enabled ? '点击禁用' : '点击启用'}"></div>
+                    </div>
+                </div>
+            `;
+            }).join('');
+        } else {
+            container.innerHTML = displayMods.map(m => {
+                const collection = m._collection;
+                return `
+                <div class="mod-item ${m.enabled ? 'enabled' : ''} ${selectedModName === m.name ? 'selected' : ''}" data-mod="${m.name}" data-enabled="${m.enabled}">
+                    <div class="mod-preview">
+                        ${!overlaySettings.compatibilityMode && m.previewUrl ? `<img src="${m.previewUrl}" alt="">` : '📦'}
+                    </div>
+                    <div class="mod-info" data-action="detail">
+                        <div class="mod-name">${escapeHtml(m.name)}${collection ? ` <span class="overlay-collection-badge">合集 ${collection.variants.length}</span>` : ''}${m.pinned ? ' <span class="mod-pin-icon" title="已置顶">📌</span>' : ''}${m.hasConflict && m.enabled ? ' <span class="mod-conflict-icon">⚠️</span>' : ''}</div>
+                        <div class="mod-status-text">${m.enabled ? '✅ 已启用' : '⬜ 已禁用'}</div>
+                        ${collection ? `
+                            <div class="overlay-collection-variants">
+                                ${collection.variants.map(variant => `
+                                    <button class="overlay-collection-chip ${variant.name === m.name ? 'active' : ''}" data-collection-option="1" data-collection="${escapeHtml(collection.identity)}" data-mod="${escapeHtml(variant.name)}" title="${escapeHtml(variant.name)}">
+                                        ${escapeHtml(getCollectionVariantLabel(variant))}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <button class="mod-mark-btn ${m.marked ? 'active' : ''}" data-mark-toggle="1" data-mod="${m.name}" data-marked="${m.marked}" title="${m.marked ? '取消标记' : '标记此 Mod'}">🔖</button>
+                    <div class="toggle ${m.enabled ? 'on' : ''}" data-toggle="1" data-mod="${m.name}" data-enabled="${m.enabled}"></div>
+                </div>
+            `;
+            }).join('');
+        }
+
+        container.querySelectorAll('[data-collection-trigger="1"]').forEach(button => {
+            button.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            });
+            button.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            });
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                const identity = button.dataset.collection;
+                if (!identity) return;
+                if (openOverlayCollectionMenu === identity) {
+                    closeOverlayCollectionMenus();
+                    return;
+                }
+                showOverlayCollectionFloatingMenu(button, identity);
+            });
+        });
+
+        container.querySelectorAll('[data-collection-option="1"]').forEach(option => {
+            option.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            });
+            option.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            });
+            option.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                selectOverlayCollectionVariant(option.dataset.collection, option.dataset.mod);
+            });
+        });
+
+        // Single shared toggle handler — selects both list and gallery
+        // switches via the data-toggle attribute.
+        container.querySelectorAll('[data-toggle="1"]').forEach(toggle => {
+            toggle.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const modName = toggle.dataset.mod;
+                const currentlyEnabled = toggle.dataset.enabled === 'true';
+                try {
+                    hideCuteContextMenu();
+                    prepareModFocusState(modName, { scrollTop: container.scrollTop });
+                    overlayLastLocalChangeAt = Date.now();
+                    if (overlayExclusive && !currentlyEnabled) {
+                        for (const m of currentMods) {
+                            if (m.name !== modName && m.enabled) {
+                                const disableResult = await window.overlayApi.toggleMod(selectedChar, m.name, false);
+                                if (!disableResult.success) {
+                                    pendingFocusState = null;
+                                    showToast(disableResult.error || `关闭 ${m.name} 失败`);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    const result = await window.overlayApi.toggleMod(selectedChar, modName, !currentlyEnabled);
+                    if (result.success) {
+                        trackInteraction(selectedChar, modName);
+                        overlayLastLocalChangeAt = Date.now();
+                        applyOptimisticModState(modName, { enabled: !currentlyEnabled });
+                        if (overlayExclusive && !currentlyEnabled) {
+                            currentMods = currentMods.map(mod => mod.name === modName ? mod : { ...mod, enabled: false });
+                        }
+                        renderMods();
+                        const actionLabel = !currentlyEnabled ? '✅' : '⬜';
+                        const reloadLabel = result.autoReloaded ? ' · 已自动刷新' : '';
+                        const persistLabel = result.persistRestored ? ' · 已恢复配件状态' : '';
+                        showToast(`${modName} ${actionLabel}${reloadLabel}${persistLabel}`);
+                    } else {
+                        pendingFocusState = null;
+                        showToast(result.error || '切换失败');
+                    }
+                } catch (error) {
+                    pendingFocusState = null;
+                    showToast(error?.message || '切换失败');
+                }
+            });
+        });
+
+        container.querySelectorAll('[data-mark-toggle="1"]').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const modName = button.dataset.mod;
+                const currentlyMarked = button.dataset.marked === 'true';
+                try {
+                    hideCuteContextMenu();
+                    prepareModFocusState(modName, { scrollTop: container.scrollTop, center: false });
+                    overlayLastLocalChangeAt = Date.now();
+                    const result = await window.overlayApi.setModMarked(selectedChar, modName, !currentlyMarked);
+                    if (result.success) {
+                        overlayLastLocalChangeAt = Date.now();
+                        applyOptimisticModState(modName, { marked: !currentlyMarked });
+                        renderMods();
+                        showToast(currentlyMarked ? `已取消 ${modName} 的标记` : `${modName} 已标记`);
+                    } else {
+                        pendingFocusState = null;
+                        showToast(result.error || '标记失败');
+                    }
+                } catch (error) {
+                    pendingFocusState = null;
+                    showToast(error?.message || '标记失败');
+                }
+            });
+        });
+
+        container.querySelectorAll('.mod-item, .mod-gallery-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                // Don't trigger detail-open when clicking the inline toggle/dot.
+                if (e.target.closest('[data-toggle="1"]')) return;
+                if (e.target.closest('[data-collection-trigger="1"], [data-collection-option="1"], .overlay-collection-dropdown, .overlay-collection-variants')) return;
+                hideCuteContextMenu();
+                openDetail(item.dataset.mod);
+            });
+
+            item.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showCuteContextMenu(e, item.dataset.mod);
+            });
+        });
+
+        if (pendingFocusState) {
+            const focusState = pendingFocusState;
+            pendingFocusState = null;
+            container.scrollTop = focusState.scrollTop || 0;
+            requestAnimationFrame(() => focusModRow(focusState.modName, { center: focusState.center }));
+        }
+
+        syncFocusEnabledUI();
+    }
+
+    // ===== Detail Panel (side window) =====
+    async function openDetail(modName) {
+        const mod = currentMods.find(m => m.name === modName);
+        if (!mod) {
+            showToast('Mod 信息已更新，请重试');
+            return;
+        }
+
+        hideCuteContextMenu();
+
+        // Toggle off if same mod
+        if (selectedModName === modName) {
+            window.overlayApi.hideSide();
+            selectedModName = null;
+            bubbleSideOpen = false;
+            document.querySelectorAll('.mod-item.selected, .mod-gallery-item.selected').forEach(el => el.classList.remove('selected'));
+            return;
+        }
+
+        selectedModName = modName;
+        bubbleSideOpen = false;
+
+        const buildDetailHtml = (hotkeysHtml) => {
+            let detailHtml = '';
+            if (mod.previewUrl) {
+                detailHtml += `<img class="detail-preview-img" src="${mod.previewUrl}" alt="">`;
+            }
+            detailHtml += `<div style="font-size:10px;color:#999;margin-bottom:6px;">状态: ${mod.enabled ? '✅ 已启用' : '⬜ 已禁用'} | 角色: ${escapeHtml(selectedChar)}</div>`;
+            if (mod.hasConflict && mod.enabled) {
+                detailHtml += `<div style="font-size:10px;color:#e67e22;background:#fff8e1;padding:4px 8px;border-radius:6px;margin-bottom:6px;">⚠️ 哈希冲突</div>`;
+            }
+            detailHtml += `<button class="detail-toggle-btn" id="detailMarkBtn" data-marked="${mod.marked ? 'true' : 'false'}" style="margin-bottom:8px;background:${mod.marked ? 'linear-gradient(135deg, #ff9a9e, #fecfef)' : '#f5f5f5'};color:${mod.marked ? '#fff' : '#666'};">${mod.marked ? '🏷️ 取消标记' : '🔖 标记此 Mod'}</button>`;
+            detailHtml += `<div class="detail-hotkey-section">${hotkeysHtml}</div>`;
+            detailHtml += `<button class="detail-toggle-btn ${mod.enabled ? 'disable' : 'enable'}" id="detailToggleBtn">${mod.enabled ? '⬜ 禁用' : '✅ 启用'}</button>`;
+            return detailHtml;
+        };
+
+        const loadingHotkeysHtml = '<div style="color:#aaa;font-size:10px;text-align:center;padding:6px;">快捷键加载中...</div>';
+
+        const sideResult = await window.overlayApi.showSide({
+            content: {
+                type: 'detail',
+                title: mod.name,
+                html: buildDetailHtml(loadingHotkeysHtml),
+                charName: selectedChar,
+                modName,
+                modEnabled: mod.enabled,
+                modMarked: !!mod.marked,
+                clickableHotkeysEnabled: !!overlaySettings.clickableHotkeysEnabled
+            }
+        });
+
+        if (!sideResult || !sideResult.success) {
+            showToast(sideResult?.error || '打开详情失败');
+            return;
+        }
+
+        document.querySelectorAll('.mod-item, .mod-gallery-item').forEach(el => el.classList.toggle('selected', el.dataset.mod === modName));
+
+        try {
+            const details = await window.overlayApi.getModDetails(selectedChar, modName);
+            let hkHtml = '';
+            if (details.success && details.hotkeys && details.hotkeys.length > 0) {
+                hkHtml = '<div style="font-size:10px;font-weight:700;color:#555;margin-bottom:4px;">⌨️ 快捷键</div>' +
+                    details.hotkeys.map((hk, index) => {
+                        const desc = escapeHtml(hk.description || hk.section || '');
+                        const alternatives = Array.isArray(hk.alternatives) && hk.alternatives.length > 0
+                            ? hk.alternatives
+                            : [{ displayKeys: Array.isArray(hk.keys) ? hk.keys : [] }];
+                        const encodedPayload = encodeHotkeyPayload(hk.applyPayload || null);
+                        const clickableClass = overlaySettings.clickableHotkeysEnabled ? ' clickable' : '';
+                        const clickableTitle = hk.canApply
+                            ? '点击应用快捷键'
+                            : '当前快捷键暂不支持自动应用，点击可查看提示';
+                        const clickableAttr = overlaySettings.clickableHotkeysEnabled
+                            ? `role="button" tabindex="0" title="${clickableTitle}"`
+                            : '';
+                        const unsupportedHint = !hk.canApply
+                            ? '<span class="detail-hotkey-note">当前为鼠标/手柄/特殊按键，可能需手动操作</span>'
+                            : '';
+                        return `
+                            <div class="detail-hotkey-row${clickableClass}" ${clickableAttr} data-hotkey-index="${index}" data-hotkey-desc="${desc}" data-hotkey-payload="${encodedPayload}">
+                                <span class="detail-hotkey-desc">${desc}${unsupportedHint}</span>
+                                <span class="detail-hotkey-keys">${alternatives.map((alt, altIndex) => {
+                                    const keys = Array.isArray(alt.displayKeys) ? alt.displayKeys : [];
+                                    return `<span class="detail-hotkey-alt">${keys.map(k => `<span class="detail-kbd">${escapeHtml(k)}</span>`).join('')}</span>${altIndex < alternatives.length - 1 ? '<span class="detail-hotkey-or">或</span>' : ''}`;
+                                }).join('')}</span>
+                            </div>
+                        `;
+                    }).join('');
+            } else if (details.success) {
+                hkHtml = '<div style="color:#ccc;font-size:10px;text-align:center;">无快捷键</div>';
+            } else {
+                hkHtml = '<div style="color:#e67e22;font-size:10px;text-align:center;line-height:1.5;">快捷键读取失败，请稍后重试</div>';
+                showToast(details.error || '快捷键读取失败');
+            }
+
+            window.overlayApi.updateSide({
+                type: 'detail',
+                title: mod.name,
+                html: buildDetailHtml(hkHtml),
+                charName: selectedChar,
+                modName,
+                modEnabled: mod.enabled,
+                modMarked: !!mod.marked,
+                clickableHotkeysEnabled: !!overlaySettings.clickableHotkeysEnabled
+            });
+        } catch (error) {
+            showToast(error?.message || '快捷键读取失败');
+            window.overlayApi.updateSide({
+                type: 'detail',
+                title: mod.name,
+                html: buildDetailHtml('<div style="color:#e67e22;font-size:10px;text-align:center;line-height:1.5;">快捷键读取失败，请稍后重试</div>'),
+                charName: selectedChar,
+                modName,
+                modEnabled: mod.enabled,
+                modMarked: !!mod.marked,
+                clickableHotkeysEnabled: !!overlaySettings.clickableHotkeysEnabled
+            });
+        }
+    }
+
+    // ===== Presets =====
+    async function loadPresets() {
+        const section = document.getElementById('presetSection');
+        const container = document.getElementById('presetList');
+        try {
+            const result = await window.overlayApi.getPresets();
+            if (!result.success) {
+                presets = [];
+                section.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+
+            presets = Array.isArray(result.presets) ? result.presets : [];
+            const activePresetId = result.activePresetId || null;
+            if (presets.length === 0) {
+                section.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+
+            section.style.display = '';
+            container.innerHTML = presets.map(p =>
+                `<button class="preset-chip ${p.id === activePresetId ? 'active' : ''}" data-name="${p.name}">${p.name}</button>`
+            ).join('');
+            container.querySelectorAll('.preset-chip').forEach(chip => {
+                chip.addEventListener('click', async () => {
+                    try {
+                        const result = await window.overlayApi.activatePreset(chip.dataset.name);
+                        if (result.success) {
+                            const reloadLabel = result.autoReloaded ? ' · 已自动刷新' : '';
+                            showToast(`预设「${chip.dataset.name}」已应用${reloadLabel}`);
+                            await loadCharacters();
+                            await loadPresets();
+                        } else { showToast(result.error || '应用失败'); }
+                    } catch { showToast('应用失败'); }
+                });
+            });
+        } catch {
+            presets = [];
+            section.style.display = 'none';
+            container.innerHTML = '';
+        }
+    }
+
+    async function refreshOverlayForGameChange() {
+        if (overlayRefreshingForGameChange) return;
+        overlayRefreshingForGameChange = true;
+        try {
+            bubbleSideOpen = false;
+            window.overlayApi.hideSide();
+            clearOverlaySelectionState();
+            await loadCharacters();
+            await loadPresets();
+        } finally {
+            overlayRefreshingForGameChange = false;
+        }
+    }
+
+    // Listen for character selection from side panel
+    window.overlayApi.onSelectChar((charName) => {
+        const idx = characters.findIndex(c => c.name === charName);
+        if (idx !== -1) {
+            selectedCharIndex = idx;
+            selectChar(charName);
+        }
+        bubbleSideOpen = false;
+    });
+
+    // Listen for cover changes from main app
+    window.overlayApi.onCoversChanged(() => {
+        loadCharacters();
+    });
+
+    // Reload mod list when main window toggles a mod for the current character
+    window.overlayApi.onModsChanged(async (data) => {
+        if (data.characterName === '__all__' || data.fullRefresh) {
+            await loadCharacters({ reloadSelectedMods: false });
+        }
+        if (selectedChar && (data.characterName === selectedChar || data.characterName === '__all__')) {
+            if (Date.now() - overlayLastLocalChangeAt < 900) return;
+            loadMods(selectedChar, {
+                silent: true,
+                focusModName: data?.modName || selectedModName,
+                center: false
+            });
+        }
+    });
+
+    window.overlayApi.onMarkedModsChanged((data) => {
+        if (selectedChar && (!data?.characterName || data.characterName === selectedChar || data.characterName === '__all__')) {
+            if (Date.now() - overlayLastLocalChangeAt < 900) return;
+            loadMods(selectedChar, {
+                silent: true,
+                focusModName: data?.modName || selectedModName,
+                center: false
+            });
+        }
+    });
+
+    // Listen for preset changes from main app
+    window.overlayApi.onPresetsChanged(() => {
+        loadPresets();
+    });
+
+    window.overlayApi.onGamesChanged(() => {
+        refreshOverlayForGameChange();
+    });
+
+    window.overlayApi.onOverlayScaleChanged((data) => {
+        if (data && data.scale) {
+            applyOverlayScale(data.scale);
+        }
+    });
+
+    window.overlayApi.onWindowShown(() => {
+        syncExclusiveUI();
+        hideCuteContextMenu();
+
+        if (characters.length === 0) {
+            refreshOverlayForGameChange();
+        } else {
+            // Mod directories may have changed while the overlay was hidden.
+            loadCharacters();
+        }
+    });
+
+    // Load current hotkey from config
+    async function loadCurrentHotkey() {
+        try {
+            const result = await window.overlayApi.getHotkey();
+            if (result.success && result.hotkey) {
+                document.getElementById('hotkeyInput').value = result.hotkey.replace(/\+/g, ' + ');
+            }
+        } catch (e) { }
+    }
+
+    async function loadOverlaySettings() {
+        try {
+            const result = await window.overlayApi.getSettings();
+            if (result.success && result.settings) {
+                overlaySettings = {
+                    ...overlaySettings,
+                    ...result.settings
+                };
+            }
+        } catch (e) { }
+        syncSettingsUI();
+    }
+
+    // Init
+    loadCharacters();
+    loadPresets();
+    loadCurrentHotkey();
+    loadOverlaySettings();
+    syncExclusiveUI();
+    syncOverlayCollectionsUI();
+</script>
+</body>
+</html>

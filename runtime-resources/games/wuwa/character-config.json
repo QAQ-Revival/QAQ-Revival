@@ -1,0 +1,984 @@
+{
+  "gameId": "wuthering-waves",
+  "defaultCharacters": [
+    "男主",
+    "女主",
+    "秋水",
+    "爱弥斯",
+    "奥古斯塔",
+    "白芷",
+    "布兰特",
+    "卜灵",
+    "卡卡罗",
+    "椿",
+    "坎特蕾拉",
+    "珂莱塔",
+    "卡提希娅",
+    "长离",
+    "千咲",
+    "炽霞",
+    "夏空",
+    "丹瑾",
+    "安可",
+    "嘉贝莉娜",
+    "绯雪",
+    "尤诺",
+    "鉴心",
+    "今汐",
+    "忌炎",
+    "凌阳",
+    "洛瑟菈",
+    "灯灯",
+    "露帕",
+    "陆·赫斯",
+    "琳奈",
+    "莫宁",
+    "莫特斐",
+    "菲比",
+    "弗洛洛",
+    "仇远",
+    "洛可可",
+    "散华",
+    "守岸人",
+    "希格莉卡",
+    "桃祈",
+    "维里奈",
+    "相里要",
+    "秧秧",
+    "吟霖",
+    "釉瑚",
+    "渊武",
+    "赞妮",
+    "折枝",
+    "达妮娅",
+    "丽贝卡",
+    "露西",
+    "穗穗",
+    "秧秧·玄翎",
+    "清宵",
+    "心",
+    "景燃",
+    "锁暝",
+    "其他",
+    "武器",
+    "滑翔翼",
+    "载具",
+    "UI",
+    "功能",
+    "大世界",
+    "NPC"
+  ],
+  "manualMappings": {
+    "rover": {
+      "displayName": "漂泊者",
+      "canonicalEnName": "Rover"
+    },
+    "shorekeeper": {
+      "displayName": "守岸人",
+      "canonicalEnName": "Shorekeeper"
+    },
+    "the shorekeeper": {
+      "displayName": "守岸人",
+      "canonicalEnName": "Shorekeeper"
+    },
+    "luuk": {
+      "displayName": "陆·赫斯",
+      "canonicalEnName": "Luuk"
+    },
+    "luuk herssen": {
+      "displayName": "陆·赫斯",
+      "canonicalEnName": "Luuk"
+    },
+    "lumi": {
+      "displayName": "灯灯",
+      "canonicalEnName": "LUMI"
+    },
+    "xiangliyao": {
+      "displayName": "相里要",
+      "canonicalEnName": "Xiangliyao"
+    },
+    "xiangli yao": {
+      "displayName": "相里要",
+      "canonicalEnName": "Xiangliyao"
+    },
+    "others": {
+      "displayName": "其他",
+      "canonicalEnName": "Others"
+    },
+    "weapons": {
+      "displayName": "武器",
+      "canonicalEnName": "Weapons"
+    },
+    "gliders": {
+      "displayName": "滑翔翼",
+      "canonicalEnName": "Gliders"
+    },
+    "vehicles": {
+      "displayName": "载具",
+      "canonicalEnName": "Vehicles"
+    },
+    "vehicle": {
+      "displayName": "载具",
+      "canonicalEnName": "Vehicles"
+    },
+    "lucilla": {
+      "displayName": "洛瑟菈",
+      "canonicalEnName": "Lucilla"
+    },
+    "sigrika": {
+      "displayName": "希格莉卡",
+      "canonicalEnName": "Sigrika"
+    },
+    "hiyuki": {
+      "displayName": "绯雪",
+      "canonicalEnName": "Hiyuki"
+    },
+    "feixue": {
+      "displayName": "绯雪",
+      "canonicalEnName": "Hiyuki"
+    },
+    "露琪拉": {
+      "displayName": "洛瑟菈",
+      "canonicalEnName": "Lucilla"
+    },
+    "露西拉": {
+      "displayName": "洛瑟菈",
+      "canonicalEnName": "Lucilla"
+    },
+    "希格丽卡": {
+      "displayName": "希格莉卡",
+      "canonicalEnName": "Sigrika"
+    },
+    "openworld": {
+      "displayName": "大世界",
+      "canonicalEnName": "OpenWorld"
+    },
+    "open world": {
+      "displayName": "大世界",
+      "canonicalEnName": "OpenWorld"
+    },
+    "function": {
+      "displayName": "功能",
+      "canonicalEnName": "Function"
+    },
+    "functions": {
+      "displayName": "功能",
+      "canonicalEnName": "Function"
+    },
+    "denia": {
+      "displayName": "达妮娅",
+      "canonicalEnName": "Denia"
+    },
+    "达尼娅": {
+      "displayName": "达妮娅",
+      "canonicalEnName": "Denia"
+    },
+    "rebecca": {
+      "displayName": "丽贝卡",
+      "canonicalEnName": "Rebecca"
+    },
+    "lucy": {
+      "displayName": "露西",
+      "canonicalEnName": "Lucy"
+    },
+    "秧秧": {
+      "displayName": "秧秧",
+      "canonicalEnName": "Yangyang"
+    },
+    "yangyang": {
+      "displayName": "秧秧",
+      "canonicalEnName": "Yangyang"
+    },
+    "炽霞": {
+      "displayName": "炽霞",
+      "canonicalEnName": "Chixia"
+    },
+    "chixia": {
+      "displayName": "炽霞",
+      "canonicalEnName": "Chixia"
+    },
+    "维里奈": {
+      "displayName": "维里奈",
+      "canonicalEnName": "Verina"
+    },
+    "verina": {
+      "displayName": "维里奈",
+      "canonicalEnName": "Verina"
+    },
+    "散华": {
+      "displayName": "散华",
+      "canonicalEnName": "Sanhua"
+    },
+    "sanhua": {
+      "displayName": "散华",
+      "canonicalEnName": "Sanhua"
+    },
+    "桃祈": {
+      "displayName": "桃祈",
+      "canonicalEnName": "Taoqi"
+    },
+    "taoqi": {
+      "displayName": "桃祈",
+      "canonicalEnName": "Taoqi"
+    },
+    "白芷": {
+      "displayName": "白芷",
+      "canonicalEnName": "Baizhi"
+    },
+    "baizhi": {
+      "displayName": "白芷",
+      "canonicalEnName": "Baizhi"
+    },
+    "安可": {
+      "displayName": "安可",
+      "canonicalEnName": "Encore"
+    },
+    "encore": {
+      "displayName": "安可",
+      "canonicalEnName": "Encore"
+    },
+    "丹瑾": {
+      "displayName": "丹瑾",
+      "canonicalEnName": "Danjin"
+    },
+    "danjin": {
+      "displayName": "丹瑾",
+      "canonicalEnName": "Danjin"
+    },
+    "秋水": {
+      "displayName": "秋水",
+      "canonicalEnName": "Aalto"
+    },
+    "aalto": {
+      "displayName": "秋水",
+      "canonicalEnName": "Aalto"
+    },
+    "忌炎": {
+      "displayName": "忌炎",
+      "canonicalEnName": "Jiyan"
+    },
+    "jiyan": {
+      "displayName": "忌炎",
+      "canonicalEnName": "Jiyan"
+    },
+    "莫特斐": {
+      "displayName": "莫特斐",
+      "canonicalEnName": "Mortefi"
+    },
+    "mortefi": {
+      "displayName": "莫特斐",
+      "canonicalEnName": "Mortefi"
+    },
+    "椿": {
+      "displayName": "椿",
+      "canonicalEnName": "Camellya"
+    },
+    "camellya": {
+      "displayName": "椿",
+      "canonicalEnName": "Camellya"
+    },
+    "卡卡罗": {
+      "displayName": "卡卡罗",
+      "canonicalEnName": "Calcharo"
+    },
+    "calcharo": {
+      "displayName": "卡卡罗",
+      "canonicalEnName": "Calcharo"
+    },
+    "吟霖": {
+      "displayName": "吟霖",
+      "canonicalEnName": "Yinlin"
+    },
+    "yinlin": {
+      "displayName": "吟霖",
+      "canonicalEnName": "Yinlin"
+    },
+    "凌阳": {
+      "displayName": "凌阳",
+      "canonicalEnName": "Lingyang"
+    },
+    "lingyang": {
+      "displayName": "凌阳",
+      "canonicalEnName": "Lingyang"
+    },
+    "渊武": {
+      "displayName": "渊武",
+      "canonicalEnName": "Yuanwu"
+    },
+    "yuanwu": {
+      "displayName": "渊武",
+      "canonicalEnName": "Yuanwu"
+    },
+    "鉴心": {
+      "displayName": "鉴心",
+      "canonicalEnName": "Jianxin"
+    },
+    "jianxin": {
+      "displayName": "鉴心",
+      "canonicalEnName": "Jianxin"
+    },
+    "今汐": {
+      "displayName": "今汐",
+      "canonicalEnName": "Jinhsi"
+    },
+    "jinhsi": {
+      "displayName": "今汐",
+      "canonicalEnName": "Jinhsi"
+    },
+    "相里要": {
+      "displayName": "相里要",
+      "canonicalEnName": "Xiangli Yao"
+    },
+    "长离": {
+      "displayName": "长离",
+      "canonicalEnName": "Changli"
+    },
+    "changli": {
+      "displayName": "长离",
+      "canonicalEnName": "Changli"
+    },
+    "折枝": {
+      "displayName": "折枝",
+      "canonicalEnName": "Zhezhi"
+    },
+    "zhezhi": {
+      "displayName": "折枝",
+      "canonicalEnName": "Zhezhi"
+    },
+    "灯灯": {
+      "displayName": "灯灯",
+      "canonicalEnName": "Lumi"
+    },
+    "釉瑚": {
+      "displayName": "釉瑚",
+      "canonicalEnName": "Youhu"
+    },
+    "youhu": {
+      "displayName": "釉瑚",
+      "canonicalEnName": "Youhu"
+    },
+    "守岸人": {
+      "displayName": "守岸人",
+      "canonicalEnName": "Shorekeeper"
+    },
+    "洛可可": {
+      "displayName": "洛可可",
+      "canonicalEnName": "Roccia"
+    },
+    "roccia": {
+      "displayName": "洛可可",
+      "canonicalEnName": "Roccia"
+    },
+    "珂莱塔": {
+      "displayName": "珂莱塔",
+      "canonicalEnName": "Carlotta"
+    },
+    "carlotta": {
+      "displayName": "珂莱塔",
+      "canonicalEnName": "Carlotta"
+    },
+    "布兰特": {
+      "displayName": "布兰特",
+      "canonicalEnName": "Brant"
+    },
+    "brant": {
+      "displayName": "布兰特",
+      "canonicalEnName": "Brant"
+    },
+    "菲比": {
+      "displayName": "菲比",
+      "canonicalEnName": "Phoebe"
+    },
+    "phoebe": {
+      "displayName": "菲比",
+      "canonicalEnName": "Phoebe"
+    },
+    "坎特蕾拉": {
+      "displayName": "坎特蕾拉",
+      "canonicalEnName": "Cantarella"
+    },
+    "cantarella": {
+      "displayName": "坎特蕾拉",
+      "canonicalEnName": "Cantarella"
+    },
+    "夏空": {
+      "displayName": "夏空",
+      "canonicalEnName": "Ciaccona"
+    },
+    "ciaccona": {
+      "displayName": "夏空",
+      "canonicalEnName": "Ciaccona"
+    },
+    "赞妮": {
+      "displayName": "赞妮",
+      "canonicalEnName": "Zani"
+    },
+    "zani": {
+      "displayName": "赞妮",
+      "canonicalEnName": "Zani"
+    },
+    "露帕": {
+      "displayName": "露帕",
+      "canonicalEnName": "Lupa"
+    },
+    "lupa": {
+      "displayName": "露帕",
+      "canonicalEnName": "Lupa"
+    },
+    "弗洛洛": {
+      "displayName": "弗洛洛",
+      "canonicalEnName": "Phrolova"
+    },
+    "phrolova": {
+      "displayName": "弗洛洛",
+      "canonicalEnName": "Phrolova"
+    },
+    "卡提希娅": {
+      "displayName": "卡提希娅",
+      "canonicalEnName": "Cartethyia"
+    },
+    "cartethyia": {
+      "displayName": "卡提希娅",
+      "canonicalEnName": "Cartethyia"
+    },
+    "奥古斯塔": {
+      "displayName": "奥古斯塔",
+      "canonicalEnName": "Augusta"
+    },
+    "augusta": {
+      "displayName": "奥古斯塔",
+      "canonicalEnName": "Augusta"
+    },
+    "尤诺": {
+      "displayName": "尤诺",
+      "canonicalEnName": "Iuno"
+    },
+    "iuno": {
+      "displayName": "尤诺",
+      "canonicalEnName": "Iuno"
+    },
+    "卜灵": {
+      "displayName": "卜灵",
+      "canonicalEnName": "Buling"
+    },
+    "buling": {
+      "displayName": "卜灵",
+      "canonicalEnName": "Buling"
+    },
+    "嘉贝莉娜": {
+      "displayName": "嘉贝莉娜",
+      "canonicalEnName": "Galbrena"
+    },
+    "galbrena": {
+      "displayName": "嘉贝莉娜",
+      "canonicalEnName": "Galbrena"
+    },
+    "千咲": {
+      "displayName": "千咲",
+      "canonicalEnName": "Chisa"
+    },
+    "chisa": {
+      "displayName": "千咲",
+      "canonicalEnName": "Chisa"
+    },
+    "仇远": {
+      "displayName": "仇远",
+      "canonicalEnName": "Qiuyuan"
+    },
+    "qiuyuan": {
+      "displayName": "仇远",
+      "canonicalEnName": "Qiuyuan"
+    },
+    "琳奈": {
+      "displayName": "琳奈",
+      "canonicalEnName": "Lynae"
+    },
+    "lynae": {
+      "displayName": "琳奈",
+      "canonicalEnName": "Lynae"
+    },
+    "莫宁": {
+      "displayName": "莫宁",
+      "canonicalEnName": "Mornye"
+    },
+    "mornye": {
+      "displayName": "莫宁",
+      "canonicalEnName": "Mornye"
+    },
+    "陆·赫斯": {
+      "displayName": "陆·赫斯",
+      "canonicalEnName": "Luuk Herssen"
+    },
+    "爱弥斯": {
+      "displayName": "爱弥斯",
+      "canonicalEnName": "Aemeath"
+    },
+    "aemeath": {
+      "displayName": "爱弥斯",
+      "canonicalEnName": "Aemeath"
+    },
+    "希格莉卡": {
+      "displayName": "希格莉卡",
+      "canonicalEnName": "Sigrika"
+    },
+    "西格莉卡": {
+      "displayName": "希格莉卡",
+      "canonicalEnName": "Sigrika"
+    },
+    "达妮娅": {
+      "displayName": "达妮娅",
+      "canonicalEnName": "Denia"
+    },
+    "丽贝卡": {
+      "displayName": "丽贝卡",
+      "canonicalEnName": "Rebecca"
+    },
+    "洛瑟菈": {
+      "displayName": "洛瑟菈",
+      "canonicalEnName": "Lucilla"
+    },
+    "露西": {
+      "displayName": "露西",
+      "canonicalEnName": "Lucy"
+    },
+    "绯雪": {
+      "displayName": "绯雪",
+      "canonicalEnName": "Hiyuki"
+    },
+    "秧秧·玄翎": {
+      "displayName": "秧秧·玄翎",
+      "canonicalEnName": "Yangyang: Xuanling"
+    },
+    "yangyang: xuanling": {
+      "displayName": "秧秧·玄翎",
+      "canonicalEnName": "Yangyang: Xuanling"
+    },
+    "穗穗": {
+      "displayName": "穗穗",
+      "canonicalEnName": "Suisui"
+    },
+    "suisui": {
+      "displayName": "穗穗",
+      "canonicalEnName": "Suisui"
+    },
+    "清宵": {
+      "displayName": "清宵",
+      "canonicalEnName": "Qingxiao"
+    },
+    "qingxiao": {
+      "displayName": "清宵",
+      "canonicalEnName": "Qingxiao"
+    },
+    "心": {
+      "displayName": "心",
+      "canonicalEnName": "Hsin"
+    },
+    "hsin": {
+      "displayName": "心",
+      "canonicalEnName": "Hsin"
+    },
+    "景燃": {
+      "displayName": "景燃",
+      "canonicalEnName": "Jingran"
+    },
+    "jingran": {
+      "displayName": "景燃",
+      "canonicalEnName": "Jingran"
+    },
+    "锁暝": {
+      "displayName": "锁暝",
+      "canonicalEnName": "Suoming"
+    },
+    "suoming": {
+      "displayName": "锁暝",
+      "canonicalEnName": "Suoming"
+    }
+  },
+  "characterNameMap": {
+    "gameId": "wuthering-waves",
+    "updatedAt": "2026-07-18",
+    "scope": "Current official roster through Wuthering Waves 3.5; existing local names preserved",
+    "note": "jasmName fields reflect exact character folder names used by JASM.",
+    "pairs": [
+      {
+        "zh": "爱弥斯",
+        "en": "Aemeath",
+        "jasmName": "Aemeath"
+      },
+      {
+        "zh": "秋水",
+        "en": "Aalto",
+        "jasmName": "Aalto"
+      },
+      {
+        "zh": "奥古斯塔",
+        "en": "Augusta",
+        "jasmName": "Augusta"
+      },
+      {
+        "zh": "白芷",
+        "en": "Baizhi",
+        "jasmName": "Baizhi"
+      },
+      {
+        "zh": "布兰特",
+        "en": "Brant",
+        "jasmName": "Brant"
+      },
+      {
+        "zh": "卜灵",
+        "en": "Buling",
+        "jasmName": "Buling"
+      },
+      {
+        "zh": "卡卡罗",
+        "en": "Calcharo",
+        "jasmName": "Calcharo"
+      },
+      {
+        "zh": "椿",
+        "en": "Camellya",
+        "jasmName": "Camellya"
+      },
+      {
+        "zh": "坎特蕾拉",
+        "en": "Cantarella",
+        "jasmName": "Cantarella"
+      },
+      {
+        "zh": "珂莱塔",
+        "en": "Carlotta",
+        "jasmName": "Carlotta"
+      },
+      {
+        "zh": "卡提希娅",
+        "en": "Cartethyia",
+        "jasmName": "Cartethyia"
+      },
+      {
+        "zh": "长离",
+        "en": "Changli",
+        "jasmName": "Changli"
+      },
+      {
+        "zh": "千咲",
+        "en": "Chisa",
+        "jasmName": "Chisa"
+      },
+      {
+        "zh": "炽霞",
+        "en": "Chixia",
+        "jasmName": "Chixia"
+      },
+      {
+        "zh": "夏空",
+        "en": "Ciaccona",
+        "jasmName": "Ciaccona"
+      },
+      {
+        "zh": "丹瑾",
+        "en": "Danjin",
+        "jasmName": "Danjin"
+      },
+      {
+        "zh": "安可",
+        "en": "Encore",
+        "jasmName": "Encore"
+      },
+      {
+        "zh": "嘉贝莉娜",
+        "en": "Galbrena",
+        "jasmName": "Galbrena"
+      },
+      {
+        "zh": "绯雪",
+        "en": "Hiyuki",
+        "jasmName": "Hiyuki",
+        "aliases": [
+          "Feixue"
+        ]
+      },
+      {
+        "zh": "尤诺",
+        "en": "Iuno",
+        "jasmName": "Iuno"
+      },
+      {
+        "zh": "鉴心",
+        "en": "Jianxin",
+        "jasmName": "Jianxin"
+      },
+      {
+        "zh": "今汐",
+        "en": "Jinhsi",
+        "jasmName": "Jinhsi"
+      },
+      {
+        "zh": "忌炎",
+        "en": "Jiyan",
+        "jasmName": "Jiyan"
+      },
+      {
+        "zh": "凌阳",
+        "en": "Lingyang",
+        "jasmName": "Lingyang"
+      },
+      {
+        "zh": "洛瑟菈",
+        "en": "Lucilla",
+        "jasmName": "Lucilla",
+        "aliases": [
+          "露琪拉",
+          "露西拉"
+        ]
+      },
+      {
+        "zh": "灯灯",
+        "en": "Lumi",
+        "jasmName": "LUMI"
+      },
+      {
+        "zh": "露帕",
+        "en": "Lupa",
+        "jasmName": "Lupa"
+      },
+      {
+        "zh": "陆·赫斯",
+        "en": "Luuk Herssen",
+        "jasmName": "Luuk"
+      },
+      {
+        "zh": "琳奈",
+        "en": "Lynae",
+        "jasmName": "Lynae"
+      },
+      {
+        "zh": "莫宁",
+        "en": "Mornye",
+        "jasmName": "Mornye"
+      },
+      {
+        "zh": "莫特斐",
+        "en": "Mortefi",
+        "jasmName": "Mortefi"
+      },
+      {
+        "zh": "菲比",
+        "en": "Phoebe",
+        "jasmName": "Phoebe"
+      },
+      {
+        "zh": "弗洛洛",
+        "en": "Phrolova",
+        "jasmName": "Phrolova"
+      },
+      {
+        "zh": "仇远",
+        "en": "Qiuyuan",
+        "jasmName": "Qiuyuan"
+      },
+      {
+        "zh": "洛可可",
+        "en": "Roccia",
+        "jasmName": "Roccia"
+      },
+      {
+        "zh": "男主",
+        "en": "Rover",
+        "jasmName": "Rover"
+      },
+      {
+        "zh": "女主",
+        "en": "RoverF"
+      },
+      {
+        "zh": "散华",
+        "en": "Sanhua",
+        "jasmName": "Sanhua"
+      },
+      {
+        "zh": "桃祈",
+        "en": "Taoqi",
+        "jasmName": "Taoqi"
+      },
+      {
+        "zh": "守岸人",
+        "en": "The Shorekeeper",
+        "jasmName": "Shorekeeper"
+      },
+      {
+        "zh": "希格莉卡",
+        "en": "Sigrika",
+        "jasmName": "Sigrika"
+      },
+      {
+        "zh": "维里奈",
+        "en": "Verina",
+        "jasmName": "Verina"
+      },
+      {
+        "zh": "相里要",
+        "en": "Xiangli Yao",
+        "jasmName": "Xiangliyao"
+      },
+      {
+        "zh": "秧秧",
+        "en": "Yangyang",
+        "jasmName": "Yangyang"
+      },
+      {
+        "zh": "吟霖",
+        "en": "Yinlin",
+        "jasmName": "Yinlin"
+      },
+      {
+        "zh": "釉瑚",
+        "en": "Youhu",
+        "jasmName": "Youhu"
+      },
+      {
+        "zh": "渊武",
+        "en": "Yuanwu",
+        "jasmName": "Yuanwu"
+      },
+      {
+        "zh": "赞妮",
+        "en": "Zani",
+        "jasmName": "Zani"
+      },
+      {
+        "zh": "折枝",
+        "en": "Zhezhi",
+        "jasmName": "Zhezhi"
+      },
+      {
+        "zh": "达妮娅",
+        "en": "Denia",
+        "jasmName": "Denia",
+        "aliases": [
+          "达尼娅"
+        ]
+      },
+      {
+        "zh": "丽贝卡",
+        "en": "Rebecca",
+        "jasmName": "Rebecca"
+      },
+      {
+        "zh": "露西",
+        "en": "Lucy",
+        "jasmName": "Lucy"
+      },
+      {
+        "zh": "穗穗",
+        "en": "Suisui",
+        "jasmName": "Suisui",
+        "aliases": [
+          "穂穂"
+        ]
+      },
+      {
+        "zh": "秧秧·玄翎",
+        "en": "Yangyang: Xuanling",
+        "jasmName": "YangyangXuanling",
+        "aliases": [
+          "秧秧・玄翎",
+          "Yangyang Xuanling"
+        ]
+      },
+      {
+        "zh": "清宵",
+        "en": "Qingxiao",
+        "jasmName": "Qingxiao"
+      },
+      {
+        "zh": "心",
+        "en": "Hsin",
+        "jasmName": "Hsin"
+      },
+      {
+        "zh": "景燃",
+        "en": "Jingran",
+        "jasmName": "Jingran"
+      },
+      {
+        "zh": "锁暝",
+        "en": "Suoming",
+        "jasmName": "Suoming"
+      }
+    ],
+    "sources": [
+      "https://ww.nanoka.cc/character/",
+      "https://wutheringwaves.kurogames.com/en/main/news/detail/5007",
+      "https://wuther.in/en/character/1110/",
+      "https://wuther.in/ja/character/1110/",
+      "https://wuther.in/en/character/1610/",
+      "https://wuther.in/ja/character/1610/"
+    ]
+  },
+  "characterImages": {
+    "秧秧": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_1_UI.webp",
+    "炽霞": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_2_UI.webp",
+    "维里奈": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_3_UI.webp",
+    "散华": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_7_UI.webp",
+    "桃祈": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_9_UI.webp",
+    "白芷": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_6_UI.webp",
+    "安可": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_8_UI.webp",
+    "丹瑾": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_10_UI.webp",
+    "秋水": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_12_UI.webp",
+    "忌炎": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_11_UI.webp",
+    "莫特斐": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_13_UI.webp",
+    "椿": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_29_UI.webp",
+    "卡卡罗": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_18_UI.webp",
+    "吟霖": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_17_UI.webp",
+    "凌阳": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_14_UI.webp",
+    "渊武": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_15_UI.webp",
+    "鉴心": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_23_UI.webp",
+    "今汐": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_24_UI.webp",
+    "相里要": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_25_UI.webp",
+    "长离": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_26_UI.webp",
+    "折枝": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_27_UI.webp",
+    "灯灯": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_30_UI.webp",
+    "釉瑚": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_31_UI.webp",
+    "守岸人": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_28_UI.webp",
+    "洛可可": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_33_UI.webp",
+    "珂莱塔": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_32_UI.webp",
+    "布兰特": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_44_UI.webp",
+    "菲比": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_45_UI.webp",
+    "坎特蕾拉": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_34_UI.webp",
+    "夏空": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_37_UI.webp",
+    "赞妮": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_38_UI.webp",
+    "露帕": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_46_UI.webp",
+    "弗洛洛": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_41_UI.webp",
+    "卡提希娅": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_40_UI.webp",
+    "奥古斯塔": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_51_UI.webp",
+    "尤诺": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_48_UI.webp",
+    "卜灵": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_58_UI.webp",
+    "嘉贝莉娜": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_55_UI.webp",
+    "千咲": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_57_UI.webp",
+    "仇远": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_56_UI.webp",
+    "琳奈": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_60_UI.webp",
+    "莫宁": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_61_UI.webp",
+    "陆·赫斯": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_54_UI.webp",
+    "爱弥斯": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_53_UI.webp",
+    "希格莉卡": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_65_UI.webp",
+    "达妮娅": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_64_UI.webp",
+    "丽贝卡": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_69_UI.webp",
+    "洛瑟菈": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_66_UI.webp",
+    "露西": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_68_UI.webp",
+    "绯雪": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_67_UI.webp",
+    "秧秧·玄翎": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_70_UI.webp",
+    "穗穗": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_71_UI.webp",
+    "清宵": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_73_UI.webp",
+    "心": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_75_UI.webp",
+    "景燃": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_74_UI.webp",
+    "锁暝": "https://api.encore.moe/resource/Data/Game/Aki/UI/UIResources/Common/Image/IconRoleHead256/T_IconRoleHead256_76_UI.webp"
+  },
+  "onlineSource": {
+    "urls": [
+      "https://api.encore.moe/zh-Hans/character",
+      "https://api.encore.moe/en/character"
+    ],
+    "checkedAt": "2026-10-06"
+  }
+}

@@ -1,0 +1,1071 @@
+{
+  "gameId": "zzz",
+  "defaultCharacters": [
+    "男主",
+    "女主",
+    "安比",
+    "零号·安比",
+    "安东",
+    "本",
+    "比利",
+    "可琳",
+    "格莉丝",
+    "珂蕾妲",
+    "猫又",
+    "妮可",
+    "艾莲",
+    "苍角",
+    "莱卡恩",
+    "丽娜",
+    "11号",
+    "朱鸢",
+    "青衣",
+    "简",
+    "赛斯",
+    "露西",
+    "派派",
+    "凯撒",
+    "柏妮思",
+    "耀嘉音",
+    "雅",
+    "悠真",
+    "伊芙琳",
+    "仪玄",
+    "橘福福",
+    "扳机",
+    "薇薇安",
+    "雨果",
+    "柚叶",
+    "爱丽丝",
+    "席德",
+    "奥菲丝&鬼火",
+    "潘引壶",
+    "真斗",
+    "卢西娅",
+    "伊德海莉",
+    "般岳",
+    "叶瞬光",
+    "照",
+    "爱芮",
+    "千夏",
+    "南宫羽",
+    "希希芙",
+    "普罗米娅",
+    "维琳娜",
+    "诺姆",
+    "柳",
+    "波可娜",
+    "琉音",
+    "莱特",
+    "佩洛伊斯",
+    "星徽·比利",
+    "蕾米埃尔",
+    "希格莉德",
+    "克拉蕾",
+    "洛克茜",
+    "NPC",
+    "UI",
+    "功能",
+    "大世界",
+    "武器"
+  ],
+  "manualMappings": {
+    "wise": {
+      "displayName": "男主",
+      "canonicalEnName": "Wise"
+    },
+    "哲": {
+      "displayName": "男主",
+      "canonicalEnName": "Wise"
+    },
+    "belle": {
+      "displayName": "女主",
+      "canonicalEnName": "Belle"
+    },
+    "铃": {
+      "displayName": "女主",
+      "canonicalEnName": "Belle"
+    },
+    "玲": {
+      "displayName": "女主",
+      "canonicalEnName": "Belle"
+    },
+    "ssanby": {
+      "displayName": "零号·安比",
+      "canonicalEnName": "SSAnby"
+    },
+    "soldier 0 - anby": {
+      "displayName": "零号·安比",
+      "canonicalEnName": "SSAnby"
+    },
+    "jane": {
+      "displayName": "简",
+      "canonicalEnName": "Jane"
+    },
+    "jane doe": {
+      "displayName": "简",
+      "canonicalEnName": "Jane"
+    },
+    "astra": {
+      "displayName": "耀嘉音",
+      "canonicalEnName": "Astra"
+    },
+    "astra yao": {
+      "displayName": "耀嘉音",
+      "canonicalEnName": "Astra"
+    },
+    "harumasa": {
+      "displayName": "悠真",
+      "canonicalEnName": "Harumasa"
+    },
+    "asaba harumasa": {
+      "displayName": "悠真",
+      "canonicalEnName": "Harumasa"
+    },
+    "miyabi": {
+      "displayName": "雅",
+      "canonicalEnName": "Miyabi"
+    },
+    "hoshimi miyabi": {
+      "displayName": "雅",
+      "canonicalEnName": "Miyabi"
+    },
+    "lycaon": {
+      "displayName": "莱卡恩",
+      "canonicalEnName": "Lycaon"
+    },
+    "von lycaon": {
+      "displayName": "莱卡恩",
+      "canonicalEnName": "Lycaon"
+    },
+    "rina": {
+      "displayName": "丽娜",
+      "canonicalEnName": "Rina"
+    },
+    "alexandrina sebastian": {
+      "displayName": "丽娜",
+      "canonicalEnName": "Rina"
+    },
+    "nekomata": {
+      "displayName": "猫又",
+      "canonicalEnName": "Nekomata"
+    },
+    "nekomiya mana": {
+      "displayName": "猫又",
+      "canonicalEnName": "Nekomata"
+    },
+    "yanagi": {
+      "displayName": "柳",
+      "canonicalEnName": "Yanagi"
+    },
+    "tsukishiro yanagi": {
+      "displayName": "柳",
+      "canonicalEnName": "Yanagi"
+    },
+    "panyinhu": {
+      "displayName": "潘引壶",
+      "canonicalEnName": "PanYinhu"
+    },
+    "pan yinhu": {
+      "displayName": "潘引壶",
+      "canonicalEnName": "PanYinhu"
+    },
+    "orphiemagnusson": {
+      "displayName": "奥菲丝&鬼火",
+      "canonicalEnName": "OrphieMagnusson"
+    },
+    "orphie magnusson & magus": {
+      "displayName": "奥菲丝&鬼火",
+      "canonicalEnName": "OrphieMagnusson"
+    },
+    "character_others": {
+      "displayName": "其他",
+      "canonicalEnName": "Character_Others"
+    },
+    "weapons": {
+      "displayName": "武器",
+      "canonicalEnName": "Weapons"
+    },
+    "nangongyu": {
+      "displayName": "南宫羽",
+      "canonicalEnName": "NangongYu"
+    },
+    "nangong yu": {
+      "displayName": "南宫羽",
+      "canonicalEnName": "NangongYu"
+    },
+    "南宫羽": {
+      "displayName": "南宫羽",
+      "canonicalEnName": "NangongYu"
+    },
+    "南宫玉": {
+      "displayName": "南宫羽",
+      "canonicalEnName": "NangongYu"
+    },
+    "cissia": {
+      "displayName": "希希芙",
+      "canonicalEnName": "Cissia"
+    },
+    "希希芙": {
+      "displayName": "希希芙",
+      "canonicalEnName": "Cissia"
+    },
+    "茜茜娅": {
+      "displayName": "希希芙",
+      "canonicalEnName": "Cissia"
+    },
+    "11号": {
+      "displayName": "11号",
+      "canonicalEnName": "Soldier11"
+    },
+    "soldier11": {
+      "displayName": "11号",
+      "canonicalEnName": "Soldier11"
+    },
+    "soldier 11": {
+      "displayName": "11号",
+      "canonicalEnName": "Soldier11"
+    },
+    "「11号」": {
+      "displayName": "11号",
+      "canonicalEnName": "Soldier11"
+    },
+    "扳机": {
+      "displayName": "扳机",
+      "canonicalEnName": "Trigger"
+    },
+    "「扳机」": {
+      "displayName": "扳机",
+      "canonicalEnName": "Trigger"
+    },
+    "席德": {
+      "displayName": "席德",
+      "canonicalEnName": "Seed"
+    },
+    "「席德」": {
+      "displayName": "席德",
+      "canonicalEnName": "Seed"
+    },
+    "奥菲丝&鬼火": {
+      "displayName": "奥菲丝&鬼火",
+      "canonicalEnName": "OrphieMagnusson"
+    },
+    "奥菲丝&「鬼火」": {
+      "displayName": "奥菲丝&鬼火",
+      "canonicalEnName": "OrphieMagnusson"
+    },
+    "openworld": {
+      "displayName": "大世界",
+      "canonicalEnName": "OpenWorld"
+    },
+    "open world": {
+      "displayName": "大世界",
+      "canonicalEnName": "OpenWorld"
+    },
+    "function": {
+      "displayName": "功能",
+      "canonicalEnName": "Function"
+    },
+    "functions": {
+      "displayName": "功能",
+      "canonicalEnName": "Function"
+    },
+    "promeia": {
+      "displayName": "普罗米娅",
+      "canonicalEnName": "Promeia"
+    },
+    "velina": {
+      "displayName": "维琳娜",
+      "canonicalEnName": "Velina"
+    },
+    "norma": {
+      "displayName": "诺姆",
+      "canonicalEnName": "Norma"
+    },
+    "pyrois": {
+      "displayName": "佩洛伊斯",
+      "canonicalEnName": "Pyrois"
+    },
+    "佩洛伊斯": {
+      "displayName": "佩洛伊斯",
+      "canonicalEnName": "Pyrois"
+    },
+    "安比": {
+      "displayName": "安比",
+      "canonicalEnName": "Anby"
+    },
+    "anby": {
+      "displayName": "安比",
+      "canonicalEnName": "Anby"
+    },
+    "猫又": {
+      "displayName": "猫又",
+      "canonicalEnName": "Nekomata"
+    },
+    "妮可": {
+      "displayName": "妮可",
+      "canonicalEnName": "Nicole"
+    },
+    "nicole": {
+      "displayName": "妮可",
+      "canonicalEnName": "Nicole"
+    },
+    "伊德海莉": {
+      "displayName": "伊德海莉",
+      "canonicalEnName": "Yidhari"
+    },
+    "yidhari": {
+      "displayName": "伊德海莉",
+      "canonicalEnName": "Yidhari"
+    },
+    "可琳": {
+      "displayName": "可琳",
+      "canonicalEnName": "Corin"
+    },
+    "corin": {
+      "displayName": "可琳",
+      "canonicalEnName": "Corin"
+    },
+    "凯撒": {
+      "displayName": "凯撒",
+      "canonicalEnName": "Caesar"
+    },
+    "caesar": {
+      "displayName": "凯撒",
+      "canonicalEnName": "Caesar"
+    },
+    "比利": {
+      "displayName": "比利",
+      "canonicalEnName": "Billy"
+    },
+    "billy": {
+      "displayName": "比利",
+      "canonicalEnName": "Billy"
+    },
+    "雅": {
+      "displayName": "雅",
+      "canonicalEnName": "Miyabi"
+    },
+    "珂蕾妲": {
+      "displayName": "珂蕾妲",
+      "canonicalEnName": "Koleda"
+    },
+    "koleda": {
+      "displayName": "珂蕾妲",
+      "canonicalEnName": "Koleda"
+    },
+    "安东": {
+      "displayName": "安东",
+      "canonicalEnName": "Anton"
+    },
+    "anton": {
+      "displayName": "安东",
+      "canonicalEnName": "Anton"
+    },
+    "本": {
+      "displayName": "本",
+      "canonicalEnName": "Ben"
+    },
+    "ben": {
+      "displayName": "本",
+      "canonicalEnName": "Ben"
+    },
+    "苍角": {
+      "displayName": "苍角",
+      "canonicalEnName": "Soukaku"
+    },
+    "soukaku": {
+      "displayName": "苍角",
+      "canonicalEnName": "Soukaku"
+    },
+    "莱卡恩": {
+      "displayName": "莱卡恩",
+      "canonicalEnName": "Lycaon"
+    },
+    "露西": {
+      "displayName": "露西",
+      "canonicalEnName": "Lucy"
+    },
+    "lucy": {
+      "displayName": "露西",
+      "canonicalEnName": "Lucy"
+    },
+    "莱特": {
+      "displayName": "莱特",
+      "canonicalEnName": "Lighter"
+    },
+    "lighter": {
+      "displayName": "莱特",
+      "canonicalEnName": "Lighter"
+    },
+    "柏妮思": {
+      "displayName": "柏妮思",
+      "canonicalEnName": "Burnice"
+    },
+    "burnice": {
+      "displayName": "柏妮思",
+      "canonicalEnName": "Burnice"
+    },
+    "格莉丝": {
+      "displayName": "格莉丝",
+      "canonicalEnName": "Grace"
+    },
+    "grace": {
+      "displayName": "格莉丝",
+      "canonicalEnName": "Grace"
+    },
+    "艾莲": {
+      "displayName": "艾莲",
+      "canonicalEnName": "Ellen"
+    },
+    "ellen": {
+      "displayName": "艾莲",
+      "canonicalEnName": "Ellen"
+    },
+    "悠真": {
+      "displayName": "悠真",
+      "canonicalEnName": "Harumasa"
+    },
+    "丽娜": {
+      "displayName": "丽娜",
+      "canonicalEnName": "Rina"
+    },
+    "柳": {
+      "displayName": "柳",
+      "canonicalEnName": "Yanagi"
+    },
+    "朱鸢": {
+      "displayName": "朱鸢",
+      "canonicalEnName": "Zhu Yuan"
+    },
+    "zhu yuan": {
+      "displayName": "朱鸢",
+      "canonicalEnName": "Zhu Yuan"
+    },
+    "青衣": {
+      "displayName": "青衣",
+      "canonicalEnName": "Qingyi"
+    },
+    "qingyi": {
+      "displayName": "青衣",
+      "canonicalEnName": "Qingyi"
+    },
+    "简": {
+      "displayName": "简",
+      "canonicalEnName": "Jane"
+    },
+    "赛斯": {
+      "displayName": "赛斯",
+      "canonicalEnName": "Seth"
+    },
+    "seth": {
+      "displayName": "赛斯",
+      "canonicalEnName": "Seth"
+    },
+    "派派": {
+      "displayName": "派派",
+      "canonicalEnName": "Piper"
+    },
+    "piper": {
+      "displayName": "派派",
+      "canonicalEnName": "Piper"
+    },
+    "雨果": {
+      "displayName": "雨果",
+      "canonicalEnName": "Hugo"
+    },
+    "hugo": {
+      "displayName": "雨果",
+      "canonicalEnName": "Hugo"
+    },
+    "orphie & magus": {
+      "displayName": "奥菲丝&鬼火",
+      "canonicalEnName": "Orphie & Magus"
+    },
+    "耀嘉音": {
+      "displayName": "耀嘉音",
+      "canonicalEnName": "Astra Yao"
+    },
+    "伊芙琳": {
+      "displayName": "伊芙琳",
+      "canonicalEnName": "Evelyn"
+    },
+    "evelyn": {
+      "displayName": "伊芙琳",
+      "canonicalEnName": "Evelyn"
+    },
+    "薇薇安": {
+      "displayName": "薇薇安",
+      "canonicalEnName": "Vivian"
+    },
+    "vivian": {
+      "displayName": "薇薇安",
+      "canonicalEnName": "Vivian"
+    },
+    "照": {
+      "displayName": "照",
+      "canonicalEnName": "Zhao"
+    },
+    "zhao": {
+      "displayName": "照",
+      "canonicalEnName": "Zhao"
+    },
+    "波可娜": {
+      "displayName": "波可娜",
+      "canonicalEnName": "Pulchra"
+    },
+    "pulchra": {
+      "displayName": "波可娜",
+      "canonicalEnName": "Pulchra"
+    },
+    "trigger": {
+      "displayName": "扳机",
+      "canonicalEnName": "Trigger"
+    },
+    "仪玄": {
+      "displayName": "仪玄",
+      "canonicalEnName": "Yixuan"
+    },
+    "yixuan": {
+      "displayName": "仪玄",
+      "canonicalEnName": "Yixuan"
+    },
+    "零号·安比": {
+      "displayName": "零号·安比",
+      "canonicalEnName": "Soldier 0 - Anby"
+    },
+    "橘福福": {
+      "displayName": "橘福福",
+      "canonicalEnName": "Ju Fufu"
+    },
+    "ju fufu": {
+      "displayName": "橘福福",
+      "canonicalEnName": "Ju Fufu"
+    },
+    "爱丽丝": {
+      "displayName": "爱丽丝",
+      "canonicalEnName": "Alice"
+    },
+    "alice": {
+      "displayName": "爱丽丝",
+      "canonicalEnName": "Alice"
+    },
+    "柚叶": {
+      "displayName": "柚叶",
+      "canonicalEnName": "Yuzuha"
+    },
+    "yuzuha": {
+      "displayName": "柚叶",
+      "canonicalEnName": "Yuzuha"
+    },
+    "潘引壶": {
+      "displayName": "潘引壶",
+      "canonicalEnName": "Pan Yinhu"
+    },
+    "叶瞬光": {
+      "displayName": "叶瞬光",
+      "canonicalEnName": "Ye Shunguang"
+    },
+    "ye shunguang": {
+      "displayName": "叶瞬光",
+      "canonicalEnName": "Ye Shunguang"
+    },
+    "真斗": {
+      "displayName": "真斗",
+      "canonicalEnName": "Manato"
+    },
+    "manato": {
+      "displayName": "真斗",
+      "canonicalEnName": "Manato"
+    },
+    "卢西娅": {
+      "displayName": "卢西娅",
+      "canonicalEnName": "Lucia"
+    },
+    "lucia": {
+      "displayName": "卢西娅",
+      "canonicalEnName": "Lucia"
+    },
+    "seed": {
+      "displayName": "席德",
+      "canonicalEnName": "Seed"
+    },
+    "般岳": {
+      "displayName": "般岳",
+      "canonicalEnName": "Banyue"
+    },
+    "banyue": {
+      "displayName": "般岳",
+      "canonicalEnName": "Banyue"
+    },
+    "琉音": {
+      "displayName": "琉音",
+      "canonicalEnName": "Dialyn"
+    },
+    "dialyn": {
+      "displayName": "琉音",
+      "canonicalEnName": "Dialyn"
+    },
+    "千夏": {
+      "displayName": "千夏",
+      "canonicalEnName": "Sunna"
+    },
+    "sunna": {
+      "displayName": "千夏",
+      "canonicalEnName": "Sunna"
+    },
+    "爱芮": {
+      "displayName": "爱芮",
+      "canonicalEnName": "Aria"
+    },
+    "aria": {
+      "displayName": "爱芮",
+      "canonicalEnName": "Aria"
+    },
+    "星徽·比利": {
+      "displayName": "星徽·比利",
+      "canonicalEnName": "Starlight - Billy"
+    },
+    "starlight - billy": {
+      "displayName": "星徽·比利",
+      "canonicalEnName": "Starlight - Billy"
+    },
+    "普罗米娅": {
+      "displayName": "普罗米娅",
+      "canonicalEnName": "Promeia"
+    },
+    "维琳娜": {
+      "displayName": "维琳娜",
+      "canonicalEnName": "Velina"
+    },
+    "诺姆": {
+      "displayName": "诺姆",
+      "canonicalEnName": "Norma"
+    },
+    "蕾米埃尔": {
+      "displayName": "蕾米埃尔",
+      "canonicalEnName": "Remielle"
+    },
+    "remielle": {
+      "displayName": "蕾米埃尔",
+      "canonicalEnName": "Remielle"
+    },
+    "希格莉德": {
+      "displayName": "希格莉德",
+      "canonicalEnName": "Sigrid"
+    },
+    "sigrid": {
+      "displayName": "希格莉德",
+      "canonicalEnName": "Sigrid"
+    },
+    "克拉蕾": {
+      "displayName": "克拉蕾",
+      "canonicalEnName": "Claret"
+    },
+    "claret": {
+      "displayName": "克拉蕾",
+      "canonicalEnName": "Claret"
+    },
+    "洛克茜": {
+      "displayName": "洛克茜",
+      "canonicalEnName": "Roxy"
+    },
+    "roxy": {
+      "displayName": "洛克茜",
+      "canonicalEnName": "Roxy"
+    }
+  },
+  "characterNameMap": {
+    "gameId": "zenless-zone-zero",
+    "updatedAt": "2026-03-15",
+    "scope": "Current implemented agents listed on BWIKI role compendium",
+    "note": "jasmName fields reflect exact character folder names used by JASM.",
+    "pairs": [
+      {
+        "zh": "爱芮",
+        "en": "Aria",
+        "jasmName": "Aria"
+      },
+      {
+        "zh": "千夏",
+        "en": "Sunna",
+        "jasmName": "Sunna"
+      },
+      {
+        "zh": "照",
+        "en": "Zhao",
+        "jasmName": "Zhao"
+      },
+      {
+        "zh": "叶瞬光",
+        "en": "Ye Shunguang",
+        "jasmName": "YeShunguang"
+      },
+      {
+        "zh": "般岳",
+        "en": "Banyue",
+        "jasmName": "Banyue"
+      },
+      {
+        "zh": "琉音",
+        "en": "Dialyn",
+        "jasmName": "Dialyn"
+      },
+      {
+        "zh": "伊德海莉",
+        "en": "Yidhari Murphy",
+        "jasmName": "Yidhari"
+      },
+      {
+        "zh": "卢西娅",
+        "en": "Lucia Elowen",
+        "jasmName": "Lucia"
+      },
+      {
+        "zh": "奥菲丝&鬼火",
+        "en": "Orphie Magnusson & Magus",
+        "jasmName": "OrphieMagnusson"
+      },
+      {
+        "zh": "席德",
+        "en": "Seed",
+        "jasmName": "Seed"
+      },
+      {
+        "zh": "爱丽丝",
+        "en": "Alice Thymefield",
+        "jasmName": "AliceThymefield"
+      },
+      {
+        "zh": "柚叶",
+        "en": "Ukinami Yuzuha",
+        "jasmName": "UkinamiYuzuha"
+      },
+      {
+        "zh": "橘福福",
+        "en": "Ju Fufu",
+        "jasmName": "JuFufu"
+      },
+      {
+        "zh": "仪玄",
+        "en": "Yixuan",
+        "jasmName": "Yixuan"
+      },
+      {
+        "zh": "雨果",
+        "en": "Hugo",
+        "jasmName": "Hugo"
+      },
+      {
+        "zh": "薇薇安",
+        "en": "Vivian Banshee",
+        "jasmName": "Vivian"
+      },
+      {
+        "zh": "扳机",
+        "en": "Trigger",
+        "jasmName": "Trigger"
+      },
+      {
+        "zh": "零号·安比",
+        "en": "Soldier 0 - Anby",
+        "jasmName": "SSAnby"
+      },
+      {
+        "zh": "伊芙琳",
+        "en": "Evelyn Chevalier",
+        "jasmName": "Evelyn"
+      },
+      {
+        "zh": "耀嘉音",
+        "en": "Astra Yao",
+        "jasmName": "Astra"
+      },
+      {
+        "zh": "悠真",
+        "en": "Asaba Harumasa",
+        "jasmName": "Harumasa"
+      },
+      {
+        "zh": "雅",
+        "en": "Hoshimi Miyabi",
+        "jasmName": "Miyabi"
+      },
+      {
+        "zh": "莱特",
+        "en": "Lighter",
+        "jasmName": "Lighter"
+      },
+      {
+        "zh": "柳",
+        "en": "Tsukishiro Yanagi",
+        "jasmName": "Yanagi"
+      },
+      {
+        "zh": "柏妮思",
+        "en": "Burnice White",
+        "jasmName": "Burnice"
+      },
+      {
+        "zh": "凯撒",
+        "en": "Caesar King",
+        "jasmName": "Caesar"
+      },
+      {
+        "zh": "简",
+        "en": "Jane Doe",
+        "jasmName": "Jane"
+      },
+      {
+        "zh": "青衣",
+        "en": "Qingyi",
+        "jasmName": "Qingyi"
+      },
+      {
+        "zh": "朱鸢",
+        "en": "Zhu Yuan",
+        "jasmName": "ZhuYuan"
+      },
+      {
+        "zh": "11号",
+        "en": "Soldier 11",
+        "jasmName": "Soldier11"
+      },
+      {
+        "zh": "莱卡恩",
+        "en": "Von Lycaon",
+        "jasmName": "Lycaon"
+      },
+      {
+        "zh": "丽娜",
+        "en": "Alexandrina Sebastian",
+        "jasmName": "Rina"
+      },
+      {
+        "zh": "艾莲",
+        "en": "Ellen Joe",
+        "jasmName": "Ellen"
+      },
+      {
+        "zh": "珂蕾妲",
+        "en": "Koleda Belobog",
+        "jasmName": "Koleda"
+      },
+      {
+        "zh": "格莉丝",
+        "en": "Grace Howard",
+        "jasmName": "Grace"
+      },
+      {
+        "zh": "猫又",
+        "en": "Nekomiya Mana",
+        "jasmName": "Nekomata"
+      },
+      {
+        "zh": "真斗",
+        "en": "Komano Manato",
+        "jasmName": "KomanoManato"
+      },
+      {
+        "zh": "潘引壶",
+        "en": "Pan Yinhu",
+        "jasmName": "PanYinhu"
+      },
+      {
+        "zh": "波可娜",
+        "en": "Pulchra Fellini",
+        "jasmName": "Pulchra"
+      },
+      {
+        "zh": "赛斯",
+        "en": "Seth Lowell",
+        "jasmName": "Seth"
+      },
+      {
+        "zh": "可琳",
+        "en": "Corin Wickes",
+        "jasmName": "Corin"
+      },
+      {
+        "zh": "本",
+        "en": "Ben Bigger",
+        "jasmName": "Ben"
+      },
+      {
+        "zh": "安东",
+        "en": "Anton Ivanov",
+        "jasmName": "Anton"
+      },
+      {
+        "zh": "安比",
+        "en": "Anby Demara",
+        "jasmName": "Anby"
+      },
+      {
+        "zh": "妮可",
+        "en": "Nicole Demara",
+        "jasmName": "Nicole"
+      },
+      {
+        "zh": "比利",
+        "en": "Billy Kid",
+        "jasmName": "Billy"
+      },
+      {
+        "zh": "苍角",
+        "en": "Soukaku",
+        "jasmName": "Soukaku"
+      },
+      {
+        "zh": "女主",
+        "en": "Belle",
+        "jasmName": "Belle"
+      },
+      {
+        "zh": "男主",
+        "en": "Wise",
+        "jasmName": "Wise"
+      },
+      {
+        "zh": "露西",
+        "en": "Lucy",
+        "jasmName": "Lucy"
+      },
+      {
+        "zh": "派派",
+        "en": "Piper Wheel",
+        "jasmName": "Piper"
+      },
+      {
+        "zh": "南宫羽",
+        "en": "Nangong Yu",
+        "jasmName": "NangongYu",
+        "aliases": [
+          "南宫玉"
+        ]
+      },
+      {
+        "zh": "希希芙",
+        "en": "Cissia",
+        "jasmName": "Cissia",
+        "aliases": [
+          "茜茜娅"
+        ]
+      },
+      {
+        "zh": "普罗米娅",
+        "en": "Promeia",
+        "jasmName": "Promeia"
+      },
+      {
+        "zh": "维琳娜",
+        "en": "Velina",
+        "jasmName": "Velina"
+      },
+      {
+        "zh": "诺姆",
+        "en": "Norma",
+        "jasmName": "Norma"
+      },
+      {
+        "zh": "佩洛伊斯",
+        "en": "Pyrois",
+        "jasmName": "Pyrois"
+      },
+      {
+        "zh": "星徽·比利",
+        "en": "Starlight - Billy",
+        "jasmName": "Starlight - Billy"
+      },
+      {
+        "zh": "蕾米埃尔",
+        "en": "Remielle",
+        "jasmName": "Remielle"
+      },
+      {
+        "zh": "希格莉德",
+        "en": "Sigrid",
+        "jasmName": "Sigrid"
+      },
+      {
+        "zh": "克拉蕾",
+        "en": "Claret",
+        "jasmName": "Claret"
+      },
+      {
+        "zh": "洛克茜",
+        "en": "Roxy",
+        "jasmName": "Roxy"
+      }
+    ]
+  },
+  "characterImages": {
+    "安比": "https://enka.network/ui/zzz/IconRole01.png",
+    "猫又": "https://enka.network/ui/zzz/IconRole11.png",
+    "妮可": "https://enka.network/ui/zzz/IconRole12.png",
+    "11号": "https://enka.network/ui/zzz/IconRole05.png",
+    "伊德海莉": "https://enka.network/ui/zzz/IconRole52.png",
+    "可琳": "https://enka.network/ui/zzz/IconRole09.png",
+    "凯撒": "https://enka.network/ui/zzz/IconRole25.png",
+    "比利": "https://enka.network/ui/zzz/IconRole10.png",
+    "雅": "https://enka.network/ui/zzz/IconRole13.png",
+    "珂蕾妲": "https://enka.network/ui/zzz/IconRole14.png",
+    "安东": "https://enka.network/ui/zzz/IconRole15.png",
+    "本": "https://enka.network/ui/zzz/IconRole16.png",
+    "苍角": "https://enka.network/ui/zzz/IconRole17.png",
+    "莱卡恩": "https://enka.network/ui/zzz/IconRole18.png",
+    "露西": "https://enka.network/ui/zzz/IconRole27.png",
+    "莱特": "https://enka.network/ui/zzz/IconRole26.png",
+    "柏妮思": "https://enka.network/ui/zzz/IconRole32.png",
+    "格莉丝": "https://enka.network/ui/zzz/IconRole20.png",
+    "艾莲": "https://enka.network/ui/zzz/IconRole21.png",
+    "悠真": "https://enka.network/ui/zzz/IconRole35.png",
+    "丽娜": "https://enka.network/ui/zzz/IconRole22.png",
+    "柳": "https://enka.network/ui/zzz/IconRole31.png",
+    "朱鸢": "https://enka.network/ui/zzz/IconRole23.png",
+    "青衣": "https://enka.network/ui/zzz/IconRole29.png",
+    "简": "https://enka.network/ui/zzz/IconRole24.png",
+    "赛斯": "https://enka.network/ui/zzz/IconRole30.png",
+    "派派": "https://enka.network/ui/zzz/IconRole28.png",
+    "雨果": "https://enka.network/ui/zzz/IconRole42.png",
+    "奥菲丝&鬼火": "https://enka.network/ui/zzz/IconRole49.png",
+    "耀嘉音": "https://enka.network/ui/zzz/IconRole36.png",
+    "伊芙琳": "https://enka.network/ui/zzz/IconRole37.png",
+    "薇薇安": "https://enka.network/ui/zzz/IconRole41.png",
+    "照": "https://enka.network/ui/zzz/IconRole56.png",
+    "波可娜": "https://enka.network/ui/zzz/IconRole38.png",
+    "扳机": "https://enka.network/ui/zzz/IconRole39.png",
+    "仪玄": "https://enka.network/ui/zzz/IconRole44.png",
+    "零号·安比": "https://enka.network/ui/zzz/IconRole40.png",
+    "橘福福": "https://enka.network/ui/zzz/IconRole43.png",
+    "爱丽丝": "https://enka.network/ui/zzz/IconRole46.png",
+    "柚叶": "https://enka.network/ui/zzz/IconRole47.png",
+    "潘引壶": "https://enka.network/ui/zzz/IconRole45.png",
+    "叶瞬光": "https://enka.network/ui/zzz/IconRole55.png",
+    "真斗": "https://enka.network/ui/zzz/IconRole51.png",
+    "卢西娅": "https://enka.network/ui/zzz/IconRole50.png",
+    "席德": "https://enka.network/ui/zzz/IconRole48.png",
+    "般岳": "https://enka.network/ui/zzz/IconRole53.png",
+    "琉音": "https://enka.network/ui/zzz/IconRole54.png",
+    "千夏": "https://enka.network/ui/zzz/IconRole58.png",
+    "爱芮": "https://enka.network/ui/zzz/IconRole57.png",
+    "南宫羽": "https://enka.network/ui/zzz/IconRole59.png",
+    "希希芙": "https://enka.network/ui/zzz/IconRole60.png",
+    "星徽·比利": "https://enka.network/ui/zzz/IconRole62.png",
+    "普罗米娅": "https://enka.network/ui/zzz/IconRole61.png",
+    "佩洛伊斯": "https://enka.network/ui/zzz/IconRole63.png",
+    "维琳娜": "https://enka.network/ui/zzz/IconRole64.png",
+    "诺姆": "https://enka.network/ui/zzz/IconRole65.png",
+    "蕾米埃尔": "https://enka.network/ui/zzz/IconRole67.png",
+    "希格莉德": "https://enka.network/ui/zzz/IconRole66.png",
+    "克拉蕾": "https://enka.network/ui/zzz/IconRole1611.png",
+    "洛克茜": "https://enka.network/ui/zzz/IconRole68.png"
+  },
+  "onlineSource": {
+    "urls": [
+      "https://raw.githubusercontent.com/EnkaNetwork/API-docs/master/store/zzz/avatars.json",
+      "https://raw.githubusercontent.com/EnkaNetwork/API-docs/master/store/zzz/locs.json"
+    ],
+    "checkedAt": "2026-10-06"
+  }
+}
