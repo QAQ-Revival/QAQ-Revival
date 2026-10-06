@@ -17,6 +17,7 @@ function RevivalDownload({ links, name }) {
   const [expanded, setExpanded] = React.useState(false);
   const [selected, setSelected] = React.useState(() => links.map(link => link.url));
   const [keys, setKeys] = React.useState({});
+  const [passwords, setPasswords] = React.useState({});
   const [busy, setBusy] = React.useState(false);
   const [message, setMessage] = React.useState('');
   const [error, setError] = React.useState('');
@@ -25,7 +26,8 @@ function RevivalDownload({ links, name }) {
     if (lock.current) return;
     lock.current = true; setBusy(true); setError(''); setMessage('');
     try {
-      const result = await call('megaRevivalDownload', { links: selected.map(url => ({ url, key: keys[url] || '' })), name });
+      const result = await call('megaRevivalDownload', { links: selected.map(url => ({ url, key: keys[url] || '', password: passwords[url] || '' })), name });
+      setPasswords({});
       setMessage(`已添加 ${result.count} 个下载任务，可在侧栏的下载管理中查看进度。`);
       window.dispatchEvent(new CustomEvent('qaqm:open-download-orb'));
     } catch (error) { setError(error.message); }
@@ -37,14 +39,16 @@ function RevivalDownload({ links, name }) {
       ...links.map((link, index) => h('div', { className: 'paw-mega-link', key: link.url },
         h('label', null, h('input', { type: 'checkbox', checked: selected.includes(link.url), disabled: busy,
           onChange: event => setSelected(values => event.target.checked ? [...values, link.url] : values.filter(value => value !== link.url)) }),
-        `${link.type === 'folder' ? '📁 文件夹' : link.type === 'encrypted' ? '🔗 加密分享' : '📄 文件'} ${index + 1}`, link.id ? ` · ${link.id}` : ''),
+        `${link.needsPassword ? '🔒 密码保护链接' : link.type === 'folder' ? '📁 文件夹' : link.type === 'encrypted' ? '🔗 加密分享' : '📄 文件'} ${index + 1}`, link.id ? ` · ${link.id}` : ''),
+        link.needsPassword && h('input', { type: 'password', placeholder: '填写作者提供的链接密码', autoComplete: 'off', value: passwords[link.url] || '', 'aria-label': `链接 ${index + 1} 的密码`,
+          onChange: event => setPasswords(value => ({ ...value, [link.url]: event.target.value })), disabled: busy, maxLength: 1024 }),
         link.needsKey && h('input', { type: 'text', placeholder: '填写作者提供的解密密钥', value: keys[link.url] || '', 'aria-label': `链接 ${index + 1} 的解密密钥`,
           onChange: event => setKeys(value => ({ ...value, [link.url]: event.target.value })), disabled: busy, maxLength: 43 }))),
       h('p', { className: 'paw-muted' }, '保存到下载管理中设置的目录，文件夹会保留子目录结构。')),
     error && h('p', { className: 'paw-alert', role: 'alert' }, error),
     message && h('p', { className: 'paw-notice', role: 'status' }, message),
     h('button', { className: 'paw-button paw-primary paw-download-button', disabled: busy || (expanded && !selected.length), onClick: () => {
-      if (!expanded && (links.length > 1 || links.some(link => link.needsKey))) setExpanded(true); else send();
+      if (!expanded && (links.length > 1 || links.some(link => link.needsKey || link.needsPassword))) setExpanded(true); else send();
     } }, busy ? '正在打开…' : expanded ? `↓ 下载所选 (${selected.length})` : '↓ 下载'));
 }
 

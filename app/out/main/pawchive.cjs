@@ -4,9 +4,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { extractMegaLinks } = require('./mega-revival.cjs');
+const { mediaFile: normalizeMediaFile, mergeDetailFiles } = require('./archive-media.cjs');
 const SOURCES = {
-  pawchive: { label: 'Pawchive', site: 'https://pawchive.pw', media: 'https://img.pawchive.pw', accept: 'application/json' },
-  kemono: { label: 'Kemono', site: 'https://kemono.cr', media: 'https://img.kemono.cr', accept: 'text/css' }
+  pawchive: { id: 'pawchive', label: 'Pawchive', site: 'https://pawchive.pw', media: 'https://img.pawchive.pw', accept: 'application/json' },
+  kemono: { id: 'kemono', label: 'Kemono', site: 'https://kemono.cr', media: 'https://img.kemono.cr', accept: 'text/css' }
 };
 const CACHE_TTL = 30 * 60 * 1000;
 const PAGE_SIZE = 50;
@@ -48,11 +49,7 @@ function normalizeArchiveCreator(value, source) {
 }
 
 function mediaFile(value, source) {
-  if (!value || typeof value.path !== 'string' || !/^\/[a-zA-Z0-9/_.-]+$/.test(value.path) || value.path.includes('..')) return null;
-  const image = /\.(jpe?g|png|gif|webp|avif|bmp)$/i.test(value.path);
-  const thumbnail = image ? `${source.media}/thumbnail/data${value.path}` : '';
-  return { name: String(value.name || '').slice(0, 500), path: value.path, previewOnly: value.preview_only === true,
-    thumbnail, url: value.preview_only === true ? thumbnail : `${source.site}/data${value.path}` };
+  return normalizeMediaFile(value, source.id);
 }
 
 function normalizeArchivePost(value, directory, source) {
@@ -249,7 +246,7 @@ function createPawchiveService({ userData, source: sourceId = 'pawchive', fetch:
     const creator = identity({ service: ref?.service, id: ref?.user });
     const id = identity({ service: creator.service, id: ref?.id }).id;
     const data = await request(creatorPath(creator) + '/post/' + encodeURIComponent(id));
-    const post = data.post || data;
+    const post = data.post ? mergeDetailFiles(data.post, data) : data;
     loadDirectoryCache();
     return { post: normalizePost(post, directory || new Map()) };
   }

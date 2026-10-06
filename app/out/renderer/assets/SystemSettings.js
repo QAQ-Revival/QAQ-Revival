@@ -1,6 +1,7 @@
 import { r as React, ThemeContext } from './index.js';
 import { e as evaluateXxmiImporterPathConsistency } from './xxmiPaths.js';
 import { useGameOrder } from './useGameOrder.js';
+import { SoftwareUpdateSettings } from './SoftwareUpdates.js';
 
 const h = React.createElement;
 const DEFAULT_SERVER = 'https://qaqm.top';
@@ -11,7 +12,7 @@ const CATEGORIES = [
   { id: 'downloads', icon: 'download', label: '下载与网络', desc: '管理共用的下载目录和 Mod 市场连接。', items: [['cache', '下载存储'], ['server', '市场服务器']] },
   { id: 'shortcuts', icon: 'keyboard', label: '快捷键', desc: '设置游戏内 Mod 面板的呼出方式。', items: [['overlay', '局内面板']] },
   { id: 'maintenance', icon: 'tool', label: '维护工具', desc: '更新已有加载器，或排查 Mod 使用问题。', items: [['updates', '加载器更新'], ['help', '故障排查']] },
-  { id: 'about', icon: 'info', label: '关于', desc: '应用版本与项目信息。', items: [] }
+  { id: 'about', icon: 'info', label: '关于与更新', desc: '应用版本与 GitHub 更新检查。', items: [] }
 ];
 const ICONS = {
   sliders: ['M4 7h16M4 17h16M8 4v6M16 14v6'],
@@ -256,7 +257,7 @@ export default function SettingsView({ devMode = false }) {
   else if (category.id === 'maintenance') content = h(React.Fragment, null,
     h(Section, { id: 'updates', title: '加载器更新' }, h(Row, { title: '更新 XXMI 启动器', description: '先选择新版 ZIP 或已解压文件夹，再选择现有 XXMI 安装目录。更新 Resources 等启动器文件，保留 Mods。' }, h(Button, { disabled: busy, onClick: () => updateLoader('xxmi') }, busy ? '处理中…' : '选择更新包')), h(Row, { title: '更新游戏加载组件', description: '更新 WWMI、ZZMI、EFMI 等组件。选择新版包及对应组件目录，更新 Core、ShaderFixes 等文件，保留 Mods。' }, h(Button, { disabled: busy, onClick: () => updateLoader('game') }, busy ? '处理中…' : '选择组件包')), updateResult && h('div', { className: 'system-notice', role: 'status' }, updateResult)),
     h(Section, { id: 'help', title: '故障排查' }, h(Row, { title: 'Mod 失效自查', description: '打开帮助网页，检查加载器、路径和 Mod 的常见问题。' }, h(Button, { onClick: () => window.api.openExternalUrl('https://www.qaqm.top/faq') }, '查看帮助 ↗'))));
-  else content = h(Section, { id: 'about', title: '应用信息' }, h(Row, { title: 'QAQ-Revival', description: '本地 Mod 管理器' }, h('span', { className: 'system-version' }, appVersion)));
+  else content = h(React.Fragment, null, h(Section, { id: 'about', title: '应用信息' }, h(Row, { title: 'QAQ-Revival', description: '本地 Mod 管理器' }, h('span', { className: 'system-version' }, appVersion))), h(SoftwareUpdateSettings));
   return h('div', { className: 'settings-view system-settings' },
     h('aside', { className: 'system-settings-nav' }, h('div', { className: 'system-settings-title' }, h('h1', null, '系统设置'), h('p', null, '偏好与配置')),
       h('nav', { 'aria-label': '设置分类' }, CATEGORIES.map(item => h(React.Fragment, { key: item.id },

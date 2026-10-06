@@ -1,7 +1,7 @@
 {
   "name": "qaq-revival",
   "productName": "QAQ-Revival",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "description": "QAQ-Revival — locally maintained Mod manager",
   "main": "./out/main/index.js",

@@ -2,6 +2,7 @@ const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["./CharacterView.js",".
 import { GameSelector } from "./GameSelector.js";
 import { DownloadManagerButton } from "./DownloadManagerButton.js";
 import { WindowControls } from "./WindowControls.js";
+import { SoftwareUpdateNotice } from "./SoftwareUpdates.js";
 import { LaunchControls } from "./LaunchControls.js";
 import { useSortableOrder } from "./useSortableOrder.js";
 import { useSidebarResize } from "./useSidebarResize.js";
@@ -7538,6 +7539,7 @@ function clampTop(top) {
   const max = window.innerHeight - ORB_SIZE - EDGE_MARGIN;
   return Math.max(EDGE_MARGIN, Math.min(max, top));
 }
+function isStoredDownload(task) { return task?.provider === "mega" || task?.provider === "archive"; }
 function FloatingDownloadOrb({ onImportTask }) {
   const [tasks, setTasks] = reactExports.useState([]);
   const [panelOpen, setPanelOpen] = reactExports.useState(false);
@@ -7557,7 +7559,7 @@ function FloatingDownloadOrb({ onImportTask }) {
   const panelRef = reactExports.useRef(null);
   const deletedTaskIdsRef = reactExports.useRef(/* @__PURE__ */ new Set());
   reactExports.useEffect(() => {
-    window.api.megaRevivalTasks?.().then(result => {
+    for (const request of [window.api.megaRevivalTasks?.(), window.api.attachmentTasks?.()]) request?.then(result => {
       if (result.success) setTasks(previous => [...new Map([...result.tasks, ...previous].map(task => [task.taskId, task])).values()]);
     }).catch(() => {});
   }, []);
@@ -7594,8 +7596,8 @@ function FloatingDownloadOrb({ onImportTask }) {
     document.addEventListener('keydown', close); document.addEventListener('pointerdown', close);
     return () => { document.removeEventListener('keydown', close); document.removeEventListener('pointerdown', close); };
   }, [panelOpen]);
-  async function controlMega(task, action) {
-    const result = await window.api.megaRevivalControl({ taskId: task.taskId, action });
+  async function controlStoredDownload(task, action) {
+    const result = await (task.provider === "archive" ? window.api.attachmentControl : window.api.megaRevivalControl)({ taskId: task.taskId, action });
     if (!result?.success) setTasks(previous => previous.map(item => item.taskId === task.taskId ? { ...item, error: result?.error || '下载操作失败' } : item));
   }
   async function handleImportTask(task) {
@@ -7802,7 +7804,7 @@ function FloatingDownloadOrb({ onImportTask }) {
     setVisible(false);
   }, []);
   const handleRetry = reactExports.useCallback(async (task) => {
-    if (task.provider === 'mega') return controlMega(task, 'retry');
+    if (isStoredDownload(task)) return controlStoredDownload(task, 'retry');
     if (!task?.taskId || !task?.retryPayload || !window.api?.marketDownloadInstallMod) return;
     hiddenByUserRef.current = false;
     panelDismissedRef.current = false;
@@ -7896,8 +7898,8 @@ function FloatingDownloadOrb({ onImportTask }) {
     }
   }, []);
   const handleOpenArchiveFolder = reactExports.useCallback(async (task) => {
-    if (task.provider === 'mega') {
-      const result = await window.api.megaRevivalOpen(task.taskId);
+    if (isStoredDownload(task)) {
+      const result = await (task.provider === "archive" ? window.api.attachmentOpen : window.api.megaRevivalOpen)(task.taskId);
       if (!result.success) setSettingsError(result.error);
       return;
     }
@@ -7917,7 +7919,7 @@ function FloatingDownloadOrb({ onImportTask }) {
     }
   }, []);
   const handlePauseToggle = reactExports.useCallback(async (task) => {
-    if (task.provider === 'mega') return controlMega(task, task.status === 'paused' ? 'resume' : 'pause');
+    if (isStoredDownload(task)) return controlStoredDownload(task, task.status === 'paused' ? 'resume' : 'pause');
     if (!task?.taskId || !window.api?.marketDownloadControl) return;
     const paused = task.status === "paused";
     const nextStatus = paused ? "downloading" : "paused";
@@ -7944,7 +7946,7 @@ function FloatingDownloadOrb({ onImportTask }) {
     }
   }, []);
   const handleCancel = reactExports.useCallback(async (task) => {
-    if (task.provider === 'mega') return controlMega(task, 'cancel');
+    if (isStoredDownload(task)) return controlStoredDownload(task, 'cancel');
     if (!task?.taskId || !window.api?.marketDownloadControl) return;
     setTasks(
       (prev) => prev.map(
@@ -7969,8 +7971,8 @@ function FloatingDownloadOrb({ onImportTask }) {
     }
   }, []);
   const handleDeleteTask = reactExports.useCallback(async (task) => {
-    if (task.provider === 'mega') {
-      const result = await window.api.megaRevivalControl({ taskId: task.taskId, action: 'delete' });
+    if (isStoredDownload(task)) {
+      const result = await (task.provider === 'archive' ? window.api.attachmentControl : window.api.megaRevivalControl)({ taskId: task.taskId, action: 'delete' });
       if (!result.success) { setSettingsError(result.error); return; }
       deletedTaskIdsRef.current.add(task.taskId);
       setTasks(previous => previous.filter(item => item.taskId !== task.taskId));
@@ -8097,9 +8099,9 @@ function FloatingDownloadOrb({ onImportTask }) {
                   const isIntegratedPackage = !!task.integratedPackage || task.modMode === "integrated";
                   const canOpenInstalled = task.status === "completed" && !isIntegratedPackage && (task.characterName || task.retryPayload?.mod?.characterName);
                   const canRetryInstall = task.status === "error" && task.archivePath && task.code === "INSTALL_FAILED";
-                  const canOpenArchive = task.archivePath && (task.status === "error" || task.provider === "mega" && ["completed", "paused", "canceled"].includes(task.status));
-                  const canRetryDownload = (task.status === "error" || task.provider === "mega" && task.status === "canceled") && task.retryPayload;
-                  const canImport = task.provider === 'mega' && task.status === 'completed' && task.archivePath;
+                  const canOpenArchive = task.archivePath && (task.status === "error" || isStoredDownload(task) && ["completed", "paused", "canceled"].includes(task.status));
+                  const canRetryDownload = (task.status === "error" || isStoredDownload(task) && task.status === "canceled") && task.retryPayload;
+                  const canImport = isStoredDownload(task) && task.status === 'completed' && task.archivePath && (task.provider !== 'archive' || task.canImport);
                   const networkTip = task.provider !== "mega" && shouldShowNetworkTip(task);
                   const networkFailure = task.provider !== "mega" && task.status === "error" && (task.code === "DOWNLOAD_STALLED" || isNetworkDownloadFailure(task.error, task.code));
                   const waitingForFirstData = task.status === "downloading" && taskPercent === 0 && Number(task.downloaded || 0) === 0 && Number(task.speed || 0) === 0;
@@ -9071,7 +9073,7 @@ function App() {
   const handleImportDownloadedTask = reactExports.useCallback(async (task) => {
     const gameId = activeGame?.id;
     if (!gameId || !activeGame?.modFolderPath) throw new Error('请先配置当前游戏的 Mods 文件夹，再导入');
-    const source = await window.api.megaRevivalImportPaths(task.taskId);
+    const source = await (task.provider === "archive" ? window.api.attachmentImportPaths : window.api.megaRevivalImportPaths)(task.taskId);
     if (!source?.success) throw new Error(source?.error || '无法读取下载文件');
     const scanned = await window.api.batchScanPaths(source.paths);
     if (scanned?.error) throw new Error(scanned.error);
@@ -9367,6 +9369,7 @@ function App() {
           `${task.id}-${task.sessionKey}`
         ) }, task.id)),
         /* @__PURE__ */ jsxRuntimeExports.jsx(FloatingDownloadOrb, { onImportTask: handleImportDownloadedTask }),
+        jsxRuntimeExports.jsx(SoftwareUpdateNotice, {}),
         publishTasks.map((task, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(
           PublishProgressFloat,
           {
