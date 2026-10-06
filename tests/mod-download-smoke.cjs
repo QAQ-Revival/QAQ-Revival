@@ -1,0 +1,127 @@
+const assert = require('node:assert/strict');
+const path = require('node:path');
+
+module.exports = async function ({ evaluate, waitFor, captureUI, window, passed, setDelayedPost }) {
+  const active = '.mod-download-provider:not([hidden])';
+  async function openSources() {
+    await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
+    await waitFor(`!!document.querySelector('.mod-download-source-menu')`, 'source menu');
+  }
+  async function selectSource(source) {
+    await openSources();
+    await evaluate(`document.querySelector('.mod-download-source-option[data-source="${source}"]').click()`);
+    await waitFor(`document.querySelector('${active}').dataset.source === ${JSON.stringify(source)}`, 'source selection');
+    assert.equal(await evaluate(`!!document.querySelector('.mod-download-source-menu')`), false);
+  }
+  async function clickVisible(text) {
+    await evaluate(`(() => { const button = [...document.querySelectorAll('${active} button')].find(item => item.textContent.trim() === ${JSON.stringify(text)}); if (!button || button.disabled) throw Error('Missing enabled button: ' + ${JSON.stringify(text)}); button.click(); })()`);
+  }
+  await openSources();
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option strong')].map(option => option.textContent)`), ['QAQM', 'Kemono', 'Pawchive']);
+  await waitFor(`document.activeElement?.dataset.source === 'pawchive'`, 'selected source focused');
+  await evaluate(`document.dispatchEvent(new Event('scroll'))`);
+  assert.equal(await evaluate(`!!document.querySelector('.mod-download-source-menu')`), true, 'Content reflow must not dismiss the source menu');
+  await captureUI('mod-download-source-menu.png');
+  await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }))`);
+  assert.equal(await evaluate(`document.activeElement.dataset.source`), 'pawchive');
+  await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }))`);
+  assert.equal(await evaluate(`document.activeElement.dataset.source`), 'kemono');
+  await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))`);
+  await waitFor(`document.querySelector('${active}').dataset.source === 'kemono' && !document.querySelector('.mod-download-source-menu')`, 'keyboard source selection');
+  assert.equal(await evaluate(`document.activeElement.className`), 'mod-download-source-trigger');
+  await selectSource('pawchive');
+  await openSources();
+  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await waitFor(`!document.querySelector('.mod-download-source-menu') && document.activeElement.className === 'mod-download-source-trigger'`, 'escape restores source focus');
+  await openSources();
+  await evaluate(`document.querySelector('.mod-download-header h1').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`);
+  await waitFor(`!document.querySelector('.mod-download-source-menu')`, 'outside click dismisses sources');
+  passed('Custom source menu: checked state, keyboard navigation and selection, Escape, outside click and focus restoration');
+  await evaluate(`document.getElementById('pawchive-tab-posts').click()`);
+  await waitFor(`!document.querySelector('${active} [aria-busy="true"]')`, 'post list');
+  await evaluate(`document.querySelector('${active} .paw-pagination button:not(:disabled)')?.textContent.includes('上一页') && document.querySelector('${active} .paw-pagination button').click()`);
+  await waitFor(`document.querySelectorAll('${active} .paw-post-card').length === 50`, 'first page');
+  await evaluate(`document.querySelector('${active} .paw-card-image').click()`);
+  await waitFor(`document.querySelector('.paw-gallery-counter')?.textContent === '1 / 3'`, 'file, attachment and inline images');
+  await waitFor(`[...document.querySelectorAll('.paw-gallery-image img')].some(image => image.complete && image.naturalWidth > 0)`, 'synthetic preview loaded');
+  assert.equal(await evaluate(`document.querySelectorAll('.paw-related-card').length`), 50);
+  await evaluate(`document.querySelector('[aria-label="下一张图片"]').click()`);
+  assert.equal(await evaluate(`document.querySelector('.paw-gallery-counter').textContent`), '2 / 3');
+  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }))`);
+  assert.equal(await evaluate(`document.querySelector('.paw-gallery-counter').textContent`), '1 / 3');
+  await evaluate(`document.querySelector('[aria-label="上一张图片"]').click()`);
+  assert.equal(await evaluate(`document.querySelector('.paw-gallery-counter').textContent`), '3 / 3');
+  await evaluate(`document.querySelector('[aria-label="第 2 张图片"]').click()`);
+  await captureUI('mod-download-detail.png');
+  const desktop = await evaluate(`(() => { const r = s => document.querySelector(s).getBoundingClientRect(); const rail = r('.paw-related-sidebar'), image = r('.paw-gallery'), text = r('.paw-detail-right'), footer = r('.paw-modal-footer'); return { columns: rail.right < image.left && image.right <= text.left + 1, footerInside: footer.bottom <= text.bottom + 1, noOverflow: r('.paw-modal').right <= innerWidth }; })()`);
+  assert.deepEqual(desktop, { columns: true, footerInside: true, noOverflow: true });
+  setDelayedPost('1000');
+  await evaluate(`document.querySelectorAll('.paw-related-card')[1].click()`);
+  await evaluate(`document.querySelectorAll('.paw-related-card')[2].click()`);
+  await waitFor(`document.querySelector('#paw-post-title')?.textContent === '历史模组 1' && !document.querySelector('.paw-detail-scroll [role="status"]')`, 'fast post selection');
+  await new Promise(resolve => setTimeout(resolve, 450));
+  assert.equal(await evaluate(`document.querySelector('#paw-post-title').textContent`), '历史模组 1');
+  assert.equal(await evaluate(`!!document.querySelector('.paw-gallery-counter')`), false);
+  setDelayedPost('');
+  await evaluate(`document.querySelectorAll('.paw-related-card')[0].click()`);
+  await waitFor(`document.querySelector('.paw-gallery-counter')?.textContent === '1 / 3'`, 'image resets for another post');
+  window.setSize(800, 760);
+  await waitFor(`innerWidth <= 800`, 'compact viewport');
+  await captureUI('mod-download-detail-compact.png');
+  assert.ok(await evaluate(`(() => { const d = document.querySelector('.paw-modal').getBoundingClientRect(); return d.left >= 0 && d.right <= innerWidth && d.bottom <= innerHeight; })()`));
+  await evaluate(`document.querySelector('[aria-label="关闭内容详情"]').click()`);
+  window.setSize(1440, 960);
+  await waitFor(`innerWidth >= 1400`, 'desktop viewport');
+  passed('MOD detail: three image sources, deduplication, arrows, keyboard, thumbnails, fast post switching, stale response protection and compact layout');
+
+  // Existing author tabs from the main smoke suite overflow horizontally.
+  await evaluate(`document.querySelector('${active} .paw-author-tab:last-child [role="tab"]').click()`);
+  await waitFor(`!!document.querySelector('${active} .paw-author-banner .paw-search')`, 'search inside author card');
+  assert.equal(await evaluate(`document.querySelectorAll('${active} .paw-toolbar').length`), 0);
+  assert.ok(await evaluate(`(() => { const nav = document.querySelector('${active} .paw-tabs'); const fixed = nav.querySelector('.paw-fixed-tabs').getBoundingClientRect(), authors = nav.querySelector('.paw-author-tabs').getBoundingClientRect(), current = nav.querySelector('.paw-author-tab.active').getBoundingClientRect(); return !!nav.querySelector('.paw-tab-divider') && Math.abs(fixed.top - authors.top) < 12 && fixed.right < authors.left && current.left >= authors.left - 1 && current.right <= authors.right + 1; })()`));
+  await evaluate(`(() => { let el = document.querySelector('${active} .paw-tabs').parentElement; while (el && !(el.scrollHeight > el.clientHeight && /auto|scroll/.test(getComputedStyle(el).overflowY))) el = el.parentElement; if (!el) throw Error('No scroll container'); window.downloadScrollContainer = el; el.scrollTop = 430; })()`);
+  await waitFor(`(() => { const tab = document.querySelector('${active} .paw-tabs').getBoundingClientRect(); const container = window.downloadScrollContainer.getBoundingClientRect(); return Math.abs(tab.top - container.top) <= 3; })()`, 'tabs stay at top while scrolling');
+  await captureUI('mod-download-sticky-tabs.png');
+  await evaluate(`window.downloadScrollContainer.scrollTop = 0`);
+  await captureUI('mod-download-author-search.png');
+  window.setSize(800, 760);
+  await waitFor(`innerWidth <= 800`, 'narrow author tabs');
+  await evaluate(`document.querySelector('${active} .paw-author-tab:first-child [role="tab"]').click()`);
+  await waitFor(`(() => { const strip = document.querySelector('${active} .paw-author-tabs').getBoundingClientRect(), tab = document.querySelector('${active} .paw-author-tab.active').getBoundingClientRect(); return tab.left >= strip.left - 1 && tab.right <= strip.right + 1; })()`, 'long selected author tab fits the available strip');
+  await captureUI('mod-download-author-compact.png');
+  window.setSize(1440, 960);
+  await waitFor(`innerWidth >= 1400`, 'restore author viewport');
+  passed('One sticky tab row with divider, horizontal author overflow, selected-tab visibility and search integrated into the author card');
+
+  const pawTab = await evaluate(`document.querySelector('${active} .paw-author-tab.active [role="tab"]').id`);
+  await selectSource('kemono');
+  await waitFor(`document.querySelector('${active} .paw-summary')?.textContent.includes('已收藏 0 位作者')`, 'separate Kemono favorites');
+  await clickVisible('作者');
+  await waitFor(`document.querySelectorAll('${active} .paw-creator-card').length === 1`, 'Kemono creators through IPC');
+  await evaluate(`document.querySelector('${active} .paw-creator-card .paw-favorite').click()`);
+  await waitFor(`document.querySelector('${active} .paw-favorite')?.textContent.includes('已收藏')`, 'Kemono favorite');
+  await evaluate(`document.querySelector('${active} .paw-creator-name').click()`);
+  await waitFor(`document.querySelector('${active} .paw-post-title')?.textContent === 'Kemono 测试 MOD'`, 'Kemono creator posts wrapped in results');
+  await evaluate(`document.querySelector('${active} .paw-post-title').click()`);
+  await waitFor(`document.querySelector('.paw-gallery-counter')?.textContent === '1 / 3'`, 'Kemono image gallery');
+  assert.equal(await evaluate(`document.querySelector('.paw-eyebrow').textContent`), 'KEMONO / MOD详情');
+  await evaluate(`document.querySelector('[aria-label="关闭内容详情"]').click()`);
+  await selectSource('qaqm');
+  await waitFor(`!!document.querySelector('${active} .mod-market-container')`, 'QAQM existing market');
+  assert.equal(await evaluate(`document.querySelector('${active} .mod-market-title').textContent`), 'QAQM');
+  await captureUI('mod-download-qaqm.png');
+  await selectSource('pawchive');
+  assert.equal(await evaluate(`document.querySelector('${active} .paw-author-tab.active [role="tab"]').id`), pawTab);
+  assert.equal(await evaluate(`localStorage.getItem('qaqm.downloadSource')`), 'pawchive');
+  const states = await evaluate(`Promise.all([window.api.pawchiveGetState(), window.api.kemonoGetState()]).then(states => states.map(s => ({ favorites: s.favorites.length, updates: s.postUpdateCount })))`);
+  assert.deepEqual(states, [{ favorites: 1, updates: 1 }, { favorites: 1, updates: 0 }]);
+  assert.equal(await evaluate(`(() => { const ids = [...document.querySelectorAll('[id]')].map(el => el.id).filter(id => /-tab-|page-content/.test(id)); return new Set(ids).size === ids.length; })()`), true);
+  await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));
+  await waitFor(`!!document.querySelector('[aria-label="MOD下载"]')`, 'reload navigation');
+  await evaluate(`document.querySelector('.nav-item[aria-label="MOD下载"]').click()`);
+  await waitFor(`document.querySelector('.mod-download-provider:not([hidden])')?.dataset.source === 'pawchive'`, 'last source survives reload');
+  const [surfaceWidth, surfaceHeight] = window.getSize();
+  window.setSize(surfaceWidth + 1, surfaceHeight);
+  window.setSize(surfaceWidth, surfaceHeight);
+  passed('Source dropdown routes Pawchive, Kemono and QAQM; separate favorites and updates, retained tabs, remembered choice and unique tab IDs');
+};

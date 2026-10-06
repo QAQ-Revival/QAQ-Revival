@@ -1,0 +1,166 @@
+[
+  {
+    "zh": "九原",
+    "en": "Jiuyuan",
+    "slug": "jiuyuan"
+  },
+  {
+    "zh": "伊洛伊",
+    "en": "Iroi",
+    "slug": "iroi"
+  },
+  {
+    "zh": "凛子",
+    "en": "Lingko",
+    "slug": "lingko"
+  },
+  {
+    "zh": "哈尼娅",
+    "en": "Haniel",
+    "slug": "haniel",
+    "aliases": [
+      "哈尼尔"
+    ]
+  },
+  {
+    "zh": "哈索尔",
+    "en": "Hathor",
+    "slug": "hathor"
+  },
+  {
+    "zh": "埃德加",
+    "en": "Edgar",
+    "slug": "edgar"
+  },
+  {
+    "zh": "女主",
+    "en": "Zero (Female)",
+    "slug": "zero-female",
+    "aliases": [
+      "零（女）",
+      "零女",
+      "女零",
+      "Female Protagonist",
+      "Heroine"
+    ]
+  },
+  {
+    "zh": "娜娜莉",
+    "en": "Nanally",
+    "slug": "nanally"
+  },
+  {
+    "zh": "安魂曲",
+    "en": "Requiem",
+    "slug": "requiem"
+  },
+  {
+    "zh": "小吱",
+    "en": "Xiaozhi",
+    "slug": "xiaozhi"
+  },
+  {
+    "zh": "尼察",
+    "en": "Nitsa",
+    "slug": "nitsa"
+  },
+  {
+    "zh": "早雾",
+    "en": "Sayuri",
+    "slug": "sayuri"
+  },
+  {
+    "zh": "真红",
+    "en": "Shinku",
+    "slug": "shinku",
+    "aliases": [
+      "沁红",
+      "qinhong",
+      "Qinhong",
+      "qin hong",
+      "Qin Hong"
+    ]
+  },
+  {
+    "zh": "法蒂亚",
+    "en": "Fadia",
+    "slug": "fadia"
+  },
+  {
+    "zh": "浔",
+    "en": "Xun",
+    "slug": "xun"
+  },
+  {
+    "zh": "海月",
+    "en": "Mitsuki",
+    "slug": "mitsuki"
+  },
+  {
+    "zh": "男主",
+    "en": "Zero (Male)",
+    "slug": "zero-male",
+    "aliases": [
+      "零（男）",
+      "零男",
+      "男零",
+      "Male Protagonist",
+      "Hero"
+    ]
+  },
+  {
+    "zh": "白藏",
+    "en": "Baicang",
+    "slug": "baicang"
+  },
+  {
+    "zh": "翳",
+    "en": "Skia",
+    "slug": "skia"
+  },
+  {
+    "zh": "薄荷",
+    "en": "Mint",
+    "slug": "mint"
+  },
+  {
+    "zh": "赤子",
+    "en": "Chiz",
+    "slug": "chiz"
+  },
+  {
+    "zh": "赤音",
+    "en": "Akane",
+    "slug": "akane"
+  },
+  {
+    "zh": "达芙迪尔",
+    "en": "Daffodil",
+    "slug": "daffodil"
+  },
+  {
+    "zh": "阿尔法德",
+    "en": "Alphard",
+    "slug": "alphard"
+  },
+  {
+    "zh": "阿德勒",
+    "en": "Adler",
+    "slug": "adler"
+  },
+  {
+    "zh": "黑鸟",
+    "en": "Black Bird",
+    "slug": "black-bird"
+  },
+  {
+    "zh": "卡厄斯",
+    "en": "Chaos",
+    "slug": "chaos"
+  },
+  {
+    "zh": "载具",
+    "en": "Vehicles",
+    "slug": "vehicles"
+  }
+]

@@ -1,0 +1,351 @@
+{
+  "schemaVersion": 1,
+  "gameId": "wuthering-waves",
+  "generatedAt": "2026-07-14T11:57:45Z",
+  "source": {
+    "name": "Wuthering Waves Wiki",
+    "url": "https://wutheringwaves.fandom.com/wiki/Outfit",
+    "license": "CC-BY-SA (community wiki content); game images remain property of their respective owner",
+    "categories": [
+      "Category:Signature Outfits",
+      "Category:Deluxe Outfits",
+      "Category:Premium Outfits"
+    ],
+    "officialSite": "https://wutheringwaves.kurogames.com/"
+  },
+  "outfitDesignCount": 9,
+  "outfitCount": 10,
+  "characterCount": 10,
+  "characters": [
+    {
+      "nameZh": "男主",
+      "nameEn": "Rover (Male)",
+      "skins": [
+        {
+          "id": "wuwa-outfit-perpetual-spark-male",
+          "sectionId": "skin:wuwa-outfit-perpetual-spark-male",
+          "characterNameZh": "男主",
+          "characterNameEn": "Rover (Male)",
+          "wikiCharacterNameEn": "Rover",
+          "nameZh": "星火永明",
+          "nameEn": "Perpetual Spark",
+          "aliases": [
+            "星火永明",
+            "Perpetual Spark"
+          ],
+          "type": [
+            "Signature"
+          ],
+          "rarity": 4,
+          "releaseVersion": "3.1",
+          "releaseDate": null,
+          "image": "https://static.wikia.nocookie.net/wutheringwaves/images/e/e6/Perpetual_Spark_Male_Rover_Splash_Art.png/revision/latest?cb=20260205230637",
+          "sourcePageUrl": "https://wutheringwaves.fandom.com/wiki/Perpetual_Spark",
+          "officialPostUrl": "https://wutheringwaves.kurogames.com/m/en/main/news/detail/4100",
+          "sourceImageFile": "Perpetual Spark Male Rover Splash Art.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/wutheringwaves/images/e/e6/Perpetual_Spark_Male_Rover_Splash_Art.png/revision/latest?cb=20260205230637",
+          "sourceImageWidth": 1672,
+          "sourceImageHeight": 1428,
+          "sourceImageMime": "image/png"
+        }
+      ]
+    },
+    {
+      "nameZh": "女主",
+      "nameEn": "Rover (Female)",
+      "skins": [
+        {
+          "id": "wuwa-outfit-perpetual-spark-female",
+          "sectionId": "skin:wuwa-outfit-perpetual-spark-female",
+          "characterNameZh": "女主",
+          "characterNameEn": "Rover (Female)",
+          "wikiCharacterNameEn": "Rover",
+          "nameZh": "星火永明",
+          "nameEn": "Perpetual Spark",
+          "aliases": [
+            "星火永明",
+            "Perpetual Spark"
+          ],
+          "type": [
+            "Signature"
+          ],
+          "rarity": 4,
+          "releaseVersion": "3.1",
+          "releaseDate": null,
+          "image": "https://static.wikia.nocookie.net/wutheringwaves/images/6/67/Perpetual_Spark_Female_Rover_Splash_Art.png/revision/latest?cb=20260205230823",
+          "sourcePageUrl": "https://wutheringwaves.fandom.com/wiki/Perpetual_Spark",
+          "officialPostUrl": "https://wutheringwaves.kurogames.com/m/en/main/news/detail/4100",
+          "sourceImageFile": "Perpetual Spark Female Rover Splash Art.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/wutheringwaves/images/6/67/Perpetual_Spark_Female_Rover_Splash_Art.png/revision/latest?cb=20260205230823",
+          "sourceImageWidth": 1696,
+          "sourceImageHeight": 1440,
+          "sourceImageMime": "image/png"
+        }
+      ]
+    },
+    {
+      "nameZh": "珂莱塔",
+      "nameEn": "Carlotta",
+      "skins": [
+        {
+          "id": "wuwa-outfit-splashing-summer",
+          "sectionId": "skin:wuwa-outfit-splashing-summer",
+          "characterNameZh": "珂莱塔",
+          "characterNameEn": "Carlotta",
+          "wikiCharacterNameEn": "Carlotta",
+          "nameZh": "夏日旖旎",
+          "nameEn": "Splashing Summer",
+          "aliases": [
+            "夏日旖旎",
+            "Splashing Summer"
+          ],
+          "type": [
+            "Deluxe"
+          ],
+          "rarity": 5,
+          "releaseVersion": "2.4",
+          "releaseDate": "2025-06-12",
+          "image": "https://static.wikia.nocookie.net/wutheringwaves/images/6/60/Splashing_Summer_Splash_Art.png/revision/latest?cb=20250606114933",
+          "sourcePageUrl": "https://wutheringwaves.fandom.com/wiki/Splashing_Summer",
+          "officialPostUrl": "https://wutheringwaves.kurogames.com/en/main/news/detail/2743",
+          "sourceImageFile": "Splashing Summer Splash Art.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/wutheringwaves/images/6/60/Splashing_Summer_Splash_Art.png/revision/latest?cb=20250606114933",
+          "sourceImageWidth": 2048,
+          "sourceImageHeight": 1717,
+          "sourceImageMime": "image/png"
+        }
+      ]
+    },
+    {
+      "nameZh": "长离",
+      "nameEn": "Changli",
+      "skins": [
+        {
+          "id": "wuwa-outfit-laurel-nymph",
+          "sectionId": "skin:wuwa-outfit-laurel-nymph",
+          "characterNameZh": "长离",
+          "characterNameEn": "Changli",
+          "wikiCharacterNameEn": "Changli",
+          "nameZh": "桂枝宁芙",
+          "nameEn": "Laurel Nymph",
+          "aliases": [
+            "桂枝宁芙",
+            "Laurel Nymph"
+          ],
+          "type": [
+            "Deluxe"
+          ],
+          "rarity": 5,
+          "releaseVersion": "2.4",
+          "releaseDate": "2025-06-12",
+          "image": "https://static.wikia.nocookie.net/wutheringwaves/images/4/45/Laurel_Nymph_Splash_Art.png/revision/latest?cb=20250606112211",
+          "sourcePageUrl": "https://wutheringwaves.fandom.com/wiki/Laurel_Nymph",
+          "officialPostUrl": "https://wutheringwaves.kurogames.com/en/main/news/detail/2742",
+          "sourceImageFile": "Laurel Nymph Splash Art.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/wutheringwaves/images/4/45/Laurel_Nymph_Splash_Art.png/revision/latest?cb=20250606112211",
+          "sourceImageWidth": 2048,
+          "sourceImageHeight": 1667,
+          "sourceImageMime": "image/png"
+        }
+      ]
+    },
+    {
+      "nameZh": "千咲",
+      "nameEn": "Chisa",
+      "skins": [
+        {
+          "id": "wuwa-outfit-peach-parfait",
+          "sectionId": "skin:wuwa-outfit-peach-parfait",
+          "characterNameZh": "千咲",
+          "characterNameEn": "Chisa",
+          "wikiCharacterNameEn": "Chisa",
+          "nameZh": "蜜桃冰",
+          "nameEn": "Peach Parfait",
+          "aliases": [
+            "蜜桃冰",
+            "Peach Parfait"
+          ],
+          "type": [
+            "Deluxe"
+          ],
+          "rarity": 5,
+          "releaseVersion": "3.5",
+          "releaseDate": "2026-07-10",
+          "image": "https://static.wikia.nocookie.net/wutheringwaves/images/9/92/Peach_Parfait_Showcase_6.jpg/revision/latest?cb=20260705104558",
+          "sourcePageUrl": "https://wutheringwaves.fandom.com/wiki/Peach_Parfait",
+          "officialPostUrl": "https://wutheringwaves.kurogames.com/en/main/news/detail/4959",
+          "sourceImageFile": "Peach Parfait Showcase 6.jpg",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/wutheringwaves/images/9/92/Peach_Parfait_Showcase_6.jpg/revision/latest?cb=20260705104558",
+          "sourceImageWidth": 1080,
+          "sourceImageHeight": 1920,
+          "sourceImageMime": "image/jpeg"
+        }
+      ]
+    },
+    {
+      "nameZh": "今汐",
+      "nameEn": "Jinhsi",
+      "skins": [
+        {
+          "id": "wuwa-outfit-peach-blossom",
+          "sectionId": "skin:wuwa-outfit-peach-blossom",
+          "characterNameZh": "今汐",
+          "characterNameEn": "Jinhsi",
+          "wikiCharacterNameEn": "Jinhsi",
+          "nameZh": "桃夭灼灼",
+          "nameEn": "Peach Blossom",
+          "aliases": [
+            "桃夭灼灼",
+            "Peach Blossom"
+          ],
+          "type": [
+            "Premium"
+          ],
+          "rarity": 5,
+          "releaseVersion": "2.0",
+          "releaseDate": "2025-01-02",
+          "image": "https://static.wikia.nocookie.net/wutheringwaves/images/c/c3/Peach_Blossom_Splash_Art.png/revision/latest?cb=20250106122304",
+          "sourcePageUrl": "https://wutheringwaves.fandom.com/wiki/Peach_Blossom",
+          "officialPostUrl": "https://wutheringwaves.kurogames.com/m/en/main/news/detail/1810",
+          "sourceImageFile": "Peach Blossom Splash Art.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/wutheringwaves/images/c/c3/Peach_Blossom_Splash_Art.png/revision/latest?cb=20250106122304",
+          "sourceImageWidth": 2048,
+          "sourceImageHeight": 2048,
+          "sourceImageMime": "image/png"
+        }
+      ]
+    },
+    {
+      "nameZh": "琳奈",
+      "nameEn": "Lynae",
+      "skins": [
+        {
+          "id": "wuwa-outfit-peppermint",
+          "sectionId": "skin:wuwa-outfit-peppermint",
+          "characterNameZh": "琳奈",
+          "characterNameEn": "Lynae",
+          "wikiCharacterNameEn": "Lynae",
+          "nameZh": "薄荷糖",
+          "nameEn": "Peppermint",
+          "aliases": [
+            "薄荷糖",
+            "Peppermint"
+          ],
+          "type": [
+            "Deluxe"
+          ],
+          "rarity": 5,
+          "releaseVersion": "3.5",
+          "releaseDate": "2026-07-10",
+          "image": "https://static.wikia.nocookie.net/wutheringwaves/images/1/15/Peppermint_Showcase_6.jpg/revision/latest?cb=20260705102430",
+          "sourcePageUrl": "https://wutheringwaves.fandom.com/wiki/Peppermint",
+          "officialPostUrl": "https://wutheringwaves.kurogames.com/en/main/news/detail/4957",
+          "sourceImageFile": "Peppermint Showcase 6.jpg",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/wutheringwaves/images/1/15/Peppermint_Showcase_6.jpg/revision/latest?cb=20260705102430",
+          "sourceImageWidth": 1080,
+          "sourceImageHeight": 1920,
+          "sourceImageMime": "image/jpeg"
+        }
+      ]
+    },
+    {
+      "nameZh": "莫宁",
+      "nameEn": "Mornye",
+      "skins": [
+        {
+          "id": "wuwa-outfit-plush-dream",
+          "sectionId": "skin:wuwa-outfit-plush-dream",
+          "characterNameZh": "莫宁",
+          "characterNameEn": "Mornye",
+          "wikiCharacterNameEn": "Mornye",
+          "nameZh": "呢绒梦",
+          "nameEn": "Plush Dream",
+          "aliases": [
+            "呢绒梦",
+            "Plush Dream"
+          ],
+          "type": [
+            "Deluxe"
+          ],
+          "rarity": 5,
+          "releaseVersion": "3.3",
+          "releaseDate": "2026-04-30",
+          "image": "https://static.wikia.nocookie.net/wutheringwaves/images/5/5f/Plush_Dream_Splash_Art.png/revision/latest?cb=20260419111609",
+          "sourcePageUrl": "https://wutheringwaves.fandom.com/wiki/Plush_Dream",
+          "officialPostUrl": "https://wutheringwaves.kurogames.com/m/en/main/news/detail/4544",
+          "sourceImageFile": "Plush Dream Splash Art.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/wutheringwaves/images/5/5f/Plush_Dream_Splash_Art.png/revision/latest?cb=20260419111609",
+          "sourceImageWidth": 1180,
+          "sourceImageHeight": 944,
+          "sourceImageMime": "image/png"
+        }
+      ]
+    },
+    {
+      "nameZh": "散华",
+      "nameEn": "Sanhua",
+      "skins": [
+        {
+          "id": "wuwa-outfit-exorcistic-adjuration",
+          "sectionId": "skin:wuwa-outfit-exorcistic-adjuration",
+          "characterNameZh": "散华",
+          "characterNameEn": "Sanhua",
+          "wikiCharacterNameEn": "Sanhua",
+          "nameZh": "叱妖诰",
+          "nameEn": "Exorcistic Adjuration",
+          "aliases": [
+            "叱妖诰",
+            "Exorcistic Adjuration"
+          ],
+          "type": [
+            "Signature"
+          ],
+          "rarity": 4,
+          "releaseVersion": "2.0",
+          "releaseDate": null,
+          "image": "https://static.wikia.nocookie.net/wutheringwaves/images/1/1a/Exorcistic_Adjuration_Splash_Art.png/revision/latest?cb=20250106124429",
+          "sourcePageUrl": "https://wutheringwaves.fandom.com/wiki/Exorcistic_Adjuration",
+          "officialPostUrl": "https://wutheringwaves.kurogames.com/m/en/main/news/detail/2015",
+          "sourceImageFile": "Exorcistic Adjuration Splash Art.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/wutheringwaves/images/1/1a/Exorcistic_Adjuration_Splash_Art.png/revision/latest?cb=20250106124429",
+          "sourceImageWidth": 2048,
+          "sourceImageHeight": 2048,
+          "sourceImageMime": "image/png"
+        }
+      ]
+    },
+    {
+      "nameZh": "赞妮",
+      "nameEn": "Zani",
+      "skins": [
+        {
+          "id": "wuwa-outfit-downtown-repose",
+          "sectionId": "skin:wuwa-outfit-downtown-repose",
+          "characterNameZh": "赞妮",
+          "characterNameEn": "Zani",
+          "wikiCharacterNameEn": "Zani",
+          "nameZh": "城市午茶",
+          "nameEn": "Downtown Repose",
+          "aliases": [
+            "城市午茶",
+            "Downtown Repose"
+          ],
+          "type": [
+            "Deluxe"
+          ],
+          "rarity": 5,
+          "releaseVersion": "2.8",
+          "releaseDate": "2025-11-20",
+          "image": "https://static.wikia.nocookie.net/wutheringwaves/images/0/0d/Downtown_Repose_Splash_Art.png/revision/latest?cb=20251118044330",
+          "sourcePageUrl": "https://wutheringwaves.fandom.com/wiki/Downtown_Repose",
+          "officialPostUrl": "https://wutheringwaves.kurogames.com/m/en/main/news/detail/3588",
+          "sourceImageFile": "Downtown Repose Splash Art.png",
+          "sourceImageUrl": "https://static.wikia.nocookie.net/wutheringwaves/images/0/0d/Downtown_Repose_Splash_Art.png/revision/latest?cb=20251118044330",
+          "sourceImageWidth": 2048,
+          "sourceImageHeight": 1867,
+          "sourceImageMime": "image/png"
+        }
+      ]
+    }
+  ]
+}

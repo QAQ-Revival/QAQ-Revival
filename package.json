@@ -1,0 +1,15 @@
+{
+  "name": "qaq-revival",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "QAQ-Revival — locally maintained Mod manager",
+  "scripts": {
+    "build": "node tools/build.cjs",
+    "test": "node tools/build-mega.cjs --test && node --test tests/single-instance.test.cjs tests/windows-launch.test.cjs tests/independent-fixer.test.cjs tests/pawchive.test.cjs tests/mega-manager.test.cjs tests/mega-worker.test.cjs tests/character-catalog.test.cjs tests/json-store.test.cjs tests/release.test.cjs tests/executable-manifest.test.cjs && node tools/smoke.cjs && node tools/smoke.cjs --single-instance",
+    "test:single-instance": "node --test tests/single-instance.test.cjs && node tools/smoke.cjs --single-instance",
+    "test:electron": "node tools/smoke.cjs",
+    "build:mega": "node tools/build-mega.cjs"
+  },
+  "productName": "QAQ-Revival"
+}

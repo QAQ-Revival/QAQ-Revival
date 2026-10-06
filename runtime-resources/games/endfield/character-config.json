@@ -1,0 +1,595 @@
+{
+  "gameId": "endfield",
+  "defaultCharacters": [
+    "汤汤",
+    "洛茜",
+    "男主",
+    "女主",
+    "佩丽卡",
+    "陈千语",
+    "莱万汀",
+    "伊冯",
+    "洁尔佩塔",
+    "艾尔黛拉",
+    "余烬",
+    "别礼",
+    "黎风",
+    "骏卫",
+    "阿列什",
+    "弧光",
+    "艾维文娜",
+    "大潘",
+    "昼雪",
+    "狼卫",
+    "赛希",
+    "秋栗",
+    "安塔尔",
+    "卡契尔",
+    "埃特拉",
+    "萤石",
+    "庄方宜",
+    "弭弗",
+    "卡繆",
+    "诀",
+    "梨诺",
+    "提弗洛斯",
+    "噗切娜",
+    "NPC",
+    "大世界",
+    "UI",
+    "功能",
+    "武器"
+  ],
+  "manualMappings": {
+    "endministratormale": {
+      "displayName": "男主",
+      "canonicalEnName": "EndministratorMale"
+    },
+    "endministratorfemale": {
+      "displayName": "女主",
+      "canonicalEnName": "EndministratorFemale"
+    },
+    "others": {
+      "displayName": "其他",
+      "canonicalEnName": "Others"
+    },
+    "weapons": {
+      "displayName": "武器",
+      "canonicalEnName": "Weapons"
+    },
+    "陈": {
+      "displayName": "陈千语",
+      "canonicalEnName": "ChenQianyu"
+    },
+    "chen": {
+      "displayName": "陈千语",
+      "canonicalEnName": "ChenQianyu"
+    },
+    "chen qianyu": {
+      "displayName": "陈千语",
+      "canonicalEnName": "ChenQianyu"
+    },
+    "chenqianyu": {
+      "displayName": "陈千语",
+      "canonicalEnName": "ChenQianyu"
+    },
+    "lastrite": {
+      "displayName": "别礼",
+      "canonicalEnName": "LastRite"
+    },
+    "last rite": {
+      "displayName": "别礼",
+      "canonicalEnName": "LastRite"
+    },
+    "dapan": {
+      "displayName": "大潘",
+      "canonicalEnName": "DaPan"
+    },
+    "da pan": {
+      "displayName": "大潘",
+      "canonicalEnName": "DaPan"
+    },
+    "zhuangfangyi": {
+      "displayName": "庄方宜",
+      "canonicalEnName": "ZhuangFangyi"
+    },
+    "zhuang fangyi": {
+      "displayName": "庄方宜",
+      "canonicalEnName": "ZhuangFangyi"
+    },
+    "zhuang fang yi": {
+      "displayName": "庄方宜",
+      "canonicalEnName": "ZhuangFangyi"
+    },
+    "zhuangfy": {
+      "displayName": "庄方宜",
+      "canonicalEnName": "ZhuangFangyi"
+    },
+    "fangyi": {
+      "displayName": "庄方宜",
+      "canonicalEnName": "ZhuangFangyi"
+    },
+    "fang yi": {
+      "displayName": "庄方宜",
+      "canonicalEnName": "ZhuangFangyi"
+    },
+    "mi fu": {
+      "displayName": "弭弗",
+      "canonicalEnName": "MiFu"
+    },
+    "mifu": {
+      "displayName": "弭弗",
+      "canonicalEnName": "MiFu"
+    },
+    "camille": {
+      "displayName": "卡繆",
+      "canonicalEnName": "Camille"
+    },
+    "openworld": {
+      "displayName": "大世界",
+      "canonicalEnName": "OpenWorld"
+    },
+    "open world": {
+      "displayName": "大世界",
+      "canonicalEnName": "OpenWorld"
+    },
+    "function": {
+      "displayName": "功能",
+      "canonicalEnName": "Function"
+    },
+    "functions": {
+      "displayName": "功能",
+      "canonicalEnName": "Function"
+    },
+    "管理员": {
+      "displayName": "管理员",
+      "canonicalEnName": "Endministrator"
+    },
+    "提弗洛斯": {
+      "displayName": "提弗洛斯",
+      "canonicalEnName": "Typhoeus"
+    },
+    "typhoeus": {
+      "displayName": "提弗洛斯",
+      "canonicalEnName": "Typhoeus"
+    },
+    "噗切娜": {
+      "displayName": "噗切娜",
+      "canonicalEnName": "Purrchena"
+    },
+    "purrchena": {
+      "displayName": "噗切娜",
+      "canonicalEnName": "Purrchena"
+    },
+    "佩丽卡": {
+      "displayName": "佩丽卡",
+      "canonicalEnName": "Perlica"
+    },
+    "perlica": {
+      "displayName": "佩丽卡",
+      "canonicalEnName": "Perlica"
+    },
+    "陈千语": {
+      "displayName": "陈千语",
+      "canonicalEnName": "Chen Qianyu"
+    },
+    "诀": {
+      "displayName": "诀",
+      "canonicalEnName": "Arcane"
+    },
+    "arcane": {
+      "displayName": "诀",
+      "canonicalEnName": "Arcane"
+    },
+    "梨诺": {
+      "displayName": "梨诺",
+      "canonicalEnName": "Liino"
+    },
+    "liino": {
+      "displayName": "梨诺",
+      "canonicalEnName": "Liino"
+    },
+    "弭弗": {
+      "displayName": "弭弗",
+      "canonicalEnName": "Mi Fu"
+    },
+    "卡缪": {
+      "displayName": "卡繆",
+      "canonicalEnName": "Camille"
+    },
+    "庄方宜": {
+      "displayName": "庄方宜",
+      "canonicalEnName": "Zhuang Fangyi"
+    },
+    "汤汤": {
+      "displayName": "汤汤",
+      "canonicalEnName": "Tangtang"
+    },
+    "tangtang": {
+      "displayName": "汤汤",
+      "canonicalEnName": "Tangtang"
+    },
+    "洛茜": {
+      "displayName": "洛茜",
+      "canonicalEnName": "Rossi"
+    },
+    "rossi": {
+      "displayName": "洛茜",
+      "canonicalEnName": "Rossi"
+    },
+    "莱万汀": {
+      "displayName": "莱万汀",
+      "canonicalEnName": "Laevatain"
+    },
+    "laevatain": {
+      "displayName": "莱万汀",
+      "canonicalEnName": "Laevatain"
+    },
+    "伊冯": {
+      "displayName": "伊冯",
+      "canonicalEnName": "Yvonne"
+    },
+    "yvonne": {
+      "displayName": "伊冯",
+      "canonicalEnName": "Yvonne"
+    },
+    "洁尔佩塔": {
+      "displayName": "洁尔佩塔",
+      "canonicalEnName": "Gilberta"
+    },
+    "gilberta": {
+      "displayName": "洁尔佩塔",
+      "canonicalEnName": "Gilberta"
+    },
+    "艾尔黛拉": {
+      "displayName": "艾尔黛拉",
+      "canonicalEnName": "Ardelia"
+    },
+    "ardelia": {
+      "displayName": "艾尔黛拉",
+      "canonicalEnName": "Ardelia"
+    },
+    "余烬": {
+      "displayName": "余烬",
+      "canonicalEnName": "Ember"
+    },
+    "ember": {
+      "displayName": "余烬",
+      "canonicalEnName": "Ember"
+    },
+    "别礼": {
+      "displayName": "别礼",
+      "canonicalEnName": "Last Rite"
+    },
+    "黎风": {
+      "displayName": "黎风",
+      "canonicalEnName": "Lifeng"
+    },
+    "lifeng": {
+      "displayName": "黎风",
+      "canonicalEnName": "Lifeng"
+    },
+    "骏卫": {
+      "displayName": "骏卫",
+      "canonicalEnName": "Pogranichnik"
+    },
+    "pogranichnik": {
+      "displayName": "骏卫",
+      "canonicalEnName": "Pogranichnik"
+    },
+    "阿列什": {
+      "displayName": "阿列什",
+      "canonicalEnName": "Alesh"
+    },
+    "alesh": {
+      "displayName": "阿列什",
+      "canonicalEnName": "Alesh"
+    },
+    "弧光": {
+      "displayName": "弧光",
+      "canonicalEnName": "Arclight"
+    },
+    "arclight": {
+      "displayName": "弧光",
+      "canonicalEnName": "Arclight"
+    },
+    "艾维文娜": {
+      "displayName": "艾维文娜",
+      "canonicalEnName": "Avywenna"
+    },
+    "avywenna": {
+      "displayName": "艾维文娜",
+      "canonicalEnName": "Avywenna"
+    },
+    "大潘": {
+      "displayName": "大潘",
+      "canonicalEnName": "Da Pan"
+    },
+    "昼雪": {
+      "displayName": "昼雪",
+      "canonicalEnName": "Snowshine"
+    },
+    "snowshine": {
+      "displayName": "昼雪",
+      "canonicalEnName": "Snowshine"
+    },
+    "狼卫": {
+      "displayName": "狼卫",
+      "canonicalEnName": "Wulfgard"
+    },
+    "wulfgard": {
+      "displayName": "狼卫",
+      "canonicalEnName": "Wulfgard"
+    },
+    "赛希": {
+      "displayName": "赛希",
+      "canonicalEnName": "Xaihi"
+    },
+    "xaihi": {
+      "displayName": "赛希",
+      "canonicalEnName": "Xaihi"
+    },
+    "秋栗": {
+      "displayName": "秋栗",
+      "canonicalEnName": "Akekuri"
+    },
+    "akekuri": {
+      "displayName": "秋栗",
+      "canonicalEnName": "Akekuri"
+    },
+    "安塔尔": {
+      "displayName": "安塔尔",
+      "canonicalEnName": "Antal"
+    },
+    "antal": {
+      "displayName": "安塔尔",
+      "canonicalEnName": "Antal"
+    },
+    "卡契尔": {
+      "displayName": "卡契尔",
+      "canonicalEnName": "Catcher"
+    },
+    "catcher": {
+      "displayName": "卡契尔",
+      "canonicalEnName": "Catcher"
+    },
+    "埃特拉": {
+      "displayName": "埃特拉",
+      "canonicalEnName": "Estella"
+    },
+    "estella": {
+      "displayName": "埃特拉",
+      "canonicalEnName": "Estella"
+    },
+    "萤石": {
+      "displayName": "萤石",
+      "canonicalEnName": "Fluorite"
+    },
+    "fluorite": {
+      "displayName": "萤石",
+      "canonicalEnName": "Fluorite"
+    }
+  },
+  "characterNameMap": {
+    "gameId": "endfield",
+    "updatedAt": "2026-07-18",
+    "scope": "Current official operator roster through 2026-07-18",
+    "note": "jasmName fields reflect exact character folder names used by JASM.",
+    "pairs": [
+      {
+        "zh": "汤汤",
+        "en": "Tangtang",
+        "jasmName": "Tangtang"
+      },
+      {
+        "zh": "洛茜",
+        "en": "Rossi",
+        "jasmName": "Rossi"
+      },
+      {
+        "zh": "男主",
+        "en": "Endministrator",
+        "jasmName": "EndministratorMale"
+      },
+      {
+        "zh": "女主",
+        "en": "EndministratorF",
+        "jasmName": "EndministratorFemale"
+      },
+      {
+        "zh": "佩丽卡",
+        "en": "Perlica",
+        "jasmName": "Perlica"
+      },
+      {
+        "zh": "陈千语",
+        "en": "Chen Qianyu",
+        "jasmName": "ChenQianyu"
+      },
+      {
+        "zh": "莱万汀",
+        "en": "Laevatain",
+        "jasmName": "Laevatain"
+      },
+      {
+        "zh": "伊冯",
+        "en": "Yvonne",
+        "jasmName": "Yvonne"
+      },
+      {
+        "zh": "洁尔佩塔",
+        "en": "Gilberta",
+        "jasmName": "Gilberta"
+      },
+      {
+        "zh": "艾尔黛拉",
+        "en": "Ardelia",
+        "jasmName": "Ardelia"
+      },
+      {
+        "zh": "余烬",
+        "en": "Ember",
+        "jasmName": "Ember"
+      },
+      {
+        "zh": "别礼",
+        "en": "Last Rite",
+        "jasmName": "LastRite"
+      },
+      {
+        "zh": "黎风",
+        "en": "Lifeng",
+        "jasmName": "Lifeng"
+      },
+      {
+        "zh": "骏卫",
+        "en": "Pogranichnik",
+        "jasmName": "Pogranichnik"
+      },
+      {
+        "zh": "阿列什",
+        "en": "Alesh",
+        "jasmName": "Alesh"
+      },
+      {
+        "zh": "弧光",
+        "en": "Arclight",
+        "jasmName": "Arclight"
+      },
+      {
+        "zh": "艾维文娜",
+        "en": "Avywenna",
+        "jasmName": "Avywenna"
+      },
+      {
+        "zh": "大潘",
+        "en": "Da Pan",
+        "jasmName": "DaPan"
+      },
+      {
+        "zh": "昼雪",
+        "en": "Snowshine",
+        "jasmName": "Snowshine"
+      },
+      {
+        "zh": "狼卫",
+        "en": "Wulfgard",
+        "jasmName": "Wulfgard"
+      },
+      {
+        "zh": "赛希",
+        "en": "Xaihi",
+        "jasmName": "Xaihi"
+      },
+      {
+        "zh": "秋栗",
+        "en": "Akekuri",
+        "jasmName": "Akekuri"
+      },
+      {
+        "zh": "安塔尔",
+        "en": "Antal",
+        "jasmName": "Antal"
+      },
+      {
+        "zh": "卡契尔",
+        "en": "Catcher",
+        "jasmName": "Catcher"
+      },
+      {
+        "zh": "埃特拉",
+        "en": "Estella",
+        "jasmName": "Estella"
+      },
+      {
+        "zh": "萤石",
+        "en": "Fluorite",
+        "jasmName": "Fluorite"
+      },
+      {
+        "zh": "庄方宜",
+        "en": "Zhuang Fangyi",
+        "jasmName": "ZhuangFangyi"
+      },
+      {
+        "zh": "弭弗",
+        "en": "Mi Fu",
+        "jasmName": "MiFu"
+      },
+      {
+        "zh": "卡繆",
+        "en": "Camille",
+        "jasmName": "Camille"
+      },
+      {
+        "zh": "诀",
+        "en": "Arcane",
+        "jasmName": "Arcane",
+        "aliases": [
+          "オクギ"
+        ]
+      },
+      {
+        "zh": "梨诺",
+        "en": "Liino",
+        "jasmName": "Liino",
+        "aliases": [
+          "リーノ"
+        ]
+      },
+      {
+        "zh": "提弗洛斯",
+        "en": "Typhoeus",
+        "jasmName": "Typhoeus"
+      },
+      {
+        "zh": "噗切娜",
+        "en": "Purrchena",
+        "jasmName": "Purrchena"
+      }
+    ],
+    "sources": [
+      "https://endfield.gryphline.com/en-us/operator",
+      "https://endfield.gryphline.com/ja-jp/operator"
+    ]
+  },
+  "characterImages": {
+    "提弗洛斯": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/typhoea.87cfb4cd.png",
+    "噗切娜": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/purrche.d6659019.png",
+    "佩丽卡": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/prelica.d0bbdb53.png",
+    "陈千语": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/chen.b0afd1ba.png",
+    "诀": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/lizhiyan.7ada7b83.png",
+    "梨诺": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/liino.8d027d2a.png",
+    "弭弗": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/mifu.e1d79970.png",
+    "卡繆": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/camille.a26b2443.png",
+    "庄方宜": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/zhuangfy.50a608b8.png",
+    "汤汤": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/tangtang.b5cd99e9.png",
+    "洛茜": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/rossi.c58b721b.png",
+    "莱万汀": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/laevatain.edd103d4.png",
+    "伊冯": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/yvonne.9695c304.png",
+    "洁尔佩塔": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/gilberta.724f3503.png",
+    "艾尔黛拉": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/ardelia.565c75af.png",
+    "余烬": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/ember.6391acf9.png",
+    "别礼": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/lastrite.3860f541.png",
+    "黎风": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/lifeng.ef41bc3a.png",
+    "骏卫": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/pogranichnik.80f2ddbb.png",
+    "阿列什": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/alesh.d7f457d2.png",
+    "弧光": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/arclight.e31580d7.png",
+    "艾维文娜": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/avywenna.2a592659.png",
+    "大潘": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/dapan.7cdb6a4e.png",
+    "昼雪": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/snowshine.bb2c0bdc.png",
+    "狼卫": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/wulfgard.609a252f.png",
+    "赛希": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/xaihi.9ba3eb36.png",
+    "秋栗": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/akekuri.3603d013.png",
+    "安塔尔": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/antal.763c87e4.png",
+    "卡契尔": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/catcher.bc6bcfaa.png",
+    "埃特拉": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/estella.38c423af.png",
+    "萤石": "https://web.hycdn.cn/endfield/official-v4/_next/static/media/fluorite.5a8add29.png"
+  },
+  "onlineSource": {
+    "urls": [
+      "https://endfield.hypergryph.com/operator"
+    ],
+    "checkedAt": "2026-10-06"
+  }
+}

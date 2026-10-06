@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Side Panel</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Segoe UI', -apple-system, sans-serif;
+    background: transparent;
+    color: #333;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+}
+.side-root {
+    height: 100vh;
+    width: 100vw;
+    padding: 8px;
+    display: flex;
+}
+.side-panel {
+    width: 100%;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.side-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-bottom: 1px solid rgba(0,0,0,0.06);
+    flex-shrink: 0;
+}
+.side-title { flex: 1; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-close {
+    width: 26px; height: 26px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.6); cursor: pointer; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.side-close:hover { background: rgba(231,76,60,0.1); color: #e74c3c; }
+.side-body {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding: 12px;
+}
+.side-body.character-browser { padding: 8px; }
+.side-body::-webkit-scrollbar { width: 5px; }
+.side-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+
+/* Bubble grid for character selection */
+.bubble-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-content: start;
+    gap: 10px;
+    padding: 4px;
+}
+.bubble-avatar {
+    width: 100%; aspect-ratio: 1; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.8); border: 2px solid rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); cursor: pointer;
+    transition: all 0.2s; overflow: hidden; font-size: 16px; font-weight: 700; color: #aaa;
+}
+.bubble-avatar:hover { transform: scale(1.08); border-color: #ff9a9e; box-shadow: 0 4px 16px rgba(255,154,158,0.3); }
+.bubble-avatar.active { border-color: #ff9a9e; box-shadow: 0 4px 16px rgba(255,154,158,0.3); }
+.bubble-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Detail view */
+.detail-preview-img { width: 100%; border-radius: 10px; margin-bottom: 10px; }
+.detail-hotkey-section { font-size: 11px; }
+.detail-hotkey-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+.detail-hotkey-row:last-child { border-bottom: none; }
+.detail-hotkey-desc { color: #666; font-weight: 500; flex: 1; min-width: 0; }
+.detail-hotkey-keys { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; max-width: 58%; }
+.detail-hotkey-alt { display: flex; gap: 3px; align-items: center; flex-wrap: wrap; }
+.detail-hotkey-or { font-size: 9px; color: #aaa; align-self: center; }
+.detail-hotkey-note { display: block; font-size: 9px; color: #d35400; margin-top: 3px; font-weight: 600; }
+.detail-kbd {
+    background: linear-gradient(145deg, #fff, #f0f0f0); border: 1px solid #d1d1d1;
+    border-bottom: 2px solid #b0b0b0; border-radius: 4px; padding: 1px 5px;
+    font-family: 'Consolas', monospace; font-size: 9px; font-weight: bold; color: #555;
+}
+.detail-toggle-btn {
+    width: 100%; padding: 10px; border: none; border-radius: 10px;
+    font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    margin-top: 10px; font-family: inherit;
+}
+.detail-hotkey-row.clickable {
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 4px;
+    background: rgba(255,154,158,0.07);
+    border: 1px solid rgba(255,154,158,0.15);
+    transition: all 0.15s;
+}
+.detail-hotkey-row.clickable:hover {
+    background: rgba(255,154,158,0.12);
+    border-color: rgba(255,154,158,0.28);
+}
+.detail-hotkey-row.clickable:last-child { margin-bottom: 0; }
+.side-toast {
+    position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%);
+    background: linear-gradient(135deg, #ff9a9e, #fecfef); color: white;
+    padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.side-toast.show { opacity: 1; }
+
+html.overlay-compat body {
+    background: #f8fafc;
+}
+
+html.overlay-compat .side-root {
+    padding: 0;
+}
+
+html.overlay-compat .side-panel {
+    background: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: 0;
+    border: 1px solid #d1d5db;
+    box-shadow: none;
+}
+
+html.overlay-compat .side-header {
+    background: #f3f4f6;
+    border-bottom-color: #d1d5db;
+}
+
+html.overlay-compat .side-close {
+    background: #fff;
+    border-color: #d1d5db;
+}
+
+html.overlay-compat #sideZoomOut,
+html.overlay-compat #sideZoomIn,
+html.overlay-compat .detail-preview-img {
+    display: none;
+}
+
+html.overlay-compat .bubble-avatar,
+html.overlay-compat .detail-hotkey-row.clickable,
+html.overlay-compat .detail-toggle-btn,
+html.overlay-compat .detail-kbd {
+    box-shadow: none;
+    transition: none;
+}
+
+html.overlay-compat *,
+html.overlay-compat *::before,
+html.overlay-compat *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation: none !important;
+    transition: none !important;
+    text-shadow: none !important;
+}
+</style>
+</head>
+<body>
+<div class="side-root">
+    <div class="side-panel">
+        <div class="side-header">
+            <div class="side-title" id="sideTitle">加载中...</div>
+            <button class="side-close" id="sideZoomOut" title="缩小">➖</button>
+            <button class="side-close" id="sideZoomIn" title="放大">➕</button>
+            <button class="side-close" id="sideClose">✕</button>
+        </div>
+        <div class="side-body" id="sideBody"></div>
+        <div class="side-toast" id="sideToast"></div>
+    </div>
+</div>
+
+<script>
+    let sideToastTimer = null;
+    let sideCompatibilityMode = false;
+
+    async function syncSideCompatibilityMode() {
+        try {
+            const result = await window.overlayApi.getSettings();
+            sideCompatibilityMode = !!result?.settings?.compatibilityMode;
+            document.documentElement.classList.toggle('overlay-compat', sideCompatibilityMode);
+        } catch {
+            sideCompatibilityMode = false;
+        }
+    }
+
+    syncSideCompatibilityMode();
+
+    function showSideToast(message) {
+        const el = document.getElementById('sideToast');
+        el.textContent = message;
+        el.classList.remove('show');
+        void el.offsetWidth;
+        el.classList.add('show');
+        clearTimeout(sideToastTimer);
+        sideToastTimer = setTimeout(() => {
+            el.classList.remove('show');
+        }, 1800);
+    }
+
+    function parseHotkeyPayload(value) {
+        if (!value) return null;
+        try {
+            return JSON.parse(decodeURIComponent(value));
+        } catch {
+            return null;
+        }
+    }
+
+    async function applyDetailHotkey(row) {
+        const hotkey = parseHotkeyPayload(row.dataset.hotkeyPayload);
+        const description = row.dataset.hotkeyDesc || '快捷键';
+        if (!hotkey) {
+            showSideToast('没有可应用的快捷键');
+            return;
+        }
+        try {
+            const result = await window.overlayApi.applyHotkey({ hotkey });
+            if (result.success) {
+                showSideToast(`${description} 已应用`);
+            } else {
+                showSideToast(result.error || '应用失败');
+            }
+        } catch {
+            showSideToast('应用失败');
+        }
+    }
+
+    document.getElementById('sideClose').addEventListener('click', () => {
+        window.overlayApi.hideSide();
+    });
+
+    // Zoom buttons
+    let currentWidth = parseInt(localStorage.getItem('side-panel-width') || '300');
+    document.getElementById('sideZoomIn').addEventListener('click', async () => {
+        currentWidth = Math.min(550, currentWidth + 50);
+        const result = await window.overlayApi.resizeSide(currentWidth);
+        if (result.success) localStorage.setItem('side-panel-width', String(result.width));
+    });
+    document.getElementById('sideZoomOut').addEventListener('click', async () => {
+        currentWidth = Math.max(200, currentWidth - 50);
+        const result = await window.overlayApi.resizeSide(currentWidth);
+        if (result.success) localStorage.setItem('side-panel-width', String(result.width));
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') window.overlayApi.hideSide();
+    });
+
+    // Listen for content updates from main process
+    window.overlayApi.onSideContent((data) => {
+        // Sync currentWidth from main process to ensure zoom buttons work correctly
+        if (data.currentWidth) {
+            currentWidth = data.currentWidth;
+        }
+        if (data.title) document.getElementById('sideTitle').textContent = data.title;
+        const sideBody = document.getElementById('sideBody');
+        sideBody.classList.toggle('character-browser', data.type === 'characters');
+        if (data.html) {
+            sideBody.innerHTML = data.html;
+            sideBody.scrollTop = 0;
+        }
+
+        // Bind click events for character bubbles
+        if (data.type === 'characters') {
+            document.querySelectorAll('.bubble-avatar').forEach(el => {
+                el.addEventListener('click', () => {
+                    window.overlayApi.selectCharFromSide(el.dataset.name);
+                });
+            });
+        }
+
+        // Bind toggle button for detail view
+        if (data.type === 'detail') {
+            const toggleBtn = document.getElementById('detailToggleBtn');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', async () => {
+                    toggleBtn.disabled = true;
+                    const originalText = toggleBtn.textContent;
+                    toggleBtn.textContent = data.modEnabled ? '正在禁用...' : '正在启用...';
+                    try {
+                        const result = await window.overlayApi.toggleMod(data.charName, data.modName, !data.modEnabled);
+                        if (result.success) {
+                            showSideToast(!data.modEnabled ? '已启用' : '已禁用');
+                            window.overlayApi.hideSide();
+                        } else {
+                            showSideToast(result?.error || '切换失败');
+                        }
+                    } catch {
+                        showSideToast('切换失败');
+                    } finally {
+                        toggleBtn.disabled = false;
+                        toggleBtn.textContent = originalText;
+                    }
+                });
+            }
+
+            const markBtn = document.getElementById('detailMarkBtn');
+            if (markBtn) {
+                markBtn.addEventListener('click', async () => {
+                    const nextMarked = markBtn.dataset.marked !== 'true';
+                    markBtn.disabled = true;
+                    try {
+                        const result = await window.overlayApi.setModMarked(data.charName, data.modName, nextMarked);
+                        if (result?.success) {
+                            markBtn.dataset.marked = nextMarked ? 'true' : 'false';
+                            markBtn.textContent = nextMarked ? '🏷️ 取消标记' : '🔖 标记此 Mod';
+                            markBtn.style.background = nextMarked ? 'linear-gradient(135deg, #ff9a9e, #fecfef)' : '#f5f5f5';
+                            markBtn.style.color = nextMarked ? '#fff' : '#666';
+                            showSideToast(nextMarked ? '已标记' : '已取消标记');
+                        } else {
+                            showSideToast(result?.error || '标记失败');
+                        }
+                    } catch {
+                        showSideToast('标记失败');
+                    } finally {
+                        markBtn.disabled = false;
+                    }
+                });
+            }
+
+            if (data.clickableHotkeysEnabled) {
+                document.querySelectorAll('.detail-hotkey-row.clickable').forEach(row => {
+                    row.addEventListener('click', () => {
+                        applyDetailHotkey(row);
+                    });
+                    row.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            applyDetailHotkey(row);
+                        }
+                    });
+                });
+            }
+        }
+    });
+</script>
+</body>
+</html>
