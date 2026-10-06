@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawn: nativeSpawn } = require('node:child_process');
-const { parseMegaLink } = require('./mega-revival.cjs');
+const { parseMegaLink, unlockMegaLink } = require('./mega-revival.cjs');
 const { readJsonFileSync, writeJsonFileSync } = require('./json-store.cjs');
 
 function createMegaTaskManager({ userData, getCacheDir, onProgress = () => {}, openDirectory = async () => '', spawn = nativeSpawn,
@@ -116,12 +116,15 @@ function createMegaTaskManager({ userData, getCacheDir, onProgress = () => {}, o
     if (stateError) throw new Error(stateError);
     if (!fs.existsSync(executable)) throw new Error('MEGA 下载核心尚未构建，请运行构建脚本');
     if (!Array.isArray(links) || !links.length || links.length > 50) throw new Error('请选择 1 至 50 个 MEGA 链接');
-    const urls = [...new Set(links.map(item => {
-      const link = parseMegaLink(typeof item === 'string' ? item : item?.url, item?.key || '');
+    const resolvedUrls = [];
+    for (const item of links) {
+      let link = parseMegaLink(typeof item === 'string' ? item : item?.url, item?.key || '');
+      if (link.needsPassword) link = await unlockMegaLink(link.url, item?.password);
       if (link.needsKey) throw new Error('MEGA 链接缺少解密密钥，请先填写');
       if (link.type === 'encrypted' && /^mega:\/\/elc/i.test(link.url)) throw new Error('暂不支持 ELC 容器，请使用文件或文件夹分享链接');
-      return link.url;
-    }))];
+      resolvedUrls.push(link.url);
+    }
+    const urls = [...new Set(resolvedUrls)];
     const base = path.resolve(getCacheDir(), 'MEGA'); fs.mkdirSync(base, { recursive: true });
     const queued = [];
     for (const url of urls) {

@@ -13,6 +13,16 @@ const endfield = path.join(root, 'endfield-mods');
 const loader = path.join(root, 'XXMI Launcher.exe');
 const fixerExe = path.join(root, "独立修复器 & Tester's tool.exe");
 const replacementFixerExe = path.join(root, '另一个修复器.exe');
+const attachmentRequests = [], externalLinks = [];
+const softwareUpdateRequests = [];
+let softwareReleaseVersion = '1.0.1';
+const attachmentZip = new (runtimeRequire('adm-zip'))();
+attachmentZip.addFile('FixtureMod/mod.ini', Buffer.from('[TextureOverrideFixture]\nhash = 12345678\n'));
+const attachmentBytes = attachmentZip.toBuffer();
+const protectedNormal = 'https://mega.nz/folder/AbcdEF12#' + Buffer.alloc(16, 7).toString('base64url');
+const protectedSalt = Buffer.alloc(32, 3), protectedDerived = crypto.pbkdf2Sync('smoke-password', protectedSalt, 100000, 64, 'sha512');
+const protectedData = Buffer.concat([Buffer.from([2, 0]), Buffer.from('AbcdEF12', 'base64url'), protectedSalt, Buffer.from(Buffer.alloc(16, 7).map((b,i)=>b ^ protectedDerived[i]))]);
+const protectedLink = 'https://mega.nz/#P!' + Buffer.concat([protectedData, crypto.createHmac('sha256', protectedDerived.subarray(32)).update(protectedData).digest()]).toString('base64url');
 fs.mkdirSync(profile, { recursive: true });
 fs.writeFileSync(loader, 'Synthetic test fixture, never executed');
 fs.writeFileSync(fixerExe, 'Synthetic fixer, never executed');
@@ -54,6 +64,7 @@ BrowserWindow.prototype.focus = function () {};
 app.on('browser-window-created', (_, createdWindow) => createdWindow.webContents.setBackgroundThrottling(false));
 electron.dialog.showMessageBox = async () => ({ response: 1 });
 electron.dialog.showErrorBox = (title, content) => console.error(title, content);
+electron.shell.openExternal = async url => { externalLinks.push(url); };
 const fixerSelections = [];
 let nextFixerSelection = { canceled: false, filePaths: [fixerExe] };
 electron.dialog.showOpenDialog = async (_window, options) => {
@@ -74,13 +85,22 @@ const pawPosts = Array.from({ length: 51 }, (_, i) => ({ id: String(1000 - i), u
   title: `历史模组 ${i}`, content: '<p>用于界面验证的测试内容。</p>', published: '2026-08-11T00:25:35', edited: '2026-08-11T00:25:35', attachments: [] }));
 pawPosts[0].file = { name: '晨光预览.png', path: '/smoke/cover.png' };
 pawPosts[0].attachments = [pawPosts[0].file, { name: '细节预览.png', path: '/smoke/detail.png' }, { name: 'mod.zip', path: '/smoke/mod.zip' }];
-pawPosts[0].content = '<p>用于界面验证的测试内容。</p><img src="/data/smoke/inline.png"><img src="javascript:window.pawXss=true">';
+pawPosts[0].content = '<p>用于界面验证的测试内容。</p><img src="/data/smoke/inline.png"><img src="javascript:window.pawXss=true"><p>' + protectedLink + '</p>';
 const kemonoPosts = [{ ...pawPosts[0], title: 'Kemono 测试 MOD' }];
 let pawOffline = false;
 let delayedPost = '';
 let catalogRequests = 0, catalogOffline = false;
-electron.net.fetch = async address => {
+electron.net.fetch = async (address, options = {}) => {
   const url = new URL(address);
+  if (url.href === 'https://api.github.com/repos/QAQ-Revival/QAQ-Revival/releases/latest') {
+    softwareUpdateRequests.push(options);
+    return new Response(JSON.stringify({ tag_name: 'v' + softwareReleaseVersion, html_url: 'https://github.com/QAQ-Revival/QAQ-Revival/releases/tag/v' + softwareReleaseVersion,
+      published_at: '2026-10-06T00:00:00Z', draft: false, prerelease: false, body: 'Smoke update fixture' }), { headers: { 'content-type': 'application/json' } });
+  }
+  if (['file.pawchive.pw', 'n3.kemono.cr'].includes(url.hostname) && url.pathname === '/data/smoke/mod.zip') {
+    attachmentRequests.push(url.href);
+    return new Response(attachmentBytes, { headers: { 'content-type': 'application/zip', 'content-length': String(attachmentBytes.length) } });
+  }
   if (url.origin === 'https://api.encore.moe') {
     catalogRequests++;
     if (catalogOffline) throw Error('Synthetic catalog offline');
@@ -91,7 +111,7 @@ electron.net.fetch = async address => {
     let data;
     if (url.pathname.endsWith('/creators')) data = [{ ...pawCreators[0], name: 'Kemono 测试作者' }];
     else if (url.pathname.endsWith('/profile')) data = { ...pawCreators[0], name: 'Kemono 测试作者' };
-    else if (url.pathname.includes('/post/')) data = { post: kemonoPosts[0] };
+    else if (url.pathname.includes('/post/')) data = { post: kemonoPosts[0], attachments: kemonoPosts[0].attachments.map(file => ({ ...file, server: 'https://n3.kemono.cr' })) };
     else data = url.pathname.includes('/user/') ? { results: kemonoPosts, props: { count: 1 } } : { posts: kemonoPosts, count: 1 };
     return new Response(JSON.stringify(data), { headers: { 'content-type': 'text/css; charset=utf-8' } });
   }
@@ -138,10 +158,11 @@ runtimeRequire.cache[revivalModulePath].exports = { ...revivalModule,
   registerRevivalIpc: options => revivalModule.registerRevivalIpc({ ...options,
     spawn: (file, args, options) => {
       const { PassThrough } = require('node:stream');
-      const child = new EventEmitter(); child.stdin = new PassThrough(); child.stdout = new PassThrough(); child.stderr = new PassThrough();
+      const child = new EventEmitter(); child.stdin = new PassThrough(); child.stdout = new PassThrough(); child.stderr = new PassThrough(); child.requests = [];
       child.progress = data => child.stdout.write(JSON.stringify(data) + '\n'); child.kill = () => child.emit('close');
       child.stdin.on('data', bytes => {
         const request = JSON.parse(bytes.toString());
+        child.requests.push(request);
         if (request.url) { revivalRequests.push({ file, args, options, ...request }); child.progress({ status: 'downloading', downloaded: 1048576, total: 5242880, percent: 20, currentFile: 'SubA/测试模组.zip', filesCompleted: 0, filesTotal: 2 }); }
         else if (request.action === 'pause') child.progress({ status: 'paused' });
         else if (request.action === 'resume') child.progress({ status: 'downloading', percent: 40 });
@@ -245,6 +266,11 @@ async function main() {
   assert.equal(await evaluate(`'getTutorialUrl' in window.api || 'getAnnouncements' in window.api`), false);
   await require('./window-controls-smoke.cjs')({ evaluate, waitFor, window, handlers, passed });
   await require('./sidebar-width-smoke.cjs')({ evaluate, waitFor, window, passed });
+  if (process.env.QAQM_SMOKE_SCOPE === 'post-links') {
+    await require('./post-links-smoke.cjs')({ evaluate, waitFor, captureUI, window, root, passed, handlers, attachmentRequests, attachmentBytes, externalLinks, protectedLink, protectedNormal, revivalChildren, setSelection: result => { nextFixerSelection = result; } });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
   if (process.env.QAQM_SMOKE_SCOPE === 'market-scope') {
     await require('./market-request-scope-smoke.cjs')({ evaluate, waitFor, window, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
@@ -663,6 +689,8 @@ async function main() {
   window.setSize(surfaceWidth + 1, surfaceHeight);
   window.setSize(surfaceWidth, surfaceHeight);
   await require('./import-group-smoke.cjs')({ evaluate, waitFor, captureUI, root, passed, setSelection: result => { nextFixerSelection = result; } });
+  await require('./post-links-smoke.cjs')({ evaluate, waitFor, captureUI, window, root, passed, handlers, attachmentRequests, attachmentBytes, externalLinks, protectedLink, protectedNormal, revivalChildren, setSelection: result => { nextFixerSelection = result; } });
+  await require('./software-updates-smoke.cjs')({ evaluate, waitFor, window, passed, requests: softwareUpdateRequests, externalLinks, setRelease: version => { softwareReleaseVersion = version; } });
   fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
   app.exit(0);
 }

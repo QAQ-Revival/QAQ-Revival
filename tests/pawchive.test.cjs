@@ -188,7 +188,7 @@ test('all images survive normalization, duplicate files are removed and previews
     { name: 'mod.zip', path: '/aa/bb/mod.zip' }, { name: 'bad.png', path: '/../bad.png' }];
   const { post } = await f.service.getPost({ service: 'patreon', user: '123', id: '1000' });
   assert.equal(post.images.length, 3);
-  assert.equal(post.images[0].url, 'https://pawchive.pw/data/aa/bb/cover.jpg');
+  assert.equal(post.images[0].url, 'https://file.pawchive.pw/data/aa/bb/cover.jpg?f=cover.jpg');
   assert.equal(post.images[1].thumbnail, 'https://img.pawchive.pw/thumbnail/data/aa/bb/second.PNG');
   assert.equal(post.images[2].url, post.images[2].thumbnail);
   assert.equal(post.attachments.some(file => file.path.includes('..')), false);
@@ -222,6 +222,6 @@ test('Kemono documented endpoints, text/css JSON, wrapped responses, paging and 
   const { post } = await kemono.getPost({ service: 'patreon', user: '123', id: '1000' });
   assert.equal(post.url, 'https://kemono.cr/patreon/user/123/post/1000');
   assert.equal(post.images[0].thumbnail, 'https://img.kemono.cr/thumbnail/data/aa/bb/cover.png');
-  assert.equal(post.images[0].url, 'https://kemono.cr/data/aa/bb/cover.png');
+  assert.equal(post.images[0].url, 'https://kemono.cr/data/aa/bb/cover.png?f=cover.png');
   assert.ok(fs.existsSync(path.join(f.userData, 'kemono-favorites.json')));
 });

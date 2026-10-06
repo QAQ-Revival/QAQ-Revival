@@ -31,5 +31,6 @@ public static class RevivalVersionResource {
 '@
 [RevivalVersionResource]::Stamp((Resolve-Path -LiteralPath $Executable).Path, [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $VersionResource).Path))
 $versionInfo = [System.Diagnostics.FileVersionInfo]::GetVersionInfo((Resolve-Path -LiteralPath $Executable).Path)
-if ($versionInfo.ProductVersion -ne '1.0.0' -or $versionInfo.ProductName -ne 'QAQ-Revival') { throw 'Executable version verification failed' }
+$appManifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\app\package.json') -Raw | ConvertFrom-Json
+if ($versionInfo.ProductVersion -ne $appManifest.version -or $versionInfo.ProductName -ne $appManifest.productName) { throw 'Executable version verification failed' }
 $versionInfo | Select-Object ProductName,ProductVersion,FileVersion,OriginalFilename

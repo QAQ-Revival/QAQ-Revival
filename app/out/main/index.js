@@ -47,15 +47,19 @@ const { createIndependentFixer } = require("./independent-fixer.cjs");
 const { createCharacterCatalogService, imageUrl: safeCharacterImageUrl } = require("./character-catalog.cjs");
 const { registerPawchiveIpc } = require("./pawchive.cjs");
 const { registerRevivalIpc } = require("./mega-task-manager.cjs");
+const { registerArchiveDownloads } = require("./archive-downloads.cjs");
+const { registerSoftwareUpdates } = require("./software-updates.cjs");
 const windowsLauncher = createWindowsLauncher({ isElevated: isProcessElevated });
 const crypto = require("crypto");
 const pathTo7zip = require("7zip-bin");
 const iconv = require("iconv-lite");
 const node_crypto = require("node:crypto");
 const fs$1 = require("node:fs");
-registerPawchiveIpc({ ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow, powerMonitor: electron.powerMonitor, userData: localProfile, fetch: (...args) => electron.net.fetch(...args) });
-registerPawchiveIpc({ source: 'kemono', ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow, powerMonitor: electron.powerMonitor, userData: localProfile, fetch: (...args) => electron.net.fetch(...args) });
+const pawchiveService = registerPawchiveIpc({ ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow, powerMonitor: electron.powerMonitor, userData: localProfile, fetch: (...args) => electron.net.fetch(...args) });
+const kemonoService = registerPawchiveIpc({ source: 'kemono', ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow, powerMonitor: electron.powerMonitor, userData: localProfile, fetch: (...args) => electron.net.fetch(...args) });
 registerRevivalIpc({ ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow, shell: electron.shell, userData: localProfile, getCacheDir: ensureMarketDownloadCacheDir });
+registerSoftwareUpdates({ ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow, powerMonitor: electron.powerMonitor,
+  shell: electron.shell, userData: localProfile, fetch: (...args) => electron.net.fetch(...args) });
 const LOGS_DIR = path.join(electron.app.getPath("userData"), "logs");
 if (!fs.existsSync(LOGS_DIR)) {
   try {
@@ -12493,6 +12497,10 @@ async function downloadMarketFile(event, taskId, download, control = null) {
     if (!response.ok || !response.body) {
       throw new Error(`下载失败：HTTP ${response.status}`);
     }
+    if (download.rejectHtml && /text\/html|application\/xhtml/i.test(response.headers.get('content-type') || '')) {
+      await response.body.cancel();
+      throw new Error('文件服务器返回了网页，附件未下载，请稍后重试');
+    }
     const contentLength = Number(response.headers.get("content-length") || 0) || 0;
     const rangeTotal = parseContentRangeTotal(response.headers.get("content-range"));
     const total = expectedTotal || rangeTotal || existingSize + contentLength || 0;
@@ -12596,6 +12604,24 @@ async function downloadMarketFile(event, taskId, download, control = null) {
     if (control?.abortController === abortController2) control.abortController = null;
   }
 }
+registerArchiveDownloads({
+  ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow,
+  userData: localProfile, services: { pawchive: pawchiveService, kemono: kemonoService },
+  transfer: async (task, onProgress) => {
+    const sender = { send: (_channel, progress) => onProgress(progress) };
+    const control = createMarketDownloadControl(task.taskId, sender);
+    try { return await downloadMarketFile({ sender }, task.taskId, task.download, control); }
+    finally { marketDownloadControls.delete(task.taskId); }
+  },
+  controlTransfer: (taskId, action) => {
+    const control = marketDownloadControls.get(taskId);
+    if (!control) return;
+    if (action === 'pause') control.paused = true;
+    if (action === 'resume') resumeMarketDownloadControl(control);
+    if (action === 'cancel') { control.canceled = true; resumeMarketDownloadControl(control); control.abortController?.abort(); }
+  },
+  openFile: file => electron.shell.showItemInFolder(file)
+});
 function formatMarketDownloadError(code, message) {
   const raw = String(message || "").trim();
   if (code === "LOGIN_REQUIRED" || code === "SESSION_EXPIRED") {

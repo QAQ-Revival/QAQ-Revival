@@ -22,7 +22,12 @@ export function readableContent(content, base) {
     return url ? [{ url, name: node.getAttribute('alt') || '正文图片' }] : [];
   });
   doc.querySelectorAll('p, div, br, li, h1, h2, h3, tr').forEach(node => node.append('\n'));
-  return { text: doc.body.textContent.replace(/\n{3,}/g, '\n\n').trim(), links, images };
+  const text = doc.body.textContent.replace(/[\u200b\u200c\u200d\ufeff]/g, '').replace(/\n{3,}/g, '\n\n').trim();
+  for (const match of text.match(/https?:\/\/[^\s<>"'，。；）)\]]+/gi) || []) {
+    const url = webUrl(match.replace(/[.,;:!?]+$/, ''), base);
+    if (url) links.push({ url, label: /mega\.(?:nz|co\.nz|io)\/#P!/i.test(url) ? 'MEGA 密码保护链接' : url });
+  }
+  return { text, links: [...new Map(links.map(link => [link.url, link])).values()], images };
 }
 
 export function postImages(post, inline = []) {
@@ -55,6 +60,8 @@ export default function PostDialog({ selected, posts, source, onSelect, onClose,
   const [error, setError] = React.useState('');
   const [retry, setRetry] = React.useState(0);
   const [imageIndex, setImageIndex] = React.useState(0);
+  const [attachmentState, setAttachmentState] = React.useState({});
+  const attachmentLocks = React.useRef(new Set());
   const dialog = React.useRef(null);
   const scroll = React.useRef(null);
   const post = detail?.key === key ? detail.post : selected;
@@ -63,7 +70,22 @@ export default function PostDialog({ selected, posts, source, onSelect, onClose,
   const images = React.useMemo(() => postImages(post, content.images), [post, content]);
   const index = Math.min(imageIndex, Math.max(0, images.length - 1));
   const current = images[index];
-  const files = [...new Map([post.file, ...(post.attachments || [])].filter(Boolean).map(file => [file.path, file])).values()];
+  const files = [...new Map([post.file, ...(post.attachments || [])].filter(file => file && !file.isImage && !file.thumbnail && !/\.(?:jpe?g|png|gif|webp|avif|bmp|apng|svg|ico|tiff?|heic|heif|jxl)(?:$|[?#])/i.test(file.path || file.name || '')).map(file => [file.path, file])).values()];
+  async function downloadAttachment(file) {
+    const stateKey = `${source}:${key}:${file.path}`;
+    if (attachmentLocks.current.has(stateKey)) return;
+    attachmentLocks.current.add(stateKey);
+    setAttachmentState(state => ({ ...state, [stateKey]: { busy: true } }));
+    try {
+      const result = await window.api.attachmentDownload({ source, post: { service: post.service, user: post.user, id: post.id }, filePath: file.path });
+      if (!result?.success) throw new Error(result?.error || '无法添加附件下载');
+      window.dispatchEvent(new CustomEvent('qaqm:download-task-queued', { detail: result.task }));
+      window.dispatchEvent(new CustomEvent('qaqm:open-download-orb'));
+      setAttachmentState(state => ({ ...state, [stateKey]: { message: '已加入下载管理' } }));
+    } catch (error) {
+      setAttachmentState(state => ({ ...state, [stateKey]: { error: error.message || '附件下载失败' } }));
+    } finally { attachmentLocks.current.delete(stateKey); }
+  }
   const related = posts.some(item => postKey(item) === key) ? posts : [selected, ...posts];
   function moveImage(delta) { if (images.length > 1) setImageIndex(value => (value + delta + images.length) % images.length); }
 
@@ -137,9 +159,14 @@ export default function PostDialog({ selected, posts, source, onSelect, onClose,
             h('div', { className: 'paw-post-content' }, content.text || (loading ? '' : '作者未填写正文。')),
             content.links.length > 0 && h('div', { className: 'paw-content-links' }, h('h3', null, '正文链接'), ...content.links.map((link, i) =>
               h('button', { key: i, className: 'paw-text-button', title: link.url, onClick: () => openExternal(link.url) }, link.label, ' ↗'))),
-            files.length > 0 && h('div', { className: 'paw-files' }, h('h3', null, `附件 · ${files.length}`), ...files.map(file =>
-              h('button', { className: 'paw-file', key: file.path, onClick: () => openExternal(file.url || post.url), title: file.previewOnly ? '查看附件预览' : '在浏览器打开附件' },
-                '📎 ', file.name || '未命名附件', file.previewOnly ? ' · 预览 ↗' : ' ↗')))),
+            files.length > 0 && h('div', { className: 'paw-files' }, h('h3', null, `附件 · ${files.length}`), ...files.map(file => {
+              const state = attachmentState[`${source}:${key}:${file.path}`] || {};
+              return h('div', { key: file.path },
+                h('button', { className: 'paw-file', disabled: state.busy || file.previewOnly, onClick: () => downloadAttachment(file), title: file.previewOnly ? '此附件仅提供预览' : '使用内置下载管理器下载', 'data-file-path': file.path },
+                  '📎 ', file.name || '未命名附件', state.busy ? ' · 正在加入…' : file.previewOnly ? ' · 仅预览' : ' ↓'),
+                state.error && h('p', { className: 'paw-alert', role: 'alert' }, state.error),
+                state.message && h('p', { className: 'paw-notice', role: 'status' }, state.message));
+            }))),
           h('footer', { className: 'paw-modal-footer' },
             favoriteButton(post.creator),
             selected.changeKind && h('button', { className: 'paw-button', onClick: () => onMarkRead(selected) }, '✓ 已读'),

@@ -87,6 +87,21 @@ const api = {
     return () => electron.ipcRenderer.removeListener("kemono:progress", handler);
   },
   megaRevivalDownload: (payload) => electron.ipcRenderer.invoke("mega:revival-download", payload),
+  attachmentDownload: (payload) => electron.ipcRenderer.invoke("attachment:download", payload),
+  attachmentTasks: () => electron.ipcRenderer.invoke("attachment:list"),
+  attachmentControl: (payload) => electron.ipcRenderer.invoke("attachment:control", payload),
+  attachmentOpen: (taskId) => electron.ipcRenderer.invoke("attachment:open", { taskId }),
+  attachmentImportPaths: (taskId) => electron.ipcRenderer.invoke("attachment:importPaths", { taskId }),
+  softwareUpdateState: () => electron.ipcRenderer.invoke('software-update:state'),
+  softwareUpdateConfigure: (settings) => electron.ipcRenderer.invoke('software-update:configure', settings),
+  softwareUpdateCheck: () => electron.ipcRenderer.invoke('software-update:check'),
+  softwareUpdateOpenRelease: () => electron.ipcRenderer.invoke('software-update:open'),
+  softwareUpdateDismiss: (version) => electron.ipcRenderer.invoke('software-update:dismiss', version),
+  onSoftwareUpdateState: (callback) => {
+    const handler = (_event, state) => callback(state);
+    electron.ipcRenderer.on('software-update:changed', handler);
+    return () => electron.ipcRenderer.removeListener('software-update:changed', handler);
+  },
   megaRevivalTasks: () => electron.ipcRenderer.invoke("mega:revival-list"),
   megaRevivalControl: (payload) => electron.ipcRenderer.invoke("mega:revival-control", payload),
   megaRevivalOpen: (taskId) => electron.ipcRenderer.invoke("mega:revival-open", { taskId }),

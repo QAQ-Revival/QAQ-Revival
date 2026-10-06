@@ -5,11 +5,31 @@ const path = require('node:path');
 const os = require('node:os');
 const { EventEmitter } = require('node:events');
 const { PassThrough } = require('node:stream');
-const { parseMegaLink, extractMegaLinks } = require('../app/out/main/mega-revival.cjs');
+const { parseMegaLink, extractMegaLinks, unlockMegaLink } = require('../app/out/main/mega-revival.cjs');
 const { createMegaTaskManager, registerRevivalIpc } = require('../app/out/main/mega-task-manager.cjs');
 const file = 'https://mega.nz/file/AbcdEF12#' + 'a'.repeat(43);
 const folder = 'https://mega.nz/folder/BbcdEF12#' + 'b'.repeat(22);
 const tick = () => new Promise(resolve => setImmediate(resolve));
+function protectedLink({ algorithm = 2, folder = false, password = '作者密码' } = {}) {
+  const crypto = require('node:crypto');
+  const salt = Buffer.from(Array.from({ length: 32 }, (_,i)=>i)), key = Buffer.alloc(folder ? 16 : 32, 7), handle = Buffer.from('AbcdEF12','base64url');
+  const derived = crypto.pbkdf2Sync(password.trim(), salt, algorithm === 0 ? 1000 : 100000, 64, 'sha512');
+  const encrypted = Buffer.from(key.map((value,i)=>value ^ derived[i]));
+  const data = Buffer.concat([Buffer.from([algorithm,folder?0:1]),handle,salt,encrypted]);
+  const mac = algorithm===1 ? crypto.createHmac('sha256',data).update(derived.subarray(32)).digest() : crypto.createHmac('sha256',derived.subarray(32)).update(data).digest();
+  return { url:'https://mega.nz/#P!'+Buffer.concat([data,mac]).toString('base64url'), normal:`https://mega.nz/${folder?'folder':'file'}/AbcdEF12#${key.toString('base64url')}` };
+}
+test('MEGA #P! links in unlinked HTML text are recognized and decrypted with the supplied password', async () => {
+  const real='https://mega.nz/#P!AgE8iEVIvoDc8tZGJHvIJI5iHHkfFrBZkIqrklYUUbfzuh7GaPVRsM1UyHmMDwTRFKtbFgA1y51ieinAtFSea4u-fI5Ecuje-Ig1gTduCZrkn4ay0ebDP5V11e4GAj9kEmKGqsUCkJI';
+  assert.equal(extractMegaLinks('<p>'+real+'</p>')[0].needsPassword,true);
+  for(const algorithm of [0,1,2]) for(const folder of [false,true]) {
+    const fixture=protectedLink({algorithm,folder});
+    assert.equal((await unlockMegaLink(fixture.url,' 作者密码 ')).url,fixture.normal);
+    await assert.rejects(unlockMegaLink(fixture.url,'wrong'),/密码不正确/);
+  }
+  await assert.rejects(unlockMegaLink(real,''),/填写作者提供的密码/);
+  assert.throws(()=>parseMegaLink('https://mega.nz/#P!short'));
+});
 
 test('recognizes HTML and plain MEGA links, legacy shares, missing keys and selected folder children', () => {
   const links = extractMegaLinks(`<a href="${file}">download</a> ${file} ${folder}/file/Child123 ${folder}/folder/Subdir12 https://mega.co.nz/#F!ZbcdEF12!${'c'.repeat(22)} https://mega.nz/#!AbcdEF12!${'a'.repeat(43)} mega://enc2?abcdefgh`);

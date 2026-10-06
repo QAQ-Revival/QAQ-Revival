@@ -1,0 +1,41 @@
+const assert = require('node:assert/strict');
+const path = require('node:path');
+module.exports = async ({ evaluate, waitFor, window, passed, requests, externalLinks, setRelease }) => {
+  await evaluate(`document.querySelector('.sidebar-settings').click()`);
+  await waitFor(`!!document.querySelector('[data-category="about"]')`, 'settings categories');
+  await evaluate(`document.querySelector('[data-category="about"]').click()`);
+  await waitFor(`!!document.querySelector('[aria-label="自动检查 GitHub 更新"]')`, 'update settings');
+  assert.equal(await evaluate(`document.querySelector('[aria-label="自动检查 GitHub 更新"]').checked`), true);
+  assert.equal(await evaluate(`document.querySelector('[aria-label="更新检查间隔天数"]').value`), '1');
+  assert.equal(requests.length, 1, 'one automatic check per natural day');
+  async function days(value) {
+    await evaluate(`(() => { const input=document.querySelector('[aria-label="更新检查间隔天数"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,${JSON.stringify(value)}); input.dispatchEvent(new Event('input',{bubbles:true})); })()`);
+    await evaluate(`document.querySelector('[aria-label="更新检查间隔天数"]').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}))`);
+  }
+  await days('0'); assert.equal(await evaluate(`document.querySelector('[aria-label="更新检查间隔天数"]').getAttribute('aria-invalid')`), 'true');
+  assert.equal((await evaluate('window.api.softwareUpdateState()')).state.intervalDays, 1);
+  await days('7'); await waitFor(`window.api.softwareUpdateState().then(result=>result.state.intervalDays===7)`, 'weekly setting saved');
+  await evaluate(`document.querySelector('[aria-label="自动检查 GitHub 更新"]').click()`);
+  await waitFor(`window.api.softwareUpdateState().then(result=>result.state.enabled===false)`, 'automatic checking disabled');
+  setRelease('1.0.2');
+  await evaluate(`Array.from(document.querySelectorAll('#settings-software-update button')).find(button=>button.textContent==='立即检查').click()`);
+  await waitFor(`document.querySelector('.software-update-summary')?.textContent.includes('1.0.2')`, 'manual check while disabled');
+  assert.equal(requests.length, 2);
+  for (const options of requests) assert.equal(Object.hasOwn(options.headers, 'Authorization'), false);
+  await evaluate(`Array.from(document.querySelectorAll('#settings-software-update button')).find(button=>button.textContent==='查看 GitHub 发布页').click()`);
+  await waitFor(`!Array.from(document.querySelectorAll('#settings-software-update button')).some(button=>button.disabled)`, 'release page opened');
+  assert.ok(externalLinks.includes('https://github.com/QAQ-Revival/QAQ-Revival/releases/tag/v1.0.2'));
+  await evaluate(`document.querySelector('[aria-label="不再提醒此版本"]').click()`);
+  await waitFor(`!document.querySelector('.software-update-notice')`, 'notice dismissed');
+  await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));
+  await waitFor(`!!document.querySelector('.sidebar-settings')`, 'reload');
+  await evaluate(`document.querySelector('.sidebar-settings').click()`);
+  await waitFor(`!!document.querySelector('[data-category="about"]')`, 'about after reload');
+  await evaluate(`document.querySelector('[data-category="about"]').click()`);
+  await waitFor(`!!document.querySelector('[aria-label="自动检查 GitHub 更新"]')`, 'preferences restored');
+  assert.equal(await evaluate(`document.querySelector('[aria-label="自动检查 GitHub 更新"]').checked`), false);
+  assert.equal(await evaluate(`document.querySelector('[aria-label="更新检查间隔天数"]').value`), '7');
+  assert.equal(requests.length, 2);
+  assert.equal(await evaluate(`!!document.querySelector('.software-update-notice')`), false);
+  passed('GitHub updates: daily default, validated interval, disabled automatic checks, manual public-API check, version notice, release link and persisted settings');
+};
