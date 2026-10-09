@@ -1,9 +1,11 @@
 import { r as React, R as ReactDOM } from './index.js';
 import PawchiveView from './PawchiveView.js';
 import ModMarketView from './ModMarketView.js';
+import ModSiteView from './ModSiteView.js';
 
 const h = React.createElement;
-const sources = [['qaqm', 'QAQM'], ['kemono', 'Kemono'], ['pawchive', 'Pawchive']];
+const sources = [['qaqm', 'QAQM'], ['kemono', 'Kemono'], ['pawchive', 'Pawchive'],
+  ['gamebanana', '香蕉网'], ['arca', '韩网 · Arca'], ['loverslab', 'LoversLab'], ['huiyue', '辉站'], ['keke', '可可站']];
 function rememberedSource() {
   try {
     const saved = localStorage.getItem('qaqm.downloadSource');
@@ -119,5 +121,6 @@ export default function ModDownloadView({ isActive = true, marketKey, onQaqmActi
     ...sources.filter(([id]) => visited.has(id) || id === current).map(([id]) =>
       h('div', { key: id, className: 'mod-download-provider', hidden: current !== id, 'data-source': id },
         id === 'qaqm' ? h(ModMarketView, { ...marketProps, key: marketKey, isActive: isActive && current === id }) :
-          h(PawchiveView, { source: id, isActive: isActive && current === id }))));
+          ['kemono', 'pawchive'].includes(id) ? h(PawchiveView, { source: id, isActive: isActive && current === id }) :
+            h(ModSiteView, { key: `${id}:${marketProps.activeGameId}`, source: id, gameId: marketProps.activeGameId, isActive: isActive && current === id }))));
 }

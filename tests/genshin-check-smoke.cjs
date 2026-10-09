@@ -1,0 +1,71 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+
+module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, handlers, launchRequests, passed }) => {
+  const call = (channel, ...args) => handlers.get(channel)({ sender: window.webContents }, ...args);
+  const click = selector => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+  const textButton = text => evaluate(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(text)}).click()`);
+  const pe = Buffer.alloc(1024); pe.write('MZ'); pe.writeUInt32LE(128, 60); pe.write('PE\0\0', 128); pe.writeUInt16LE(0x8664, 132); pe.writeUInt16LE(1, 134); pe.writeUInt16LE(240, 148); pe.writeUInt16LE(0x20b, 152); pe.write('.text', 392); pe.writeUInt32LE(512, 408); pe.writeUInt32LE(512, 412);
+  const write = (relative, value) => { const file = path.join(root, relative); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, value); return file; };
+  const gamePath = write('GI/YuanShen.exe', pe), loader = write('GI-XXMI/Resources/Bin/XXMI Launcher.exe', pe), mods = path.join(root, 'GI-GIMI/Mods');
+  fs.mkdirSync(mods, { recursive: true }); write('GI-GIMI/d3d11.dll', pe); write('GI-GIMI/d3dx.ini', '[Loader]\n'); write('GI-GIMI/Core/GIMI/main.ini', '; GIMI fixture');
+  const config = write('GI-XXMI/XXMI Launcher Config.json', JSON.stringify({ Launcher: { keep: true }, Importers: { GIMI: { Importer: { importer_folder: 'old-gimi', game_folder: 'old-game' } }, WWMI: { keep: true } } }));
+  write('GI-XXMI/XXMI Launcher Log.txt', 'GIMI Error DLL not found uid=private-user\nWWMI Error other issue\n');
+  const original = fs.readFileSync(config);
+  await call('game:update', { gameId: 'genshin-impact', updates: { gamePath, modLoaderPath: loader, modFolderPath: mods } });
+  await call('game:switch', 'genshin-impact');
+  await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('原神')`, 'Genshin selected');
+  await click('[aria-label="游戏设置"]');
+  await waitFor(`document.querySelectorAll('.compatibility-repairs input').length === 2`, 'diagnostics and repair preview');
+  assert.ok(fs.readFileSync(config).equals(original), 'Opening diagnostics is read-only');
+  assert.equal(await evaluate(`document.querySelector('[aria-label="原神启动前检查"]').checked`), false);
+  await click('[aria-label="原神启动前检查"]');
+  await waitFor(`!document.querySelector('[aria-label="原神启动前检查"]').disabled`, 'preflight preference saved');
+  const before = launchRequests.length;
+  await click('[aria-label="直接启动"]');
+  await waitFor(`document.querySelector('.launch-error')?.textContent.includes('启动前检查未通过')`, 'invalid GIMI environment blocks launch');
+  assert.equal(launchRequests.length, before);
+  await click('[aria-label="XXMI 启动"]');
+  await waitFor(`!document.querySelector('[aria-label="XXMI 启动"]').disabled`, 'XXMI remains available for repairs');
+  assert.equal(launchRequests.length, before + 1);
+  // Opening the loader can prepare bridge files; inspect that new state before editing.
+  await textButton('重新检查');
+  await waitFor(`!document.querySelector('[aria-label="原神启动前检查"]').disabled`, 'refresh after loader preparation');
+  await textButton('备份并同步所选路径');
+  await waitFor(`document.querySelector('.compatibility-summary')?.textContent.includes('0 项需处理')`, 'paths synchronized');
+  assert.equal(JSON.parse(fs.readFileSync(config)).Importers.WWMI.keep, true);
+  await waitFor(`!document.querySelector('#settings-game-paths .system-notice')`, 'path consistency notice refreshed');
+  await click('[aria-label="直接启动"]');
+  await waitFor(`!document.querySelector('[aria-label="直接启动"]').disabled`, 'validated GIMI launch');
+  assert.deepEqual(launchRequests.at(-1).args, ['--nogui', '--xxmi', 'GIMI']);
+  passed('Real diagnostics show repair previews without writes; opt-in preflight blocks errors, permits XXMI maintenance, and launches GIMI after scoped path repair');
+  // The random-launcher session from that launch rewrites XXMI state; clear it and re-check before restoring paths.
+  await call('genshin:anticrash-cleanup');
+  await textButton('重新检查');
+  await waitFor(`document.querySelector('.compatibility-summary')?.textContent.includes('0 项需处理')`, 're-checked after session cleanup');
+  const file = path.join(root, 'genshin-check.json'), originalDialog = electron.dialog.showSaveDialog;
+  electron.dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });
+  try { await textButton('导出检查报告'); await waitFor(`document.querySelector('#settings-genshin-compatibility').textContent.includes('检查报告已导出')`, 'report exported'); }
+  finally { electron.dialog.showSaveDialog = originalDialog; }
+  const report = fs.readFileSync(file, 'utf8'); assert.equal(report.includes('private-user'), false); assert.equal(report.includes(path.basename(root)), false);
+  await textButton('恢复上次路径修复');
+  await waitFor(`document.querySelectorAll('.compatibility-repairs input').length === 2`, 'repair restored');
+  assert.ok(fs.readFileSync(config).equals(original));
+  assert.equal((await call('genshin:update-check-settings', { preflightEnabled: 'true' })).success, false);
+  assert.equal((await call('genshin:update-check-settings', { launchArgs: 'bad\nvalue' })).success, false);
+  await evaluate(`document.querySelector('.compatibility-advanced summary').click()`);
+  await evaluate(`(() => { const input = document.querySelector('[aria-label="原神启动附加参数"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '--xxmi WWMI'); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  await textButton('保存附加参数');
+  await waitFor(`document.querySelector('[data-check-id="args"]')?.dataset.level === 'error'`, 'argument override diagnosed');
+  const current = await call('get-config');
+  assert.equal(current.config.games.find(g => g.id === 'genshin-impact').genshinPreflightEnabled, true);
+  assert.notEqual(current.config.games.find(g => g.id === 'wuthering-waves').genshinPreflightEnabled, true);
+  await evaluate(`(() => { const pane = document.querySelector('.system-settings-pane'), section = document.querySelector('#settings-genshin-compatibility'); pane.style.scrollBehavior = 'auto'; pane.scrollTop += section.getBoundingClientRect().top - pane.getBoundingClientRect().top; })()`);
+  await evaluate('new Promise(resolve => setTimeout(resolve, 250))'); await captureUI('genshin-compatibility-checks.png');
+  await call('game:switch', 'wuthering-waves');
+  await waitFor(`document.querySelector('.game-settings-view')?.dataset.gameId === 'wuthering-waves'`, 'other game scope');
+  assert.equal(await evaluate(`!!document.querySelector('#settings-genshin-compatibility')`), false);
+  assert.equal((await call('launch-game', { launchMode: 'DIRECT', gameId: 'wuthering-waves' })).success, true);
+  passed('Report exports omit raw logs and paths; path restore is exact; argument checks and preflight persist only for Genshin and do not block other games');
+};

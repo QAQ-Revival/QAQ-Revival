@@ -4,6 +4,28 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { releaseNames } = require('../tools/package-release.cjs');
 const { versionResource } = require('../tools/version-resource.cjs');
+const { copyLocalComponents, inventory, hash } = require('../tools/package-files.cjs');
+test('optional private components are copied beside the executable and included in the release inventory', async t => {
+  const temporaryRoot = require('node:os').tmpdir();
+  const root = fs.mkdtempSync(path.join(temporaryRoot, 'qaq-release-components-'));
+  t.after(() => {
+    assert.equal(path.dirname(fs.realpathSync(root)), fs.realpathSync(temporaryRoot));
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+  const stage = path.join(root, 'stage');
+  fs.mkdirSync(stage);
+  assert.equal(copyLocalComponents(root, stage), false);
+  assert.equal(fs.existsSync(path.join(stage, 'local-components')), false);
+  const source = path.join(root, 'local-components');
+  fs.mkdirSync(path.join(source, 'extra'), { recursive: true });
+  const components = ['d3d11-giml.dll', 'd3d11-nocheck.dll', 'd3d11-qaq.dll', 'd3d11-xxmi.dll'];
+  for (const name of components) fs.writeFileSync(path.join(source, name), 'private fixture: ' + name);
+  fs.writeFileSync(path.join(source, 'extra', 'support.bin'), 'support fixture');
+  assert.equal(copyLocalComponents(root, stage), true);
+  const files = await inventory(stage);
+  for (const name of components) assert.equal(files['local-components/' + name].sha256, await hash(path.join(source, name)));
+  assert.equal(files['local-components/extra/support.bin'].sha256, await hash(path.join(source, 'extra', 'support.bin')));
+});
 test('product metadata and executable resources contain no personal attribution', () => {
   const manifest = require('../app/package.json');
   for (const field of ['author', 'contributors', 'maintainers']) assert.equal(Object.hasOwn(manifest, field), false);

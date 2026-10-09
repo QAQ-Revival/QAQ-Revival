@@ -78,6 +78,9 @@ body {
 /* Detail view */
 .detail-preview-img { width: 100%; border-radius: 10px; margin-bottom: 10px; }
 .detail-hotkey-section { font-size: 11px; }
+.detail-hotkey-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin: 8px 0; font-size: 11px; color: #777; }
+.detail-hotkey-group + .detail-hotkey-group { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.12); }
+.detail-hotkey-group-name { margin: 0 0 7px; color: #555; font-size: 12px; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
 .detail-hotkey-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
 .detail-hotkey-row:last-child { border-bottom: none; }
 .detail-hotkey-desc { color: #666; font-weight: 500; flex: 1; min-width: 0; }
@@ -362,6 +365,20 @@ html.overlay-compat *::after {
         // Bind toggle button for detail view
         if (data.type === 'detail') {
             bindDetailTranslation(sideBody, data);
+            const refreshBtn = document.getElementById('detailRefreshHotkeysBtn');
+            if (refreshBtn) refreshBtn.addEventListener('click', async () => {
+                refreshBtn.disabled = true;
+                refreshBtn.textContent = '刷新中…';
+                try {
+                    const result = await window.overlayApi.getModDetails(data.charName, data.modName, true);
+                    if (refreshBtn.isConnected) showSideToast(result.success ? '快捷键已刷新' : result.error || '刷新失败');
+                } catch (error) {
+                    if (refreshBtn.isConnected) showSideToast(error.message || '刷新失败');
+                } finally {
+                    refreshBtn.disabled = false;
+                    refreshBtn.textContent = '刷新快捷键';
+                }
+            });
             const toggleBtn = document.getElementById('detailToggleBtn');
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', async () => {

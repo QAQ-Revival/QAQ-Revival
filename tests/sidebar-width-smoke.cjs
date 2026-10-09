@@ -19,6 +19,10 @@ module.exports = async ({ evaluate, waitFor, window, passed }) => {
   await evaluate(`document.documentElement.style.setProperty('--ui-scale', '1.4')`);
   await waitFor(`Math.round(document.querySelector('.sidebar').getBoundingClientRect().width) === 320`, 'zoom width settled');
   assert.equal(await width(), 320, 'sidebar zoom cannot exceed the menu width');
+  const [windowWidth, windowHeight] = window.getSize();
+  window.setSize(1000, 640);
+  assert.ok(await evaluate(`document.querySelector('.sidebar-header').getBoundingClientRect().top >= document.querySelector('.window-titlebar').getBoundingClientRect().bottom`), 'short-window styles keep scaled sidebar controls below the drag region');
+  window.setSize(windowWidth, windowHeight);
   await evaluate(`document.documentElement.style.setProperty('--ui-scale', '1')`);
   await evaluate(`document.querySelector('.sidebar-resize-handle').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }))`);
   await waitFor(`localStorage.getItem('qaqm.sidebarWidth') === '312'`, 'keyboard resize');
@@ -30,6 +34,7 @@ module.exports = async ({ evaluate, waitFor, window, passed }) => {
   assert.equal(await width(), 312);
   await evaluate(`document.querySelector('.sidebar-toggle').click()`);
   await waitFor(`!!document.querySelector('.sidebar.collapsed') && !document.querySelector('.sidebar-resize-handle')`, 'collapse hides width handle');
+  assert.equal(await evaluate(`document.querySelector('.sidebar').getBoundingClientRect().top`), 0, 'collapsed sidebar also reaches the top edge');
   await evaluate(`document.querySelector('.sidebar-header').click()`);
   await waitFor(`!!document.querySelector('.sidebar:not(.collapsed) .sidebar-resize-handle')`, 'expand restores width');
   await waitFor(`Math.round(document.querySelector('.sidebar').getBoundingClientRect().width) === 312`, 'expanded width settled');

@@ -1,5 +1,5 @@
 {
-  "electronVersion": "28.3.3",
+  "electronVersion": "44.6.0",
   "rarInstallerUrl": "https://www.rarlab.com/rar/winrar-x64-723.exe",
   "rarInstallerSha256": "8ff0daf3ed564cc743c0e23ff2e253997ffc74460f9673f0b6dd037b2db4ce7b"
 }

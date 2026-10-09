@@ -37,6 +37,28 @@ test('UTC timestamps preserve the Published / Edited distinction', () => {
   assert.equal(timestamp(1786440000), 1786440000000);
 });
 
+test('Pawchive repairs legacy avatar URLs in favorites and offline caches without rewriting saved data', async t => {
+  const f = fixture(t);
+  await f.service.listCreators();
+  await f.service.setFavorite({ creator, favorite: true });
+  const files = ['pawchive-favorites.json', 'pawchive-creators-cache.json'].map(name => path.join(f.userData, name));
+  for (const file of files) {
+    const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+    for (const author of saved.favorites || saved.creators) author.avatar = `https://img.pawchive.pw/icons/${author.service}/${author.id}`;
+    fs.writeFileSync(file, JSON.stringify(saved));
+  }
+  const before = files.map(file => fs.readFileSync(file, 'utf8'));
+  f.fail('all'); f.advance();
+  const reopened = createPawchiveService(f.options);
+  const avatar = 'https://pawchive.pw/icons/patreon/123';
+  assert.equal(reopened.getState().favorites[0].avatar, avatar);
+  assert.equal((await reopened.listCreators({ favoritesOnly: true })).items[0].avatar, avatar);
+  const cached = await reopened.listCreators();
+  assert.equal(cached.stale, true);
+  assert.equal(cached.items.find(author => author.service === 'patreon').avatar, avatar);
+  assert.deepEqual(files.map(file => fs.readFileSync(file, 'utf8')), before, 'loading preserves favorites, update baselines and cache bytes');
+});
+
 test('favorites establish all-page baseline, then detect new IDs and old-page edits independently', async t => {
   const f = fixture(t);
   await f.service.setFavorite({ creator, favorite: true });
@@ -189,6 +211,7 @@ test('all images survive normalization, duplicate files are removed and previews
   const { post } = await f.service.getPost({ service: 'patreon', user: '123', id: '1000' });
   assert.equal(post.images.length, 3);
   assert.equal(post.images[0].url, 'https://file.pawchive.pw/data/aa/bb/cover.jpg?f=cover.jpg');
+  assert.equal(post.creator.avatar, 'https://pawchive.pw/icons/patreon/123');
   assert.equal(post.images[1].thumbnail, 'https://img.pawchive.pw/thumbnail/data/aa/bb/second.PNG');
   assert.equal(post.images[2].url, post.images[2].thumbnail);
   assert.equal(post.attachments.some(file => file.path.includes('..')), false);
@@ -221,6 +244,7 @@ test('Kemono documented endpoints, text/css JSON, wrapped responses, paging and 
   assert.equal(f.service.getState().postUpdateCount, 0);
   const { post } = await kemono.getPost({ service: 'patreon', user: '123', id: '1000' });
   assert.equal(post.url, 'https://kemono.cr/patreon/user/123/post/1000');
+  assert.equal(post.creator.avatar, 'https://img.kemono.cr/icons/patreon/123');
   assert.equal(post.images[0].thumbnail, 'https://img.kemono.cr/thumbnail/data/aa/bb/cover.png');
   assert.equal(post.images[0].url, 'https://kemono.cr/data/aa/bb/cover.png?f=cover.png');
   assert.ok(fs.existsSync(path.join(f.userData, 'kemono-favorites.json')));

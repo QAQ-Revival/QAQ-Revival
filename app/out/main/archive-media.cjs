@@ -8,6 +8,21 @@ function isImageFile(file) {
   return !!file && (file.isImage === true || IMAGE_EXTENSION.test(file.path || '') || IMAGE_EXTENSION.test(file.name || '') || /^image\//i.test(file.mime || file.mime_type || file.content_type || ''));
 }
 function allowedFileUrl(value, sourceId) {
+  const siteHosts = { arca: ['arca.live', 'ac.namu.la', 'ac2.namu.la'], loverslab: ['loverslab.com'], huiyue: ['huiyue.org'], keke: ['kekehxl.org', 'kekehxl.top'] };
+  if (Object.hasOwn(siteHosts, sourceId)) {
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' && !url.username && !url.password && !url.port &&
+        siteHosts[sourceId].some(host => url.hostname === host || url.hostname.endsWith('.' + host)) &&
+        (/\.(zip|rar|7z|ini|pak|mp4)$/i.test(url.pathname) || sourceId === 'loverslab' && /\/attachment\.php$/.test(url.pathname) && /^\d+$/.test(url.searchParams.get('id') || ''));
+    } catch { return false; }
+  }
+  if (sourceId === 'gamebanana') {
+    try {
+      const url = new URL(value);
+      return url.protocol === 'https:' && url.hostname === 'gamebanana.com' && !url.username && !url.password && !url.port && /^\/dl\/[1-9]\d*$/.test(url.pathname) && !url.search && !url.hash;
+    } catch { return false; }
+  }
   const source = SOURCES[sourceId];
   if (!source) return false;
   try {

@@ -13,7 +13,7 @@ async function call(method, payload) {
 }
 
 
-function RevivalDownload({ links, name }) {
+export function RevivalDownload({ links, name }) {
   const [expanded, setExpanded] = React.useState(false);
   const [selected, setSelected] = React.useState(() => links.map(link => link.url));
   const [keys, setKeys] = React.useState({});

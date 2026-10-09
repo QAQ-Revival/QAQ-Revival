@@ -13,7 +13,7 @@ function releaseNames(version) {
 async function main() {
   const names = releaseNames(version);
   const stage = path.resolve(process.env.QAQM_BUILD_DIR || path.join(root, 'build/QAQ-Revival-local'));
-  const output = path.join(root, 'release', names.archive);
+  const output = path.join(path.resolve(process.env.QAQM_RELEASE_DIR || path.join(root, 'release')), names.archive);
   const rar = process.env.QAQM_RAR_EXE || path.join(root, '.cache/release-tools/winrar/Rar.exe');
   if (fs.existsSync(output)) throw Error('Release archive already exists: ' + names.archive);
   const manifest = JSON.parse(fs.readFileSync(path.join(stage, 'resources/app/package.json')));

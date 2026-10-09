@@ -1,5 +1,6 @@
 import { r as reactExports, j as jsxRuntimeExports, R as ReactDOM, a as React, f as fetchWithDirectFallback } from "./index.js";
 import { i as isManagedInstallContentType, M as MANAGED_INSTALL_OPTIONS, n as normalizeInstallContentType, g as getInstallContentTypeLabel, a as getManagedInstallResultMessage } from "./managedInstall.js";
+import ModPersistSummary from './ModPersistSummary.js';
 const BASE_SECTION_ID = "base";
 function getSectionId(section) {
   return String(section?.sectionId || section?.id || BASE_SECTION_ID);
@@ -18,11 +19,11 @@ function getSectionSubtitle(section) {
   if (isBaseSection(section)) return section?.nameEn || "Default";
   return section?.nameEn || (isCustomSection(section) ? "自定义分区" : "Official Outfit");
 }
-function SectionCover({ section, decorative = false }) {
+function SectionCover({ section, decorative = false, className = "appearance-section-cover" }) {
   const coverUrl = section?.coverUrl || section?.imageUrl || section?.image;
   const [failedUrl, setFailedUrl] = reactExports.useState(null);
   const fallback = isBaseSection(section) ? "🎭" : isCustomSection(section) ? "✨" : "👗";
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "appearance-section-cover", "aria-hidden": decorative || void 0, children: coverUrl && failedUrl !== coverUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: coverUrl, alt: "", draggable: false, referrerPolicy: "no-referrer", onError: () => setFailedUrl(coverUrl) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: fallback }) });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className, "aria-hidden": decorative || void 0, children: coverUrl && failedUrl !== coverUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: coverUrl, alt: "", draggable: false, referrerPolicy: "no-referrer", onError: () => setFailedUrl(coverUrl) }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: fallback }) });
 }
 function SectionEditorModal({ section, busy, onClose, onSave, onDelete }) {
   const editing = !!section;
@@ -55,7 +56,7 @@ function SectionEditorModal({ section, busy, onClose, onSave, onDelete }) {
     reader.onload = () => {
       const dataUrl = String(reader.result || "");
       setCoverPreview(dataUrl);
-      setCoverValue(file.path || dataUrl);
+      setCoverValue(window.api.getPathForFile(file) || dataUrl);
       setError("");
     };
     reader.onerror = () => setError("封面读取失败，请换一张图片。");
@@ -200,6 +201,16 @@ function CharacterSectionNavigator({
   const railRef = reactExports.useRef(null);
   const sectionButtonRefs = reactExports.useRef([]);
   const [editorSection, setEditorSection] = reactExports.useState(void 0);
+  const [railOverflow, setRailOverflow] = reactExports.useState(false);
+  reactExports.useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const measure = () => setRailOverflow(rail.scrollWidth > rail.clientWidth + 2);
+    const observer = new ResizeObserver(measure);
+    observer.observe(rail);
+    measure();
+    return () => observer.disconnect();
+  }, [sections]);
   const normalizedSections = reactExports.useMemo(() => {
     const source = Array.isArray(sections) ? sections : [];
     const seen = /* @__PURE__ */ new Set();
@@ -252,16 +263,15 @@ function CharacterSectionNavigator({
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "appearance-section-summary-title", children: "外观分区" }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "appearance-section-summary-meta", children: [
-          officialSkinCount,
-          " 款官方皮肤 · ",
           normalizedSections.length,
-          " 个分区"
+          " 个分区",
+          officialSkinCount > 0 ? ` · ${officialSkinCount} 款官方皮肤` : ""
         ] })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "appearance-section-summary-note", children: "切换仅筛选，不会自动启停" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "appearance-section-add-tab", onClick: () => setEditorSection(null), disabled: busy, "aria-label": "新建自定义分区", children: "+ 新增分区" })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "appearance-section-rail-shell", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "appearance-section-scroll-btn prev", onClick: () => scrollRail(-1), "aria-label": "向左滚动分区", children: "‹" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `appearance-section-rail-shell ${railOverflow ? "has-overflow" : ""}`, children: [
+      railOverflow && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "appearance-section-scroll-btn prev", onClick: () => scrollRail(-1), "aria-label": "向左滚动分区", children: "‹" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { ref: railRef, className: "appearance-section-rail", role: "tablist", "aria-label": "选择外观分区", children: [
         normalizedSections.map((section, index) => {
           const sectionId = getSectionId(section);
@@ -316,25 +326,11 @@ function CharacterSectionNavigator({
               }
             )
           ] }, sectionId);
-        }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "button",
-          {
-            type: "button",
-            className: "appearance-section-add-tab",
-            onClick: () => setEditorSection(null),
-            disabled: busy,
-            "aria-label": "新建自定义分区",
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "＋" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "新增分区" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "名称与封面自定义" })
-            ]
-          }
-        )
+        })
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "appearance-section-scroll-btn next", onClick: () => scrollRail(1), "aria-label": "向右滚动分区", children: "›" })
+      railOverflow && /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", className: "appearance-section-scroll-btn next", onClick: () => scrollRail(1), "aria-label": "向右滚动分区", children: "›" })
     ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "appearance-section-summary-note", children: "分区仅筛选显示，不改变启用状态" }),
     otherEnabledCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "appearance-section-enabled-notice", role: "status", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "💡" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
@@ -1084,7 +1080,8 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
   const [previewImageAspectRatio, setPreviewImageAspectRatio] = reactExports.useState(DEFAULT_PREVIEW_ASPECT_RATIO);
   const [imageKey, setImageKey] = reactExports.useState(Date.now());
   const [toast, setToast] = reactExports.useState(null);
-  const [hotkeys, setHotkeys] = reactExports.useState([]);
+  const [hotkeyGroups, setHotkeyGroups] = reactExports.useState([]);
+  const detailRequestRef = reactExports.useRef(0);
   const [isRefreshingHotkeys, setIsRefreshingHotkeys] = reactExports.useState(false);
   reactExports.useEffect(() => {
     selectedModRef.current = selectedMod;
@@ -1179,10 +1176,23 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
   });
   const [galleryDetailWidth, setGalleryDetailWidth] = reactExports.useState(() => {
     const v = parseInt(localStorage.getItem("modview-gallery-detail-width") || "480", 10);
-    return Number.isFinite(v) && v > 0 ? Math.min(900, Math.max(320, v)) : 480;
+    return Number.isFinite(v) && v > 0 ? Math.min(900, Math.max(220, v)) : 480;
   });
   const [isResizingGallery, setIsResizingGallery] = reactExports.useState(false);
   const galleryContainerRef = reactExports.useRef(null);
+  const [detailContainerWidth, setDetailContainerWidth] = reactExports.useState(0);
+  reactExports.useEffect(() => {
+    const container = galleryContainerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(([entry]) => setDetailContainerWidth(entry.contentRect.width));
+    observer.observe(container);
+    setDetailContainerWidth(container.clientWidth);
+    return () => observer.disconnect();
+  }, []);
+  // Keep space for the list/grid, including its toolbar, at every window size.
+  const maxDetailWidth = detailContainerWidth ? Math.max(220, Math.min(900, detailContainerWidth - 340)) : 480;
+  const minDetailWidth = Math.min(280, maxDetailWidth);
+  const visibleDetailWidth = Math.min(maxDetailWidth, Math.max(minDetailWidth, galleryDetailWidth));
   reactExports.useEffect(() => {
     localStorage.setItem("modview-view-mode", viewMode);
   }, [viewMode]);
@@ -1235,21 +1245,24 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
       const container = galleryContainerRef.current;
       if (!container) return;
       const rect = container.getBoundingClientRect();
-      const newDetailWidth = rect.right - e.clientX;
-      setGalleryDetailWidth(Math.min(900, Math.max(320, newDetailWidth)));
+      const scale = rect.width / container.offsetWidth || 1;
+      const newDetailWidth = (rect.right - e.clientX) / scale;
+      setGalleryDetailWidth(Math.min(maxDetailWidth, Math.max(minDetailWidth, newDetailWidth)));
     };
     const handleMouseUp = () => setIsResizingGallery(false);
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("blur", handleMouseUp);
     return () => {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("blur", handleMouseUp);
     };
-  }, [isResizingGallery]);
+  }, [isResizingGallery, maxDetailWidth, minDetailWidth]);
   const [fixRunning, setFixRunning] = reactExports.useState(false);
   const [modContextMenu, setModContextMenu] = reactExports.useState(null);
   const [iniRollbackBackups, setIniRollbackBackups] = reactExports.useState({ modName: "", loading: false, items: [], error: "" });
@@ -1477,8 +1490,8 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
     const targetMod = enabledMods[enabledFocusCursorRef.current];
     if (viewMode === "gallery") {
       if (selectedMod?.name) captureGalleryAnchor(selectedMod.name);
-      setDetailCollapsed(false);
     }
+    setDetailCollapsed(false);
     setSelectedMod(targetMod);
     scrollToMod(targetMod.name);
     setToast({
@@ -1497,6 +1510,13 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
       if (cleanup) cleanup();
     };
   }, [characterName]);
+  reactExports.useEffect(() => window.api.onHotkeysChanged?.((data) => {
+    const selected = selectedModRef.current;
+    if (data.gameId !== activeGameId || !selected) return;
+    if (data.characterName !== "__all__" && data.characterName !== characterName) return;
+    if (data.modName && data.modName !== selected.name) return;
+    loadModDetails(selected.name);
+  }), [characterName, activeGameId]);
   reactExports.useEffect(() => {
     enabledFocusCursorRef.current = -1;
   }, [characterName, sortMethod, modSearchQuery, selectedTagFilters]);
@@ -1791,7 +1811,9 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
     } else {
       setPreviewImage(null);
       setPreviewImageAspectRatio(DEFAULT_PREVIEW_ASPECT_RATIO);
-      setHotkeys([]);
+      detailRequestRef.current++;
+      setHotkeyGroups([]);
+      setIsRefreshingHotkeys(false);
       setAiNameResult(null);
     }
   }, [selectedMod]);
@@ -2173,21 +2195,29 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
     }
   }
   const loadModDetails = async (name, refresh = false) => {
-    if (refresh) setIsRefreshingHotkeys(true);
+    const requestId = ++detailRequestRef.current;
+    const isCurrent = () => requestId === detailRequestRef.current && !modViewUnmountedRef.current && characterNameRef.current === characterName && selectedModRef.current?.name === name;
+    setIsRefreshingHotkeys(refresh);
+    setEditingHotkey(null);
+    setEditingAliasSection(null);
     try {
       const result = await window.api.getModDetails(characterName, name, refresh);
+      if (!isCurrent()) return;
       if (result.success) {
         setPreviewImage(result.previewUrl);
-        setHotkeys(result.hotkeys || []);
+        setHotkeyGroups((Array.isArray(result.hotkeyGroups) ? result.hotkeyGroups : [{ name, hotkeys: result.hotkeys || [] }]).filter(group => group.hotkeys?.length));
         if (refresh) setToast({ type: "success", message: "快捷键已刷新" });
       } else {
+        setHotkeyGroups([]);
         setToast({ type: "error", message: result.error || "无法读取 Mod 详情" });
       }
     } catch (error) {
+      if (!isCurrent()) return;
+      setHotkeyGroups([]);
       console.error("Failed to load mod details:", error);
       setToast({ type: "error", message: error.message || "无法读取 Mod 详情" });
     } finally {
-      if (refresh) {
+      if (isCurrent()) {
         setIsRefreshingHotkeys(false);
       }
     }
@@ -3359,10 +3389,11 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
       setToast({ type: "error", message: "添加失败: " + result.error });
     }
   }
-  function startHotkeyEdit(index, hk) {
+  function startHotkeyEdit(index, hk, relativePath) {
     setEditingHotkey({
       index,
       section: hk.section,
+      relativePath,
       currentKey: hk.keys.join(" + ")
     });
     setCapturedKey("");
@@ -3423,7 +3454,8 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
       characterName,
       selectedMod.name,
       editingHotkey.section,
-      formattedKey
+      formattedKey,
+      editingHotkey.relativePath
     );
     if (result.success) {
       setToast({ type: "success", message: "✨ 快捷键已保存" });
@@ -3477,7 +3509,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
       (f) => f.type?.startsWith("image/") || /\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(f.name || "")
     );
     if (allImages) return;
-    const paths = files.map((f) => f.path).filter(Boolean);
+    const paths = files.map((f) => window.api.getPathForFile(f)).filter(Boolean);
     if (!paths.length) return;
     runDirectInstallForCurrentCharacter(paths);
   }
@@ -3488,7 +3520,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
       (file) => file.type?.startsWith("image/") || /\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(file.name || "")
     );
     if (allImages) return;
-    const paths = files.map((file) => file.path).filter(Boolean);
+    const paths = files.map((file) => window.api.getPathForFile(file)).filter(Boolean);
     if (!paths.length) return;
     try {
       const scan = await window.api.batchScanPaths?.(paths);
@@ -4074,40 +4106,29 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
             /* @__PURE__ */ jsxRuntimeExports.jsx("button", { type: "button", onClick: () => loadMods(), children: "重试" })
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-sort-bar", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { position: "relative", marginRight: "8px" }, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-search-field", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "input",
                 {
                   type: "text",
-                  placeholder: "🔍 搜索Mod...",
+                  placeholder: "搜索当前分区的 Mod…",
+                  "aria-label": "搜索当前分区的 Mod",
                   value: modSearchQuery,
                   onChange: (e) => setModSearchQuery(e.target.value),
-                  style: {
-                    width: modSearchQuery ? "140px" : "100px",
-                    padding: "4px 8px",
-                    fontSize: "12px",
-                    border: "1px solid rgba(0,0,0,0.1)",
-                    borderRadius: "6px",
-                    background: "rgba(255,255,255,0.6)",
-                    outline: "none",
-                    transition: "width 0.2s"
-                  },
-                  onFocus: (e) => e.target.style.width = "140px",
-                  onBlur: (e) => {
-                    if (!modSearchQuery) e.target.style.width = "100px";
-                  }
+                  className: "mod-search-input"
                 }
               ),
               modSearchQuery && /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "button",
                 {
                   onClick: () => setModSearchQuery(""),
+                  "aria-label": "清除搜索",
                   style: { position: "absolute", right: "4px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: "10px", color: "#999", padding: "2px" },
                   children: "✕"
                 }
               )
             ] }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "sort-label", children: "排序:" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-sort-options", role: "group", "aria-label": "Mod 排序", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               "button",
               {
@@ -4142,7 +4163,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                 children: "自定义"
               }
             ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mod-sort-bar-spacer" }),
+            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               "button",
               {
@@ -4150,7 +4171,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                 onClick: focusNextEnabledMod,
                 disabled: !sortedMods.some((mod) => mod.enabled),
                 title: sortedMods.some((mod) => mod.enabled) ? `定位当前启用 Mod（${displayMods.filter((mod) => mod.enabled).length} 个）` : "当前没有启用的 Mod",
-                children: "🎯 定位"
+                children: "定位已启用"
               }
             )
           ] }),
@@ -4305,7 +4326,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
               },
               children: [
                 displayMods.length === 0 && !modsLoadError && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "appearance-section-empty-state", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "appearance-section-empty-cover", children: activeAppearanceSection?.coverUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: activeAppearanceSection.coverUrl, alt: "" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "👗" }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(SectionCover, { section: activeAppearanceSection, className: "appearance-section-empty-cover", decorative: true }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: appearanceFilterHasNoMatches ? "当前筛选没有匹配的 Mod" : `“${activeAppearanceSectionName}”还没有 Mod` }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: appearanceFilterHasNoMatches ? "清除搜索或标签筛选后可查看该分区的全部 Mod。" : activeAppearanceEmptyHint }),
@@ -4465,8 +4486,12 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                 });
               },
               children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-list-summary", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: `Mod 列表 · ${displayMods.length}` }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: `${displayMods.filter((mod) => mod.enabled).length} 个已启用` })
+                ] }),
                 displayMods.length === 0 && !modsLoadError && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "appearance-section-empty-state compact", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "appearance-section-empty-cover", children: activeAppearanceSection?.coverUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: activeAppearanceSection.coverUrl, alt: "" }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "👗" }) }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(SectionCover, { section: activeAppearanceSection, className: "appearance-section-empty-cover", decorative: true }),
                   /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: appearanceFilterHasNoMatches ? "当前筛选没有匹配的 Mod" : `“${activeAppearanceSectionName}”还没有 Mod` }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: appearanceFilterHasNoMatches ? "清除搜索或标签筛选后可查看该分区的全部 Mod。" : activeAppearanceEmptyHint }),
@@ -4491,7 +4516,11 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                     className: `mod-row ${mod._localCollection ? "local-collection-row" : ""} ${selectedMod?.path === mod.path ? "selected" : ""} ${!mod.enabled ? "disabled" : ""} ${draggedMod?.name === mod.name ? "dragging" : ""} ${dragOverMod?.name === mod.name ? "drag-target" : ""}`,
                     style: focusPulseModName === mod.name ? STYLE_FOCUS_PULSE : STYLE_EMPTY,
                     draggable: !batchMode,
-                    onClick: () => batchMode ? toggleBatchSelect(mod.name) : setSelectedMod(mod),
+                    onClick: () => {
+                      if (batchMode) return toggleBatchSelect(mod.name);
+                      setSelectedMod(mod);
+                      setDetailCollapsed(false);
+                    },
                     onContextMenu: (e) => !batchMode && openModContextMenu(e, mod),
                     onDragStart: (e) => !batchMode && handleModDragStart(e, mod),
                     onDragEnd: handleModDragEnd,
@@ -4534,20 +4563,24 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                         }
                       ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "drag-handle", title: "拖拽排序", children: "⋮⋮" }),
                       /* @__PURE__ */ jsxRuntimeExports.jsx(
-                        "div",
+                        "button",
                         {
                           className: `toggle-switch-refined ${mod.enabled ? "active" : ""}`,
+                          type: "button",
+                          role: "switch",
+                          "aria-checked": mod.enabled,
+                          "aria-label": `${mod.enabled ? "禁用" : "启用"} ${mod.name}`,
                           onClick: (e) => handleToggle(mod.name, mod.enabled, e),
                           style: STYLE_TOGGLE_WRAP
                         }
                       ),
-                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: STYLE_MOD_INFO, children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: STYLE_MOD_NAME_ROW, children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-row-info", style: STYLE_MOD_INFO, title: mod.originalName, children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-row-name", style: STYLE_MOD_NAME_ROW, children: [
                           mod._localCollection && /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "local-collection-inline-badge", children: [
                             "合集 ",
                             mod._localCollection.variants.length
                           ] }),
-                          mod.name,
+                          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mod-row-name-text", children: mod.name }),
                           mod.pinned && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { title: "已置顶", style: STYLE_PIN_ICON, children: "📌" }),
                           isMarkedModEntry(markedMods, mod, characterName, activeGameId) && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { title: "已标记", style: { fontSize: "12px", flexShrink: 0 }, children: "🔖" }),
                           conflictMap[mod.name] && mod.enabled && /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -4576,7 +4609,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                           "(",
                           mod.notes,
                           ")"
-                        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: STYLE_ORIGINAL_NAME, children: mod.originalName }),
+                        ] }) : mod.originalName?.replace(/^DISABLED_/i, "") !== mod.name && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: STYLE_ORIGINAL_NAME, children: mod.originalName }),
                         Array.isArray(mod.tags) && mod.tags.length > 0 && jsxRuntimeExports.jsx(FittingTagRow, { tags: mod.tags, selectedTags: selectedTagFilters, onToggleTag: toggleTagFilter }),
                         mod._localCollection && /* @__PURE__ */ jsxRuntimeExports.jsx(
                           LocalCollectionVariantStrip,
@@ -4609,6 +4642,8 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                         "button",
                         {
                           className: "delete-btn",
+                          "aria-label": `删除 ${mod.name}`,
+                          title: "删除 Mod",
                           onClick: (e) => confirmDelete(mod.name, e),
                           style: STYLE_DELETE_BTN,
                           children: "×"
@@ -4622,8 +4657,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "div",
                   {
-                    className: `drop-zone ${isDragging ? "active" : ""}`,
-                    style: { marginTop: "24px", minHeight: "120px" },
+                    className: `drop-zone mod-import-zone ${isDragging ? "active" : ""}`,
                     onDragOver: (e) => {
                       e.preventDefault();
                       setIsDragging(true);
@@ -4655,12 +4689,11 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: handleAddMod, className: "btn btn-primary", children: "保存 Mod" }),
                         /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => setNewModFile(null), className: "btn btn-secondary", children: "取消" })
                       ] })
-                    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: "24px", marginBottom: "8px" }, children: "📂" }),
+                    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-import-hint", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mod-import-icon", "aria-hidden": true, children: "+" }),
                       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                        "拖拽 Mod 文件夹或 Zip/Rar/7z/MP4 包到“",
-                        activeAppearanceImportTargetName,
-                        "”"
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "拖入文件夹或压缩包，添加 Mod" }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: `支持 Zip / Rar / 7z / MP4 · ${activeAppearanceImportTargetName}` })
                       ] })
                     ] })
                   }
@@ -4669,10 +4702,12 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
             }
           )
         ] }),
-        viewMode === "gallery" && selectedMod && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        selectedMod && /* @__PURE__ */ jsxRuntimeExports.jsxs(
           "div",
           {
             className: `mod-gallery-splitter ${isResizingGallery ? "active" : ""} ${detailCollapsed ? "collapsed" : ""}`,
+            "aria-hidden": detailCollapsed,
+            inert: detailCollapsed ? "" : void 0,
             onMouseDown: (e) => {
               if (e.target.closest(".mod-gallery-collapse-btn")) return;
               if (detailCollapsed) return;
@@ -4691,11 +4726,13 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                   className: "mod-gallery-collapse-btn",
                   onClick: (e) => {
                     e.stopPropagation();
-                    captureGalleryAnchor(selectedMod?.name);
+                    if (viewMode === "gallery") captureGalleryAnchor(selectedMod?.name);
                     setDetailCollapsed(true);
                   },
                   onMouseDown: (e) => e.stopPropagation(),
-                  title: "收起详情面板（点击 Mod 卡片可重新展开）",
+                  title: "收起详情面板（点击 Mod 可重新展开）",
+                  "aria-expanded": !detailCollapsed,
+                  "aria-controls": "mod-detail-panel",
                   "aria-label": "收起详情",
                   children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mod-gallery-collapse-arrow", children: "›" }),
@@ -4708,6 +4745,20 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                 {
                   className: "mod-gallery-splitter-handle",
                   title: "拖动调整详情区宽度（双击重置）",
+                  role: "separator",
+                  tabIndex: detailCollapsed ? -1 : 0,
+                  "aria-label": "调整详情面板宽度",
+                  "aria-orientation": "vertical",
+                  "aria-controls": "mod-detail-panel",
+                  "aria-valuemin": Math.round(minDetailWidth),
+                  "aria-valuemax": Math.round(maxDetailWidth),
+                  "aria-valuenow": Math.round(visibleDetailWidth),
+                  onKeyDown: (event) => {
+                    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+                    event.preventDefault();
+                    const width = event.key === "Home" ? minDetailWidth : event.key === "End" ? maxDetailWidth : visibleDetailWidth + (event.key === "ArrowLeft" ? 24 : -24);
+                    setGalleryDetailWidth(Math.min(maxDetailWidth, Math.max(minDetailWidth, width)));
+                  },
                   children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mod-gallery-splitter-dot" }),
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mod-gallery-splitter-dot" }),
@@ -4721,110 +4772,18 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           "div",
           {
-            className: `mod-detail-panel ${viewMode === "gallery" ? "gallery-mode" : ""} ${viewMode === "gallery" && (!selectedMod || detailCollapsed) ? "collapsed" : ""}`,
-            style: viewMode === "gallery" ? {
-              // Keep flex stable across both states: animating
-              // flex-basis between `auto` and `0` makes browsers
-              // skip the transition entirely (auto is non-numeric),
-              // which is why the collapse used to look instant.
-              // Only `width` changes — that interpolates cleanly.
-              flex: "0 0 auto",
-              width: selectedMod && !detailCollapsed ? `${galleryDetailWidth}px` : "0px",
-              minWidth: 0,
-              maxWidth: "none"
-            } : void 0,
-            children: selectedMod ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card", style: { padding: "24px", height: "100%", display: "flex", flexDirection: "column", overflowY: "auto" }, children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "div",
-                {
-                  className: `image-drop-zone ${isDragging ? "dragging" : ""}`,
-                  style: {
-                    position: "relative",
-                    cursor: "pointer",
-                    aspectRatio: getPreviewAspectRatioStyle(previewImageAspectRatio),
-                    minHeight: previewImage ? "180px" : "260px",
-                    maxHeight: previewImage ? "min(52vh, 520px)" : void 0,
-                    flexShrink: 0,
-                    background: "var(--color-bg-base)",
-                    borderRadius: "var(--radius-md)",
-                    overflow: "hidden",
-                    marginBottom: "24px",
-                    border: "2px dashed transparent"
-                  },
-                  onDragOver: (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsDragging(dataTransferIncludesImage(e.dataTransfer));
-                  },
-                  onDragLeave: (e) => {
-                    e.preventDefault();
-                    if (!e.currentTarget.contains(e.relatedTarget)) {
-                      setIsDragging(false);
-                    }
-                  },
-                  onDrop: async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsDragging(false);
-                    const files = e.dataTransfer.files;
-                    if (files.length > 0) {
-                      const file = files[0];
-                      if (/\.(png|jpg|jpeg|webp|gif)$/i.test(file.path)) {
-                        const result = await window.api.setModPreview(characterName, selectedMod.name, file.path);
-                        if (result.success) {
-                          setImageKey(Date.now());
-                          if (result.previewUrl) setPreviewImage(result.previewUrl);
-                          else loadModDetails(selectedMod.name);
-                          setToast({ type: "success", message: "✨ 预览图已更新！" });
-                        }
-                      } else {
-                        setToast({ type: "error", message: "请拖入图片文件" });
-                      }
-                    }
-                  },
-                  children: [
-                    previewImage ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "img",
-                      {
-                        src: previewImage,
-                        alt: "Preview",
-                        style: { width: "100%", height: "100%", objectFit: "contain", objectPosition: "center top", cursor: "zoom-in" },
-                        onClick: (e) => {
-                          e.stopPropagation();
-                          setShowImageLightbox(true);
-                        },
-                        onLoad: (e) => {
-                          const width = e.currentTarget.naturalWidth;
-                          const height = e.currentTarget.naturalHeight;
-                          if (width > 0 && height > 0) {
-                            const nextAspectRatio = width / height;
-                            _previewAspectRatioCache.set(selectedMod.path || selectedMod.name, nextAspectRatio);
-                            setPreviewImageAspectRatio(nextAspectRatio);
-                          }
-                        },
-                        onError: (e) => setToast({ type: "error", message: "图片加载失败" })
-                      },
-                      imageKey
-                    ) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", color: "var(--color-text-tertiary)", gap: "4px" }, children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: "32px", marginBottom: "4px" }, children: "🖼️" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "拖入图片设置预览" }),
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: "11px", opacity: 0.75 }, children: "或按 Ctrl+V 粘贴图片" })
-                    ] }),
-                    isDragging && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
-                      position: "absolute",
-                      inset: 0,
-                      background: "rgba(255, 143, 163, 0.9)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "white",
-                      fontWeight: "bold",
-                      fontSize: "18px"
-                    }, children: "释放以设置预览图" })
-                  ]
-                }
-              ),
-              isRenamingMod ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }, children: [
+            id: "mod-detail-panel",
+            className: `mod-detail-panel ${viewMode === "gallery" ? "gallery-mode" : ""} ${!selectedMod || detailCollapsed ? "collapsed" : ""}`,
+            "aria-hidden": !selectedMod || detailCollapsed,
+            inert: !selectedMod || detailCollapsed ? "" : void 0,
+            style: { "--mod-detail-width": selectedMod && !detailCollapsed ? `${visibleDetailWidth}px` : "0px" },
+            children: selectedMod ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "card mod-detail-card", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "mod-detail-header", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-detail-eyebrow", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "MOD 详情" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: `mod-status-badge ${selectedMod.enabled ? "is-enabled" : ""}`, children: selectedMod.enabled ? "已启用" : "已禁用" })
+                ] }),
+              isRenamingMod ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-detail-rename", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "input",
                   {
@@ -4873,8 +4832,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
               ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(
                 "div",
                 {
-                  className: "text-h2",
-                  style: { color: "var(--color-accent-primary)", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" },
+                  className: "mod-detail-heading",
                   children: [
                     /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { wordBreak: "break-word" }, children: selectedMod.name }),
                     selectedMod.pinned && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: "18px" }, title: "已置顶", children: "📌" }),
@@ -4906,10 +4864,102 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                   ]
                 }
               ),
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "div",
+                {
+                  className: `image-drop-zone mod-detail-preview ${previewImage ? "has-image" : "is-empty"} ${isDragging ? "dragging" : ""}`,
+                  style: {
+                    position: "relative",
+                    cursor: "pointer",
+                    aspectRatio: previewImage ? getPreviewAspectRatioStyle(previewImageAspectRatio) : void 0,
+                    minHeight: previewImage ? "180px" : "128px",
+                    maxHeight: previewImage ? "min(42vh, 420px)" : void 0,
+                    flexShrink: 0,
+                    background: "var(--color-bg-base)",
+                    borderRadius: "var(--radius-md)",
+                    overflow: "hidden",
+                    marginBottom: "16px",
+                    border: "2px dashed transparent"
+                  },
+                  onDragOver: (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(dataTransferIncludesImage(e.dataTransfer));
+                  },
+                  onDragLeave: (e) => {
+                    e.preventDefault();
+                    if (!e.currentTarget.contains(e.relatedTarget)) {
+                      setIsDragging(false);
+                    }
+                  },
+                  onDrop: async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsDragging(false);
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                      const file = files[0];
+                      const filePath = window.api.getPathForFile(file);
+                      if (/\.(png|jpg|jpeg|webp|gif)$/i.test(filePath)) {
+                        const result = await window.api.setModPreview(characterName, selectedMod.name, filePath);
+                        if (result.success) {
+                          setImageKey(Date.now());
+                          if (result.previewUrl) setPreviewImage(result.previewUrl);
+                          else loadModDetails(selectedMod.name);
+                          setToast({ type: "success", message: "✨ 预览图已更新！" });
+                        }
+                      } else {
+                        setToast({ type: "error", message: "请拖入图片文件" });
+                      }
+                    }
+                  },
+                  children: [
+                    previewImage ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "img",
+                      {
+                        src: previewImage,
+                        alt: "Preview",
+                        style: { width: "100%", height: "100%", objectFit: "contain", objectPosition: "center top", cursor: "zoom-in" },
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          setShowImageLightbox(true);
+                        },
+                        onLoad: (e) => {
+                          const width = e.currentTarget.naturalWidth;
+                          const height = e.currentTarget.naturalHeight;
+                          if (width > 0 && height > 0) {
+                            const nextAspectRatio = width / height;
+                            _previewAspectRatioCache.set(selectedMod.path || selectedMod.name, nextAspectRatio);
+                            setPreviewImageAspectRatio(nextAspectRatio);
+                          }
+                        },
+                        onError: (e) => setToast({ type: "error", message: "图片加载失败" })
+                      },
+                      imageKey
+                    ) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-preview-placeholder", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mod-preview-placeholder-icon", "aria-hidden": true, children: "▧" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "拖入图片设置预览" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { fontSize: "11px", opacity: 0.75 }, children: "或按 Ctrl+V 粘贴图片" })
+                    ] }),
+                    isDragging && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
+                      position: "absolute",
+                      inset: 0,
+                      background: "rgba(255, 143, 163, 0.9)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontWeight: "bold",
+                      fontSize: "18px"
+                    }, children: "释放以设置预览图" })
+                  ]
+                }
+              ),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-appearance-assignment", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-appearance-assignment-copy", children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "外观分区" }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "只调整整理位置，不改变启用状态" })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "移动不改变启用状态" })
                 ] }),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "select",
@@ -4918,14 +4968,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                     onChange: (event) => handleAssignSelectedModAppearanceSection(event.target.value),
                     disabled: appearanceSectionBusy,
                     "aria-label": `将 ${selectedMod.name} 移动到外观分区`,
-                    children: appearanceSectionsWithStats.map((section) => /* @__PURE__ */ jsxRuntimeExports.jsxs("option", { value: getSectionId(section), children: [
-                      getSectionName(section),
-                      " · ",
-                      Number(section.enabledCount || 0),
-                      " 启用 / ",
-                      Number(section.modCount || 0),
-                      " Mod"
-                    ] }, getSectionId(section)))
+                    children: appearanceSectionsWithStats.map((section) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: getSectionId(section), children: getSectionName(section) }, getSectionId(section)))
                   }
                 )
               ] }),
@@ -4984,14 +5027,15 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                   `detail-tag-${ti}`
                 );
               }) }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { marginBottom: "20px" }, children: [
+              jsxRuntimeExports.jsx(ModPersistSummary, { gameId: activeGameId, characterName, modName: selectedMod.name }, `${activeGameId}/${characterName}/${selectedMod.name}`),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-detail-notes", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "div",
                   {
                     className: "text-caption",
                     style: { marginBottom: "6px", display: "flex", alignItems: "center", justifyContent: "space-between" },
                     children: [
-                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "📝 备注" }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "备注" }),
                       !isEditingNotes && /* @__PURE__ */ jsxRuntimeExports.jsx(
                         "button",
                         {
@@ -5092,31 +5136,14 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                   }
                 )
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { marginBottom: "24px" }, children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-caption", children: "状态" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: {
-                  color: selectedMod.enabled ? "var(--color-success-dark)" : "var(--color-text-tertiary)",
-                  fontWeight: "600",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px"
-                }, children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: {
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: selectedMod.enabled ? "var(--color-success)" : "#ccc"
-                  } }),
-                  selectedMod.enabled ? "已启用" : "已禁用"
-                ] })
-              ] }),
-              hotkeys.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "hotkey-section", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "hotkey-section", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-caption", style: { marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between" }, children: [
                   /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "⌨️ 快捷键" }),
                   /* @__PURE__ */ jsxRuntimeExports.jsx(
                     "button",
                     {
                       className: "btn-icon-small",
+                      disabled: isRefreshingHotkeys,
                       onClick: (e) => {
                         e.stopPropagation();
                         loadModDetails(selectedMod.name, true);
@@ -5130,7 +5157,12 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                     }
                   )
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { maxHeight: "200px", overflowY: "auto" }, children: hotkeys.map((hk, index) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "hotkey-group-list", children: hotkeyGroups.length === 0 ? jsxRuntimeExports.jsx("div", { className: "text-caption", children: "暂无快捷键，可点击刷新重新读取" }) : hotkeyGroups.map((group, groupIndex) => jsxRuntimeExports.jsxs("section", { className: "hotkey-group", children: [
+                  jsxRuntimeExports.jsx("h3", { className: "hotkey-group-name", title: group.relativePath || group.name, children: group.name }),
+                  group.hotkeys.map((hk, rowIndex) => {
+                    const index = `${groupIndex}:${rowIndex}`;
+                    const aliasKey = group.relativePath ? `${group.relativePath}/${hk.section}` : hk.section;
+                    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
                   "div",
                   {
                     className: "hotkey-row",
@@ -5144,11 +5176,11 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                     children: [
                       (() => {
                         const aliases = selectedMod?.hotkeyAliases || {};
-                        const alias = hk.section && typeof aliases[hk.section] === "string" ? aliases[hk.section] : "";
+                        const alias = aliases[aliasKey] || aliases[hk.section] || "";
                         const isMenu = hk.isMenu || hk.description === "菜单";
                         const base = isMenu ? "📋 菜单 (Menu)" : hk.description;
                         const label = alias || base;
-                        const isEditing = editingAliasSection === hk.section;
+                        const isEditing = editingAliasSection === aliasKey;
                         if (isEditing) {
                           return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", alignItems: "center", gap: "4px", flex: 1, minWidth: 0 }, children: [
                             /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -5161,7 +5193,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                                 placeholder: base,
                                 onChange: (e) => setAliasDraft(e.target.value),
                                 onKeyDown: (e) => {
-                                  if (e.key === "Enter") handleSaveHotkeyAlias(hk.section);
+                                  if (e.key === "Enter") handleSaveHotkeyAlias(aliasKey);
                                   else if (e.key === "Escape") {
                                     setEditingAliasSection(null);
                                     setAliasDraft("");
@@ -5182,7 +5214,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                             /* @__PURE__ */ jsxRuntimeExports.jsx(
                               "button",
                               {
-                                onClick: () => handleSaveHotkeyAlias(hk.section),
+                                onClick: () => handleSaveHotkeyAlias(aliasKey),
                                 disabled: aliasSaving,
                                 title: "保存（留空恢复默认）",
                                 style: {
@@ -5232,13 +5264,13 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                               ...isMenu ? { fontWeight: "bold", color: "var(--color-accent-primary)" } : {}
                             },
                             children: [
-                              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: alias ? { fontStyle: "italic" } : void 0, children: label }),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "hotkey-name", style: alias ? { fontStyle: "italic" } : void 0, children: label }),
                               /* @__PURE__ */ jsxRuntimeExports.jsx(
                                 "button",
                                 {
                                   onClick: (e) => {
                                     e.stopPropagation();
-                                    setEditingAliasSection(hk.section);
+                                    setEditingAliasSection(aliasKey);
                                     setAliasDraft(alias || "");
                                   },
                                   title: "自定义此快捷键的显示名称（不会修改 Mod 本身）",
@@ -5321,11 +5353,14 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                       ) : (
                         // Display mode
                         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "hotkey-keys", style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
-                          hk.keys.map((k, i) => /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "kbd-key", style: hk.isMenu || hk.description === "菜单" ? { borderColor: "var(--color-accent-primary)", color: "var(--color-accent-primary)" } : {}, children: k }, i)),
+                          (hk.alternatives?.length ? hk.alternatives : [{ displayKeys: hk.keys || [] }]).map((alt, altIndex) => jsxRuntimeExports.jsxs("span", { className: "hotkey-alternative", children: [
+                            altIndex > 0 && jsxRuntimeExports.jsx("span", { className: "hotkey-or", children: "或" }),
+                            (alt.displayKeys || []).map((key, i) => jsxRuntimeExports.jsx("span", { className: "kbd-key", children: key }, i))
+                          ] }, altIndex)),
                           /* @__PURE__ */ jsxRuntimeExports.jsx(
                             "button",
                             {
-                              onClick: () => startHotkeyEdit(index, hk),
+                              onClick: () => startHotkeyEdit(index, hk, group.relativePath),
                               className: "hotkey-edit-btn",
                               title: "编辑此快捷键",
                               style: {
@@ -5348,7 +5383,8 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                     ]
                   },
                   index
-                )) })
+                ); })
+                ] }, group.relativePath ?? groupIndex)) })
               ] }),
               devMode && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { marginTop: "16px", padding: "12px", background: "rgba(245,158,11,0.06)", borderRadius: "8px", border: "1px solid rgba(245,158,11,0.2)" }, children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { fontSize: "11px", fontWeight: "700", color: "#f59e0b", marginBottom: "8px", letterSpacing: "0.05em", display: "flex", alignItems: "center", justifyContent: "space-between" }, children: [
@@ -5577,7 +5613,7 @@ function ModView({ characterName, activeGameId, managerTarget, onBack, devMode, 
                   " 秒"
                 ] })
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { marginTop: "auto", display: "flex", gap: "12px", flexWrap: "wrap" }, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mod-detail-actions", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "button",
                   {

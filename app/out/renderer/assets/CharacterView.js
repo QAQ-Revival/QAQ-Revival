@@ -1382,7 +1382,7 @@ function getBatchPlanModeLabel(mode) {
 function dataTransferIncludesCoverImage(dataTransfer) {
   if (!dataTransfer) return false;
   if (dataTransfer.items && dataTransfer.items.length > 0) {
-    return Array.from(dataTransfer.items).some((item) => {
+    return Array.from(dataTransfer.items).every((item) => {
       const type = String(item.type || "");
       if (type.startsWith("image/")) return true;
       const file = typeof item.getAsFile === "function" ? item.getAsFile() : null;
@@ -1390,7 +1390,7 @@ function dataTransferIncludesCoverImage(dataTransfer) {
     });
   }
   if (dataTransfer.files && dataTransfer.files.length > 0) {
-    return Array.from(dataTransfer.files).some(isCoverImageFile);
+    return Array.from(dataTransfer.files).every(isCoverImageFile);
   }
   return false;
 }
@@ -1750,7 +1750,6 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
   const [showScrollTop, setShowScrollTop] = reactExports.useState(false);
   const isManagementModalOpen = showAddModal || !!showDeleteModal || showHiddenCharacters;
   const canDragReorder = sortMethod === "common" && !searchQuery.trim();
-  const [characterContextMenu, setCharacterContextMenu] = reactExports.useState(null);
   const [fixRunning, setFixRunning] = reactExports.useState(false);
   const [updatingCharacters, setUpdatingCharacters] = reactExports.useState(false);
   const [scanningOrganization, setScanningOrganization] = reactExports.useState(false);
@@ -2080,30 +2079,6 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
     return () => clearTimeout(timer);
   }, [showReorderHint]);
   reactExports.useEffect(() => {
-    if (!characterContextMenu) return void 0;
-    const handleClose = () => setCharacterContextMenu(null);
-    const handlePointerDown = (event) => {
-      if (event.button !== 0) return;
-      if (event.target instanceof Element && event.target.closest(".character-context-menu")) return;
-      setCharacterContextMenu(null);
-    };
-    const handleKeyDown2 = (event) => {
-      if (event.key === "Escape") {
-        setCharacterContextMenu(null);
-      }
-    };
-    window.addEventListener("resize", handleClose);
-    window.addEventListener("scroll", handleClose, true);
-    document.addEventListener("pointerdown", handlePointerDown, true);
-    document.addEventListener("keydown", handleKeyDown2);
-    return () => {
-      window.removeEventListener("resize", handleClose);
-      window.removeEventListener("scroll", handleClose, true);
-      document.removeEventListener("pointerdown", handlePointerDown, true);
-      document.removeEventListener("keydown", handleKeyDown2);
-    };
-  }, [characterContextMenu]);
-  reactExports.useEffect(() => {
     if (characters.length === 0) return;
     const mainContent = document.querySelector(".main-content");
     if (!mainContent) return;
@@ -2239,7 +2214,7 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
     setRefreshingCharacters(true);
     try {
       if (await fetchCharacters({ keepVisible: true, force: true })) {
-        setToast({ type: "success", message: "已重新读取本地角色和 Mod" });
+        setToast({ type: "success", message: "已刷新本地角色、Mod 和快捷键配置" });
       }
     } catch (error) {
       setToast({ type: "error", message: error.message || "刷新失败" });
@@ -2252,7 +2227,7 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
     setUpdatingCharacters(true);
     try {
       const result = await window.api.updateCharacterCatalog(activeGame?.id);
-      setToast({ type: result?.success ? "success" : "error", message: result?.success ? `角色资料已更新，补充 ${result.added || 0} 个空分类；现有 Mod 分类保持不变` : result?.error || "角色资料更新失败" });
+      setToast({ type: result?.success ? "success" : "error", message: result?.success ? result.message || `角色资料已更新，补充 ${result.added || 0} 个空分类` : result?.error || "角色资料更新失败" });
     } catch (error) {
       setToast({ type: "error", message: error.message || "角色资料更新失败" });
     } finally { setUpdatingCharacters(false); }
@@ -2716,7 +2691,6 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
   }
   async function handleHideCharacter(charName) {
     if (hidingCharacter) return;
-    setCharacterContextMenu(null);
     setHidingCharacter(true);
     try {
       const result = await window.api.setCharacterHidden(charName, true, activeGame?.id);
@@ -2872,7 +2846,6 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
     }
     writeCharacterPinnedSet(activeGame?.id, nextPinnedCharacters);
     setPinnedCharacters(nextPinnedCharacters);
-    setCharacterContextMenu(null);
     setToast({ type: "success", message: wasPinned ? `已取消置顶 ${charName}` : `已置顶 ${charName}` });
   }
   async function handleOpenCharacterFolder(charName) {
@@ -2884,13 +2857,10 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
       setToast({ type: "success", message: `已打开 ${charName} 的源文件夹` });
     } catch (error) {
       setToast({ type: "error", message: error.message || "打开角色目录失败" });
-    } finally {
-      setCharacterContextMenu(null);
     }
   }
   async function handleMovePendingModToCharacter(targetCharacterName) {
     const moving = pendingMoveMod;
-    setCharacterContextMenu(null);
     if (!moving?.characterName || !moving?.modName) return;
     if (moving.characterName === targetCharacterName) {
       setToast({ type: "error", message: "目标分类与当前分类相同" });
@@ -2909,7 +2879,6 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
     }
   }
   async function handleResetCharacterIni(charName) {
-    setCharacterContextMenu(null);
     try {
       const result = await window.api.resetCharacterIni(charName);
       if (!result?.success) {
@@ -2942,7 +2911,6 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
     }
   }
   async function handleFixCharacter(charName, mode = "external") {
-    setCharacterContextMenu(null);
     if (fixRunning) return;
     setFixRunning(true);
     try {
@@ -3042,20 +3010,24 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
     const result = await window.api.nevernessDx12OpenPakFolder?.();
     if (!result?.success) setToast({ type: "error", message: result?.error || "打开 Pak 文件夹失败" });
   }
-  function openCharacterContextMenu(event, charName, pinned) {
-    const menuWidth = 220;
-    const menuHeight = (isWuwa ? 236 : 190) + 44 + (pendingMoveMod ? 44 : 0);
-    const viewportPadding = 12;
-    const desiredX = event.clientX + 8;
-    const desiredY = event.clientY + 8;
-    const nextX = Math.max(viewportPadding, Math.min(desiredX, window.innerWidth - menuWidth - viewportPadding));
-    const nextY = Math.max(viewportPadding, Math.min(desiredY, window.innerHeight - menuHeight - viewportPadding));
-    setCharacterContextMenu({
-      name: charName,
-      x: nextX,
-      y: nextY,
-      pinned
-    });
+  async function openCharacterContextMenu(event, charName, pinned) {
+    try {
+      const action = await window.api.showCharacterContextMenu({
+        pinned, busy: fixRunning,
+        canMove: !!pendingMoveMod && charName !== pendingMoveMod.characterName
+      });
+      const actions = {
+        pin: () => handlePinCharacter(charName),
+        folder: () => handleOpenCharacterFolder(charName),
+        move: () => handleMovePendingModToCharacter(charName),
+        fix: () => handleFixCharacter(charName, "external"),
+        reset: () => handleResetCharacterIni(charName),
+        "change-fixer": () => handleSelectCustomFixExe()
+      };
+      if (Object.hasOwn(actions, action)) await actions[action]();
+    } catch (error) {
+      setToast({ type: "error", message: error.message || "打开角色菜单失败" });
+    }
   }
   function renderManagementModal(children, onBackdropClose, contentStyle = void 0) {
     return ReactDOM.createPortal(
@@ -3082,10 +3054,10 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
     const group = (label, className, ...children) => h("div", { className: "character-action-group " + className, role: "group", "aria-label": label }, h("span", { className: "character-action-label" }, label), ...children);
     return h("div", { className: "character-toolbar-actions" },
       group("角色资料", "",
-        button(updatingCharacters ? "更新中..." : "更新角色", "联网更新角色资料，补充缺少的空分类，保留现有目录和 Mod", handleUpdateCharacters),
+        button(updatingCharacters ? "更新中..." : "更新角色", "联网更新角色资料与官方外观目录，同步刷新快捷键配置，补充缺少的空分类，保留现有目录和 Mod", handleUpdateCharacters),
         button(`隐藏角色${hiddenCharacterCount ? ` (${hiddenCharacterCount})` : ""}`, "管理当前游戏的隐藏角色，恢复显示不会自动启用 Mod", () => setShowHiddenCharacters(true), hidingCharacter)),
       group("本地文件", "",
-        button(refreshingCharacters ? "刷新中..." : "刷新", "重新读取本地最新内容，不移动文件", handleRefreshCharacters),
+        button(refreshingCharacters ? "刷新中..." : "刷新", "重新读取本地角色、Mod 和快捷键配置，不移动文件", handleRefreshCharacters),
         button(scanningOrganization ? "扫描中..." : "整理", "按规则预览移动计划，确认后才整理文件", () => handleOrganizeCharacters(), busy || missingPath)),
       group("外部工具", "character-external-tools",
         button(fixRunning ? "打开中..." : "🔧 修复器", "打开独立修复器；找不到时选择并保存程序路径", () => handleFixAll("external"), fixRunning))
@@ -3265,7 +3237,7 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
         " 还没有设置 Mods 文件夹"
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-body", style: { color: "var(--color-text-secondary)", marginBottom: "20px" }, children: "这个游戏目前是独立配置，角色一览不会再复用其它游戏的目录。请先到系统设置里选择对应游戏的 Mods 文件夹。" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-primary", onClick: () => onOpenSettings?.(), children: "前往系统设置" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-primary", onClick: () => onOpenSettings?.(), children: "前往游戏设置" })
     ] }) : loadError ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "settings-card", style: { textAlign: "center", padding: "32px", color: "var(--color-danger)" }, children: loadError }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         LegacyImportModal,
@@ -4118,10 +4090,26 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
                 }
               },
               children: [
+                reactExports.createElement("button", {
+                  type: "button",
+                  className: "hide-character-btn",
+                  disabled: hidingCharacter,
+                  title: "隐藏角色（禁用全部 Mod，可在顶部恢复）",
+                  "aria-label": "隐藏角色 " + charName,
+                  onClick: (event) => { event.stopPropagation(); handleHideCharacter(charName); },
+                  onPointerDown: (event) => event.stopPropagation(),
+                  onDragStart: (event) => { event.preventDefault(); event.stopPropagation(); }
+                }, reactExports.createElement("svg", {
+                  width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor",
+                  strokeWidth: 1.7, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true
+                }, reactExports.createElement("path", {
+                  d: "m3 3 18 18 M10.6 10.6a2 2 0 0 0 2.8 2.8 M9.9 5.2A11 11 0 0 1 12 5c7 0 10 7 10 7a17 17 0 0 1-3.2 4.3 M6.3 6.3A19 19 0 0 0 2 12s3 7 10 7a11 11 0 0 0 5.7-1.7"
+                }))),
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "button",
                   {
                     className: "delete-btn",
+                    "aria-label": "删除角色 " + charName,
                     onClick: (e) => {
                       e.stopPropagation();
                       setShowDeleteModal(charName);
@@ -4315,67 +4303,6 @@ function CharacterView({ activeGame, initialCache, onCacheChange, onSelectCharac
         ] })
       ] }),
       () => setShowDeleteModal(null)
-    ),
-    characterContextMenu && ReactDOM.createPortal(
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "modal-backdrop character-context-backdrop", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        "div",
-        {
-          className: "modal-content character-context-menu",
-          style: { left: `${characterContextMenu.x}px`, top: `${characterContextMenu.y}px` },
-          onClick: (e) => e.stopPropagation(),
-          onContextMenu: (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          },
-          children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "character-context-item", onClick: () => handlePinCharacter(characterContextMenu.name), children: characterContextMenu.pinned ? "📍 取消置顶" : "📌 置顶到最上方" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "character-context-item", onClick: () => handleOpenCharacterFolder(characterContextMenu.name), children: "📂 打开源文件夹" }),
-            reactExports.createElement("button", { className: "character-context-item", disabled: hidingCharacter, title: "保留角色文件，禁用该角色的全部 Mod，并从列表中隐藏", onClick: () => handleHideCharacter(characterContextMenu.name) }, "隐藏角色（禁用全部 Mod）"),
-            pendingMoveMod && characterContextMenu.name !== pendingMoveMod.characterName && /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                className: "character-context-item",
-                onClick: () => handleMovePendingModToCharacter(characterContextMenu.name),
-                style: { color: "#2563eb", fontWeight: 700 },
-                children: "📦 移动到这里"
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                className: "character-context-item",
-                onClick: () => handleFixCharacter(characterContextMenu.name, "external"),
-                disabled: fixRunning,
-                style: { color: "#f97316" },
-                children: "🔧 修复器"
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                className: "character-context-item",
-                onClick: () => handleResetCharacterIni(characterContextMenu.name),
-                style: { color: "#0f766e" },
-                children: "🔄 重置该分类全部 Mod ini"
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                className: "character-context-item",
-                onClick: () => {
-                  setCharacterContextMenu(null);
-                  handleSelectCustomFixExe();
-                },
-                disabled: fixRunning,
-                style: { color: "#6b7280", fontSize: "12px" },
-                children: "📁 更换修复器"
-              }
-            )
-          ]
-        }
-      ) }),
-      document.body
     ),
     showScrollTop && ReactDOM.createPortal(
       /* @__PURE__ */ jsxRuntimeExports.jsx(

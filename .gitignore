@@ -32,3 +32,5 @@ Thumbs.db
 Desktop.ini
 
 # app/out contains the maintained recovered JavaScript; keep it tracked.
+# Private components (included in local release builds; never commit)
+/local-components/

@@ -702,15 +702,6 @@
   color: #e8e8e8;
 }
 
-[data-theme="dark"] .character-context-menu {
-  background: rgba(30, 30, 50, 0.96) !important;
-  border-color: rgba(255,255,255,0.08) !important;
-}
-
-[data-theme="dark"] .character-context-item {
-  color: #e8e8e8;
-}
-
 [data-theme="dark"] .qaqm-context-submenu {
   background: rgba(30, 30, 50, 0.98) !important;
   border-color: rgba(255,255,255,0.08) !important;
@@ -2506,42 +2497,6 @@ body {
   line-height: 1.7;
 }
 
-.character-context-backdrop {
-  background: transparent;
-  backdrop-filter: none;
-  pointer-events: none;
-}
-
-.character-context-menu {
-  position: fixed;
-  width: 220px;
-  max-width: calc(100vw - 24px);
-  padding: 10px;
-  text-align: left;
-  transform: none;
-  pointer-events: auto;
-}
-
-.character-context-item {
-  width: 100%;
-  border: none;
-  background: transparent;
-  border-radius: 12px;
-  padding: 12px 14px;
-  text-align: left;
-  cursor: pointer;
-  color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 600;
-  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
-}
-
-.character-context-item:hover {
-  background: rgba(255, 143, 163, 0.1);
-  color: var(--color-accent-primary);
-  transform: translateX(2px);
-}
-
 .mod-context-backdrop {
   position: fixed;
   inset: 0;
@@ -2792,6 +2747,7 @@ body {
   padding: 0 8px;
 }
 
+.character-card .hide-character-btn,
 .character-card .delete-btn {
   position: absolute;
   top: 8px;
@@ -2814,9 +2770,33 @@ body {
   font-size: 14px;
 }
 
+.character-card:hover .hide-character-btn,
+.character-card:focus-within .hide-character-btn,
+.character-card:focus-within .delete-btn,
 .character-card:hover .delete-btn {
   opacity: 1;
   transform: scale(1);
+}
+
+.character-card .hide-character-btn {
+  right: 42px;
+  color: #64748b;
+}
+
+.character-card .hide-character-btn:hover:not(:disabled) {
+  background: var(--color-accent-primary);
+  color: white;
+}
+
+.character-card .hide-character-btn:disabled {
+  cursor: wait;
+  opacity: 0.45;
+}
+
+.character-card .hide-character-btn:focus-visible,
+.character-card .delete-btn:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
 }
 
 .character-card .delete-btn:hover {
@@ -4756,7 +4736,7 @@ body {
 
 /* ==================== Global Drag-and-Drop Overlay ==================== */
 .app-container.dragging-files::after {
-    content: '拖入 Mod / 更新包 / 修复器';
+    content: '拖入 Mod / 整合包 / 更新包 / 修复器';
     position: fixed;
     inset: 0;
     z-index: 9999;

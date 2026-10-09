@@ -6,10 +6,25 @@ const { createRequire } = require('node:module');
 const runtimeRequire = createRequire(path.join(process.resourcesPath, 'app/package.json'));
 const electron = runtimeRequire('electron');
 const { app, BrowserWindow, ipcMain } = electron;
+const liveImageFetch = electron.net.fetch.bind(electron.net);
+const nativeMenus = [];
+let nextNativeMenuAction = null;
+// Inspect the real native Menu while avoiding a blocking OS popup in offscreen tests.
+electron.Menu.prototype.popup = function (options) {
+  nativeMenus.push({ menu: this, options });
+  const action = nextNativeMenuAction;
+  nextNativeMenuAction = null;
+  if (action) {
+    const item = this.getMenuItemById(action);
+    assert.ok(item?.enabled, 'Native menu action is enabled');
+    item.click();
+  }
+  options.callback?.();
+};
 const root = process.env.QAQM_TEST_RESULTS;
 const profile = process.env.QAQM_USER_DATA;
-const mods = path.join(root, 'wuwa-mods');
-const endfield = path.join(root, 'endfield-mods');
+const mods = path.join(root, ...(process.env.QAQM_SMOKE_SCOPE === 'persist' ? ['WWMI', 'Mods'] : ['wuwa-mods']));
+const endfield = path.join(root, ...(process.env.QAQM_SMOKE_SCOPE === 'persist' ? ['EFMI', 'Mods'] : ['endfield-mods']));
 const loader = path.join(root, 'XXMI Launcher.exe');
 const fixerExe = path.join(root, "独立修复器 & Tester's tool.exe");
 const replacementFixerExe = path.join(root, '另一个修复器.exe');
@@ -53,6 +68,12 @@ fs.writeFileSync(path.join(profile, 'config.json'), JSON.stringify({
   ]
 }));
 fs.writeFileSync(path.join(profile, 'skin-config.json'), JSON.stringify({ activeSkinId: 'supporter', activatedSkins: [{ skinId: 'supporter', skinName: '旧功能包', cssVariables: { '--color-accent-primary': '#000000' } }] }));
+if (process.env.QAQM_SMOKE_SCOPE === 'persist') require('./persist-smoke.cjs').prepare({ profile, mods, endfield });
+if (process.env.QAQM_SMOKE_SCOPE === 'translation') {
+  fs.writeFileSync(path.join(profile, 'hotkeys.json'), JSON.stringify({
+    '安可/GroupedMod': { version: 8, scanned: true, hotkeys: [{ description: 'old merged cache', keys: ['8'] }] }
+  }));
+}
 // This smoke test exercises the real Electron main, preload, React DOM and filesystem
 // with synthetic data. Keep windows hidden and external network calls offline.
 const offscreenElectron = Object.create(electron);
@@ -93,8 +114,16 @@ const kemonoPosts = [{ ...pawPosts[0], title: 'Kemono 测试 MOD' }];
 let pawOffline = false;
 let delayedPost = '';
 let catalogRequests = 0, catalogOffline = false;
+const characterImageRequests = [];
+const characterImageBytes = electron.nativeImage.createFromBitmap(Buffer.from([0x70, 0x90, 0xe0, 0xff]), { width: 1, height: 1 }).toPNG();
+let characterImagesOffline = false;
 electron.net.fetch = async (address, options = {}) => {
   const url = new URL(address);
+  if (options.redirect === 'manual' && ['api.encore.moe', 'enka.network', 'raw.githubusercontent.com', 'web.hycdn.cn', 'wiki.mysqil.com', 'static.wikia.nocookie.net'].includes(url.hostname)) {
+    characterImageRequests.push(url.href);
+    if (characterImagesOffline) throw Error('Synthetic character images offline');
+    return new Response(characterImageBytes, { headers: { 'Content-Type': 'image/png' } });
+  }
   if (url.href === 'https://api.github.com/repos/QAQ-Revival/QAQ-Revival/releases/latest') {
     softwareUpdateRequests.push(options);
     return new Response(JSON.stringify({ tag_name: 'v' + softwareReleaseVersion, html_url: 'https://github.com/QAQ-Revival/QAQ-Revival/releases/tag/v' + softwareReleaseVersion,
@@ -187,6 +216,16 @@ runtimeRequire.cache[launchModulePath].exports = {
     return launchFailure ? { success: false, error: '模拟：用户取消管理员授权' } : { success: true };
   } })
 };
+const antiCrashRequests = [];
+const antiCrashModulePath = runtimeRequire.resolve('./out/main/genshin-anticrash.cjs');
+const antiCrashModule = runtimeRequire(antiCrashModulePath);
+runtimeRequire.cache[antiCrashModulePath].exports = {
+  ...antiCrashModule,
+  createGenshinAntiCrashService: options => antiCrashModule.createGenshinAntiCrashService({ ...options,
+    runNetsh: async args => { antiCrashRequests.push(args); return { ok: true }; },
+    isProcessNameRunning: async () => false,
+    isElevated: () => true })
+};
 function passed(name) {
   checks.push(name);
   fs.writeFileSync(path.join(root, 'progress.json'), JSON.stringify({ checks }, null, 2));
@@ -251,6 +290,7 @@ async function main() {
   // Exercise production's default AppData/QAQ-Revival resolution without using real data.
   app.setPath('appData', path.dirname(profile));
   delete process.env.QAQM_USER_DATA;
+  if (process.env.QAQM_SMOKE_SCOPE === 'persist') require('./persist-smoke.cjs').watchStartup(mods);
   runtimeRequire('./out/main/index.js');
   assert.equal(app.getPath('userData'), profile);
   assert.equal(app.getPath('sessionData'), profile);
@@ -261,14 +301,83 @@ async function main() {
   await waitFor(`!!document.querySelector('.game-selector-trigger') && [...document.querySelectorAll('button')].some(b => b.textContent.trim() === '刷新')`, 'main UI');
   assert.equal(await evaluate(`!!document.querySelector('.disclaimer-overlay, .startup-notice-overlay')`), false);
   assert.equal(await evaluate(`localStorage.getItem('hideDisclaimer_v3')`), null);
+  if (process.env.QAQM_SMOKE_SCOPE === 'overlay-activity') {
+    await require('./overlay-activity-smoke.cjs')({ electron, root, mods, handlers, passed });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'card-images') {
+    await require('./card-images-smoke.cjs')({ evaluate, waitFor, captureUI, window, passed });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'mod-sites') {
+    await require('./mod-sites-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, handlers, passed, attachmentBytes });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'persist') {
+    await require('./persist-smoke.cjs')({ evaluate, waitFor, captureUI, window, profile, mods, endfield, handlers, passed });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'genshin-check') {
+    await require('./genshin-check-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, handlers, passed, launchRequests });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'genshin-anticrash') {
+    await require('./genshin-anticrash-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, handlers, passed, launchRequests, antiCrashRequests,
+      setLaunchFailure: value => { launchFailure = value; } });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'game-settings') {
+    await require('./game-settings-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, handlers, passed, launchRequests,
+      setSelection: result => { nextFixerSelection = result; } });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'genshin') {
+    await require('./genshin-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, profile, mods, handlers, passed, launchRequests,
+      setSelection: result => { nextFixerSelection = result; } });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
   assert.ok(await evaluate(`!('getDisclaimerDismissed' in window.api) && !('setDisclaimerDismissed' in window.api)`));
+  if (process.env.QAQM_SMOKE_SCOPE === 'mod-layout') {
+    await require('./mod-layout-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, mods, handlers, passed });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
   if (process.env.QAQM_SMOKE_SCOPE === 'translation') {
-    await require('./hotkey-translation-smoke.cjs')({ electron, root, mods, passed });
+    await require('./hotkey-translation-smoke.cjs')({ electron, root, profile, mods, handlers, passed, manager: { evaluate, waitFor, captureUI, window } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
   if (process.env.QAQM_SMOKE_SCOPE === 'hidden-characters') {
-    await require('./hidden-characters-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, profile, mods, handlers, passed });
+    await require('./hidden-characters-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, profile, mods, handlers, passed, nativeMenus, selectNativeAction: action => { nextNativeMenuAction = action; } });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'character-images') {
+    await require('./character-image-cache-smoke.cjs')({ electron, evaluate, waitFor, profile, handlers, passed,
+      requests: characterImageRequests, imageBytes: characterImageBytes, setOffline: value => { characterImagesOffline = value; } });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'character-skins') {
+    await require('./character-skins-smoke.cjs')({ electron, evaluate, waitFor, profile, mods, handlers, passed });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'skin-cover-live') {
+    await require('./skin-cover-live-smoke.cjs')({ electron, liveImageFetch, evaluate, waitFor, captureUI, mods, profile, handlers, passed });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'file-drop') {
+    await require('./file-drop-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
@@ -279,6 +388,18 @@ async function main() {
   assert.equal(await evaluate(`'getTutorialUrl' in window.api || 'getAnnouncements' in window.api`), false);
   await require('./window-controls-smoke.cjs')({ evaluate, waitFor, window, handlers, passed });
   await require('./sidebar-width-smoke.cjs')({ evaluate, waitFor, window, passed });
+  if (process.env.QAQM_SMOKE_SCOPE === 'window-layout') {
+    await evaluate(`document.documentElement.classList.remove('qaqm-compat-level-3', 'qaqm-compat-level-2')`);
+    await captureUI('window-layout.png');
+    window.setSize(1000, 640);
+    await evaluate(`document.documentElement.style.setProperty('--ui-scale', '1.4')`);
+    await waitFor(`document.querySelector('.sidebar-resize-handle')?.getAttribute('aria-valuenow') === '280'`, 'scaled sidebar minimum');
+    await captureUI('window-layout-compact.png');
+    await evaluate(`document.querySelector('.sidebar-toggle').click()`);
+    await captureUI('window-layout-collapsed.png');
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
   if (process.env.QAQM_SMOKE_SCOPE === 'post-links') {
     await require('./post-links-smoke.cjs')({ evaluate, waitFor, captureUI, window, root, passed, handlers, attachmentRequests, attachmentBytes, externalLinks, protectedLink, protectedNormal, revivalChildren, setSelection: result => { nextFixerSelection = result; } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
@@ -291,7 +412,7 @@ async function main() {
     return;
   }
   if (process.env.QAQM_SMOKE_SCOPE === 'imports') {
-    await require('./import-group-smoke.cjs')({ evaluate, waitFor, captureUI, root, passed, setSelection: result => { nextFixerSelection = result; } });
+    await require('./import-group-smoke.cjs')({ evaluate, waitFor, captureUI, window, root, passed, setSelection: result => { nextFixerSelection = result; } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0);
     return;
@@ -427,12 +548,13 @@ async function main() {
   await waitFor(`document.body.innerText.includes('修复器启动失败')`, 'fixer error shown');
   assert.equal(fixerSelections.length, 3);
   fixerLaunchFailure = false;
+  nextNativeMenuAction = 'fix';
+  const nativeMenuCount = nativeMenus.length;
   await evaluate(`Array.from(document.querySelectorAll('.character-card')).find(x => (x.getAttribute('aria-label') || x.innerText).includes('安可')).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 450, clientY: 320 }))`);
-  await waitFor(`!!document.querySelector('.character-context-menu')`, 'character context menu');
-  assert.equal(await evaluate(`Array.from(document.querySelectorAll('.character-context-menu button')).filter(b => b.textContent.trim() === '🔧 修复器').length`), 1);
-  assert.ok(await evaluate(`document.querySelector('.character-context-menu').innerText.includes('更换修复器')`));
-  await evaluate(`Array.from(document.querySelectorAll('.character-context-menu button')).find(b => b.textContent.trim() === '🔧 修复器').click()`);
-  await waitFor(`!document.querySelector('.character-context-menu')`, 'character fixer opened');
+  await delay(200);
+  assert.equal(nativeMenus.length, nativeMenuCount + 1);
+  assert.equal(nativeMenus.at(-1).menu.items.filter(item => item.label === '修复器').length, 1);
+  assert.ok(nativeMenus.at(-1).menu.getMenuItemById('change-fixer'));
   assert.equal(snapshot(mods), beforeFixer);
   passed('Launch failures are visible; character context menu has one fixer action and allows changing the saved tool');
   await clickText('有内容');
@@ -448,7 +570,7 @@ async function main() {
   fixture('安可/新增模组/mod.ini');
   const beforeRefresh = snapshot(mods);
   await clickText('刷新');
-  await waitFor(`document.body.innerText.includes('已重新读取本地角色和 Mod')`, 'refresh completion');
+  await waitFor(`document.body.innerText.includes('已刷新本地角色、Mod 和快捷键配置')`, 'refresh completion');
   assert.equal(snapshot(mods), beforeRefresh);
   assert.equal((await handlers.get('get-characters')({})).characters.find(c => c.name === '安可').modCount, 2);
   passed('Refresh button sees an externally added Mod without moving files or opening a dialog');
@@ -512,13 +634,16 @@ async function main() {
   passed('Game dropdown supports Escape and remains usable with the sidebar collapsed');
   await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.querySelector('.sidebar-header').click()`);
   await waitFor(`!document.querySelector('.sidebar.collapsed')`, 'sidebar expanded');
-  assert.equal(await evaluate(`document.querySelectorAll('.launch-actions button').length`), 2);
+  assert.equal(await evaluate(`document.querySelectorAll('.launch-actions .btn').length`), 2);
+  assert.equal(await evaluate(`document.querySelectorAll('.launch-actions [aria-label="游戏设置"]').length`), 1);
   assert.equal(await evaluate(`document.querySelector('.sidebar').innerText.includes('观看使用教程')`), false);
   assert.equal(await evaluate(`document.querySelectorAll('.sidebar .mode-btn').length`), 0);
   await clickText('直接启动');
   await waitFor(`!document.querySelector('[aria-label="直接启动"]').disabled`, 'direct launch completed');
   assert.deepEqual(launchRequests.at(-1).args, ['--nogui', '--xxmi', 'EFMI']);
-  assert.equal(launchRequests.at(-1).file, loader);
+  assert.match(path.basename(launchRequests.at(-1).file), /^r[a-f0-9]{24}\.exe$/);
+  assert.equal(path.dirname(launchRequests.at(-1).file), path.dirname(loader));
+  assert.ok(fs.readFileSync(launchRequests.at(-1).file).equals(fs.readFileSync(loader)));
   await clickText('XXMI 启动');
   await waitFor(`!document.querySelector('[aria-label="XXMI 启动"]').disabled`, 'XXMI launch completed');
   assert.deepEqual(launchRequests.at(-1).args, []);
@@ -540,8 +665,8 @@ async function main() {
   await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('MOD下载')).click()`);
   await waitFor(`document.querySelector('.mod-download-source-name')?.textContent === 'QAQM'`, 'default download source is QAQM');
   await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
-  await waitFor(`document.querySelectorAll('.mod-download-source-option').length === 3`, 'download source menu');
-  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option')].map(el => el.dataset.source)`), ['qaqm', 'kemono', 'pawchive']);
+  await waitFor(`document.querySelectorAll('.mod-download-source-option').length === 8`, 'download source menu');
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option')].map(el => el.dataset.source)`), ['qaqm', 'kemono', 'pawchive', 'gamebanana', 'arca', 'loverslab', 'huiyue', 'keke']);
   assert.equal(await evaluate(`!!document.querySelector('.mod-market-header .btn-publish, .mod-market-header .btn-download-orb')`), false);
   await evaluate(`document.querySelector('.mod-download-source-option[data-source="pawchive"]').click()`);
   await waitFor(`!!document.querySelector('.paw-fixed-tabs')`, 'Pawchive tabs');
@@ -701,7 +826,7 @@ async function main() {
   const [surfaceWidth, surfaceHeight] = window.getSize();
   window.setSize(surfaceWidth + 1, surfaceHeight);
   window.setSize(surfaceWidth, surfaceHeight);
-  await require('./import-group-smoke.cjs')({ evaluate, waitFor, captureUI, root, passed, setSelection: result => { nextFixerSelection = result; } });
+  await require('./import-group-smoke.cjs')({ evaluate, waitFor, captureUI, window, root, passed, setSelection: result => { nextFixerSelection = result; } });
   await require('./post-links-smoke.cjs')({ evaluate, waitFor, captureUI, window, root, passed, handlers, attachmentRequests, attachmentBytes, externalLinks, protectedLink, protectedNormal, revivalChildren, setSelection: result => { nextFixerSelection = result; } });
   await require('./software-updates-smoke.cjs')({ evaluate, waitFor, window, passed, requests: softwareUpdateRequests, externalLinks, setRelease: version => { softwareReleaseVersion = version; } });
   fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
