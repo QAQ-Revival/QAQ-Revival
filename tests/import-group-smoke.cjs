@@ -1,15 +1,38 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-module.exports = async ({ evaluate, waitFor, captureUI, root, setSelection, passed }) => {
+const { execFileSync } = require('node:child_process');
+const { createRequire } = require('node:module');
+module.exports = async ({ evaluate, waitFor, captureUI, window, root, setSelection, passed }) => {
   await evaluate(`localStorage.setItem('batch-import-guide-dismissed', 'true')`);
-  async function importFixture(name, target, confirm = false) {
+  async function importFixture(name, target, confirm = false, archive = false) {
     const source = path.join(root, 'manual-group-import', name);
     const bytes = '[TextureOverrideImportFixture]\nhash = deadbeef\n';
     fs.mkdirSync(source, { recursive: true });
     fs.writeFileSync(path.join(source, 'mod.ini'), bytes);
-    setSelection({ canceled: false, filePaths: [source] });
-    await evaluate(`document.querySelector('.batch-import-trigger-btn').click()`);
+    let importPath = source;
+    if (archive) {
+      const runtimeRequire = createRequire(path.join(process.resourcesPath, 'app/package.json'));
+      importPath = source + '.7z';
+      execFileSync(runtimeRequire('7zip-bin').path7za, ['a', importPath, name], {
+        cwd: path.dirname(source), windowsHide: true, stdio: 'pipe'
+      });
+      const position = await evaluate(`(() => { const r = document.querySelector('.character-toolbar-subtitle').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+      const alreadyAttached = window.webContents.debugger.isAttached();
+      if (!alreadyAttached) window.webContents.debugger.attach('1.3');
+      try {
+        for (const type of ['dragEnter', 'dragOver', 'drop']) {
+          await window.webContents.debugger.sendCommand('Input.dispatchDragEvent', {
+            type, ...position, data: { items: [], files: [importPath], dragOperationsMask: 1 }
+          });
+        }
+      } finally {
+        if (!alreadyAttached) window.webContents.debugger.detach();
+      }
+    } else {
+      setSelection({ canceled: false, filePaths: [importPath] });
+      await evaluate(`document.querySelector('.batch-import-trigger-btn').click()`);
+    }
     await waitFor(`!!document.querySelector('.batch-import-overlay')`, 'import preview');
     await evaluate(`[...document.querySelectorAll('.batch-import-overlay button')].find(button => button.textContent.includes('开始分析')).click()`);
     await waitFor(`!!document.querySelector('[aria-label="导入目标分组"]')`, 'classification');
@@ -33,4 +56,6 @@ module.exports = async ({ evaluate, waitFor, captureUI, root, setSelection, pass
   await importFixture('安可_ImportBeta', ' 新分组 ', true); // Editing an automatic match overrides it.
   await importFixture('UnmappedImportGamma', ''); // Intentionally blank still uses the fallback.
   passed('Real import: unknown grouping honors a typed new name without Enter, edited automatic matches honor trimmed names, and only blank input falls back to 其他');
+  await importFixture('安可_NormalArchive', '安可', false, true);
+  passed('Ordinary 7z Mod passes analysis and installs intact without being treated as a disguised archive');
 };

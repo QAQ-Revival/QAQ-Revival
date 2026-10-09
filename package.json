@@ -1,17 +1,26 @@
 {
   "name": "qaq-revival",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "license": "MIT",
   "description": "QAQ-Revival — locally maintained Mod manager",
   "scripts": {
     "build": "node tools/build.cjs",
-    "test": "node tools/build-mega.cjs --test && node --test tests/single-instance.test.cjs tests/windows-launch.test.cjs tests/independent-fixer.test.cjs tests/pawchive.test.cjs tests/mega-manager.test.cjs tests/archive-downloads.test.cjs tests/software-updates.test.cjs tests/mega-worker.test.cjs tests/character-catalog.test.cjs tests/json-store.test.cjs tests/release.test.cjs tests/executable-manifest.test.cjs tests/hotkey-translation.test.cjs tests/hidden-characters.test.cjs && node tools/smoke.cjs && node tools/smoke.cjs --single-instance && node tools/smoke.cjs --translation && node tools/smoke.cjs --hidden-characters",
+    "test": "node tools/build-mega.cjs --test && node --test tests/single-instance.test.cjs tests/window-state.test.cjs tests/windows-launch.test.cjs tests/random-executable.test.cjs tests/wuwa-tuning.test.cjs tests/genshin.test.cjs tests/genshin-diagnostics.test.cjs tests/genshin-anticrash.test.cjs tests/independent-fixer.test.cjs tests/pawchive.test.cjs tests/mega-manager.test.cjs tests/archive-downloads.test.cjs tests/software-updates.test.cjs tests/mega-worker.test.cjs tests/character-catalog.test.cjs tests/character-image-cache.test.cjs tests/character-skin-catalog.test.cjs tests/json-store.test.cjs tests/persist-settings.test.cjs tests/mod-sites.test.cjs tests/overlay-activity.test.cjs tests/release.test.cjs tests/executable-manifest.test.cjs tests/hotkey-translation.test.cjs tests/hidden-characters.test.cjs && node tools/smoke.cjs && node tools/smoke.cjs --single-instance && node tools/smoke.cjs --translation && node tools/smoke.cjs --hidden-characters",
     "test:single-instance": "node --test tests/single-instance.test.cjs && node tools/smoke.cjs --single-instance",
+    "test:genshin": "node --test tests/genshin.test.cjs tests/windows-launch.test.cjs && node tools/smoke.cjs --genshin",
+    "test:random-launch": "node --test tests/random-executable.test.cjs tests/single-instance.test.cjs tests/windows-launch.test.cjs && node tests/random-runtime-smoke.cjs",
+    "test:game-settings": "node --test tests/wuwa-tuning.test.cjs tests/random-executable.test.cjs && node tools/smoke.cjs --game-settings",
     "test:electron": "node tools/smoke.cjs",
     "test:translation": "node --test tests/hotkey-translation.test.cjs && node tools/smoke.cjs --translation",
     "test:hidden-characters": "node --test tests/hidden-characters.test.cjs && node tools/smoke.cjs --hidden-characters",
-    "build:mega": "node tools/build-mega.cjs"
+    "test:character-images": "node --test tests/character-image-cache.test.cjs && node tools/smoke.cjs --character-images",
+    "test:character-skins": "node --test tests/character-skin-catalog.test.cjs && node tools/smoke.cjs --character-skins",
+    "build:mega": "node tools/build-mega.cjs",
+    "test:genshin-check": "node --test tests/genshin-diagnostics.test.cjs && node tools/smoke.cjs --genshin-check",
+    "test:genshin-anticrash": "node --test tests/genshin-anticrash.test.cjs && node tools/smoke.cjs --genshin-anticrash",
+    "test:persist": "node --test tests/persist-settings.test.cjs && node tools/smoke.cjs --persist",
+    "test:overlay-activity": "node --test tests/overlay-activity.test.cjs && node tools/smoke.cjs --overlay-activity"
   },
   "productName": "QAQ-Revival"
 }

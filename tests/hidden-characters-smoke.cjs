@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 
-module.exports = async ({ evaluate, waitFor, captureUI, window, root, profile, mods, handlers, passed }) => {
+module.exports = async ({ evaluate, waitFor, captureUI, window, root, profile, mods, handlers, passed, nativeMenus, selectNativeAction }) => {
   const call = (name, ...args) => handlers.get(name)({}, ...args);
   const fixture = (relative, text = '[TextureOverrideTest]\nhash = 12345678\n') => {
     const file = path.join(mods, relative);
@@ -16,9 +16,26 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, profile, m
   assert.equal(preset.success, true);
   await clickText('刷新');
   await waitFor(`!!${card}`, 'character available');
-  await evaluate(`${card}.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 450, clientY: 320 }))`);
-  await waitFor(`!!document.querySelector('.character-context-menu')`, 'hide action menu');
-  await clickText('隐藏角色（禁用全部 Mod）');
+  selectNativeAction('pin');
+  await evaluate(`${card}.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: innerWidth - 2, clientY: innerHeight - 2 }))`);
+  await waitFor(`!!${card}.querySelector('.character-pin-badge')`, 'native menu pin action');
+  assert.equal(nativeMenus.at(-1).options.window, window);
+  assert.equal('x' in nativeMenus.at(-1).options, false, 'Native menu uses screen cursor placement');
+  assert.ok(nativeMenus.at(-1).menu.items.every(item => !item.label.includes('隐藏')));
+  assert.equal(await evaluate(`!!document.querySelector('.character-context-menu')`), false);
+  await evaluate(`${card}.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`);
+  await evaluate('new Promise(resolve => setTimeout(resolve, 100))');
+  assert.equal(nativeMenus.at(-1).menu.getMenuItemById('pin').label, '取消置顶');
+  const placement = await evaluate(`(() => {
+    const card = ${card}; card.querySelector('.hide-character-btn').focus();
+    const hide = card.querySelector('.hide-character-btn').getBoundingClientRect();
+    const remove = card.querySelector('.delete-btn').getBoundingClientRect();
+    return { beside: hide.right < remove.left, aligned: hide.top === remove.top };
+  })()`);
+  assert.deepEqual(placement, { beside: true, aligned: true });
+  await captureUI('character-card-actions.png');
+  passed('Character menu uses the native OS popup at the screen cursor; pin/cancel work; hide button sits left of delete and is absent from the menu');
+  await evaluate(`${card}.querySelector('.hide-character-btn').click()`);
   await waitFor(`!${card} && document.body.textContent.includes('已隐藏「安可」')`, 'hide completion');
   for (const relative of ['安可/DISABLED_Active A/mod.ini', '安可/DISABLED_Active B/mod.ini', 'Encore/DISABLED_AliasMod/mod.ini', '安可/DISABLED_测试模组/mod.ini']) assert.ok(fs.existsSync(path.join(mods, relative)), relative);
   assert.equal(fs.readFileSync(path.join(mods, '安可/info.json'), 'utf8'), '{"name":"安可","description":"keep me"}');
@@ -41,6 +58,9 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, profile, m
   assert.equal(await evaluate(`!!${card}`), false);
   await clickText('隐藏角色 (1)');
   await waitFor(`!!document.querySelector('[aria-label="恢复显示 安可"]')`, 'hidden manager');
+  const [surfaceWidth, surfaceHeight] = window.getSize();
+  window.setSize(surfaceWidth + 1, surfaceHeight);
+  window.setSize(surfaceWidth, surfaceHeight);
   await captureUI('hidden-characters.png');
   await evaluate(`document.querySelector('[aria-label="恢复显示 安可"]').click()`);
   await waitFor(`document.querySelector('.hidden-characters-empty')?.textContent.includes('暂无隐藏角色')`, 'restore from management');

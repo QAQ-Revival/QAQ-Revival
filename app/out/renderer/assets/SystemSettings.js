@@ -1,14 +1,18 @@
 import { r as React, ThemeContext } from './index.js';
 import { e as evaluateXxmiImporterPathConsistency } from './xxmiPaths.js';
-import { useGameOrder } from './useGameOrder.js';
 import { SoftwareUpdateSettings } from './SoftwareUpdates.js';
+import { WuwaTuningSettings } from './WuwaTuningSettings.js';
+import { GenshinCompatibilitySettings } from './GenshinCompatibilitySettings.js';
+import { GenshinAntiErrorSettings } from './GenshinAntiErrorSettings.js';
+import PersistStateManager from './PersistStateManager.js';
 
 const h = React.createElement;
 const DEFAULT_SERVER = 'https://qaqm.top';
+const CARD_IMAGE_RATIOS = ['4:3', '16:9', '16:10', '1:1', '3:4'];
 const CATEGORIES = [
-  { id: 'general', icon: 'sliders', label: '通用', desc: '管理窗口行为和 Mod 状态保存。', items: [['window', '窗口行为'], ['persist', '预设与状态']] },
-  { id: 'appearance', icon: 'palette', label: '外观与显示', desc: '调整主题、界面大小和显示效果。', items: [['theme', '界面主题'], ['scale', '界面大小'], ['compatibility', '显示兼容性']] },
-  { id: 'games', icon: 'game', label: '游戏与路径', desc: '集中管理所有游戏的路径，每个游戏单独保存。', items: [] },
+  { id: 'general', icon: 'sliders', label: '通用', desc: '管理窗口行为和 Mod 状态保存。', items: [['window', '窗口行为'], ['random-launch', '随机名启动'], ['persist', '预设与状态']] },
+  { id: 'persist', icon: 'game', label: 'Mod 状态管理', desc: '按游戏管理持久化开关与已保存的内容。', items: [] },
+  { id: 'appearance', icon: 'palette', label: '外观与显示', desc: '调整主题、界面大小和显示效果。', items: [['theme', '界面主题'], ['scale', '界面大小'], ['mod-cards', '下载卡片'], ['compatibility', '显示兼容性']] },
   { id: 'downloads', icon: 'download', label: '下载与网络', desc: '管理共用的下载目录和 Mod 市场连接。', items: [['cache', '下载存储'], ['server', '市场服务器']] },
   { id: 'shortcuts', icon: 'keyboard', label: '快捷键', desc: '设置游戏内 Mod 面板的呼出方式。', items: [['overlay', '局内面板']] },
   { id: 'maintenance', icon: 'tool', label: '维护工具', desc: '更新已有加载器，或排查 Mod 使用问题。', items: [['updates', '加载器更新'], ['help', '故障排查']] },
@@ -32,8 +36,8 @@ function Button({ children, primary, ...props }) {
 function Section({ id, title, children }) {
   return h('section', { id: `settings-${id}`, className: 'system-section', 'aria-labelledby': `heading-${id}` }, h('h3', { id: `heading-${id}` }, title), h('div', { className: 'system-card' }, children));
 }
-function Row({ title, description, children, stacked = false }) {
-  return h('div', { className: `system-row${stacked ? ' stacked' : ''}` }, h('div', { className: 'system-row-copy' }, h('div', { className: 'system-row-title' }, title), description && h('p', null, description)), children && h('div', { className: 'system-row-control' }, children));
+function Row({ title, description, details, children, stacked = false }) {
+  return h('div', { className: `system-row${stacked ? ' stacked' : ''}` }, h('div', { className: 'system-row-copy' }, h('div', { className: 'system-row-title' }, title), description && h('p', null, description), details), children && h('div', { className: 'system-row-control' }, children));
 }
 function PathControl({ label, value, onSelect, disabled, children }) {
   return h('div', { className: 'system-path-control' },
@@ -115,12 +119,17 @@ function GameSettings({ gameId, notify }) {
   const consistency = data.xxmiImporterInfo?.supported && game.modFolderPath && game.modLoaderPath ? evaluateXxmiImporterPathConsistency({ modsPath: game.modFolderPath, importerPath: data.xxmiImporterInfo.importerPath }) : null;
   const pathRow = (title, description, value, action, extra) => h(Row, { title, description, stacked: true }, h(PathControl, { label: title, value, disabled: busy, onSelect: action && (() => act(action)) }, extra));
   return h('div', { className: 'system-game-detail', 'data-game-id': game.id, 'aria-busy': busy },
-    h('div', { className: 'system-game-heading' }, h('div', null, h('h3', null, game.name), h('p', null, '此处只编辑该游戏的配置，不会切换正在管理或启动的游戏。')), h(Button, { disabled: busy, onClick: () => act(() => window.api.autoDetectPaths(game.id)) }, '自动检测路径')),
+    h('div', { className: 'system-game-heading' }, h('div', null, h('h3', null, game.name), h('p', null, '路径、修复器和专属选项按游戏独立保存。')), h(Button, { disabled: busy, onClick: () => act(() => window.api.autoDetectPaths(game.id)) }, '自动检测路径')),
     h(Section, { id: 'game-paths', title: '游戏路径' },
       pathRow('Mods 文件夹', `存放${game.name} Mod 的目录。选择加载器对应的 Mods 文件夹。`, game.modFolderPath, () => window.api.selectModsFolder(game.id)),
       pathRow('游戏程序', isNte ? '选择游戏根目录的 NTELauncher.exe。' : `选择 ${game.executableHint || '游戏主程序'}，用于定位游戏安装位置。`, game.gamePath, () => window.api.selectGamePath(game.id)),
       pathRow(isNte ? 'NEMI 加载器' : 'XXMI 启动器', isNte ? '选择 NEMI 的 Start.cmd 或 3DMigoto Loader.exe。' : '选择 XXMI Launcher.exe。「直接启动」加载该游戏的 Mod；「XXMI 启动」打开启动器界面。', game.modLoaderPath, () => window.api.selectXxmiPath(game.id)),
       consistency && consistency.status !== 'match' && h('div', { className: 'system-notice', role: 'status' }, consistency.status === 'unconfigured' ? '暂时无法读取 XXMI 的游戏包目录，请打开 XXMI 检查对应游戏的配置。' : 'Mods 文件夹与 XXMI 的游戏包目录不一致，请确认二者属于同一套安装。', data.xxmiImporterInfo.importerPath && h('p', null, `XXMI 游戏包目录：${data.xxmiImporterInfo.importerPath}`))),
+    game.id === 'genshin-impact' && h(GenshinAntiErrorSettings),
+    game.id === 'genshin-impact' && h(GenshinCompatibilitySettings, { onPathsChanged: () => {
+      window.api.gameGetSettings(game.id).then(result => { check(result); setData(previous => previous ? { ...previous, ...result } : previous); }).catch(e => notify('error', e.message));
+    } }),
+    game.id === 'wuthering-waves' && h(WuwaTuningSettings),
     isNte && h(Section, { id: 'pak', title: '异环 · Pak 模式' },
       pathRow('Pak Mod 目录', '由异环游戏路径自动确定，用于存放启用的 Pak Mod。', data.pak?.paths?.pakModsDir),
       pathRow('停用 Mod 存储目录', '停用的 Pak Mod 会移到这里；重新启用时移回游戏目录。', data.pak?.paths?.disabledModsDir, () => window.api.nevernessDx12SelectDisabledModsDir(), h(Button, { disabled: busy, onClick: () => act(() => window.api.nevernessDx12ResetDisabledModsDir()) }, '恢复默认')),
@@ -128,18 +137,14 @@ function GameSettings({ gameId, notify }) {
         async () => { const r = await window.api.gameSelectExe('选择 Pak 启动器 Game start.exe'); if (r.canceled) return r; check(r); return window.api.gameUpdate(game.id, { dx12LauncherPath: r.path }); },
         game.dx12LauncherPath && h(Button, { disabled: busy, onClick: () => act(() => window.api.gameUpdate(game.id, { dx12LauncherPath: '' })) }, '使用内置')),
       h(Row, { title: '修复内置 Pak 启动器', description: '内置加载器丢失或损坏时，可从本地安装资源重新安装。' }, h(Button, { disabled: busy, onClick: () => act(() => window.api.nevernessDx12ReinstallLoader(), 'Pak 启动器已重新安装') }, '重新安装'))),
-    h(Section, { id: 'fixer', title: '独立修复器与缓存' },
-      pathRow('修复器程序', '保存该游戏使用的修复器。角色和 Mod 页面会共用此路径。', data.fixer, () => window.api.fixSelectCustomExe(game.id)),
-      h(Row, { title: '清空此游戏的状态缓存', description: '配件切换或 Mod 按键异常时可尝试清空 Persist Bridge 缓存，然后重启该游戏。' },
-        h(Button, { disabled: busy, onClick: () => act(() => window.api.clearPersistCache(game.id), '该游戏的状态缓存已清空，请重启游戏。') }, '清空缓存'))));
+    h(Section, { id: 'fixer', title: '独立修复器' },
+      pathRow('修复器程序', '保存该游戏使用的修复器。角色和 Mod 页面会共用此路径。', data.fixer, () => window.api.fixSelectCustomExe(game.id))),
+    h(Section, { id: 'game-persist', title: 'Mod 状态管理' }, h(PersistStateManager, { key: game.id, gameId: game.id })));
 }
 
 export default function SettingsView({ devMode = false }) {
   const [categoryId, setCategoryId] = React.useState(() => remembered('qaqm.settings.category', 'general'));
-  const [selectedGame, setSelectedGame] = React.useState(() => remembered('qaqm.settings.game', 'wuthering-waves'));
-  const [games, setGames] = React.useState([]);
   const [appVersion, setAppVersion] = React.useState('');
-  const { items: orderedGames } = useGameOrder(games);
   const [config, setConfig] = React.useState(null);
   const [overlay, setOverlay] = React.useState({});
   const [download, setDownload] = React.useState(null);
@@ -162,27 +167,22 @@ export default function SettingsView({ devMode = false }) {
   React.useEffect(() => {
     let canceled = false;
     setLoadError('');
-    Promise.all([window.api.getConfig(), window.api.gameList(), window.api.overlayGetSettings(), window.api.marketGetDownloadSettings(), window.api.getOverlayHotkey(), window.api.getCloseBehavior()])
-      .then(([c, g, o, d, k, b]) => {
-        [c, g, o, d, k, b].forEach(check);
+    Promise.all([window.api.getConfig(), window.api.overlayGetSettings(), window.api.marketGetDownloadSettings(), window.api.getOverlayHotkey(), window.api.getCloseBehavior()])
+      .then(([c, o, d, k, b]) => {
+        [c, o, d, k, b].forEach(check);
         if (canceled) return;
-        setConfig(c.config); setGames(g.games || []); setOverlay(o.settings); setDownload(d); setHotkey(k.hotkey || 'Alt+F'); setCloseBehavior(b.closeBehavior === 'exit' ? 'quit' : b.closeBehavior || 'ask'); setServer(c.config.serverUrl || DEFAULT_SERVER);
-        setSelectedGame(previous => g.games.some(game => game.id === previous) ? previous : g.games[0]?.id || '');
+        setConfig(c.config); setOverlay(o.settings); setDownload(d); setHotkey(k.hotkey || 'Alt+F'); setCloseBehavior(b.closeBehavior === 'exit' ? 'quit' : b.closeBehavior || 'ask'); setServer(c.config.serverUrl || DEFAULT_SERVER);
       }).catch(e => { if (!canceled) setLoadError(e.message); });
     return () => { canceled = true; };
   }, [loadTick]);
-  React.useEffect(() => window.api.onGamesChanged(payload => {
-    setGames(payload.games || []); setSelectedGame(previous => payload.games?.some(game => game.id === previous) ? previous : payload.games?.[0]?.id || '');
-  }), []);
   React.useEffect(() => {
     const handle = event => { if (CATEGORIES.some(item => item.id === event.detail?.category)) chooseCategory(event.detail.category); };
     window.addEventListener('qaqm:settings-section', handle);
     return () => window.removeEventListener('qaqm:settings-section', handle);
   }, []);
   React.useEffect(() => { if (toast) { const timer = setTimeout(() => setToast(null), 5000); return () => clearTimeout(timer); } }, [toast]);
-  React.useEffect(() => { pane.current?.scrollTo(0, 0); setRecording(false); }, [category.id, selectedGame]);
+  React.useEffect(() => { pane.current?.scrollTo(0, 0); setRecording(false); }, [category.id]);
   function chooseCategory(id) { setCategoryId(id); remember('qaqm.settings.category', id); }
-  function chooseGame(id) { setSelectedGame(id); remember('qaqm.settings.game', id); }
   async function run(action, message) {
     if (busyRef.current) return;
     busyRef.current = true; setBusy(true);
@@ -203,13 +203,13 @@ export default function SettingsView({ devMode = false }) {
       const source = await window.api.autoinstallSelectUpdateSource(`选择新版${name}的 ZIP 压缩包或已解压文件夹`);
       if (source.canceled) return;
       if (!source.path || source.error) throw new Error(source.error || '未选择更新文件');
-      const target = await window.api.autoinstallSelectFolder(kind === 'xxmi' ? '选择已有 XXMI 的安装目录' : '选择已有游戏加载组件目录，如 WWMI');
+      const target = await window.api.autoinstallSelectFolder(kind === 'xxmi' ? '选择已有 XXMI 的安装目录' : '选择已有游戏加载组件目录，如 GIMI、WWMI');
       if (target.canceled) return; check(target);
       check(kind === 'xxmi' ? await window.api.autoinstallUpdateXxmi({ xxmiRootDir: target.path, updateSourcePath: source.path }) : await window.api.autoinstallUpdateGamePackage({ packageDir: target.path, updateSourcePath: source.path }));
       setUpdateResult(`${name}已更新：${target.path}`);
     });
   }
-  const subitems = category.id === 'games' ? orderedGames.map(game => [game.id, game.name]) : category.items;
+  const subitems = category.items;
   const levelValue = Number(config?.compatibilityLevel);
   const level = Number.isFinite(levelValue) ? Math.max(0, Math.min(3, levelValue)) : config?.compatibilityMode ? 3 : 0;
   const marketScale = { small: 88, medium: 100, large: 122 }[config?.modMarketCardSize] || Number(config?.modMarketCardSize) || 100;
@@ -221,9 +221,23 @@ export default function SettingsView({ devMode = false }) {
       h(Choices, { label: '关闭主窗口时', value: closeBehavior, disabled: busy, onChange: value => run(async () => { check(await window.api.setCloseBehavior(value)); setCloseBehavior(value); }), options: [
         { value: 'ask', label: '每次询问', desc: '关闭前选择处理方式' }, { value: 'minimize', label: '最小化到托盘', desc: '继续运行，快捷键仍可用' }, { value: 'quit', label: '退出应用', desc: '结束管理器进程' }
       ] }))),
+    h(Section, { id: 'random-launch', title: '随机名启动' },
+      ...[
+        ['manager', '管理器随机名', '每次打开管理器时使用新的运行名称和窗口标题。更改后需完全退出并重新打开管理器。'],
+        ['xxmi', 'XXMI 随机名', '从管理器启动 XXMI 时使用新的运行名称，对所有使用 XXMI 的游戏生效。下次启动 XXMI 时生效。']
+      ].map(([key, title, description]) => h(Row, { key, title, description }, h('input', {
+        type: 'checkbox', role: 'switch', className: 'system-switch', 'aria-label': title,
+        checked: config.randomLaunch?.[key] !== false, disabled: busy,
+        onChange: e => { const enabled = e.target.checked; run(async () => {
+          const result = check(await window.api.updateRandomLaunchSettings({ [key]: enabled }));
+          setConfig(previous => ({ ...previous, randomLaunch: result.settings }));
+          notify('success', result.restartRequired ? '已保存，请完全退出并重新打开管理器后生效。' : '已保存，下次启动 XXMI 时生效。');
+        }); }
+      }))),
+      h('p', { className: 'system-notice' }, '随机名称只改变运行标识，无法保证避免游戏报错或检测。')),
     h(Section, { id: 'persist', title: '预设与状态' },
-      h(Row, { title: '由 QAQ 接管 Mod 持久化', description: '开启后由 QAQ 保存和恢复 Mod 的持久化状态，供切换 Mod 和应用预设时使用。更改后需重启管理器和游戏。' }, h('input', { type: 'checkbox', role: 'switch', className: 'system-switch', 'aria-label': '由 QAQ 接管 Mod 持久化', checked: !!overlay.persistBridgeEnabled, disabled: busy, onChange: e => updateOverlay('persistBridgeEnabled', e.target.checked) })),
-      h(Row, { title: '保留最近使用的 Mod 状态', description: '0 表示只保留当前启用的 Mod；默认额外保留 50 个，最多 200 个。' }, h(Range, { label: '保留最近使用的 Mod 状态', value: overlay.persistBridgeCacheSize ?? 50, min: 0, max: 200, suffix: ' 个', disabled: busy, onChange: value => updateOverlay('persistBridgeCacheSize', value) }))));
+      h(Row, { title: '按游戏保存 Mod 状态', description: '每个游戏独立启用，保存数量无上限。已有本地状态自动继承，可查看内容并删除不需要的保存项。' }, h(Button, { onClick: () => chooseCategory('persist') }, '管理各游戏状态'))));
+  else if (category.id === 'persist') content = h(PersistStateManager);
   else if (category.id === 'appearance') content = h(React.Fragment, null,
     h(Section, { id: 'theme', title: '界面主题' }, h(Row, { title: '色彩主题', description: '内置主题可直接使用，选择后立即生效。', stacked: true }, h(Choices, { label: '色彩主题', disabled: busy || theme?.loadingSkins, value: theme?.activeSkinId || '', onChange: value => run(async () => { check(await theme.setActiveTheme(value || null)); }), options: [{ value: '', label: '默认', desc: '柔和浅色' }, ...(theme?.skins || []).map(skin => ({ value: skin.id, label: skin.name || skin.id, desc: skin.description }))] }))),
     h(Section, { id: 'scale', title: '界面大小' },
@@ -232,10 +246,13 @@ export default function SettingsView({ devMode = false }) {
       h(Row, { title: '恢复默认大小' }, h(Button, { disabled: busy, onClick: () => run(async () => {
         check(await window.api.setUiZoom(1)); check(await window.api.setModMarketCardSize(100)); setConfig(c => ({ ...c, uiZoom: 1, modMarketCardSize: 100 })); document.documentElement.style.setProperty('--ui-scale', '1'); window.dispatchEvent(new CustomEvent('qaqm:mod-market-card-size-changed', { detail: { size: 100 } }));
       }) }, '恢复 100%'))),
+    h(Section, { id: 'mod-cards', title: 'Mod 下载卡片' }, h(Row, { title: '封面比例', description: '适用于所有下载来源的列表封面。竖图优先显示顶部，选择后立即生效。', stacked: true },
+      h(Choices, { label: '下载卡片封面比例', disabled: busy, value: CARD_IMAGE_RATIOS.includes(config.modDownloadImageRatio) ? config.modDownloadImageRatio : '4:3',
+        options: CARD_IMAGE_RATIOS.map(value => ({ value, label: value, ...(value === '4:3' ? { desc: '默认' } : {}) })),
+        onChange: value => updateConfig('modDownloadImageRatio', value, window.api.setModDownloadImageRatio, ratio => document.documentElement.style.setProperty('--mod-download-image-ratio', ratio.replace(':', ' / '))) }))),
     h(Section, { id: 'compatibility', title: '显示兼容性' }, h(Row, { title: '兼容模式', description: '遇到闪烁、花屏或透明层异常时，可逐级减少视觉效果。极简模式需重启应用以停用硬件加速。', stacked: true }, h(Choices, { label: '兼容模式', value: level, disabled: busy, onChange: value => updateConfig('compatibilityLevel', value, window.api.setCompatibilityMode, applyCompatibility), options: [
       { value: 0, label: '关闭', desc: '完整视觉效果' }, { value: 1, label: '轻度', desc: '减少动画与模糊' }, { value: 2, label: '中度', desc: '进一步减少透明与阴影' }, { value: 3, label: '极简', desc: '不透明界面，需重启' }
     ] }))));
-  else if (category.id === 'games') content = selectedGame ? h(GameSettings, { key: selectedGame, gameId: selectedGame, notify }) : h('div', { className: 'system-state' }, '暂无游戏配置');
   else if (category.id === 'downloads') content = h(React.Fragment, null,
     h(Section, { id: 'cache', title: '下载存储' }, h(Row, { title: '下载目录', description: 'Mod 市场、Pawchive、Kemono 和 MEGA 下载共用此目录。更改目录不会移动已有文件。', stacked: true }, h(PathControl, { label: '下载目录', value: download?.cacheDir, disabled: busy, onSelect: () => run(async () => { const r = await window.api.marketSelectDownloadCacheDir(); if (r.canceled) return; check(r); setDownload(r); }) }, h(Button, { disabled: busy, onClick: () => run(async () => { const r = check(await window.api.marketResetDownloadCacheDir()); setDownload(r); }) }, '恢复默认')))),
     h(Section, { id: 'server', title: '市场服务器' }, h(Row, { title: 'Mod 市场服务地址', description: `默认地址：${DEFAULT_SERVER}。仅用于 Mod 市场服务。`, stacked: true }, h('form', { className: 'system-path-control', onSubmit: event => { event.preventDefault(); run(async () => { const r = check(await window.api.setServerUrl(server.trim() || DEFAULT_SERVER, { devMode })); setServer(r.serverUrl || server.trim() || DEFAULT_SERVER); }, '服务器地址已保存'); } }, h('input', { className: 'system-text-input', type: 'url', 'aria-label': 'Mod 市场服务地址', value: server, onChange: e => setServer(e.target.value), placeholder: DEFAULT_SERVER }), h(Button, { disabled: busy, onClick: () => setServer(DEFAULT_SERVER) }, '填入默认'), h(Button, { primary: true, type: 'submit', disabled: busy }, '保存')))));
@@ -255,15 +272,17 @@ export default function SettingsView({ devMode = false }) {
     ].map(([key, title, description]) => h(Row, { key, title, description }, h('input', { type: 'checkbox', role: 'switch', className: 'system-switch', 'aria-label': title, checked: !!overlay[key], disabled: busy, onChange: e => updateOverlay(key, e.target.checked) }))),
     h(Row, { title: '预览局内面板', description: '最小化管理器主窗口，并显示或隐藏面板。' }, h(Button, { onClick: () => run(async () => { check(await window.api.toggleOverlayFromUI()); }) }, '打开 / 隐藏')));
   else if (category.id === 'maintenance') content = h(React.Fragment, null,
-    h(Section, { id: 'updates', title: '加载器更新' }, h(Row, { title: '更新 XXMI 启动器', description: '先选择新版 ZIP 或已解压文件夹，再选择现有 XXMI 安装目录。更新 Resources 等启动器文件，保留 Mods。' }, h(Button, { disabled: busy, onClick: () => updateLoader('xxmi') }, busy ? '处理中…' : '选择更新包')), h(Row, { title: '更新游戏加载组件', description: '更新 WWMI、ZZMI、EFMI 等组件。选择新版包及对应组件目录，更新 Core、ShaderFixes 等文件，保留 Mods。' }, h(Button, { disabled: busy, onClick: () => updateLoader('game') }, busy ? '处理中…' : '选择组件包')), updateResult && h('div', { className: 'system-notice', role: 'status' }, updateResult)),
+h(Section, { id: 'updates', title: '加载器更新' }, h(Row, { title: '更新 XXMI 启动器', description: '先选择新版 ZIP 或已解压文件夹，再选择现有 XXMI 安装目录。更新 Resources 等启动器文件，保留 Mods。' }, h(Button, { disabled: busy, onClick: () => updateLoader('xxmi') }, busy ? '处理中…' : '选择更新包')), h(Row, { title: '更新游戏加载组件', description: '更新 GIMI、WWMI、ZZMI、EFMI、SRMI 组件。选择新版包及对应组件目录，更新 Core、ShaderFixes 等文件，保留 Mods。' }, h(Button, { disabled: busy, onClick: () => updateLoader('game') }, busy ? '处理中…' : '选择组件包')), updateResult && h('div', { className: 'system-notice', role: 'status' }, updateResult)),
     h(Section, { id: 'help', title: '故障排查' }, h(Row, { title: 'Mod 失效自查', description: '打开帮助网页，检查加载器、路径和 Mod 的常见问题。' }, h(Button, { onClick: () => window.api.openExternalUrl('https://www.qaqm.top/faq') }, '查看帮助 ↗'))));
   else content = h(React.Fragment, null, h(Section, { id: 'about', title: '应用信息' }, h(Row, { title: 'QAQ-Revival', description: '本地 Mod 管理器' }, h('span', { className: 'system-version' }, appVersion))), h(SoftwareUpdateSettings));
   return h('div', { className: 'settings-view system-settings' },
     h('aside', { className: 'system-settings-nav' }, h('div', { className: 'system-settings-title' }, h('h1', null, '系统设置'), h('p', null, '偏好与配置')),
       h('nav', { 'aria-label': '设置分类' }, CATEGORIES.map(item => h(React.Fragment, { key: item.id },
         h('button', { type: 'button', className: 'system-category', 'data-category': item.id, 'aria-current': category.id === item.id ? 'page' : undefined, disabled: busy, onClick: () => chooseCategory(item.id) }, h(Icon, { name: item.icon }), h('span', null, item.label)),
-        category.id === item.id && subitems.length > 0 && h('div', { className: 'system-subnav' }, subitems.map(([id, label]) => h('button', { key: id, type: 'button', 'data-subsection': id, disabled: busy, 'aria-current': category.id === 'games' && id === selectedGame ? 'true' : undefined, onClick: () => category.id === 'games' ? chooseGame(id) : document.getElementById(`settings-${id}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }) }, label)))))),
+        category.id === item.id && subitems.length > 0 && h('div', { className: 'system-subnav' }, subitems.map(([id, label]) => h('button', { key: id, type: 'button', 'data-subsection': id, disabled: busy, onClick: () => document.getElementById(`settings-${id}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }) }, label)))))),
       h('p', { className: 'system-nav-footnote' }, '设置自动保存', h('span', null, '带「保存」按钮的项目需确认'))),
-    h('div', { className: 'system-settings-pane', ref: pane }, h('header', { className: 'system-settings-header' }, h('div', null, h('div', { className: 'system-breadcrumb' }, '系统设置 / ', category.label), h('h2', null, category.label), h('p', null, category.desc)), h('span', { className: 'system-scope' }, category.id === 'games' ? '按游戏保存' : '全局设置')), h('div', { className: 'system-settings-body' }, content)),
+    h('div', { className: 'system-settings-pane', ref: pane }, h('header', { className: 'system-settings-header' }, h('div', null, h('div', { className: 'system-breadcrumb' }, '系统设置 / ', category.label), h('h2', null, category.label), h('p', null, category.desc)), h('span', { className: 'system-scope' }, category.id === 'persist' ? '各游戏独立' : '全局设置')), h('div', { className: 'system-settings-body' }, content)),
     toast && h('div', { className: `system-toast ${toast.type}`, role: toast.type === 'error' ? 'alert' : 'status' }, toast.message));
 }
+
+export { GameSettings as GameSettingsPanel, Icon, Button, Section, Row, Choices, check };

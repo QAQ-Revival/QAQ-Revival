@@ -117,6 +117,7 @@ body {
 }
 .char-chip:hover { background: rgba(255,255,255,0.8); color: #555; }
 .char-chip.active { border-color: #ff9a9e; background: white; color: #e74c3c; }
+.char-chip-live { margin-left: 4px; color: #21875c; font-size: 9px; }
 
 /* ===== Sort Bar ===== */
 .sort-bar {
@@ -574,6 +575,8 @@ body {
 .settings-switch-input:checked + .settings-switch::after {
     transform: translateX(14px);
 }
+.auto-locate-control { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #555; cursor: pointer; white-space: nowrap; }
+.auto-locate-control input { accent-color: #e98694; cursor: pointer; }
 .detail-hotkey-row.clickable {
     cursor: pointer;
     border-radius: 8px;
@@ -849,7 +852,8 @@ html.overlay-compat *::after {
         </div>
 
         <div class="overlay-footer">
-            <span class="footer-hint">Alt+F 显示/隐藏 | 滚轮切换角色</span>
+            <label class="auto-locate-control" title="打开悬浮窗时定位游戏中检测到的 Mod，并展开它的快捷键菜单；手动浏览后暂停本次定位。"><input type="checkbox" id="autoLocateToggle" checked>自动定位当前 Mod</label>
+            <span class="footer-hint" id="activityStatus" title="按游戏中最近检测到的角色排序；约 2–6 秒更新。手动选择后，本次打开期间保留你的选择。"></span>
             <span class="footer-hint" id="modCount"></span>
         </div>
 
@@ -860,6 +864,16 @@ html.overlay-compat *::after {
                 <button class="panel-close" id="settingsPanelClose">✕</button>
             </div>
             <div class="panel-body">
+                <div class="settings-group">
+                    <label class="settings-switch-row" for="activityToggle">
+                        <div class="settings-switch-copy">
+                            <div class="settings-switch-title">检测游戏中的 Mod</div>
+                            <div class="settings-switch-hint">检测结果用于角色排序和底部的“自动定位当前 Mod”。首次开启或增删 Mod 后，请在游戏中按 F10。支持带每帧活动标记的 XXMI Mod，约 2–6 秒更新；关闭后恢复加载器原有的状态保存间隔。</div>
+                        </div>
+                        <input type="checkbox" class="settings-switch-input" id="activityToggle" checked>
+                        <span class="settings-switch"></span>
+                    </label>
+                </div>
                 <div class="settings-group">
                     <div class="settings-label">背景透明度</div>
                     <div class="settings-slider-row">
@@ -917,31 +931,21 @@ html.overlay-compat *::after {
                     </label>
                 </div>
                 <div class="settings-group">
-                    <div class="settings-label">最近缓存 Mod 数量</div>
-                    <div class="settings-slider-row">
-                        <span style="font-size:10px;color:#aaa;">0</span>
-                        <input type="range" class="settings-slider" id="persistCacheSlider" min="0" max="200" value="50">
-                        <span class="settings-value" id="persistCacheValue">50 个</span>
-                    </div>
-                    <div style="font-size:9px;color:#888;margin-top:6px;line-height:1.5;">控制切走后仍保留状态的 Mod 数量，默认 50 个，上限 200 个。0 表示只保留当前启用的 Mod。</div>
+                    <div class="settings-label">当前游戏的 Mod 状态</div>
+                    <div style="font-size:10px;color:#aaa;line-height:1.6;">保存数量无上限。已有内容请到管理器的「系统设置 → Mod 状态管理」中查看或删除。</div>
                 </div>
                 <div class="settings-group">
                     <label class="settings-switch-row" for="persistBridgeToggle">
                         <div class="settings-switch-copy">
-                            <div class="settings-switch-title">由 QAQ 接管 Mod 持久化</div>
+                            <div class="settings-switch-title">由 QAQ 接管此游戏 Mod 持久化</div>
                             <div class="settings-switch-hint">
-                                <div>开启后，管理器会修改 Mod 的 .ini 文件，将 global persist 变量接管为由管理器统一管理，以支持预设功能。</div>
+                                <div>仅对当前游戏生效。关闭只停止接管，保留全部保存内容；删除和清空请使用管理页。</div>
                                 <div style="margin-top:4px;color:#e8a87c;">开启或关闭此功能后，都需要完全退出并重启 QAQ 管理器和游戏才会生效；如果 Mod 按键或菜单有问题（确保 Mod 本身没问题），也请关闭后按此方式重启。默认关闭。</div>
                             </div>
                         </div>
                         <input type="checkbox" class="settings-switch-input" id="persistBridgeToggle">
                         <span class="settings-switch"></span>
                     </label>
-                </div>
-                <div class="settings-group">
-                    <div class="settings-label">清空 Persist Bridge 缓存</div>
-                    <div style="font-size:9px;color:#888;margin-bottom:8px;line-height:1.5;">如果 Mod 按键失效、丝袜/配件无法切换，或出现作品弹窗反复弹出等异常，可尝试清空缓存后重启游戏。</div>
-                    <button id="clearPersistCacheBtn" style="padding:5px 14px;background:#3a3a4a;border:1px solid #555;border-radius:6px;color:#ccc;font-size:11px;cursor:pointer;">清空缓存</button>
                 </div>
             </div>
         </div>
@@ -1023,7 +1027,19 @@ html.overlay-compat *::after {
     let isPinned = false;
     let selectedModName = null;
     let detailRequestId = 0;
+    let detailSideOpen = false;
+    let detailSideKey = null;
+    let modListRequestId = 0;
     let overlaySortMethod = 'name';
+    let activityMods = [];
+    let activitySignature = '';
+    let activitySampledAt = 0;
+    let overlayIsOpen = false;
+    let activityManualSelection = false;
+    let activityRefreshPromise = null;
+    let activityOpenRequest = 0;
+    let activityEpoch = 0;
+    let charactersGameId = null;
     let overlayExclusive = (() => {
         try {
             const v = localStorage.getItem('qaqm.overlay.exclusiveMode');
@@ -1062,7 +1078,7 @@ html.overlay-compat *::after {
         clickableHotkeysEnabled: true,
         overlayScale: 1,
         persistBridgeEnabled: false,
-        persistBridgeCacheSize: 50,
+        persistBridgeCacheSize: null,
         compatibilityMode: false
     };
     let contextMenuModName = null;
@@ -1349,8 +1365,8 @@ html.overlay-compat *::after {
         document.getElementById('presetAutoReloadToggle').checked = !!overlaySettings.presetAutoReloadEnabled;
         document.getElementById('clickableHotkeysToggle').checked = !!overlaySettings.clickableHotkeysEnabled;
         document.getElementById('persistBridgeToggle').checked = !!overlaySettings.persistBridgeEnabled;
-        document.getElementById('persistCacheSlider').value = String(overlaySettings.persistBridgeCacheSize ?? 50);
-        document.getElementById('persistCacheValue').textContent = `${overlaySettings.persistBridgeCacheSize ?? 50} 个`;
+        document.getElementById('activityToggle').checked = overlaySettings.activityEnabled !== false;
+        document.getElementById('autoLocateToggle').checked = overlaySettings.autoLocateEnabled !== false;
     }
 
     function showToast(msg) {
@@ -2037,31 +2053,6 @@ html.overlay-compat *::after {
         }
     });
 
-    document.getElementById('persistCacheSlider').addEventListener('input', (e) => {
-        document.getElementById('persistCacheValue').textContent = `${e.target.value} 个`;
-    });
-
-    document.getElementById('persistCacheSlider').addEventListener('change', async (e) => {
-        const nextValue = Number(e.target.value);
-        try {
-            const result = await window.overlayApi.updateSettings({ persistBridgeCacheSize: nextValue });
-            if (result.success && result.settings) {
-                overlaySettings = {
-                    ...overlaySettings,
-                    ...result.settings
-                };
-                syncSettingsUI();
-                showToast(`最近缓存数量已设为 ${overlaySettings.persistBridgeCacheSize} 个`);
-            } else {
-                syncSettingsUI();
-                showToast(result.error || '设置失败');
-            }
-        } catch {
-            syncSettingsUI();
-            showToast('设置失败');
-        }
-    });
-
     document.getElementById('persistBridgeToggle').addEventListener('change', async (e) => {
         const checked = e.target.checked;
         try {
@@ -2072,7 +2063,7 @@ html.overlay-compat *::after {
                     ...result.settings
                 };
                 syncSettingsUI();
-                showToast(checked ? 'Persist Bridge 已开启，请完全退出并重启 QAQ 管理器和游戏生效' : 'Persist Bridge 已关闭，ini 已还原，请完全退出并重启 QAQ 管理器和游戏生效');
+                showToast(checked ? 'Persist Bridge 已开启，请完全退出并重启 QAQ 管理器和游戏生效' : '此游戏已停止接管，保存内容已保留，请重启管理器和游戏生效');
             } else {
                 e.target.checked = !checked;
                 showToast(result.error || '设置失败');
@@ -2080,25 +2071,6 @@ html.overlay-compat *::after {
         } catch {
             e.target.checked = !checked;
             showToast('设置失败');
-        }
-    });
-
-    document.getElementById('clearPersistCacheBtn').addEventListener('click', async () => {
-        const btn = document.getElementById('clearPersistCacheBtn');
-        btn.disabled = true;
-        btn.textContent = '清空中...';
-        try {
-            const result = await window.overlayApi.clearPersistBridgeCache();
-            if (result.success) {
-                showToast(`缓存已清空（${result.deletedCount} 个状态文件），请重启游戏生效`);
-            } else {
-                showToast(result.error || '清空失败');
-            }
-        } catch {
-            showToast('清空失败');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = '清空缓存';
         }
     });
 
@@ -2191,7 +2163,7 @@ html.overlay-compat *::after {
                 return a.name.localeCompare(b.name, 'zh-CN');
             });
         }
-        return [...pinned, ...sorted];
+        return [...pinned, ...sorted].sort((a, b) => Number(isActiveMod(selectedChar, b.name)) - Number(isActiveMod(selectedChar, a.name)));
     }
 
     function trackInteraction(charName, modName) {
@@ -2235,9 +2207,104 @@ html.overlay-compat *::after {
 
     // ===== Load characters =====
     function getVisibleCharacters() {
-        if (!overlayCharFilterModOnly) return characters;
-        return characters.filter(c => (c?.modCount || 0) > 0);
+        const visible = overlayCharFilterModOnly ? characters.filter(c => (c?.modCount || 0) > 0) : [...characters];
+        return visible.sort((a, b) => Number(isActiveCharacter(b.name)) - Number(isActiveCharacter(a.name)));
     }
+
+    function isActiveCharacter(name) {
+        return overlaySettings.activityEnabled !== false && activityMods.some(mod => mod.characterName === name);
+    }
+
+    function isActiveMod(characterName, modName) {
+        return overlaySettings.activityEnabled !== false && activityMods.some(mod => mod.characterName === characterName && mod.modName === modName);
+    }
+
+    function refreshActivity() {
+        if (activityRefreshPromise) return activityRefreshPromise;
+        if (overlayRefreshingForGameChange || !charactersGameId || !window.overlayApi.getActivity) return Promise.resolve();
+        const epoch = activityEpoch;
+        activityRefreshPromise = (async () => {
+            try {
+                const result = await window.overlayApi.getActivity();
+                if (epoch !== activityEpoch || result.gameId !== charactersGameId || !result.success) return;
+                const mods = overlaySettings.activityEnabled === false ? [] : (result.mods || []).filter(mod => characters.some(c => c.name === mod.characterName));
+                activitySampledAt = Number(result.sampledAt) || 0;
+                const signature = JSON.stringify(mods);
+                document.getElementById('activityStatus').textContent = overlaySettings.activityEnabled === false ? ''
+                    : result.status === 'unsupported' ? '暂无可识别标记'
+                    : result.status === 'waiting' ? '等待游戏状态 / F10'
+                    : mods.length ? `检测到 ${new Set(mods.map(m => m.characterName)).size} 个角色` : '未检测到角色';
+                if (signature === activitySignature) return;
+                activitySignature = signature;
+                activityMods = mods;
+                renderCharChips();
+                if (selectedChar) renderMods();
+            } catch { /* A temporary unavailable snapshot must not change the selection. */ }
+        })().finally(() => { activityRefreshPromise = null; });
+        return activityRefreshPromise;
+    }
+
+    // Only an explicit overlay-open event may locate a Mod and open its menu.
+    // Polling keeps a fresh snapshot ready even while the overlay is hidden.
+    async function focusActivityOnOpen(request) {
+        const epoch = activityEpoch;
+        const openedAt = Date.now(), deadline = openedAt + 8000;
+        const isCurrentOpen = () => overlayIsOpen && request === activityOpenRequest && epoch === activityEpoch && !activityManualSelection
+            && overlaySettings.autoLocateEnabled !== false && overlaySettings.activityEnabled !== false
+            && !document.getElementById('settingsPanel').classList.contains('visible');
+        // A hidden window can miss the first heartbeat. Give the game's next
+        // save time to arrive instead of committing to the previous character.
+        while (isCurrentOpen()) {
+            await refreshActivity();
+            if (!isCurrentOpen()) return;
+            if (activityMods.length && (activitySampledAt >= openedAt || Date.now() - openedAt >= 2600)) break;
+            if (Date.now() >= deadline) return;
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        if (!isCurrentOpen() || !activityMods.length) return;
+        const name = isActiveCharacter(selectedChar) ? selectedChar : getVisibleCharacters().find(c => isActiveCharacter(c.name))?.name;
+        if (!name) return;
+        if (name !== selectedChar) await selectChar(name);
+        if (!isCurrentOpen() || name !== selectedChar) return;
+        const mod = sortMods(currentMods).find(m => m.enabled && isActiveMod(name, m.name));
+        if (mod) {
+            prepareModFocusState(mod.name, { center: false, scrollTop: 0 });
+            renderMods();
+            await openDetail(mod.name, { force: true });
+        }
+    }
+
+    // Let the user browse freely until the next time they open the overlay.
+    document.addEventListener('pointerdown', event => {
+        if (event.target.closest('.char-chip, .char-bubble-btn, .mod-item, .mod-gallery-item, #settingsBtn, #focusEnabledBtn, .auto-locate-control')) activityManualSelection = true;
+    }, true);
+    document.addEventListener('wheel', () => { activityManualSelection = true; }, { passive: true });
+    document.addEventListener('keydown', event => {
+        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter'].includes(event.key)) activityManualSelection = true;
+    });
+    document.getElementById('activityToggle').addEventListener('change', async event => {
+        const result = await window.overlayApi.updateSettings({ activityEnabled: event.target.checked });
+        if (result.success) {
+            overlaySettings = { ...overlaySettings, ...result.settings };
+            activitySignature = '';
+            await refreshActivity();
+            showToast('设置已保存，请在游戏中按一次 F10');
+        } else showToast(result.error || '设置失败');
+        syncSettingsUI();
+    });
+    document.getElementById('autoLocateToggle').addEventListener('change', async event => {
+        const control = event.target;
+        activityOpenRequest++;
+        control.disabled = true;
+        try {
+            const result = await window.overlayApi.updateSettings({ autoLocateEnabled: control.checked });
+            if (!result.success) throw Error(result.error || '设置失败');
+            overlaySettings = { ...overlaySettings, ...result.settings };
+            showToast(control.checked ? '已开启，下次打开悬浮窗时自动定位' : '已关闭自动定位，可手动选择 Mod');
+        } catch (error) { showToast(error.message || '设置失败'); }
+        finally { control.disabled = false; syncSettingsUI(); }
+    });
+    setInterval(refreshActivity, 1000);
 
     function syncCharFilterUI() {
         const btn = document.getElementById('charFilterBtn');
@@ -2253,6 +2320,7 @@ html.overlay-compat *::after {
             if (result.success) {
                 const previousSelectedChar = selectedChar;
                 characters = Array.isArray(result.characters) ? result.characters : [];
+                charactersGameId = result.gameId;
                 renderCharChips();
                 if (characters.length === 0) {
                     clearOverlaySelectionState();
@@ -2267,6 +2335,7 @@ html.overlay-compat *::after {
                     await selectChar(nextChar);
                 }
                 if (bubbleSideOpen) showCharacterBubbleSide();
+                await refreshActivity();
             } else {
                 characters = [];
                 renderCharacterEmptyState(result.error || '角色加载失败');
@@ -2292,7 +2361,7 @@ html.overlay-compat *::after {
             return;
         }
         container.innerHTML = visible.map((c, i) =>
-            `<div class="char-chip ${selectedChar === c.name ? 'active' : ''}" data-name="${c.name}" data-idx="${i}">${escapeHtml(c.name)}${(c.modCount || 0) > 0 ? `<span class="char-chip-count">${c.enabledCount || 0}/${c.modCount}</span>` : ''}</div>`
+            `<div class="char-chip ${selectedChar === c.name ? 'active' : ''}" data-name="${escapeHtml(c.name)}" data-idx="${i}">${escapeHtml(c.name)}${isActiveCharacter(c.name) ? '<span class="char-chip-live">已检测</span>' : ''}${(c.modCount || 0) > 0 ? `<span class="char-chip-count">${c.enabledCount || 0}/${c.modCount}</span>` : ''}</div>`
         ).join('');
         container.querySelectorAll('.char-chip').forEach(chip => {
             chip.addEventListener('click', () => {
@@ -2328,6 +2397,7 @@ html.overlay-compat *::after {
 
     // ===== Load & Render Mods =====
     async function loadMods(characterName, options = {}) {
+        const requestId = ++modListRequestId;
         const container = document.getElementById('modList');
         const silent = !!options.silent;
         const keepFocus = options.keepFocus !== false;
@@ -2346,6 +2416,7 @@ html.overlay-compat *::after {
         }
         try {
             const result = await window.overlayApi.getMods(characterName);
+            if (requestId !== modListRequestId || selectedChar !== characterName) return;
             if (result.success) {
                 const nextMods = Array.isArray(result.mods) ? result.mods : [];
                 const nextAliases = Array.isArray(result.characterAliases) ? result.characterAliases : [];
@@ -2605,7 +2676,8 @@ html.overlay-compat *::after {
     }
 
     // ===== Detail Panel (side window) =====
-    async function openDetail(modName) {
+    async function openDetail(modName, { force = false, updateOnly = false } = {}) {
+        if (updateOnly && !detailSideOpen) return;
         const requestId = ++detailRequestId;
         const detailCharacter = selectedChar;
         const isCurrentDetail = () => requestId === detailRequestId && selectedChar === detailCharacter && selectedModName === modName;
@@ -2618,8 +2690,9 @@ html.overlay-compat *::after {
         hideCuteContextMenu();
 
         // Toggle off if same mod
-        if (selectedModName === modName) {
+        if (selectedModName === modName && detailSideOpen && !force) {
             window.overlayApi.hideSide();
+            detailSideOpen = false;
             selectedModName = null;
             bubbleSideOpen = false;
             document.querySelectorAll('.mod-item.selected, .mod-gallery-item.selected').forEach(el => el.classList.remove('selected'));
@@ -2628,6 +2701,8 @@ html.overlay-compat *::after {
 
         selectedModName = modName;
         bubbleSideOpen = false;
+        const requestKey = updateOnly ? detailSideKey : `${charactersGameId}:${activityEpoch}:${requestId}`;
+        detailSideKey = requestKey;
 
         const buildDetailHtml = (hotkeysHtml) => {
             let detailHtml = '';
@@ -2639,16 +2714,17 @@ html.overlay-compat *::after {
                 detailHtml += `<div style="font-size:10px;color:#e67e22;background:#fff8e1;padding:4px 8px;border-radius:6px;margin-bottom:6px;">⚠️ 哈希冲突</div>`;
             }
             detailHtml += `<button class="detail-toggle-btn" id="detailMarkBtn" data-marked="${mod.marked ? 'true' : 'false'}" style="margin-bottom:8px;background:${mod.marked ? 'linear-gradient(135deg, #ff9a9e, #fecfef)' : '#f5f5f5'};color:${mod.marked ? '#fff' : '#666'};">${mod.marked ? '🏷️ 取消标记' : '🔖 标记此 Mod'}</button>`;
-            detailHtml += `<div class="detail-hotkey-section">${hotkeysHtml}</div>`;
+            detailHtml += `<div class="detail-hotkey-toolbar"><span>⌨ 快捷键</span><button type="button" class="detail-translate-btn" id="detailRefreshHotkeysBtn" title="重新扫描快捷键配置">刷新快捷键</button></div><div class="detail-hotkey-section">${hotkeysHtml}</div>`;
             detailHtml += `<button class="detail-toggle-btn ${mod.enabled ? 'disable' : 'enable'}" id="detailToggleBtn">${mod.enabled ? '⬜ 禁用' : '✅ 启用'}</button>`;
             return detailHtml;
         };
 
         const loadingHotkeysHtml = '<div style="color:#aaa;font-size:10px;text-align:center;padding:6px;">快捷键加载中...</div>';
 
-        const sideResult = await window.overlayApi.showSide({
+        const sideResult = updateOnly ? { success: true } : await window.overlayApi.showSide({
             content: {
                 type: 'detail',
+                requestKey,
                 title: mod.name,
                 html: buildDetailHtml(loadingHotkeysHtml),
                 charName: selectedChar,
@@ -2661,9 +2737,11 @@ html.overlay-compat *::after {
 
         if (!isCurrentDetail()) return;
         if (!sideResult || !sideResult.success) {
+            detailSideOpen = false;
             showToast(sideResult?.error || '打开详情失败');
             return;
         }
+        detailSideOpen = true;
 
         document.querySelectorAll('.mod-item, .mod-gallery-item').forEach(el => el.classList.toggle('selected', el.dataset.mod === modName));
 
@@ -2671,34 +2749,44 @@ html.overlay-compat *::after {
             const details = await window.overlayApi.getModDetails(detailCharacter, modName);
             if (!isCurrentDetail()) return;
             let hkHtml = '';
-            if (details.success && details.hotkeys && details.hotkeys.length > 0) {
-                hkHtml = '<div style="font-size:10px;font-weight:700;color:#555;margin-bottom:4px;">⌨️ 快捷键</div>' +
-                    details.hotkeys.map((hk, index) => {
-                        const desc = escapeHtml(hk.description || hk.section || '');
-                        const alternatives = Array.isArray(hk.alternatives) && hk.alternatives.length > 0
-                            ? hk.alternatives
-                            : [{ displayKeys: Array.isArray(hk.keys) ? hk.keys : [] }];
-                        const encodedPayload = encodeHotkeyPayload(hk.applyPayload || null);
-                        const clickableClass = overlaySettings.clickableHotkeysEnabled ? ' clickable' : '';
-                        const clickableTitle = hk.canApply
-                            ? '点击应用快捷键'
-                            : '当前快捷键暂不支持自动应用，点击可查看提示';
-                        const clickableAttr = overlaySettings.clickableHotkeysEnabled
-                            ? `role="button" tabindex="0" title="${clickableTitle}"`
-                            : '';
-                        const unsupportedHint = !hk.canApply
-                            ? '<span class="detail-hotkey-note">当前为鼠标/手柄/特殊按键，可能需手动操作</span>'
-                            : '';
-                        return `
-                            <div class="detail-hotkey-row${clickableClass}" ${clickableAttr} data-hotkey-index="${index}" data-hotkey-desc="${desc}" data-hotkey-payload="${encodedPayload}">
-                                <span class="detail-hotkey-desc"><span class="detail-hotkey-name">${desc}</span>${unsupportedHint}</span>
-                                <span class="detail-hotkey-keys">${alternatives.map((alt, altIndex) => {
-                                    const keys = Array.isArray(alt.displayKeys) ? alt.displayKeys : [];
-                                    return `<span class="detail-hotkey-alt">${keys.map(k => `<span class="detail-kbd">${escapeHtml(k)}</span>`).join('')}</span>${altIndex < alternatives.length - 1 ? '<span class="detail-hotkey-or">或</span>' : ''}`;
-                                }).join('')}</span>
-                            </div>
-                        `;
-                    }).join('');
+            const hotkeyGroups = Array.isArray(details.hotkeyGroups)
+                ? details.hotkeyGroups.filter(group => Array.isArray(group.hotkeys) && group.hotkeys.length > 0)
+                : [{ name: modName, hotkeys: details.hotkeys || [] }].filter(group => group.hotkeys.length > 0);
+            if (details.success && hotkeyGroups.length > 0) {
+                let hotkeyIndex = 0;
+                const renderHotkey = (hk) => {
+                    const index = hotkeyIndex++;
+                    const desc = escapeHtml(hk.description || hk.section || '');
+                    const alternatives = Array.isArray(hk.alternatives) && hk.alternatives.length > 0
+                        ? hk.alternatives
+                        : [{ displayKeys: Array.isArray(hk.keys) ? hk.keys : [] }];
+                    const encodedPayload = encodeHotkeyPayload(hk.applyPayload || null);
+                    const clickableClass = overlaySettings.clickableHotkeysEnabled ? ' clickable' : '';
+                    const clickableTitle = hk.canApply
+                        ? '点击应用快捷键'
+                        : '当前快捷键暂不支持自动应用，点击可查看提示';
+                    const clickableAttr = overlaySettings.clickableHotkeysEnabled
+                        ? `role="button" tabindex="0" title="${clickableTitle}"`
+                        : '';
+                    const unsupportedHint = !hk.canApply
+                        ? '<span class="detail-hotkey-note">当前为鼠标/手柄/特殊按键，可能需手动操作</span>'
+                        : '';
+                    return `
+                        <div class="detail-hotkey-row${clickableClass}" ${clickableAttr} data-hotkey-index="${index}" data-hotkey-desc="${desc}" data-hotkey-payload="${encodedPayload}">
+                            <span class="detail-hotkey-desc"><span class="detail-hotkey-name">${desc}</span>${unsupportedHint}</span>
+                            <span class="detail-hotkey-keys">${alternatives.map((alt, altIndex) => {
+                                const keys = Array.isArray(alt.displayKeys) ? alt.displayKeys : [];
+                                return `<span class="detail-hotkey-alt">${keys.map(k => `<span class="detail-kbd">${escapeHtml(k)}</span>`).join('')}</span>${altIndex < alternatives.length - 1 ? '<span class="detail-hotkey-or">或</span>' : ''}`;
+                            }).join('')}</span>
+                        </div>
+                    `;
+                };
+                hkHtml = hotkeyGroups.map(group => `
+                    <section class="detail-hotkey-group">
+                        <h3 class="detail-hotkey-group-name" title="${escapeHtml(group.relativePath || group.name)}">${escapeHtml(group.name)}</h3>
+                        ${group.hotkeys.map(renderHotkey).join('')}
+                    </section>
+                `).join('');
             } else if (details.success) {
                 hkHtml = '<div style="color:#ccc;font-size:10px;text-align:center;">无快捷键</div>';
             } else {
@@ -2708,6 +2796,7 @@ html.overlay-compat *::after {
 
             window.overlayApi.updateSide({
                 type: 'detail',
+                requestKey,
                 title: mod.name,
                 html: buildDetailHtml(hkHtml),
                 charName: selectedChar,
@@ -2721,6 +2810,7 @@ html.overlay-compat *::after {
             showToast(error?.message || '快捷键读取失败');
             window.overlayApi.updateSide({
                 type: 'detail',
+                requestKey,
                 title: mod.name,
                 html: buildDetailHtml('<div style="color:#e67e22;font-size:10px;text-align:center;line-height:1.5;">快捷键读取失败，请稍后重试</div>'),
                 charName: selectedChar,
@@ -2780,6 +2870,12 @@ html.overlay-compat *::after {
     async function refreshOverlayForGameChange() {
         if (overlayRefreshingForGameChange) return;
         overlayRefreshingForGameChange = true;
+        activityEpoch++;
+        activityOpenRequest++;
+        activityMods = [];
+        activitySignature = '';
+        activityManualSelection = false;
+        charactersGameId = null;
         try {
             bubbleSideOpen = false;
             window.overlayApi.hideSide();
@@ -2793,6 +2889,7 @@ html.overlay-compat *::after {
 
     // Listen for character selection from side panel
     window.overlayApi.onSelectChar((charName) => {
+        activityManualSelection = true;
         const idx = characters.findIndex(c => c.name === charName);
         if (idx !== -1) {
             selectedCharIndex = idx;
@@ -2832,6 +2929,13 @@ html.overlay-compat *::after {
         }
     });
 
+    window.overlayApi.onHotkeysChanged(async (data) => {
+        if (data.gameId !== charactersGameId || !selectedModName || bubbleSideOpen) return;
+        if (data.characterName !== '__all__' && data.characterName !== selectedChar) return;
+        if (data.modName && data.modName !== selectedModName) return;
+        await openDetail(selectedModName, { force: true, updateOnly: true });
+    });
+
     // Listen for preset changes from main app
     window.overlayApi.onPresetsChanged(() => {
         loadPresets();
@@ -2847,16 +2951,32 @@ html.overlay-compat *::after {
         }
     });
 
-    window.overlayApi.onWindowShown(() => {
+    window.overlayApi.onWindowHidden(() => {
+        overlayIsOpen = false;
+        detailSideOpen = false;
+        detailSideKey = null;
+        activityOpenRequest++;
+        detailRequestId++;
+    });
+    window.overlayApi.onSideHidden?.((data) => {
+        if (data?.requestKey && data.requestKey !== detailSideKey) return;
+        detailSideOpen = false;
+        detailSideKey = null;
+        detailRequestId++;
+    });
+
+    window.overlayApi.onWindowShown(async () => {
+        overlayIsOpen = true;
+        const request = ++activityOpenRequest;
+        activityManualSelection = false;
         syncExclusiveUI();
         hideCuteContextMenu();
-
-        if (characters.length === 0) {
-            refreshOverlayForGameChange();
-        } else {
-            // Mod directories may have changed while the overlay was hidden.
-            loadCharacters();
-        }
+        await overlayInitialization;
+        if (request !== activityOpenRequest) return;
+        await loadOverlaySettings();
+        // Mod directories may have changed while the overlay was hidden.
+        await loadCharacters();
+        if (request === activityOpenRequest) await focusActivityOnOpen(request);
     });
 
     // Load current hotkey from config
@@ -2883,10 +3003,7 @@ html.overlay-compat *::after {
     }
 
     // Init
-    loadCharacters();
-    loadPresets();
-    loadCurrentHotkey();
-    loadOverlaySettings();
+    const overlayInitialization = Promise.all([loadCharacters(), loadPresets(), loadCurrentHotkey(), loadOverlaySettings()]);
     syncExclusiveUI();
     syncOverlayCollectionsUI();
 </script>

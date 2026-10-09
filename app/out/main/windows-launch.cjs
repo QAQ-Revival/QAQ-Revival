@@ -12,7 +12,7 @@ function buildElevationScript(executablePath, workingDir, args) {
   return `$ErrorActionPreference = 'Stop'; Start-Process -FilePath ${literal(executablePath)} -WorkingDirectory ${literal(workingDir)}${argumentsOption} -Verb RunAs -PassThru | Out-Null`;
 }
 function getDirectLaunchMode(game) {
-  const importer = { endfield: 'EFMI', 'wuthering-waves': 'WWMI', zzz: 'ZZMI', 'honkai-star-rail': 'SRMI' }[game?.id];
+  const importer = { 'genshin-impact': 'GIMI', endfield: 'EFMI', 'wuthering-waves': 'WWMI', zzz: 'ZZMI', 'honkai-star-rail': 'SRMI' }[game?.id];
   if (importer) return importer;
   if (game?.id === 'neverness-to-everness') return game.launchMode === 'DX12' ? 'DX12' : 'NEMI';
   return null;

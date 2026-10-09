@@ -6,8 +6,9 @@ const crypto = require('node:crypto');
 const { extractMegaLinks } = require('./mega-revival.cjs');
 const { mediaFile: normalizeMediaFile, mergeDetailFiles } = require('./archive-media.cjs');
 const SOURCES = {
-  pawchive: { id: 'pawchive', label: 'Pawchive', site: 'https://pawchive.pw', media: 'https://img.pawchive.pw', accept: 'application/json' },
-  kemono: { id: 'kemono', label: 'Kemono', site: 'https://kemono.cr', media: 'https://img.kemono.cr', accept: 'text/css' }
+  // Pawchive serves creator icons on the main site; its image CDN only serves post previews.
+  pawchive: { id: 'pawchive', label: 'Pawchive', site: 'https://pawchive.pw', avatars: 'https://pawchive.pw', accept: 'application/json' },
+  kemono: { id: 'kemono', label: 'Kemono', site: 'https://kemono.cr', avatars: 'https://img.kemono.cr', accept: 'text/css' }
 };
 const CACHE_TTL = 30 * 60 * 1000;
 const PAGE_SIZE = 50;
@@ -45,7 +46,7 @@ function normalizeArchiveCreator(value, source) {
   const ref = identity(value);
   return { ...ref, name: String(value.name || ref.id).slice(0, 300), updated: timestamp(value.updated),
     indexed: timestamp(value.indexed), favorited: Math.max(0, Number(value.favorited) || 0),
-    url: source.site + creatorPath(ref), avatar: `${source.media}/icons/${ref.service}/${encodeURIComponent(ref.id)}` };
+    url: source.site + creatorPath(ref), avatar: `${source.avatars}/icons/${ref.service}/${encodeURIComponent(ref.id)}` };
 }
 
 function mediaFile(value, source) {

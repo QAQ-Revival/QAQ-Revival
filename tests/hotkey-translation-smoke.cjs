@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-module.exports = async function ({ electron, root, mods, passed }) {
+module.exports = async function ({ electron, root, profile, mods, handlers, passed, manager }) {
   const { BrowserWindow, net } = electron;
   const names = ['belt', 'weist', 'cloth', 'gloves', 'hat', 'socks', 'wings', 'tail', 'bra', 'panty', 'swp_5a3faabb_help', 'swp_5a3faabb_zoom0', 'swp_5a3faabb_mouse_clicked'];
   const expected = ['腰带', '腰部', '衣服', '手套', '帽子', '袜子', '翅膀', '尾巴', '胸罩', '内裤', '帮助', '缩放', '鼠标点击'];
@@ -107,6 +107,7 @@ module.exports = async function ({ electron, root, mods, passed }) {
   assert.equal(await evaluate(`document.querySelector('#detailTranslateBtn').disabled`), true);
   assert.equal(fs.readFileSync(path.join(fixtureDir, 'mod.ini'), 'utf8'), ini);
   passed('Translation failure/retry, stale response isolation, empty list and unchanged Mod INI');
+  await require('./hotkey-groups-smoke.cjs')({ electron, root, profile, mods, handlers, passed, runOverlay, side, evaluate, wait, manager });
   side.webContents.session.flushStorageData();
   side.destroy(); overlay.destroy();
 };

@@ -2,20 +2,21 @@ const path = require('node:path');
 const { readJsonFileSync, writeJsonFileSync } = require('./json-store.cjs');
 
 const SOURCES = {
+  'genshin-impact': require('./genshin.cjs').CHARACTER_SOURCES,
   'wuthering-waves': ['https://api.encore.moe/zh-Hans/character', 'https://api.encore.moe/en/character'],
   zzz: ['https://raw.githubusercontent.com/EnkaNetwork/API-docs/master/store/zzz/avatars.json', 'https://raw.githubusercontent.com/EnkaNetwork/API-docs/master/store/zzz/locs.json'],
   'honkai-star-rail': ['https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/index_new/cn/characters.json', 'https://raw.githubusercontent.com/Mar-7th/StarRailRes/master/index_new/en/characters.json'],
   endfield: ['https://endfield.hypergryph.com/operator'],
   'neverness-to-everness': ['https://wiki.mysqil.com/characters/']
 };
-const RESOURCE_DIRS = { 'wuthering-waves': 'wuwa', zzz: 'zzz', 'honkai-star-rail': 'honkai-star-rail', endfield: 'endfield', 'neverness-to-everness': 'neverness-to-everness' };
+const RESOURCE_DIRS = { 'genshin-impact': 'genshin-impact', 'wuthering-waves': 'wuwa', zzz: 'zzz', 'honkai-star-rail': 'honkai-star-rail', endfield: 'endfield', 'neverness-to-everness': 'neverness-to-everness' };
 const CATEGORIES = new Set(['NPC', '其他', 'UI', '功能', '大世界', '武器', '载具', '滑翔翼', '光锥']);
 const safeName = value => typeof value === 'string' && value.length > 0 && value.length <= 100 && !/[<>:"/\\|?*\x00-\x1f]/.test(value) && !/[. ]$/.test(value) && !/^(\.{1,2}|CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)/i.test(value);
 function imageUrl(value) {
   try {
     const url = new URL(value);
     if (url.protocol !== 'https:' || url.username || url.password) return null;
-    const hosts = ['api.encore.moe', 'enka.network', 'raw.githubusercontent.com', 'web.hycdn.cn', 'wiki.mysqil.com', 'static.wikia.nocookie.net'];
+    const hosts = ['api.encore.moe', 'enka.network', 'raw.githubusercontent.com', 'web.hycdn.cn', 'wiki.mysqil.com', 'static.wikia.nocookie.net', 'hw-media-cdn-mingchao.kurogame.com'];
     return hosts.includes(url.hostname) ? url.href : null;
   } catch { return null; }
 }
@@ -32,7 +33,9 @@ function normalizeRecords(records) {
 }
 function parseSource(gameId, texts) {
   let records;
-  if (gameId === 'wuthering-waves') {
+  if (gameId === 'genshin-impact') {
+    records = require('./genshin.cjs').parseCharacters(...texts.map(text => JSON.parse(text)));
+  } else if (gameId === 'wuthering-waves') {
     const english = new Map(JSON.parse(texts[1]).roleList.map(item => [item.Id, item.Name]));
     records = JSON.parse(texts[0]).roleList.filter(item => !item.Name.startsWith('漂泊者')).map(item => ({
       name: item.Name === '西格莉卡' ? '希格莉卡' : item.Name, en: english.get(item.Id), image: item.RoleHeadIcon,

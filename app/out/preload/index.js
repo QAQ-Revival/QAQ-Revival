@@ -1,7 +1,29 @@
 "use strict";
 const electron = require("electron");
 const preload = require("@electron-toolkit/preload");
+// Restore Chromium's own OLE target before its native internal drag loop starts.
+// Explorer file drops otherwise use the native receiver in elevated windows.
+if (process.platform === 'win32') {
+  let nativeDropReady = false;
+  electron.ipcRenderer.on('files:native-drop-ready', (_, ready) => { nativeDropReady = ready === true; });
+  window.addEventListener('dragstart', () => { if (nativeDropReady) electron.ipcRenderer.sendSync('files:internal-drag', true); }, true);
+  window.addEventListener('dragend', () => { if (nativeDropReady) electron.ipcRenderer.send('files:internal-drag', false); }, true);
+}
 const api = {
+  getPathForFile: (file) => {
+    try { return electron.webUtils ? electron.webUtils.getPathForFile(file) : String(file?.path || ''); }
+    catch { return ''; }
+  },
+  onNativeFileDrop: (callback) => {
+    const listener = (_, drop) => callback(drop);
+    electron.ipcRenderer.on("files:native-drop", listener);
+    return () => electron.ipcRenderer.removeListener("files:native-drop", listener);
+  },
+  onNativeFileDragState: (callback) => {
+    const listener = (_, dragging) => callback(dragging);
+    electron.ipcRenderer.on("files:native-drag-state", listener);
+    return () => electron.ipcRenderer.removeListener("files:native-drag-state", listener);
+  },
   getWindowState: () => electron.ipcRenderer.invoke("window:get-state"),
   controlWindow: (action) => electron.ipcRenderer.invoke("window:control", action),
   onWindowState: (callback) => {
@@ -10,6 +32,20 @@ const api = {
     return () => electron.ipcRenderer.removeListener("window:state", listener);
   },
   getConfig: () => electron.ipcRenderer.invoke("get-config"),
+  updateRandomLaunchSettings: (updates) => electron.ipcRenderer.invoke("settings:update-random-launch", updates),
+  wuwaGetTuning: () => electron.ipcRenderer.invoke("wuwa:get-tuning"),
+  genshinCheckEnvironment: () => electron.ipcRenderer.invoke("genshin:check-environment"),
+  genshinRepairEnvironment: (options) => electron.ipcRenderer.invoke("genshin:repair-environment", options),
+  genshinRestoreEnvironment: (options) => electron.ipcRenderer.invoke("genshin:restore-environment", options),
+  genshinUpdateCheckSettings: (updates) => electron.ipcRenderer.invoke("genshin:update-check-settings", updates),
+  genshinExportCheck: () => electron.ipcRenderer.invoke("genshin:export-check"),
+  genshinGetAntiCrash: () => electron.ipcRenderer.invoke("genshin:get-anticrash"),
+  genshinUpdateAntiCrash: (settings) => electron.ipcRenderer.invoke("genshin:update-anticrash", settings),
+  genshinAntiCrashCleanup: () => electron.ipcRenderer.invoke("genshin:anticrash-cleanup"),
+  genshinSelectCustomDll: () => electron.ipcRenderer.invoke("genshin:select-custom-dll"),
+  wuwaApplyTuning: (options) => electron.ipcRenderer.invoke("wuwa:apply-tuning", options),
+  wuwaRestoreTuning: (options) => electron.ipcRenderer.invoke("wuwa:restore-tuning", options),
+  wuwaImportDeviceProfile: (options) => electron.ipcRenderer.invoke("wuwa:import-device-profile", options),
   getRuntimeInfo: () => electron.ipcRenderer.invoke("get-runtime-info"),
   gameGetSettings: (gameId) => electron.ipcRenderer.invoke("game:get-settings", gameId),
   selectModsFolder: (gameId) => electron.ipcRenderer.invoke("select-mods-folder", gameId),
@@ -23,6 +59,7 @@ const api = {
   refreshCharacters: (options) => electron.ipcRenderer.invoke("character:refresh", options),
   updateCharacterCatalog: (gameId) => electron.ipcRenderer.invoke("character:update-catalog", gameId),
   getHiddenCharacters: (gameId) => electron.ipcRenderer.invoke("character:list-hidden", gameId),
+  showCharacterContextMenu: (options) => electron.ipcRenderer.invoke("character:context-menu", options),
   setCharacterHidden: (characterName, hidden, gameId) => electron.ipcRenderer.invoke("character:set-hidden", { characterName, hidden, gameId }),
   scanLegacyImport: () => electron.ipcRenderer.invoke("legacy-import:scan"),
   migrateLegacyImport: (options) => electron.ipcRenderer.invoke("legacy-import:migrate", options),
@@ -69,6 +106,25 @@ const api = {
   setModPreview: (characterName, modName, imagePath) => electron.ipcRenderer.invoke("set-mod-preview", { characterName, modName, imagePath }),
   setModPreviewFromData: (characterName, modName, dataUrl) => electron.ipcRenderer.invoke("set-mod-preview-from-data", { characterName, modName, dataUrl }),
   // Mod Market APIs (with local cache support)
+  modSiteDescribe: (payload) => electron.ipcRenderer.invoke('mod-sites:describe', payload),
+  modSiteOpen: (payload) => electron.ipcRenderer.invoke('mod-sites:open', payload),
+  modSiteResize: (payload) => electron.ipcRenderer.invoke('mod-sites:resize', payload),
+  modSiteHide: (payload) => electron.ipcRenderer.invoke('mod-sites:hide', payload),
+  modSiteReload: (payload) => electron.ipcRenderer.invoke('mod-sites:reload', payload),
+  modSiteFinish: (payload) => electron.ipcRenderer.invoke('mod-sites:finish', payload),
+  modSiteList: (payload) => electron.ipcRenderer.invoke('mod-sites:list', payload),
+  modSiteGetPost: (payload) => electron.ipcRenderer.invoke('mod-sites:detail', payload),
+  modSiteImage: (payload) => electron.ipcRenderer.invoke('mod-sites:media', payload),
+  modSiteSetContext: (payload) => electron.ipcRenderer.invoke('mod-sites:setContext', payload),
+  modSiteClear: (payload) => electron.ipcRenderer.invoke('mod-sites:clear', payload),
+  modSiteConfigure: (payload) => electron.ipcRenderer.invoke('mod-sites:configure', payload),
+  gamebananaList: (payload) => electron.ipcRenderer.invoke('gamebanana:list', payload),
+  gamebananaDetail: (payload) => electron.ipcRenderer.invoke('gamebanana:detail', payload),
+  onModSiteChanged: (callback) => {
+    const handler = (_event, payload) => callback(payload);
+    electron.ipcRenderer.on('mod-sites:changed', handler);
+    return () => electron.ipcRenderer.removeListener('mod-sites:changed', handler);
+  },
   pawchiveGetState: () => electron.ipcRenderer.invoke("pawchive:get-state"),
   kemonoGetState: () => electron.ipcRenderer.invoke("kemono:get-state"),
   kemonoListCreators: (options) => electron.ipcRenderer.invoke("kemono:list-creators", options),
@@ -148,6 +204,7 @@ const api = {
   setServerUrl: (url, options) => electron.ipcRenderer.invoke("set-server-url", url, options),
   setUiZoom: (zoom) => electron.ipcRenderer.invoke("set-ui-zoom", zoom),
   setModMarketCardSize: (size) => electron.ipcRenderer.invoke("set-mod-market-card-size", size),
+  setModDownloadImageRatio: (ratio) => electron.ipcRenderer.invoke("set-mod-download-image-ratio", ratio),
   setCompatibilityMode: (enabled) => electron.ipcRenderer.invoke("set-compatibility-mode", enabled),
   // Skin APIs
   getSkins: () => electron.ipcRenderer.invoke("get-skins"),
@@ -157,7 +214,7 @@ const api = {
   saveCharacterOrder: (characterOrder) => electron.ipcRenderer.invoke("save-character-order", characterOrder),
   saveModOrder: (characterName, modOrder) => electron.ipcRenderer.invoke("save-mod-order", { characterName, modOrder }),
   // Hotkey editing API
-  saveHotkey: (characterName, modName, sectionName, newKey) => electron.ipcRenderer.invoke("save-hotkey", { characterName, modName, sectionName, newKey }),
+  saveHotkey: (characterName, modName, sectionName, newKey, relativePath) => electron.ipcRenderer.invoke("save-hotkey", { characterName, modName, sectionName, newKey, relativePath }),
   // Preset System APIs
   presetList: () => electron.ipcRenderer.invoke("preset:list"),
   presetCreate: (name, description, mods) => electron.ipcRenderer.invoke("preset:create", { name, description, mods }),
@@ -199,6 +256,11 @@ const api = {
     const handler = (_, data) => callback(data);
     electron.ipcRenderer.on("mods-changed", handler);
     return () => electron.ipcRenderer.removeListener("mods-changed", handler);
+  },
+  onHotkeysChanged: (callback) => {
+    const listener = (_, data) => callback(data);
+    electron.ipcRenderer.on("hotkeys-changed", listener);
+    return () => electron.ipcRenderer.removeListener("hotkeys-changed", listener);
   },
   onOpenManagerTarget: (callback) => {
     electron.ipcRenderer.on("open-manager-target", (_, data) => callback(data));
@@ -283,6 +345,11 @@ const api = {
   overlayGetSettings: () => electron.ipcRenderer.invoke("overlay-get-settings"),
   overlayUpdateSettings: (updates) => electron.ipcRenderer.invoke("overlay-update-settings", updates),
   clearPersistCache: (gameId) => electron.ipcRenderer.invoke("persist-bridge-clear-cache", gameId),
+  persistBridgeGames: () => electron.ipcRenderer.invoke("persist-bridge-games"),
+  persistBridgeList: (gameId, options) => electron.ipcRenderer.invoke("persist-bridge-list", gameId, options),
+  persistBridgeMod: (gameId, characterName, modName) => electron.ipcRenderer.invoke("persist-bridge-mod", { gameId, characterName, modName }),
+  persistBridgeSetEnabled: (gameId, enabled) => electron.ipcRenderer.invoke("persist-bridge-set-enabled", { gameId, enabled }),
+  persistBridgeDelete: (gameId, ids) => electron.ipcRenderer.invoke("persist-bridge-delete", { gameId, ids }),
   devGetDevKitStatus: () => electron.ipcRenderer.invoke("dev:get-devkit-status"),
   devUnlock: (password) => electron.ipcRenderer.invoke("dev:unlock", password),
   devLock: () => electron.ipcRenderer.invoke("dev:lock"),

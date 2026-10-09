@@ -58,6 +58,7 @@ fs.cpSync(path.join(root, 'runtime-resources'), resources, { recursive: true });
 const appTarget = path.join(resources, 'app');
 fs.rmSync(appTarget, { recursive: true, force: true });
 fs.cpSync(path.join(root, 'app'), appTarget, { recursive: true });
+require('./package-files.cjs').copyLocalComponents(root, target);
 // Product name and version come from the application manifest.
 const manifestPath = path.join(resources, 'app', 'package.json');
 const manifest = JSON.parse(fs.readFileSync(manifestPath));

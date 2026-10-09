@@ -35,22 +35,44 @@ if (!electron.app.requestSingleInstanceLock()) {
   electron.app.quit();
   return;
 }
+const { startRandomManager, launchRandomExecutable, getRandomLaunchSettings, readRandomLaunchSettings } = require("./random-executable.cjs");
+let runtimeIdentity;
+try {
+  runtimeIdentity = startRandomManager(electron.app, { enabled: readRandomLaunchSettings(localProfile).manager });
+  if (runtimeIdentity.relaunched) return;
+  if (runtimeIdentity.name) electron.app.setName(runtimeIdentity.name);
+} catch (error) {
+  electron.dialog.showErrorBox("启动失败", `${error.message}\n请确认程序目录可写后重试。`);
+  electron.app.exit(1);
+  return;
+}
 electron.app.on("second-instance", () => {
   // Defer until the normal ready handler has created the main window.
   electron.app.whenReady().then(activateMainWindow);
 });
 const utils = require("@electron-toolkit/utils");
+const overlayActivity = require('./overlay-activity.cjs').createActivityTracker();
 const AdmZip = require("adm-zip");
 const child_process = require("child_process");
 const { createWindowsLauncher, getDirectLaunchMode } = require("./windows-launch.cjs");
 const { createIndependentFixer } = require("./independent-fixer.cjs");
-const { createCharacterCatalogService, imageUrl: safeCharacterImageUrl } = require("./character-catalog.cjs");
+const { createCharacterCatalogService } = require("./character-catalog.cjs");
+const { COVER_SCHEME, createCharacterImageCache } = require("./character-image-cache.cjs");
+const { createCharacterSkinCatalogService } = require("./character-skin-catalog.cjs");
 const { registerPawchiveIpc } = require("./pawchive.cjs");
 const { registerRevivalIpc } = require("./mega-task-manager.cjs");
 const { registerArchiveDownloads } = require("./archive-downloads.cjs");
+const { registerSiteSessions } = require("./site-sessions.cjs");
+const { createGameBananaService } = require("./gamebanana.cjs");
+const { createSiteContent } = require("./site-content.cjs");
 const { registerSoftwareUpdates } = require("./software-updates.cjs");
 const { registerHotkeyTranslation } = require("./hotkey-translation.cjs");
 const { createHiddenCharactersStore, applyDisablePlan } = require("./hidden-characters.cjs");
+const { readWindowState, trackWindowState } = require("./window-state.cjs");
+const { enableNativeFileDrop } = require("./native-file-drop.cjs");
+const { migratePersistSettings } = require("./persist-settings.cjs");
+const { createPersistManager } = require("./persist-manager.cjs");
+const { readJsonFileSync, writeJsonFileSync } = require("./json-store.cjs");
 registerHotkeyTranslation({ ipcMain: electron.ipcMain, fetch: (...args) => electron.net.fetch(...args) });
 const windowsLauncher = createWindowsLauncher({ isElevated: isProcessElevated });
 const crypto = require("crypto");
@@ -60,6 +82,24 @@ const node_crypto = require("node:crypto");
 const fs$1 = require("node:fs");
 const pawchiveService = registerPawchiveIpc({ ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow, powerMonitor: electron.powerMonitor, userData: localProfile, fetch: (...args) => electron.net.fetch(...args) });
 const kemonoService = registerPawchiveIpc({ source: 'kemono', ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow, powerMonitor: electron.powerMonitor, userData: localProfile, fetch: (...args) => electron.net.fetch(...args) });
+let archiveDownloadManager;
+const siteSessions = registerSiteSessions({ ipcMain: electron.ipcMain, app: electron.app, session: electron.session,
+  BrowserWindow: electron.BrowserWindow, BrowserView: electron.BrowserView, userData: localProfile,
+  onDownload: payload => archiveDownloadManager?.adoptBrowserDownload(payload) || false });
+const gamebananaService = createGameBananaService({ fetch: (...args) => siteSessions.fetch('gamebanana', ...args) });
+const modSiteContent = createSiteContent({ sessions: siteSessions, gamebanana: gamebananaService });
+for (const [channel, method] of [['list', 'list'], ['detail', 'getPost']]) {
+  electron.ipcMain.handle('mod-sites:' + channel, async (_event, payload) => {
+    try { return { success: true, ...await modSiteContent[method](payload) }; }
+    catch (error) { return { success: false, error: error.message || '站点内容解析失败', code: error.code, verifyUrl: error.verifyUrl }; }
+  });
+}
+for (const [channel, method] of [['list', 'list'], ['detail', 'getPost']]) {
+  electron.ipcMain.handle('gamebanana:' + channel, async (_event, payload) => {
+    try { return { success: true, ...await gamebananaService[method](payload) }; }
+    catch (error) { return { success: false, error: error.message || '香蕉网请求失败' }; }
+  });
+}
 registerRevivalIpc({ ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow, shell: electron.shell, userData: localProfile, getCacheDir: ensureMarketDownloadCacheDir });
 registerSoftwareUpdates({ ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow, powerMonitor: electron.powerMonitor,
   shell: electron.shell, userData: localProfile, fetch: (...args) => electron.net.fetch(...args) });
@@ -261,6 +301,7 @@ const MANAGED_INSTALL_CONTENT_TYPES = /* @__PURE__ */ new Set([
   "fixer"
 ]);
 const IMPORTER_GAME_IDS = Object.freeze({
+  GIMI: "genshin-impact",
   EFMI: "endfield",
   ZZMI: "zzz",
   WWMI: "wuthering-waves",
@@ -333,7 +374,7 @@ function deriveXxmiRootFromLoaderPath(loaderPath) {
 function relativePathTouchesMods(relativePath) {
   return String(relativePath || "").replace(/\\/g, "/").split("/").filter(Boolean).some((segment) => segment.toLowerCase() === "mods");
 }
-const BUNDLED_GAME_IMPORTERS = Object.freeze(["WWMI", "ZZMI", "EFMI", "SRMI"]);
+const BUNDLED_GAME_IMPORTERS = Object.freeze(["WWMI", "ZZMI", "EFMI", "SRMI", "GIMI"]);
 function escapeRegExp$1(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -393,7 +434,9 @@ function listBundledAutoinstallFiles(directory) {
 function resolveBundledGamePackage(files, importerName) {
   const importer = String(importerName || "").trim().toUpperCase();
   if (!BUNDLED_GAME_IMPORTERS.includes(importer)) return null;
-  const selected = resolveBundledAutoinstallPackage(files, importer);
+  const candidates = [importer, `${importer}-PACKAGE`].map(name => resolveBundledAutoinstallPackage(files, name)).filter(Boolean);
+  candidates.sort((a, b) => compareBundledPackageVersions(b.version, a.version) || compareCandidateFileNames(a, b));
+  const selected = candidates[0];
   return selected ? { ...selected, importer } : null;
 }
 const ACCESS_DENIED_CODES = /* @__PURE__ */ new Set([
@@ -695,14 +738,14 @@ function buildXxmiLauncherMissingAdvice(expectedLauncherExe) {
   return [
     "XXMI 启动器安装不完整，未找到 XXMI Launcher.exe。",
     `请打开对应文件夹检查是否存在：${expectedLauncherExe}`,
-    "如果文件不存在，请通过 XXMI 官方安装程序重新安装，并在系统设置 → 游戏与路径中选择启动器。"
+    "如果文件不存在，请通过 XXMI 官方安装程序重新安装，并在游戏设置 → 路径与启动中选择启动器。"
   ].join("\n");
 }
 function buildGamePackageMissingAdvice(importerName, expectedModsDir) {
   return [
     `${importerName} 游戏包安装不完整，未找到 Mods 文件夹。`,
     `请打开对应文件夹检查是否存在：${expectedModsDir}`,
-    "如果文件夹不存在，请在 XXMI 中安装对应游戏的加载组件，再到系统设置 → 游戏与路径选择 Mods 文件夹。"
+    "如果文件夹不存在，请在 XXMI 中安装对应游戏的加载组件，再到游戏设置 → 路径与启动选择 Mods 文件夹。"
   ].join("\n");
 }
 function buildMissingXxmiLauncherLaunchError(importerName, configuredPath) {
@@ -710,7 +753,7 @@ function buildMissingXxmiLauncherLaunchError(importerName, configuredPath) {
   if (!configuredPath) {
     return [
       `启动失败：${label} 启动所需的 XXMI Launcher.exe 路径还没有设置。`,
-      "请到系统设置 → 游戏与路径，选择该游戏的 XXMI Launcher.exe。",
+      "请到游戏设置 → 路径与启动，选择该游戏的 XXMI Launcher.exe。",
       "标准位置通常是：你选择的安装总目录\\XXMI\\Resources\\Bin\\XXMI Launcher.exe。",
       "如果尚未安装 XXMI，请先通过 XXMI 官方安装程序安装。"
     ].join("\n");
@@ -718,7 +761,7 @@ function buildMissingXxmiLauncherLaunchError(importerName, configuredPath) {
   return [
     `启动失败：没有在已设置路径找到 XXMI Launcher.exe。`,
     `当前路径：${configuredPath}`,
-    "请到系统设置 → 游戏与路径，点击“打开位置”检查文件是否存在。",
+    "请到游戏设置 → 路径与启动，点击“打开位置”检查文件是否存在。",
     "如果文件已移动，请重新选择路径；如果文件丢失，请通过 XXMI 官方安装程序修复。"
   ].join("\n");
 }
@@ -747,6 +790,18 @@ const LEGACY_MOD_CACHE_PATH = MOD_CACHE_PATH;
 const MARKET_DOWNLOAD_SETTINGS_PATH = path.join(electron.app.getPath("userData"), "market-download-settings.json");
 const SKIN_CONFIG_PATH = path.join(electron.app.getPath("userData"), "skin-config.json");
 const BUILTIN_GAMES = [
+  {
+    id: "genshin-impact",
+    name: "原神",
+    shortName: "原神",
+    description: "原神国服与国际服的独立 Mod 配置，使用 XXMI / GIMI 加载。",
+    imageFile: "原神.png",
+    defaultLaunchMode: "GIMI",
+    supportedLaunchModes: ["GIMI", "XXMI"],
+    modLoaderLabel: "XXMI / GIMI 启动器",
+    executableHint: "YuanShen.exe / GenshinImpact.exe",
+    marketGameId: "genshin-impact"
+  },
   {
     id: "endfield",
     name: "明日方舟终末地",
@@ -848,8 +903,6 @@ function getAutoOverlayCommandDefaults() {
     overlayHotkeyCommandTemplate: `powershell -NoProfile -ExecutionPolicy Bypass -File "${hotkeyScriptPath}" "{hotkeyBase64}"`
   };
 }
-const DEFAULT_PERSIST_BRIDGE_CACHE_SIZE = 50;
-const MAX_PERSIST_BRIDGE_CACHE_SIZE = 200;
 const DEFAULT_SERVER_URL = "https://qaqm.top";
 const BARE_FALLBACK_SERVER_URL = "http://129.211.14.231:18080";
 const RETIRED_DIRECT_FALLBACK_HOST = "direct.qaqm.top";
@@ -1091,6 +1144,7 @@ const BASE_DEFAULT_CONFIG = {
   closeBehavior: "ask",
   uiZoom: 1,
   modMarketCardSize: 100,
+  modDownloadImageRatio: "4:3",
   compatibilityMode: false,
   compatibilityLevel: 0,
   overlayAutoReloadEnabled: true,
@@ -1099,7 +1153,6 @@ const BASE_DEFAULT_CONFIG = {
   overlayHotkey: "Alt+F",
   overlayWindowScale: 1,
   persistBridgeEnabled: false,
-  persistBridgeCacheSize: DEFAULT_PERSIST_BRIDGE_CACHE_SIZE,
   persistBridgeTracking: {}
 };
 function createDefaultConfig() {
@@ -1130,6 +1183,9 @@ function applyConfigFieldDefaults(parsed, defaults) {
   return parsed;
 }
 function tryReadConfigFile(filePath) {
+  if (fs.existsSync(filePath + ".copying")) {
+    try { return readJsonFileSync(filePath); } catch (_) { return null; }
+  }
   try {
     if (!fs.existsSync(filePath)) return null;
     const data = fs.readFileSync(filePath, "utf-8");
@@ -1191,7 +1247,12 @@ function saveConfig(config) {
       } catch (_) {
       }
     }
-    fs.renameSync(CONFIG_TMP_PATH, CONFIG_PATH);
+    try {
+      fs.renameSync(CONFIG_TMP_PATH, CONFIG_PATH);
+    } catch (error) {
+      if (error.code !== "EXDEV") throw error;
+      writeJsonFileSync(CONFIG_PATH, config);
+    }
     return true;
   } catch (e) {
     console.error("Failed to save config:", e);
@@ -1279,6 +1340,10 @@ function migrateFromV3() {
 }
 migrateFromV3();
 let currentConfig = loadConfig();
+if (currentConfig.persistBridgeSettingsVersion !== 1 && fs.existsSync(CONFIG_PATH)) {
+  const migrationBackup = CONFIG_PATH + ".before-per-game-persist.bak";
+  if (!fs.existsSync(migrationBackup)) fs.copyFileSync(CONFIG_PATH, migrationBackup);
+}
 const hiddenCharacters = createHiddenCharactersStore({
   read: () => currentConfig.hiddenCharactersByGame,
   write: (next) => {
@@ -1591,6 +1656,7 @@ function ensureBuiltInGamesConfigured() {
       }
     }
   }
+  if (migratePersistSettings(currentConfig)) changed = true;
   const validIds = new Set(currentConfig.games.map((game) => game.id));
   if (!currentConfig.activeGameId || !validIds.has(currentConfig.activeGameId)) {
     currentConfig.activeGameId = "endfield";
@@ -1671,7 +1737,7 @@ function updateActiveGameConfig(updates, gameId) {
   notifyGamesChanged();
   return null;
 }
-const KNOWN_IMPORTER_MODS_DIRS = ["WWMI", "SRMI", "ZZMI", "EFMI", "NEMI", "XXMI"];
+const KNOWN_IMPORTER_MODS_DIRS = ["WWMI", "SRMI", "ZZMI", "EFMI", "GIMI", "NEMI", "XXMI"];
 function normalizeResolvedPathKey(targetPath) {
   const resolved = path.resolve(targetPath || "");
   return process.platform === "win32" ? resolved.toLowerCase() : resolved;
@@ -1776,7 +1842,7 @@ function resolveSelectedModsFolder(selectedPath, { gameId: gameId2 = getActiveGa
   if (sortedCandidates.length === 0) {
     return {
       ok: false,
-      error: "没有找到真正的 Mods 文件夹。请选择 Mods 本身，或者选择包含 WWMI/SRMI/ZZMI/EFMI/NEMI\\Mods 的上级目录。"
+      error: "没有找到真正的 Mods 文件夹。请选择 Mods 本身，或者选择包含 GIMI/WWMI/SRMI/ZZMI/EFMI/NEMI\\Mods 的上级目录。"
     };
   }
   const best = sortedCandidates[0];
@@ -1803,7 +1869,7 @@ function shouldResolveFolderSelectionAsMods(title, options = {}) {
 }
 function readXxmiImporterPathInfo(modLoaderPath, gameId2) {
   const importerName = getBuiltInGameDefinition(gameId2)?.defaultLaunchMode || "";
-  const supported = ["EFMI", "ZZMI", "WWMI", "SRMI"].includes(importerName);
+  const supported = BUNDLED_GAME_IMPORTERS.includes(importerName);
   if (!supported) {
     return { supported: false, importerName, status: "unsupported", importerPath: "" };
   }
@@ -1843,6 +1909,7 @@ function readXxmiImporterPathInfo(modLoaderPath, gameId2) {
       status: "configured",
       xxmiRootDir,
       configPath,
+      gameFolder: String(config?.Importers?.[importerName]?.Importer?.game_folder || "").trim(),
       importerPath: path.resolve(xxmiRootDir, configuredPath)
     };
   } catch (error) {
@@ -1863,6 +1930,7 @@ function buildRendererConfig() {
   const xxmiImporterInfo = readXxmiImporterPathInfo(modLoaderPath, activeGame?.id);
   return {
     ...currentConfig,
+    randomLaunch: getRandomLaunchSettings(currentConfig),
     compatibilityMode: isCompatibilityModeEnabled(),
     compatibilityLevel: getCompatibilityLevel(),
     activeGame: activeGame ? serializeGameForRenderer(activeGame) : null,
@@ -2240,6 +2308,24 @@ function resolvePersistBridgeStatePath(root, fileName) {
   if (!root || !normalizedFileName) return "";
   return path.join(getPersistBridgeStateDir(root), normalizedFileName);
 }
+function migratePersistBridgeStateFile(sourcePath, targetPath) {
+  if (!fs.existsSync(targetPath)) {
+    fs.renameSync(sourcePath, targetPath);
+    return;
+  }
+  const sourceContent = fs.readFileSync(sourcePath);
+  const targetContent = fs.readFileSync(targetPath);
+  if (!sourceContent.equals(targetContent)) {
+    // A conflict must never silently discard either saved value set.
+    const olderPath = fs.statSync(sourcePath).mtimeMs > fs.statSync(targetPath).mtimeMs ? targetPath : sourcePath;
+    const olderContent = fs.readFileSync(olderPath);
+    const stamp = crypto.createHash("sha256").update(olderContent).digest("hex").slice(0, 16);
+    const backup = `${targetPath}.migration-${stamp}.bak`;
+    if (!fs.existsSync(backup)) fs.writeFileSync(backup, olderContent);
+    if (olderPath === targetPath) fs.writeFileSync(targetPath, sourceContent);
+  }
+  fs.unlinkSync(sourcePath);
+}
 function migratePersistBridgeStateFilesToCacheDir(root) {
   if (!root || !fs.existsSync(root)) return;
   const stateDir = ensurePersistBridgeStateDir(root);
@@ -2249,16 +2335,7 @@ function migratePersistBridgeStateFilesToCacheDir(root) {
     const sourcePath = path.join(root, entry.name);
     const targetPath = path.join(stateDir, entry.name);
     try {
-      if (!fs.existsSync(targetPath)) {
-        fs.renameSync(sourcePath, targetPath);
-        continue;
-      }
-      const sourceContent = fs.readFileSync(sourcePath, "utf-8");
-      const targetContent = fs.readFileSync(targetPath, "utf-8");
-      if (sourceContent !== targetContent) {
-        fs.writeFileSync(targetPath, sourceContent, "utf-8");
-      }
-      fs.unlinkSync(sourcePath);
+      migratePersistBridgeStateFile(sourcePath, targetPath);
     } catch (e) {
       logger.warn(`Failed to migrate persist bridge state file ${entry.name}:`, e?.message || e);
     }
@@ -2296,16 +2373,7 @@ function migrateQaqmBridgeFilesToBridgeDir(root) {
       const sourcePath = path.join(legacyCacheDir, entry.name);
       const targetPath = path.join(nextCacheDir, entry.name);
       try {
-        if (!fs.existsSync(targetPath)) {
-          fs.renameSync(sourcePath, targetPath);
-        } else {
-          const sourceContent = fs.readFileSync(sourcePath, "utf-8");
-          const targetContent = fs.readFileSync(targetPath, "utf-8");
-          if (sourceContent !== targetContent) {
-            fs.writeFileSync(targetPath, sourceContent, "utf-8");
-          }
-          fs.unlinkSync(sourcePath);
-        }
+        migratePersistBridgeStateFile(sourcePath, targetPath);
       } catch (e) {
         logger.warn(`Failed to migrate QAQM cache file ${entry.name}:`, e?.message || e);
       }
@@ -2352,7 +2420,7 @@ function ensureSeedPersistBridgeFiles(root) {
   const stateDir = ensurePersistBridgeStateDir(root);
   for (const bridgeFile of PERSIST_BRIDGE_SEED_FILES) {
     const bridgePath = path.join(stateDir, bridgeFile.filename);
-    writeFileIfChanged(bridgePath, bridgeFile.content);
+    if (!fs.existsSync(bridgePath)) writeFileIfChanged(bridgePath, bridgeFile.content);
   }
 }
 function readPersistBridgeStateFilesFromInclude(filePath) {
@@ -2375,10 +2443,15 @@ function readPersistBridgeStateFilesFromInclude(filePath) {
     return [];
   }
 }
-function getPersistBridgeCacheSize() {
-  const numericValue = Number(currentConfig.persistBridgeCacheSize);
-  if (!Number.isFinite(numericValue)) return DEFAULT_PERSIST_BRIDGE_CACHE_SIZE;
-  return Math.max(0, Math.min(MAX_PERSIST_BRIDGE_CACHE_SIZE, Math.floor(numericValue)));
+function isPersistBridgeEnabled(gameId = getActiveGameScopeId()) {
+  return currentConfig.persistBridgeByGame?.[gameId]?.enabled === true;
+}
+function getPersistBridgeGameIdForRoot(root) {
+  const resolvedRoot = path.resolve(root).toLowerCase();
+  return currentConfig.games.find(game => {
+    const mods = getModsPath(game.id);
+    return mods && path.dirname(path.resolve(mods)).toLowerCase() === resolvedRoot;
+  })?.id;
 }
 function getPersistBridgeTrackingKey(root) {
   return String(root || "").trim().toLowerCase();
@@ -2442,9 +2515,8 @@ function writeActivePersistBridgeIncludeFromState(root, state, saveTracking = tr
   if (!root) return [];
   ensureQaqmBridgeDir(root);
   const normalizedState = setPersistBridgeTrackingState(root, state, saveTracking);
-  const cacheSize = getPersistBridgeCacheSize();
-  const trimmedCachedStateFiles = cacheSize > 0 ? normalizedState.recentStateFiles.slice(-cacheSize) : [];
-  const finalStateFiles = [...normalizedState.enabledStateFiles, ...trimmedCachedStateFiles];
+  const finalStateFiles = isPersistBridgeEnabled(getPersistBridgeGameIdForRoot(root))
+    ? [...normalizedState.enabledStateFiles, ...normalizedState.recentStateFiles].filter(name => fs.existsSync(resolvePersistBridgeStatePath(root, name))) : [];
   let content = "";
   for (const stateFile of finalStateFiles) {
     const includeTarget = getPersistBridgeStateIncludeTarget(stateFile);
@@ -2524,7 +2596,7 @@ function collectHostedPersistStateFilesForModDir(modDirPath) {
 function rebuildActivePersistBridgeIncludes(root) {
   if (!root) return [];
   const enabledStateFiles = /* @__PURE__ */ new Set();
-  const modsRoot = path.join(root, "Mods");
+  const modsRoot = getModsPath(getPersistBridgeGameIdForRoot(root)) || path.join(root, "Mods");
   if (fs.existsSync(modsRoot)) {
     try {
       const characterDirs = fs.readdirSync(modsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory());
@@ -2549,7 +2621,11 @@ function rebuildActivePersistBridgeIncludes(root) {
     (stateFile) => !enabledStateFiles.has(stateFile)
   );
   const trackedState = getPersistBridgeTrackingState(root);
-  const recentStateFiles = trackedState.recentStateFiles.length > 0 ? trackedState.recentStateFiles.filter((stateFile) => !enabledStateFiles.has(stateFile)) : existingCachedStateFiles;
+  const stateDir = getPersistBridgeStateDir(root);
+  const savedFiles = fs.existsSync(stateDir) ? fs.readdirSync(stateDir).filter(name => PERSIST_BRIDGE_STATE_FILE_REGEX.test(name)) : [];
+  const recentStateFiles = normalizePersistBridgeStateFileList([
+    ...trackedState.recentStateFiles, ...trackedState.enabledStateFiles, ...existingCachedStateFiles, ...savedFiles
+  ]).filter(name => !enabledStateFiles.has(name) && fs.existsSync(resolvePersistBridgeStatePath(root, name)));
   return writeActivePersistBridgeIncludeFromState(root, {
     enabledStateFiles: Array.from(enabledStateFiles).sort(
       (left, right) => left.localeCompare(right)
@@ -2557,10 +2633,10 @@ function rebuildActivePersistBridgeIncludes(root) {
     recentStateFiles
   });
 }
-function syncPersistBridgeStateForModDir(modDirPath) {
-  if (!currentConfig.persistBridgeEnabled) return { synced: false, fileCount: 0 };
-  const env = resolveActiveGameEnvRoot();
-  const d3dxUserPath = getD3dxUserIniPath();
+function syncPersistBridgeStateForModDir(modDirPath, gameId = getActiveGameScopeId()) {
+  if (!isPersistBridgeEnabled(gameId)) return { synced: false, fileCount: 0 };
+  const env = resolveActiveGameEnvRoot(gameId);
+  const d3dxUserPath = env && path.join(env.root, "d3dx_user.ini");
   if (!env || !d3dxUserPath || !fs.existsSync(d3dxUserPath) || !modDirPath || !fs.existsSync(modDirPath)) {
     return { synced: false, fileCount: 0 };
   }
@@ -2706,9 +2782,11 @@ function applyExternalBridgeRefsToIniContent(content, externalMappings) {
 }
 function ensurePersistBridgeMigrationForActiveGame(root) {
   if (!root || preparedPersistBridgeRoots.has(root)) return;
-  if (!currentConfig.persistBridgeEnabled) {
+  if (!isPersistBridgeEnabled(getPersistBridgeGameIdForRoot(root))) {
     try {
-      const modsRoot = path.join(root, "Mods");
+      const activeIncludePath = getQaqmBridgeFilePath(root, PERSIST_ACTIVE_INCLUDE_FILE);
+      if (fs.existsSync(activeIncludePath)) writeFileIfChanged(activeIncludePath, "");
+      const modsRoot = getModsPath(getPersistBridgeGameIdForRoot(root)) || path.join(root, "Mods");
       if (fs.existsSync(modsRoot)) {
         const restoredCount = restorePersistBakFiles(modsRoot);
         if (restoredCount > 0) {
@@ -2726,7 +2804,7 @@ function ensurePersistBridgeMigrationForActiveGame(root) {
   try {
     migrateQaqmBridgeFilesToBridgeDir(root);
     migratePersistBridgeStateFilesToCacheDir(root);
-    const modsRoot = path.join(root, "Mods");
+    const modsRoot = getModsPath(getPersistBridgeGameIdForRoot(root)) || path.join(root, "Mods");
     if (!fs.existsSync(modsRoot)) {
       preparedPersistBridgeRoots.add(root);
       return;
@@ -2735,7 +2813,7 @@ function ensurePersistBridgeMigrationForActiveGame(root) {
     let generatedStateCount = 0;
     const iniFiles = getIniFiles(modsRoot);
     const bridgeMappings = [];
-    const d3dxUserPath = getD3dxUserIniPath();
+    const d3dxUserPath = path.join(root, "d3dx_user.ini");
     const { constantsMap: d3dxUserConstants } = d3dxUserPath && fs.existsSync(d3dxUserPath) ? readD3dxUserConstants(d3dxUserPath) : { constantsMap: /* @__PURE__ */ new Map() };
     for (const iniPath of iniFiles) {
       const backupPath = `${iniPath}.qaqm-persistbak`;
@@ -2919,13 +2997,13 @@ function ensurePersistBridgeMigrationForActiveGame(root) {
   }
 }
 function ensurePersistBridgeMigrationForModDir(root, modDir) {
-  if (!currentConfig.persistBridgeEnabled) return;
+  if (!isPersistBridgeEnabled(getPersistBridgeGameIdForRoot(root))) return;
   try {
-    const modsRoot = path.join(root, "Mods");
+    const modsRoot = getModsPath(getPersistBridgeGameIdForRoot(root)) || path.join(root, "Mods");
     const iniFiles = getIniFiles(modDir);
     let generatedStateCount = 0;
     const bridgeMappings = [];
-    const d3dxUserPath = getD3dxUserIniPath();
+    const d3dxUserPath = path.join(root, "d3dx_user.ini");
     const { constantsMap: d3dxUserConstants } = d3dxUserPath && fs.existsSync(d3dxUserPath) ? readD3dxUserConstants(d3dxUserPath) : { constantsMap: /* @__PURE__ */ new Map() };
     for (const iniPath of iniFiles) {
       const backupPath = `${iniPath}.qaqm-persistbak`;
@@ -3026,6 +3104,7 @@ function ensurePersistBridgeMigrationForModDir(root, modDir) {
 async function ensureKeypressBridgeForActiveGame() {
   const env = resolveActiveGameEnvRoot();
   if (!env) return;
+  await prepareOverlayActivity();
   const { root, d3dxPath } = env;
   ensurePersistBridgeMigrationForActiveGame(root);
   if (preparedKeypressRoots.has(root)) {
@@ -3058,8 +3137,7 @@ async function ensureKeypressBridgeForActiveGame() {
     const keypressContent = "[System]\ncheck_foreground_window = 0\n";
     try {
       writeFileIfChanged(keypressPath, keypressContent);
-      if (currentConfig.persistBridgeEnabled) {
-        ensureSeedPersistBridgeFiles(root);
+      if (isPersistBridgeEnabled()) {
         rebuildActivePersistBridgeIncludes(root);
       }
       let existingIncluderContent = "";
@@ -3176,14 +3254,9 @@ function setBackgroundKeypressEnabled(enabled) {
   const { root } = env;
   const keypressPath = getQaqmBridgeFilePath(root, QAQM_KEYPRESS_FILE);
   try {
-    ensureKeypressBridgeForActiveGame();
-  } catch (e) {
-    logger.warn(
-      "Failed to ensure keypress bridge before toggling foreground mode:",
-      e?.message || e
-    );
-  }
-  try {
+    // Window startup only updates this small option. Mod scanning and migration
+    // remain in the explicit game-launch/import paths, before the loader starts.
+    ensureQaqmBridgeDir(root);
     let content = "";
     if (fs.existsSync(keypressPath)) {
       content = fs.readFileSync(keypressPath, "utf-8");
@@ -3740,6 +3813,8 @@ async function runManagedOverlayHelper(kind, hotkeyBase64 = "") {
   return false;
 }
 async function triggerOverlayReload() {
+  overlayActivity.invalidate();
+  await prepareOverlayActivity();
   const cmd = (currentConfig.overlayAutoReloadCommand || "").trim();
   if (!cmd) return;
   if (isManagedOverlayHelperCommand(cmd, "press_f10")) {
@@ -3874,7 +3949,7 @@ function getModsPathStatus({ requireExisting = true, gameId: gameId2 = getActive
     return {
       ok: false,
       code: "MODS_PATH_NOT_SET",
-      error: "当前游戏未设置 Mods 文件夹，请先到系统设置中配置。"
+      error: "当前游戏未设置 Mods 文件夹，请先到游戏设置中配置。"
     };
   }
   if (requireExisting && !fs.existsSync(modsPath)) {
@@ -4224,6 +4299,11 @@ const FALLBACK_MANUAL_CHARACTER_MAPPINGS_BY_GAME = {
 };
 const CHARACTER_NAME_LOOKUP_CACHE = /* @__PURE__ */ new Map();
 const CHARACTER_DIRECTORY_STATS_CACHE = /* @__PURE__ */ new Map();
+const characterImageCache = createCharacterImageCache({
+  cacheDir: path.join(electron.app.getPath("userData"), "character-image-cache"),
+  fetchFn: (...args) => electron.net.fetch(...args),
+  onCacheError: (error) => logger.warn("Character image cache unavailable:", error.code || error.message)
+});
 const characterCatalogService = createCharacterCatalogService({
   cacheDir: path.join(electron.app.getPath("userData"), "character-catalogs"),
   fetchFn: (...args) => electron.net.fetch(...args),
@@ -4231,6 +4311,7 @@ const characterCatalogService = createCharacterCatalogService({
 });
 function getGameCharacterResourceDir(gameId2 = getActiveGameScopeId()) {
   return {
+    "genshin-impact": "genshin-impact",
     endfield: "endfield",
     zzz: "zzz",
     "wuthering-waves": "wuwa",
@@ -4283,6 +4364,11 @@ function getDefaultCharactersForGame(gameId2) {
 }
 const BASE_APPEARANCE_SECTION_ID = "base";
 const CHARACTER_SKIN_CATALOG_CACHE = /* @__PURE__ */ new Map();
+const characterSkinCatalogService = createCharacterSkinCatalogService({
+  cacheDir: path.join(electron.app.getPath("userData"), "character-skin-catalogs"),
+  fetchFn: (...args) => electron.net.fetch(...args),
+  onUpdate: (gameId) => CHARACTER_SKIN_CATALOG_CACHE.delete(gameId)
+});
 function isSafeAppearancePathSegment(value) {
   const normalized = String(value || "").trim();
   const windowsStem = normalized.split(".")[0].toUpperCase();
@@ -4346,9 +4432,11 @@ function toLocalFileUrl(filePath) {
   if (!filePath) return null;
   return encodeURI(`file:///${String(filePath).replace(/\\/g, "/")}`);
 }
-function resolveCharacterSkinImage(catalogPath, imageValue) {
+function resolveCharacterSkinImage(catalogPath, imageValue, fallbackImageUrl) {
   const value = String(imageValue || "").trim();
   if (!value) return { imagePath: null, coverUrl: null };
+  const cachedCoverUrl = characterImageCache.coverUrl(value, [fallbackImageUrl]);
+  if (cachedCoverUrl) return { imagePath: null, coverUrl: cachedCoverUrl };
   if (/^(data:|https?:\/\/|file:\/\/)/i.test(value)) {
     return { imagePath: null, coverUrl: value };
   }
@@ -4378,7 +4466,7 @@ function normalizeCharacterSkinCatalog(parsed, catalogPath, gameId2) {
         );
         if (!skinId || !sectionId) return null;
         const skinAliases = Array.isArray(skin?.aliases) ? skin.aliases.map((alias) => String(alias || "").trim()).filter(Boolean) : [];
-        const image = resolveCharacterSkinImage(catalogPath, skin?.sourceImageUrl || skin?.image);
+        const image = resolveCharacterSkinImage(catalogPath, skin?.sourceImageUrl || skin?.image, skin?.fallbackImageUrl);
         return {
           id: skinId,
           skinId,
@@ -4409,17 +4497,10 @@ function normalizeCharacterSkinCatalog(parsed, catalogPath, gameId2) {
     }).filter(Boolean)
   };
 }
-function getCharacterSkinCatalog(gameId2 = getActiveGameScopeId()) {
-  const cacheKey = String(gameId2 || "default");
-  if (CHARACTER_SKIN_CATALOG_CACHE.has(cacheKey)) {
-    return CHARACTER_SKIN_CATALOG_CACHE.get(cacheKey);
-  }
+function readBundledCharacterSkinCatalog(gameId2 = getActiveGameScopeId()) {
   const resourceDir = getGameCharacterResourceDir(gameId2);
   const emptyCatalog = { schemaVersion: 1, gameId: gameId2, catalogPath: null, characters: [] };
-  if (!resourceDir) {
-    CHARACTER_SKIN_CATALOG_CACHE.set(cacheKey, emptyCatalog);
-    return emptyCatalog;
-  }
+  if (!resourceDir) return emptyCatalog;
   const candidates = [
     ...getBundledResourceCandidates("games", resourceDir, "character-skins", "catalog.json"),
     ...getBundledResourceCandidates(resourceDir, "character-skins", "catalog.json")
@@ -4428,15 +4509,21 @@ function getCharacterSkinCatalog(gameId2 = getActiveGameScopeId()) {
     try {
       if (!candidate || !fs.existsSync(candidate)) continue;
       const parsed = JSON.parse(fs.readFileSync(candidate, "utf-8"));
-      const catalog = normalizeCharacterSkinCatalog(parsed, candidate, gameId2);
-      CHARACTER_SKIN_CATALOG_CACHE.set(cacheKey, catalog);
-      return catalog;
+      return { ...parsed, catalogPath: candidate };
     } catch (error) {
       logger.warn(`Failed to load character skin catalog from ${candidate}:`, error?.message || error);
     }
   }
-  CHARACTER_SKIN_CATALOG_CACHE.set(cacheKey, emptyCatalog);
   return emptyCatalog;
+}
+function getCharacterSkinCatalog(gameId2 = getActiveGameScopeId()) {
+  const cacheKey = String(gameId2 || "default");
+  if (!CHARACTER_SKIN_CATALOG_CACHE.has(cacheKey)) {
+    const bundled = readBundledCharacterSkinCatalog(gameId2);
+    const merged = characterSkinCatalogService.merge(gameId2, bundled);
+    CHARACTER_SKIN_CATALOG_CACHE.set(cacheKey, normalizeCharacterSkinCatalog(merged, bundled.catalogPath, gameId2));
+  }
+  return CHARACTER_SKIN_CATALOG_CACHE.get(cacheKey);
 }
 function getCharacterSkinCatalogEntry(characterName, gameId2 = getActiveGameScopeId()) {
   const aliases = [
@@ -6893,7 +6980,10 @@ function resolveCanonicalCharacterInstallTarget(characterName, gameId2 = getActi
   if (!characterBasePath) {
     return { characterName: canonicalCharacterName, characterPath: null };
   }
-  const characterPath = path.join(characterBasePath, canonicalCharacterName);
+  // GIMI collections commonly use aliases such as Ayaka or Raiden. Keep all
+  // imports in the existing directory so detail/actions see the same Mods.
+  const characterPath = (gameId2 === "genshin-impact" ? resolveCharacterPath(rawName, gameId2) : null)
+    || path.join(characterBasePath, canonicalCharacterName);
   if (!isPathInsideDirectory(characterPath, characterBasePath)) {
     throw new Error("角色目录路径无效");
   }
@@ -6981,7 +7071,7 @@ function getCharacterModCacheKeys(characterName, modName, gameId2 = getActiveGam
     characterName,
     gameId2,
     resolveCharacterEntry(characterName, gameId2)
-  ).map((alias) => `${alias}/${modName}`);
+  ).map((alias) => `${gameId2 === "genshin-impact" ? "genshin-impact/" : ""}${alias}/${modName}`);
 }
 function clearHotkeysCacheForMod(characterName, modName, gameId2 = getActiveGameScopeId()) {
   const cacheKeys = getCharacterModCacheKeys(characterName, modName, gameId2);
@@ -6998,7 +7088,20 @@ function clearHotkeysCacheForMod(characterName, modName, gameId2 = getActiveGame
 }
 function getPrimaryHotkeysCacheKey(characterName, modName, gameId2 = getActiveGameScopeId()) {
   const canonicalCharacterName = getCanonicalCharacterConfigKey(characterName, gameId2);
-  return `${canonicalCharacterName}/${modName}`;
+  return `${gameId2 === "genshin-impact" ? "genshin-impact/" : ""}${canonicalCharacterName}/${modName}`;
+}
+function invalidateHotkeysForGame(gameId = getActiveGameScopeId()) {
+  // Older games share the unprefixed cache; invalidate that whole legacy scope.
+  for (const key of Object.keys(hotkeysCache)) {
+    if (key.startsWith("genshin-impact/") === (gameId === "genshin-impact")) delete hotkeysCache[key];
+  }
+  saveHotkeysCache();
+  notifyHotkeysChanged("__all__", null, gameId);
+}
+function notifyHotkeysChanged(characterName, modName, gameId = getActiveGameScopeId(), senderId) {
+  for (const window of electron.BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed() && window.webContents.id !== senderId) window.webContents.send("hotkeys-changed", { gameId, characterName, modName });
+  }
 }
 function trackCharacterUsage(characterName, gameId2 = getActiveGameScopeId()) {
   if (!currentConfig.characterUsage) currentConfig.characterUsage = {};
@@ -7139,14 +7242,16 @@ function activateMainWindow() {
   mainWindow.focus();
 }
 function createWindow() {
+  const windowStatePath = path.join(localProfile, "window-state.json");
+  const windowState = readWindowState(windowStatePath, electron.screen.getPrimaryDisplay().workArea);
   const mainWindow = new electron.BrowserWindow({
-    width: 1600,
-    height: 900,
+    width: windowState.width,
+    height: windowState.height,
     frame: false,
     show: false,
     backgroundColor: "#f6f1ea",
     autoHideMenuBar: true,
-    title: "QAQ-Revival",
+    title: runtimeIdentity.name || "QAQ-Revival",
     icon: path.join(__dirname, "../../resources/icon.ico"),
     webPreferences: {
       preload: path.join(__dirname, "../preload/index.js"),
@@ -7154,7 +7259,27 @@ function createWindow() {
       webSecurity: false
     }
   });
+  trackWindowState(mainWindow, windowStatePath, error => logger.warn("Failed to save window state:", error.message));
+  try {
+    enableNativeFileDrop(mainWindow, {
+      ipcMain: electron.ipcMain,
+      preferLegacy: isProcessElevated(),
+      onDrop: (drop) => {
+        logger.info(`Native file drop received: ${drop.paths.length} item(s)`);
+        if (!mainWindow.webContents.isDestroyed()) mainWindow.webContents.send("files:native-drop", drop);
+      },
+      onError: (error) => logger.warn("Native file drop failed:", error.message)
+    });
+  } catch (error) {
+    logger.warn("Native file drop unavailable:", error.message);
+  }
   let hasShownMainWindow = false;
+  if (runtimeIdentity.name) {
+    mainWindow.on("page-title-updated", event => {
+      event.preventDefault();
+      mainWindow.setTitle(runtimeIdentity.name);
+    });
+  }
   for (const event of ["maximize", "unmaximize", "focus", "blur"]) {
     mainWindow.on(event, () => {
       if (mainWindowRef === mainWindow && !mainWindow.webContents.isDestroyed()) {
@@ -7176,6 +7301,7 @@ function createWindow() {
     if (hasShownMainWindow || mainWindow.isDestroyed()) return;
     hasShownMainWindow = true;
     if (mainWindow.isMinimized()) mainWindow.restore();
+    if (windowState.maximized) mainWindow.maximize();
     mainWindow.show();
     logger.info(`Main window shown via ${reason}`);
     if (reason === "startup-timeout" && !pageDidLoad) {
@@ -7198,6 +7324,7 @@ function createWindow() {
     pageDidLoad = true;
     clearTimeout(mainWindowShowFallback);
     showMainWindow("did-finish-load");
+    genshinAntiCrash.recoverOrphan().catch(e => logger.warn("[Genshin] Anti-error session recovery failed:", e?.message || e));
   });
   let loadRetryCount = 0;
   const MAX_LOAD_RETRIES = 3;
@@ -7335,7 +7462,8 @@ function applyChromiumStabilityFlags() {
 }
 applyChromiumStabilityFlags();
 electron.app.whenReady().then(() => {
-  utils.electronApp.setAppUserModelId("com.qaqmanager.revival");
+  electron.protocol.handle(COVER_SCHEME, (request) => characterImageCache.handle(request));
+  utils.electronApp.setAppUserModelId(runtimeIdentity.name || "com.qaqmanager.revival");
   electron.app.on("browser-window-created", (_, window) => {
     utils.optimizer.watchWindowShortcuts(window);
   });
@@ -7407,6 +7535,8 @@ let overlayToggleCooldownUntil = 0;
 let overlaySuppressBlurUntil = 0;
 let overlayLastShownAt = 0;
 let overlayReadyPromise = null;
+let overlaySideRequestId = 0;
+let overlaySideContentKey = null;
 function normalizeOverlayWindowScale(value) {
   const scale = Number(value);
   if (!Number.isFinite(scale)) return 1;
@@ -7516,6 +7646,7 @@ function createOverlayWindow() {
       preload: overlayPreloadPath,
       sandbox: false,
       webSecurity: false,
+      backgroundThrottling: false,
       contextIsolation: true
     }
   });
@@ -7531,6 +7662,9 @@ function createOverlayWindow() {
     overlayWindow.webContents.once("did-finish-load", markReady);
   });
   overlayWindow.loadFile(overlayHtmlPath);
+  overlayWindow.on("hide", () => {
+    if (overlayWindow && !overlayWindow.isDestroyed()) overlayWindow.webContents.send("overlay-window-hidden");
+  });
   overlayWindow.on("blur", () => {
     setTimeout(() => {
       if (sideClosingIntentionally) return;
@@ -7604,6 +7738,10 @@ function createSideWindow(contentUrl, width) {
   return overlaySideWindow;
 }
 function hideSideWindow(intentional) {
+  overlaySideRequestId++;
+  const requestKey = overlaySideContentKey;
+  overlaySideContentKey = null;
+  if (overlayWindow && !overlayWindow.isDestroyed()) overlayWindow.webContents.send("overlay-side-hidden", { requestKey });
   if (intentional) {
     sideClosingIntentionally = true;
     setTimeout(() => {
@@ -7715,11 +7853,26 @@ function getCharacterCoverUrl(characterName, gameId2 = getActiveGameScopeId()) {
       }[ext] || "image/jpeg";
       return `data:${mime};base64,${fs.readFileSync(coverFilePath).toString("base64")}`;
     }
-    return safeCharacterImageUrl(getCharacterConfigForGame(gameId2).characterImages?.[canonicalCharacterName]);
+    return characterImageCache.coverUrl(getCharacterConfigForGame(gameId2).characterImages?.[canonicalCharacterName]);
   } catch (e) {
   }
   return null;
 }
+async function prepareOverlayActivity() {
+  const gameId = getActiveGameScopeId();
+  const env = resolveActiveGameEnvRoot(gameId);
+  if (!env || isNevernessDx12Mode(gameId)) return;
+  try {
+    await overlayActivity.prepare(env, listCharacterDirectories(getModsPath(gameId), gameId)
+      .filter(entry => !isCharacterHidden(entry.displayName, gameId)), currentConfig.overlayActivityEnabled !== false);
+  } catch (error) {
+    logger.warn('Could not prepare overlay activity detection:', error.message);
+  }
+}
+electron.ipcMain.handle('overlay-get-activity', () => ({
+  success: true, gameId: getActiveGameScopeId(),
+  ...overlayActivity.read(resolveActiveGameEnvRoot())
+}));
 electron.ipcMain.handle("overlay-get-characters", async () => {
   try {
     const modsPathStatus = getModsPathStatus();
@@ -7728,6 +7881,7 @@ electron.ipcMain.handle("overlay-get-characters", async () => {
     }
     const { modsPath } = modsPathStatus;
     const gameId2 = getActiveGameScopeId();
+    await prepareOverlayActivity();
     const characters = sortCharacterEntries(listCharacterDirectories(modsPath, gameId2), gameId2).map(
       (entry) => ({
         name: entry.displayName,
@@ -7736,7 +7890,7 @@ electron.ipcMain.handle("overlay-get-characters", async () => {
         coverUrl: getCharacterCoverUrl(entry.displayName)
       })
     );
-    return { success: true, characters: characters.filter(character => !isCharacterHidden(character.name, gameId2)) };
+    return { success: true, gameId: gameId2, characters: characters.filter(character => !isCharacterHidden(character.name, gameId2)) };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -7860,7 +8014,7 @@ electron.ipcMain.handle("overlay-toggle-mod", async (_, { characterName, modName
       return result;
     }
     organizeLegacyCharacterFoldersIfNeeded(gameId2);
-    const env = resolveActiveGameEnvRoot();
+    const env = resolveActiveGameEnvRoot(gameId2);
     const charPath = resolveCharacterPath(characterName, gameId2);
     if (!charPath) {
       return { success: false, error: "角色文件夹不存在" };
@@ -7876,16 +8030,16 @@ electron.ipcMain.handle("overlay-toggle-mod", async (_, { characterName, modName
       }
       return { success: false, error: `找不到 Mod 文件夹: ${currentName}` };
     }
-    if (!enabled && currentConfig.persistBridgeEnabled) {
-      if (usesManagedPersistBridge(characterName, modName)) {
-        syncPersistBridgeStateForModDir(oldPath);
+    if (!enabled && isPersistBridgeEnabled(gameId2)) {
+      if (usesManagedPersistBridge(characterName, modName, gameId2)) {
+        syncPersistBridgeStateForModDir(oldPath, gameId2);
       }
     }
     const renameResult = await renameModDirectoryWithRetry(oldPath, newPath);
     if (!renameResult.success) {
       return { success: false, error: renameResult.error || "切换 Mod 失败" };
     }
-    if (env?.root && currentConfig.persistBridgeEnabled) {
+    if (env?.root && isPersistBridgeEnabled(gameId2)) {
       const stateFiles = collectHostedPersistStateFilesForModDir(newPath);
       updateActivePersistBridgeIncludesIncremental(
         env.root,
@@ -7924,20 +8078,40 @@ electron.ipcMain.handle("overlay-get-settings", async () => {
       autoReloadEnabled: !!currentConfig.overlayAutoReloadEnabled,
       presetAutoReloadEnabled: !!currentConfig.overlayPresetAutoReloadEnabled,
       clickableHotkeysEnabled: !!currentConfig.overlayClickableHotkeysEnabled,
+      activityEnabled: currentConfig.overlayActivityEnabled !== false,
+      autoLocateEnabled: currentConfig.overlayAutoLocateEnabled !== false,
       overlayScale: getOverlayWindowScale(),
       compatibilityMode: isStrongCompatibilityModeEnabled(),
       compatibilityLevel: getCompatibilityLevel(),
-      persistBridgeEnabled: !!currentConfig.persistBridgeEnabled,
-      persistBridgeCacheSize: getPersistBridgeCacheSize()
+      persistBridgeEnabled: !!isPersistBridgeEnabled(),
+      persistBridgeCacheSize: null
     }
   };
 });
 electron.ipcMain.handle("overlay-update-settings", async (_, updates = {}) => {
-  if (updates.persistBridgeCacheSize !== void 0 && (!Number.isInteger(updates.persistBridgeCacheSize) || updates.persistBridgeCacheSize < 0 || updates.persistBridgeCacheSize > MAX_PERSIST_BRIDGE_CACHE_SIZE)) {
-    return { success: false, error: "保留数量必须是 0–200 范围内的整数" };
+  const previousAutoLocate = currentConfig.overlayAutoLocateEnabled;
+  if (updates.autoLocateEnabled !== undefined && typeof updates.autoLocateEnabled !== "boolean") return { success: false, error: "自动定位开关无效" };
+  if (typeof updates.activityEnabled === 'boolean') {
+    currentConfig.overlayActivityEnabled = updates.activityEnabled;
+    if (!updates.activityEnabled) {
+      for (const game of currentConfig.games || []) {
+        const env = resolveActiveGameEnvRoot(game.id);
+        if (env) {
+          try { await overlayActivity.prepare(env, [], false); }
+          catch (error) { logger.warn('Could not disable overlay activity detection:', error.message); }
+        }
+      }
+    }
+    await prepareOverlayActivity();
+  }
+  if (updates.persistBridgeCacheSize !== undefined && updates.persistBridgeCacheSize !== null) {
+    return { success: false, error: "Mod 状态现为不限数量保存，请在状态管理页删除不需要的内容" };
+  }
+  if (updates.persistBridgeEnabled !== undefined) {
+    try { persistManager.setEnabled(updates.gameId, updates.persistBridgeEnabled); }
+    catch (error) { return { success: false, error: error.message }; }
   }
   let keypressModeChanged = false;
-  let persistCacheChanged = false;
   if (typeof updates.autoReloadEnabled === "boolean") {
     keypressModeChanged = keypressModeChanged || currentConfig.overlayAutoReloadEnabled !== updates.autoReloadEnabled;
     currentConfig.overlayAutoReloadEnabled = updates.autoReloadEnabled;
@@ -7949,69 +8123,16 @@ electron.ipcMain.handle("overlay-update-settings", async (_, updates = {}) => {
   if (typeof updates.clickableHotkeysEnabled === "boolean") {
     currentConfig.overlayClickableHotkeysEnabled = updates.clickableHotkeysEnabled;
   }
-  if (typeof updates.persistBridgeEnabled === "boolean") {
-    const wasEnabled = currentConfig.persistBridgeEnabled;
-    currentConfig.persistBridgeEnabled = updates.persistBridgeEnabled;
-    preparedPersistBridgeRoots.clear();
-    if (wasEnabled && !updates.persistBridgeEnabled) {
-      try {
-        const env = resolveActiveGameEnvRoot();
-        if (env?.root) {
-          const modsRoot = path.join(env.root, "Mods");
-          if (fs.existsSync(modsRoot)) {
-            const restoredCount = restorePersistBakFiles(modsRoot);
-            if (restoredCount > 0) {
-              logger.info(`Persist Bridge OFF: restored ${restoredCount} ini backup(s)`);
-            }
-          }
-          const stateDir = getPersistBridgeStateDir(env.root);
-          if (fs.existsSync(stateDir)) {
-            for (const entry of fs.readdirSync(stateDir, { withFileTypes: true })) {
-              if (entry.isFile() && PERSIST_BRIDGE_STATE_FILE_REGEX.test(entry.name)) {
-                try {
-                  fs.unlinkSync(path.join(stateDir, entry.name));
-                } catch (_2) {
-                }
-              }
-            }
-          }
-          const activeIncludePath = getQaqmBridgeFilePath(env.root, PERSIST_ACTIVE_INCLUDE_FILE);
-          if (fs.existsSync(activeIncludePath)) {
-            fs.writeFileSync(activeIncludePath, "", "utf-8");
-          }
-          const trackingKey = getPersistBridgeTrackingKey(env.root);
-          const trackingStore = ensurePersistBridgeTrackingStore();
-          delete trackingStore[trackingKey];
-        }
-      } catch (e) {
-        logger.warn("Failed to restore INI backups on persist bridge disable:", e?.message || e);
-      }
-    }
+  if (updates.autoLocateEnabled !== undefined) currentConfig.overlayAutoLocateEnabled = updates.autoLocateEnabled;
+  if (!saveConfig(currentConfig)) {
+    currentConfig.overlayAutoLocateEnabled = previousAutoLocate;
+    return { success: false, error: "设置保存失败，请重试" };
   }
-  if (updates.persistBridgeCacheSize !== void 0) {
-    const nextCacheSize = updates.persistBridgeCacheSize;
-    persistCacheChanged = getPersistBridgeCacheSize() !== nextCacheSize;
-    currentConfig.persistBridgeCacheSize = nextCacheSize;
-  }
-  saveConfig(currentConfig);
   if (keypressModeChanged) {
     try {
       setBackgroundKeypressEnabled(shouldEnableOverlayBackgroundKeypress());
     } catch (e) {
       logger.warn("Failed to toggle background keypress from overlay settings:", e?.message || e);
-    }
-  }
-  if (persistCacheChanged) {
-    try {
-      const env = resolveActiveGameEnvRoot();
-      if (env?.root) {
-        writeActivePersistBridgeIncludeFromState(
-          env.root,
-          ensurePersistBridgeTrackingState(env.root)
-        );
-      }
-    } catch (e) {
-      logger.warn("Failed to rebuild persist bridge cache settings:", e?.message || e);
     }
   }
   return {
@@ -8020,11 +8141,13 @@ electron.ipcMain.handle("overlay-update-settings", async (_, updates = {}) => {
       autoReloadEnabled: !!currentConfig.overlayAutoReloadEnabled,
       presetAutoReloadEnabled: !!currentConfig.overlayPresetAutoReloadEnabled,
       clickableHotkeysEnabled: !!currentConfig.overlayClickableHotkeysEnabled,
+      activityEnabled: currentConfig.overlayActivityEnabled !== false,
+      autoLocateEnabled: currentConfig.overlayAutoLocateEnabled !== false,
       overlayScale: getOverlayWindowScale(),
       compatibilityMode: isStrongCompatibilityModeEnabled(),
       compatibilityLevel: getCompatibilityLevel(),
-      persistBridgeEnabled: !!currentConfig.persistBridgeEnabled,
-      persistBridgeCacheSize: getPersistBridgeCacheSize()
+      persistBridgeEnabled: !!isPersistBridgeEnabled(),
+      persistBridgeCacheSize: null
     }
   };
 });
@@ -8036,43 +8159,36 @@ electron.ipcMain.handle("overlay-resize-window", async (_, nextScale) => {
   }
 });
 electron.ipcMain.handle("persist-bridge-clear-cache", async (_, gameId) => {
+  try { return persistManager.remove(gameId); }
+  catch (error) { return { success: false, error: error.message }; }
+});
+electron.ipcMain.handle("persist-bridge-games", async () => {
+  try { return { success: true, games: persistManager.listGames() }; }
+  catch (error) { return { success: false, error: error.message }; }
+});
+electron.ipcMain.handle("persist-bridge-list", async (_, gameId, options = {}) => {
+  try { return persistManager.list(gameId, { metadataOnly: options.metadataOnly === true, ids: Array.isArray(options.ids) ? options.ids.filter(id => typeof id === "string") : undefined, refresh: options.refresh === true }); }
+  catch (error) { return { success: false, error: error.message }; }
+});
+electron.ipcMain.handle("persist-bridge-mod", async (_, { gameId, characterName, modName } = {}) => {
   try {
-    const targetGame = getSettingsGame(gameId);
-    const env = resolveActiveGameEnvRoot(targetGame.id);
-    if (!env?.root) {
-      return { success: false, error: "未找到当前游戏目录，请先配置游戏路径" };
-    }
-    const root = env.root;
-    const stateDir = getPersistBridgeStateDir(root);
-    let deletedCount = 0;
-    if (fs.existsSync(stateDir)) {
-      const entries = fs.readdirSync(stateDir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (entry.isFile() && PERSIST_BRIDGE_STATE_FILE_REGEX.test(entry.name)) {
-          try {
-            fs.unlinkSync(path.join(stateDir, entry.name));
-            deletedCount++;
-          } catch (e) {
-            logger.warn(`Failed to delete state file ${entry.name}:`, e?.message || e);
-          }
-        }
-      }
-    }
-    const activeIncludePath = getQaqmBridgeFilePath(root, PERSIST_ACTIVE_INCLUDE_FILE);
-    if (fs.existsSync(activeIncludePath)) {
-      fs.writeFileSync(activeIncludePath, "", "utf-8");
-    }
-    const trackingKey = getPersistBridgeTrackingKey(root);
-    const trackingStore = ensurePersistBridgeTrackingStore();
-    delete trackingStore[trackingKey];
-    preparedPersistBridgeRoots.delete(root);
-    saveConfig(currentConfig);
-    logger.info(`Persist bridge cache cleared: ${deletedCount} state files deleted from ${root}`);
-    return { success: true, deletedCount };
-  } catch (e) {
-    logger.warn("Failed to clear persist bridge cache:", e?.message || e);
-    return { success: false, error: e.message };
-  }
+    characterName = assertSafeAppearancePathSegment(characterName, "角色名称");
+    modName = assertSafeAppearancePathSegment(modName, "Mod 名称");
+    return persistManager.mod(getSettingsGame(gameId).id, characterName, modName);
+  } catch (error) { return { success: false, error: error.message }; }
+});
+electron.ipcMain.handle("persist-bridge-set-enabled", async (_, { gameId, enabled } = {}) => {
+  try {
+    getSettingsGame(gameId);
+    persistManager.setEnabled(gameId, enabled);
+    return { success: true, restartRequired: true };
+  } catch (error) { return { success: false, error: error.message }; }
+});
+electron.ipcMain.handle("persist-bridge-delete", async (_, { gameId, ids } = {}) => {
+  try {
+    if (!Array.isArray(ids)) throw new Error("请选择要删除的保存项");
+    return persistManager.remove(gameId, ids);
+  } catch (error) { return { success: false, error: error.message }; }
 });
 electron.ipcMain.handle("overlay-apply-hotkey", async (_, { keys, hotkey } = {}) => {
   if (!currentConfig.overlayAutoReloadEnabled) {
@@ -8090,8 +8206,13 @@ electron.ipcMain.handle("overlay-apply-hotkey", async (_, { keys, hotkey } = {})
 });
 let lastSideWidths = currentConfig.sidePanelWidths || { detail: 300, characters: 220 };
 let currentSidePanelType = "detail";
-electron.ipcMain.handle("overlay-show-side", async (_, { width, content }) => {
+electron.ipcMain.handle("overlay-show-side", async (event, { width, content }) => {
+  const requestId = ++overlaySideRequestId;
   const gameId = getActiveGameScopeId();
+  const owner = overlayWindow && event.sender === overlayWindow.webContents ? overlayWindow : null;
+  const openedAt = overlayLastShownAt;
+  const canShowSide = () => requestId === overlaySideRequestId && gameId === getActiveGameScopeId() && (!owner || (!owner.isDestroyed() && owner === overlayWindow && owner.isVisible() && openedAt === overlayLastShownAt));
+  if (!canShowSide()) return { success: false, cancelled: true };
   try {
     const panelType = content && content.type || "detail";
     currentSidePanelType = panelType;
@@ -8114,7 +8235,8 @@ electron.ipcMain.handle("overlay-show-side", async (_, { width, content }) => {
       });
     }
     const sendContent = () => {
-      if (overlaySideWindow && !overlaySideWindow.isDestroyed()) {
+      if (canShowSide() && overlaySideWindow && !overlaySideWindow.isDestroyed()) {
+        overlaySideContentKey = content?.requestKey || null;
         overlaySideWindow.webContents.send("side-panel-content", {
           ...content || {},
           gameId,
@@ -8134,6 +8256,7 @@ electron.ipcMain.handle("overlay-show-side", async (_, { width, content }) => {
     }
     if (!alreadyVisible) {
       await new Promise((resolve) => setTimeout(resolve, 20));
+      if (!canShowSide()) return { success: false, cancelled: true };
       const compatibilityMode = isStrongCompatibilityModeEnabled();
       overlaySideWindow.setOpacity(compatibilityMode ? 1 : 0);
       overlaySideWindow.setAlwaysOnTop(true, "screen-saver");
@@ -8188,6 +8311,7 @@ electron.ipcMain.handle("overlay-resize-side", async (_, newWidth) => {
   return { success: true, width: w };
 });
 electron.ipcMain.handle("overlay-update-side", async (_, content) => {
+  if ((content?.requestKey || null) !== overlaySideContentKey) return { success: false, cancelled: true };
   if (overlaySideWindow && !overlaySideWindow.isDestroyed()) {
     overlaySideWindow.webContents.send("side-panel-content", { ...content, gameId: getActiveGameScopeId() });
   }
@@ -8319,12 +8443,25 @@ electron.app.on("will-quit", () => {
     logger.warn("Failed to reset background keypress before quit:", e?.message || e);
   }
   electron.globalShortcut.unregisterAll();
+  // Best effort: leftovers from an interrupted anti-error session are recovered on next start.
+  genshinAntiCrash.cleanup({ force: false, quiet: true }).catch(() => {});
 });
 electron.ipcMain.handle("get-config", async () => {
   return {
     success: true,
     config: buildRendererConfig()
   };
+});
+electron.ipcMain.handle("settings:update-random-launch", async (_, updates) => {
+  if (!updates || typeof updates !== "object" || Array.isArray(updates) || !Object.keys(updates).length ||
+      Object.entries(updates).some(([key, value]) => !["manager", "xxmi"].includes(key) || typeof value !== "boolean")) {
+    return { success: false, error: "随机名设置无效" };
+  }
+  const randomLaunch = { ...getRandomLaunchSettings(currentConfig), ...updates };
+  const next = { ...currentConfig, randomLaunch };
+  if (!saveConfig(next)) return { success: false, error: "保存设置失败，请重试" };
+  currentConfig = next;
+  return { success: true, settings: randomLaunch, restartRequired: Object.hasOwn(updates, "manager") };
 });
 electron.ipcMain.handle("game:get-settings", async (_, gameId) => {
   try {
@@ -8338,6 +8475,162 @@ electron.ipcMain.handle("game:get-settings", async (_, gameId) => {
   } catch (error) {
     return { success: false, error: error.message };
   }
+});
+const genshinDiagnostics = require("./genshin-diagnostics.cjs").createGenshinDiagnostics({
+  getGame: () => getSettingsGame("genshin-impact"),
+  resolveLauncherRoot: resolveXxmiRootFromLauncherPath,
+  tokenizeArgs: parseLaunchArgs,
+  backupDir: path.join(electron.app.getPath("userData"), "game-settings-backups", "genshin-impact"),
+  assertStopped: async state => {
+    const literal = value => "'" + value.replace(/'/g, "''") + "'";
+    const roots = [...new Set([state.gameDir, state.configuredGame].filter(Boolean))];
+    const bin = path.join(state.root, "Resources", "Bin");
+    const script = `$ErrorActionPreference='Stop'; $gameDirs=@(${roots.map(literal).join(",")}); $loaderDir=${literal(bin)}; $found=@(Get-Process | Where-Object { $_.Path -and ((($_.ProcessName -in @('YuanShen','GenshinImpact')) -and ([IO.Path]::GetDirectoryName($_.Path) -in $gameDirs)) -or [IO.Path]::GetDirectoryName($_.Path) -eq $loaderDir) }); Write-Output $found.Count`;
+    await new Promise((resolve, reject) => child_process.execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(script, "utf16le").toString("base64")], { windowsHide: true, timeout: 8000 }, (error, stdout) => {
+      if (error) reject(new Error("无法确认运行状态，请关闭原神与 XXMI 后重试"));
+      else if (String(stdout).trim() !== "0") reject(new Error("请先完全关闭原神与 XXMI，再修复或恢复路径配置"));
+      else resolve();
+    }));
+  }
+});
+for (const [channel, action] of Object.entries({
+  "genshin:check-environment": () => genshinDiagnostics.check(),
+  "genshin:repair-environment": payload => genshinDiagnostics.apply(payload),
+  "genshin:restore-environment": payload => genshinDiagnostics.restore(payload)
+})) {
+  electron.ipcMain.handle(channel, async (_, payload) => {
+    try { return await action(payload); } catch (error) { return { success: false, error: error.message }; }
+  });
+}
+electron.ipcMain.handle("genshin:update-check-settings", async (_, updates) => {
+  try {
+    if (!updates || typeof updates !== "object" || Array.isArray(updates) || !Object.keys(updates).length ||
+        Object.keys(updates).some(key => !["preflightEnabled", "launchArgs"].includes(key)) ||
+        (updates.preflightEnabled !== undefined && typeof updates.preflightEnabled !== "boolean") ||
+        (updates.launchArgs !== undefined && (typeof updates.launchArgs !== "string" || updates.launchArgs.length > 2048 || /[\0\r\n]/.test(updates.launchArgs)))) {
+      return { success: false, error: "原神检查设置无效" };
+    }
+    const game = getSettingsGame("genshin-impact");
+    const updated = { ...game };
+    if (updates.preflightEnabled !== undefined) updated.genshinPreflightEnabled = updates.preflightEnabled;
+    if (updates.launchArgs !== undefined) updated.launchArgs = updates.launchArgs.trim();
+    const next = { ...currentConfig, games: currentConfig.games.map(item => item.id === game.id ? updated : item) };
+    if (!saveConfig(next)) throw Error("设置保存失败，请重试");
+    currentConfig = next; notifyGamesChanged();
+    return { ...genshinDiagnostics.check(), message: "原神检查设置已保存" };
+  } catch (error) { return { success: false, error: error.message }; }
+});
+electron.ipcMain.handle("genshin:export-check", async () => {
+  try {
+    const report = genshinDiagnostics.exportReport();
+    const selected = await electron.dialog.showSaveDialog(mainWindowRef, { title: "导出原神兼容检查报告", defaultPath: "genshin-compatibility.json", filters: [{ name: "检查报告", extensions: ["json"] }] });
+    if (selected.canceled || !selected.filePath) return { success: false, canceled: true };
+    if (!path.isAbsolute(selected.filePath) || path.extname(selected.filePath).toLowerCase() !== ".json") throw Error("请选择 JSON 报告文件");
+    fs.writeFileSync(selected.filePath, JSON.stringify(report, null, 2) + "\n", "utf8");
+    return { success: true, path: selected.filePath, message: "检查报告已导出；不包含绝对路径、账号资料或原始日志。" };
+  } catch (error) { return { success: false, error: error.message }; }
+});
+const genshinAntiCrash = require("./genshin-anticrash.cjs").createGenshinAntiCrashService({
+  getGame: () => getSettingsGame("genshin-impact"),
+  defaultCustomDllPath: path.join(electron.app.isPackaged ? path.dirname(process.execPath) : path.resolve(__dirname, "../../.."), "local-components", "d3d11-nocheck.dll"),
+  resolveLauncherRoot: resolveXxmiRootFromLauncherPath,
+  stateDir: path.join(electron.app.getPath("userData"), "genshin-anticrash"),
+  assertStopped: async state => {
+    const literal = value => "'" + value.replace(/'/g, "''") + "'";
+    const bin = path.join(state.root, "Resources", "Bin");
+    const script = `$ErrorActionPreference='Stop'; $gameDir=${literal(state.gameDir + path.sep)}; $loaderDir=${literal(bin)}; $found=@(Get-Process | Where-Object { $_.Path -and ((($_.ProcessName -in @('YuanShen','GenshinImpact')) -and $_.Path.StartsWith($gameDir,[StringComparison]::OrdinalIgnoreCase)) -or [IO.Path]::GetDirectoryName($_.Path) -eq $loaderDir) }); Write-Output $found.Count`;
+    await new Promise((resolve, reject) => child_process.execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(script, "utf16le").toString("base64")], { windowsHide: true, timeout: 8000 }, (error, stdout) => {
+      if (error) reject(new Error("无法确认运行状态，请关闭原神与 XXMI 后重试"));
+      else if (String(stdout).trim() !== "0") reject(new Error("请先完全关闭原神与 XXMI，再应用防报错启动"));
+      else resolve();
+    }));
+  },
+  runNetsh: args => new Promise(resolve => child_process.execFile("netsh.exe", args, { windowsHide: true, timeout: 15000 }, (error, stdout) => resolve({ ok: !error, error: error?.message, stdout: String(stdout || "") }))),
+  isFirewallRulePresent: name => new Promise((resolve, reject) => {
+    const literal = "'" + name.replace(/'/g, "''") + "'";
+    const script = `$ErrorActionPreference='Stop'; $rules=@(Get-NetFirewallRule -PolicyStore PersistentStore -ErrorAction Stop | Where-Object { $_.DisplayName -eq ${literal} }); Write-Output $rules.Count`;
+    child_process.execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(script, "utf16le").toString("base64")], { windowsHide: true, timeout: 15000 }, (error, stdout) => {
+      const count = String(stdout).trim();
+      if (error || !/^\d+$/.test(count)) reject(error || new Error("无法确认防火墙规则状态"));
+      else resolve(Number(count) > 0);
+    });
+  }),
+  isProcessNameRunning: isWindowsProcessRunning,
+  isElevated: () => isProcessElevated()
+});
+const GENSHIN_ANTI_CRASH_KEYS = ["twin", "manualStart", "injectMode", "networkBlock", "originalDll", "customDll", "customDllPath"];
+for (const [channel, action] of Object.entries({
+  "genshin:get-anticrash": () => genshinAntiCrash.get(),
+  "genshin:update-anticrash": async settings => {
+    const validPath = value => typeof value === "string" && value === "" || typeof value === "string" && path.isAbsolute(value) &&
+      path.extname(value).toLowerCase() === ".dll" && value.length <= 1024 && !/[\0\r\n]/.test(value);
+    if (!settings || typeof settings !== "object" || Array.isArray(settings) || !Object.keys(settings).length ||
+        Object.keys(settings).some(key => !GENSHIN_ANTI_CRASH_KEYS.includes(key)) ||
+        ["twin", "manualStart", "networkBlock", "originalDll", "customDll"].some(key => settings[key] !== undefined && typeof settings[key] !== "boolean") ||
+        (settings.injectMode !== undefined && !["default", "hook", "direct"].includes(settings.injectMode)) ||
+        (settings.customDllPath !== undefined && !validPath(settings.customDllPath))) {
+      return { success: false, error: "原神防报错设置无效" };
+    }
+    const game = getSettingsGame("genshin-impact");
+    const previousPath = typeof game.genshinAntiError?.customDllPath === "string" ? game.genshinAntiError.customDllPath : "";
+    const nextPath = settings.customDllPath !== undefined ? settings.customDllPath.trim() : previousPath;
+    game.genshinAntiError = genshinAntiCrash.normalizeSettings({ ...(game.genshinAntiError || {}), ...settings });
+    game.genshinAntiError.customDllPath = nextPath;
+    if (!saveConfig(currentConfig)) return { success: false, error: "设置保存失败，请重试" };
+    notifyGamesChanged();
+    return { ...genshinAntiCrash.get(), message: "原神防报错设置已保存，下次通过 QAQ 直接启动时生效。" };
+  },
+  "genshin:anticrash-cleanup": () => genshinAntiCrash.cleanup({ force: false }),
+  "genshin:select-custom-dll": async () => {
+    const selected = await electron.dialog.showOpenDialog(mainWindowRef, { title: "选择外部定制组件 d3d11.dll", properties: ["openFile"], filters: [{ name: "图形组件", extensions: ["dll"] }] });
+    if (selected.canceled || !selected.filePaths?.length) return { success: false, canceled: true };
+    const file = selected.filePaths[0];
+    if (path.extname(file).toLowerCase() !== ".dll") return { success: false, error: "请选择 DLL 文件" };
+    return { success: true, path: file };
+  }
+})) {
+  electron.ipcMain.handle(channel, async (_, payload) => {
+    try { return await action(payload); } catch (error) { return { success: false, error: error.message }; }
+  });
+}
+const wuwaTuningService = require("./wuwa-tuning.cjs").createWuwaTuningService({
+  backupDir: path.join(electron.app.getPath("userData"), "game-settings-backups", "wuthering-waves"),
+  resolvePaths: () => {
+    const game = getSettingsGame("wuthering-waves");
+    const launcherRoot = resolveXxmiRootFromLauncherPath(game.modLoaderPath);
+    const info = readXxmiImporterPathInfo(game.modLoaderPath, game.id);
+    let gameRoot = game.gamePath ? path.dirname(game.gamePath) : info.gameFolder ? path.resolve(launcherRoot, info.gameFolder) : "";
+    for (let level = 0; gameRoot && level < 6; level++) {
+      if (fs.existsSync(path.join(gameRoot, "Wuthering Waves.exe"))) break;
+      const parent = path.dirname(gameRoot);
+      if (parent === gameRoot) { gameRoot = ""; break; }
+      gameRoot = parent;
+    }
+    return { gameRoot, launcherConfig: launcherRoot ? path.join(launcherRoot, "XXMI Launcher Config.json") : "" };
+  },
+  assertStopped: async files => {
+    const gameRoot = path.resolve(path.dirname(files.user.file), "../..");
+    const launcherBin = path.join(path.dirname(files.launcher.file), "Resources", "Bin");
+    const literal = value => "'" + value.replace(/'/g, "''") + "'";
+    const script = `$ErrorActionPreference='Stop'; $gameRoot=${literal(gameRoot + path.sep)}; $launcherBin=${literal(launcherBin)}; $found=@(Get-Process | Where-Object { $_.Path -and (($_.ProcessName -in @('Client-Win64-Shipping','Wuthering Waves') -and $_.Path.StartsWith($gameRoot,[StringComparison]::OrdinalIgnoreCase)) -or [IO.Path]::GetDirectoryName($_.Path) -eq $launcherBin) }); Write-Output $found.Count`;
+    await new Promise((resolve, reject) => child_process.execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(script, "utf16le").toString("base64")], { windowsHide: true, timeout: 8000 }, (error, stdout) => {
+      if (error) reject(new Error("无法确认游戏运行状态，请关闭鸣潮与 XXMI 后重试"));
+      else if (String(stdout).trim() !== "0") reject(new Error("请先完全关闭鸣潮与 XXMI，再应用或恢复游戏配置"));
+      else resolve();
+    }));
+  }
+});
+for (const [channel, action] of Object.entries({ "wuwa:get-tuning": () => wuwaTuningService.get(), "wuwa:apply-tuning": payload => wuwaTuningService.apply(payload), "wuwa:restore-tuning": payload => wuwaTuningService.restore(payload) })) {
+  electron.ipcMain.handle(channel, async (_, payload) => {
+    try { return await action(payload); } catch (error) { return { success: false, error: error.message }; }
+  });
+}
+electron.ipcMain.handle("wuwa:import-device-profile", async (_, { revision } = {}) => {
+  try {
+    const selected = await electron.dialog.showOpenDialog(mainWindowRef, { title: "选择鸣潮 DeviceProfiles.ini", properties: ["openFile"], filters: [{ name: "DeviceProfiles 配置", extensions: ["ini"] }] });
+    if (selected.canceled || !selected.filePaths?.length) return { success: false, canceled: true };
+    return await wuwaTuningService.apply({ preset: "device-profile", revision, deviceProfilePath: selected.filePaths[0] });
+  } catch (error) { return { success: false, error: error.message }; }
 });
 electron.ipcMain.handle("get-runtime-info", async () => {
   return {
@@ -8528,6 +8821,7 @@ electron.ipcMain.handle("game:switch", async (_, gameId2) => {
     currentConfig.activeGameId = gameId2;
     saveConfig(currentConfig);
     notifyGamesChanged();
+    siteSessions.setGame(gameId2).catch(() => {});
     return { success: true, game: serializeGameForRenderer(game) };
   } catch (error) {
     return { error: error.message };
@@ -8834,6 +9128,34 @@ function buildHonkaiStarRailGamePathCandidates() {
   addCandidate("C:\\Program Files (x86)\\HoYoPlay\\games\\Honkai Star Rail Games\\StarRail.exe");
   return candidates;
 }
+function getGenshinLauncherCandidates() {
+  const preferred = getGameById("genshin-impact")?.modLoaderPath;
+  const candidates = [preferred, ...(currentConfig.games || []).map(game => game.modLoaderPath)].filter(
+    loader => getWindowsPathLeaf(loader || "").toLowerCase() === "xxmi launcher.exe"
+  );
+  for (const root of [electron.app.getPath("appData"), process.env.LOCALAPPDATA].filter(Boolean)) {
+    candidates.push(path.join(root, "XXMI Launcher", "Resources", "Bin", "XXMI Launcher.exe"));
+  }
+  for (const drive of ["C", "D", "E", "F", "G"]) {
+    for (const folder of ["XXMI", "XXMI Launcher", "mod\\xxmi"]) {
+      candidates.push(path.join(`${drive}:\\`, folder, "Resources", "Bin", "XXMI Launcher.exe"));
+    }
+  }
+  const available = [...new Set(candidates)].filter(candidate => fs.existsSync(candidate));
+  const score = candidate => {
+    if (candidate === preferred) return 2;
+    const info = readXxmiImporterPathInfo(candidate, "genshin-impact");
+    return info.importerPath && isExistingDirectory(path.join(info.importerPath, "Mods")) ? 1 : 0;
+  };
+  return available.sort((a, b) => score(b) - score(a));
+}
+function buildGenshinGamePathCandidates() {
+  const folders = getGenshinLauncherCandidates().map(loader => {
+    const info = readXxmiImporterPathInfo(loader, "genshin-impact");
+    return info.gameFolder ? path.resolve(info.xxmiRootDir, info.gameFolder) : "";
+  }).filter(Boolean);
+  return require("./genshin.cjs").buildGamePathCandidates(readRegistryValue, folders);
+}
 electron.ipcMain.handle("auto-detect-paths", async (_, gameId) => {
   try {
     const activeGame = getSettingsGame(gameId);
@@ -8845,6 +9167,10 @@ electron.ipcMain.handle("auto-detect-paths", async (_, gameId) => {
       xxmiCandidates.push(`${drive}:\\XXMI Launcher\\Resources\\Bin\\XXMI Launcher.exe`);
     }
     const gameDetection = {
+      "genshin-impact": {
+        gameExeCandidates: buildGenshinGamePathCandidates(),
+        loaderCandidates: getGenshinLauncherCandidates()
+      },
       endfield: {
         gameExeCandidates: (() => {
           const candidates = [];
@@ -8935,6 +9261,17 @@ electron.ipcMain.handle("auto-detect-paths", async (_, gameId) => {
         }
       }
     }
+    if (gameId2 === "genshin-impact" && (!activeGame.modFolderPath || !isExistingDirectory(activeGame.modFolderPath))) {
+      const info = readXxmiImporterPathInfo(activeGame.modLoaderPath, gameId2);
+      const root = resolveXxmiRootFromLauncherPath(activeGame.modLoaderPath);
+      const importerPath = info.importerPath || (root ? path.join(root, "GIMI") : "");
+      const modsPath = importerPath ? path.join(importerPath, "Mods") : "";
+      if (activeGame.modLoaderPath && isExistingDirectory(modsPath)) {
+        updateActiveGameConfig({ modFolderPath: modsPath }, activeGame.id);
+        ensureDefaultCharacterFolders(modsPath, gameId2);
+        updatedFields.push("Mods 路径");
+      }
+    }
     const message = updatedFields.length > 0 ? `已自动检测到：${updatedFields.join("、")}` : "未检测到新路径，请手动选择。";
     return {
       success: true,
@@ -8987,12 +9324,25 @@ let gameLaunchInProgress = false;
 electron.ipcMain.handle("launch-game", async (_, { launchMode, gameId } = {}) => {
   if (gameLaunchInProgress) return { success: false, error: "正在启动，请稍候。" };
   gameLaunchInProgress = true;
+  let genshinPreparation = null, genshinLaunched = false;
   try {
     const activeGame = getActiveGame();
     const { gamePath, modLoaderPath } = getResolvedActiveGamePaths();
     if (gameId && gameId !== activeGame?.id) return { success: false, error: "当前游戏已切换，请重新点击启动。" };
     const resolvedLaunchMode = launchMode === "DIRECT" ? getDirectLaunchMode(activeGame) : launchMode === void 0 ? activeGame?.launchMode || "VANILLA" : launchMode || "VANILLA";
     if (!resolvedLaunchMode) return { success: false, error: "当前游戏尚未支持快捷启动，请使用 XXMI 启动。" };
+    if (activeGame?.id === "genshin-impact" && resolvedLaunchMode === "GIMI" && activeGame.genshinPreflightEnabled === true) {
+      const report = genshinDiagnostics.check({ includeLogs: false });
+      if (report.summary.errors) return { success: false, error: `原神启动前检查未通过：${report.checks.filter(item => item.level === "error").slice(0, 3).map(item => item.title).join("、")}。请到游戏设置 → 兼容检查查看详情。` };
+    }
+    let genshinLaunchNotice = "";
+    if (activeGame?.id === "genshin-impact" && resolvedLaunchMode === "GIMI") {
+      const prepared = await genshinAntiCrash.prepareLaunch(activeGame.genshinAntiError, { randomLauncher: getRandomLaunchSettings(currentConfig).xxmi });
+      if (prepared.prepared) {
+        genshinPreparation = prepared;
+        genshinLaunchNotice = prepared.notice || "";
+      }
+    }
     const customLaunchArgs = String(activeGame?.launchArgs || "").trim();
     if (resolvedLaunchMode !== "DX12") await ensureKeypressBridgeForActiveGame();
     if (resolvedLaunchMode === "VANILLA") {
@@ -9013,7 +9363,7 @@ electron.ipcMain.handle("launch-game", async (_, { launchMode, gameId } = {}) =>
       launchWindowsExecutableViaStart(vanillaGamePath);
       return { success: true };
     }
-    if (["EFMI", "WWMI", "ZZMI", "SRMI", "XXMI"].includes(resolvedLaunchMode)) {
+    if ([...BUNDLED_GAME_IMPORTERS, "XXMI"].includes(resolvedLaunchMode)) {
       if (resolvedLaunchMode !== "XXMI" && getDirectLaunchMode(activeGame) !== resolvedLaunchMode) {
         return { success: false, error: `当前游戏「${activeGame?.name || "未知"}」不支持 ${resolvedLaunchMode} 快捷启动。` };
       }
@@ -9026,7 +9376,16 @@ electron.ipcMain.handle("launch-game", async (_, { launchMode, gameId } = {}) =>
       const args = resolvedLaunchMode === "XXMI" ? [] : ["--nogui", "--xxmi", resolvedLaunchMode];
       args.push(...parseLaunchArgs(customLaunchArgs));
       logger.info("Launching Mod loader:", modLoaderPath, resolvedLaunchMode);
-      return await launchElevated(modLoaderPath, path.dirname(modLoaderPath), args);
+      const launchResult = await (genshinPreparation?.launcherPath
+        ? launchElevated(genshinPreparation.launcherPath, path.dirname(modLoaderPath), args)
+        : getRandomLaunchSettings(currentConfig).xxmi
+        ? launchRandomExecutable(modLoaderPath, path.dirname(modLoaderPath), args, launchElevated)
+        : launchElevated(modLoaderPath, path.dirname(modLoaderPath), args));
+      if (launchResult?.success && genshinPreparation) {
+        genshinLaunched = true;
+        genshinAntiCrash.watchGameExit(genshinPreparation);
+      }
+      return launchResult?.success && genshinLaunchNotice ? { ...launchResult, notice: genshinLaunchNotice } : launchResult;
     }
     if (resolvedLaunchMode === "DX12") {
       if (activeGame?.id && activeGame.id !== "neverness-to-everness") {
@@ -9111,6 +9470,12 @@ electron.ipcMain.handle("launch-game", async (_, { launchMode, gameId } = {}) =>
     logger.error("Launch error:", error);
     return { success: false, error: error.message };
   } finally {
+    if (genshinPreparation && !genshinLaunched) {
+      try {
+        const result = await genshinAntiCrash.cleanup({ force: false });
+        if (!result.cleaned) logger.warn("[Genshin] Launch failed; recovery remains pending:", result.notes);
+      } catch (error) { logger.warn("[Genshin] Launch failure cleanup failed:", error.message); }
+    }
     gameLaunchInProgress = false;
   }
 });
@@ -9218,7 +9583,10 @@ async function readCurrentCharacters() {
     return { success: false, error: error.message };
   }
 }
-electron.ipcMain.handle("character:refresh", readCurrentCharacters);
+electron.ipcMain.handle("character:refresh", async () => {
+  invalidateHotkeysForGame();
+  return readCurrentCharacters();
+});
 function buildCharacterDisablePlan(characterName, gameId) {
   const canonical = getCharacterMappingEntry(characterName, gameId)?.displayName || characterName;
   const aliases = new Set(getCharacterAliasCandidates(canonical, gameId).map(normalizeCharacterFolderKey));
@@ -9256,6 +9624,7 @@ function buildCharacterDisablePlan(characterName, gameId) {
   if (pakPaths) for (const root of Object.values(pakPaths.pakModsDirs)) scanRoot(root, pakPaths);
   return plan;
 }
+electron.ipcMain.handle("character:context-menu", require("./character-context-menu.cjs").showCharacterContextMenu);
 electron.ipcMain.handle("character:list-hidden", async (_, requestedGameId) => {
   try {
     const gameId = getSettingsGame(requestedGameId)?.id;
@@ -9272,8 +9641,8 @@ electron.ipcMain.handle("character:set-hidden", async (_, { characterName, hidde
     characterName = getCharacterMappingEntry(characterName, gameId)?.displayName || characterName;
     const plan = hidden ? buildCharacterDisablePlan(characterName, gameId) : [];
     const stateFiles = [];
-    if (currentConfig.persistBridgeEnabled) for (const item of plan.filter(item => !item.pak)) {
-      if (dirUsesManagedPersistBridge(item.from)) syncPersistBridgeStateForModDir(item.from);
+    if (isPersistBridgeEnabled(gameId)) for (const item of plan.filter(item => !item.pak)) {
+      if (dirUsesManagedPersistBridge(item.from)) syncPersistBridgeStateForModDir(item.from, gameId);
       stateFiles.push(...collectHostedPersistStateFilesForModDir(item.from));
     }
     const disabledCount = applyDisablePlan(plan, () => hiddenCharacters.set(gameId, characterName, hidden), moveDirectoryWithFallback);
@@ -9290,13 +9659,20 @@ electron.ipcMain.handle("character:set-hidden", async (_, { characterName, hidde
 electron.ipcMain.handle("get-characters", readCurrentCharacters);
 electron.ipcMain.handle("character:update-catalog", async (_, requestedGameId) => {
   const gameId = requestedGameId || getActiveGameScopeId();
+  invalidateHotkeysForGame(gameId);
   const result = await characterCatalogService.refresh(gameId, true);
-  if (!result.success) return { ...result, gameId };
+  const skins = await characterSkinCatalogService.refresh(gameId, readBundledCharacterSkinCatalog(gameId), getCharacterConfigForGame(gameId));
+  const messages = [];
+  if (result.success) messages.push("角色资料已更新");
+  else messages.push(result.error);
+  if (skins.success) messages.push(`外观目录已更新，新增 ${skins.added} 款，共 ${skins.count} 款`);
+  else messages.push(skins.error);
+  if (!result.success && !skins.success) return { success: false, gameId, error: messages.join("；"), skins };
   try {
     const modsPath = isNevernessDx12Mode(gameId) ? getNevernessDx12Paths(gameId).pakModsDir : getModsPath(gameId);
-    const added = modsPath && fs.existsSync(modsPath) ? ensureDefaultCharacterFolders(modsPath, gameId).createdCount : 0;
+    const added = result.success && modsPath && fs.existsSync(modsPath) ? ensureDefaultCharacterFolders(modsPath, gameId).createdCount : 0;
     notifyCharacterListChanged("__all__", { gameId, reason: "character-catalog-updated" });
-    return { ...result, gameId, added };
+    return { ...result, success: true, gameId, added, skins, message: messages.join("；") };
   } catch (error) {
     return { success: false, gameId, error: `角色资料已同步，但补充空分类失败：${error.message}` };
   }
@@ -9738,6 +10114,7 @@ function notifyAllModWindowsChanged(characterName = "__all__", meta = {}) {
   });
 }
 function notifyCharacterListChanged(characterName = "__all__", meta = {}) {
+  overlayActivity.invalidate();
   const changedCharacterName = String(characterName || "").trim() || "__all__";
   const safeMeta = meta && typeof meta === "object" ? meta : {};
   notifyAllModWindowsChanged("__all__", {
@@ -9768,7 +10145,7 @@ electron.ipcMain.handle("pin-mod", async (_, { characterName, modName, pinned })
     return { error: error.message };
   }
 });
-electron.ipcMain.handle("save-hotkey", async (_, { characterName, modName, sectionName, newKey }) => {
+electron.ipcMain.handle("save-hotkey", async (_, { characterName, modName, sectionName, newKey, relativePath }) => {
   try {
     const gameId2 = getActiveGameScopeId();
     organizeLegacyCharacterFoldersIfNeeded(gameId2);
@@ -9785,7 +10162,7 @@ electron.ipcMain.handle("save-hotkey", async (_, { characterName, modName, secti
         return { error: "Mod folder not found" };
       }
     }
-    const iniFiles = getIniFiles(modPath);
+    const iniFiles = getIniFiles(modPath).filter(file => relativePath === undefined || path.relative(modPath, path.dirname(file)).split(path.sep).join("/") === relativePath);
     if (iniFiles.length === 0) {
       return { error: "No INI files found in mod folder" };
     }
@@ -9799,14 +10176,14 @@ electron.ipcMain.handle("save-hotkey", async (_, { characterName, modName, secti
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const trimmedLine = line.trim();
-        const sectionMatch = trimmedLine.match(/\[Key(.*?)\]/i);
-        if (sectionMatch) {
+        const sectionMatch = trimmedLine.match(/^\[Key(.*?)\]$/i);
+        if (/^\[.*\]$/.test(trimmedLine)) {
           if (inTargetSection && !keyUpdated) {
             newLines.push(`key = ${newKey}`);
             keyUpdated = true;
             updated = true;
           }
-          if (sectionMatch[1] === sectionName) {
+          if (sectionMatch && sectionMatch[1] === sectionName) {
             inTargetSection = true;
           } else {
             inTargetSection = false;
@@ -9827,6 +10204,7 @@ electron.ipcMain.handle("save-hotkey", async (_, { characterName, modName, secti
       if (updated) {
         fs.writeFileSync(iniPath, newLines.join("\r\n"), "utf-8");
         clearHotkeysCacheForMod(characterName, modName, gameId2);
+        notifyHotkeysChanged(characterName, modName, gameId2, _?.sender?.id);
         return { success: true };
       }
     }
@@ -10211,7 +10589,7 @@ electron.ipcMain.handle("toggle-mod", async (_, { characterName, modName, enable
       return toggleNevernessDx12PakMod(characterName, modName, enable);
     }
     organizeLegacyCharacterFoldersIfNeeded(gameId2);
-    const env = resolveActiveGameEnvRoot();
+    const env = resolveActiveGameEnvRoot(gameId2);
     const charPath = resolveCharacterPath(characterName, gameId2);
     if (!charPath) {
       return { error: "Character folder not found" };
@@ -10223,16 +10601,16 @@ electron.ipcMain.handle("toggle-mod", async (_, { characterName, modName, enable
     if (!fs.existsSync(currentPath)) {
       return { error: "Mod folder not found" };
     }
-    if (!enable && currentConfig.persistBridgeEnabled) {
-      if (usesManagedPersistBridge(characterName, modName)) {
-        syncPersistBridgeStateForModDir(currentPath);
+    if (!enable && isPersistBridgeEnabled(gameId2)) {
+      if (usesManagedPersistBridge(characterName, modName, gameId2)) {
+        syncPersistBridgeStateForModDir(currentPath, gameId2);
       }
     }
     const renameResult = await renameModDirectoryWithRetry(currentPath, newPath);
     if (!renameResult.success) {
       return { error: renameResult.error || "Rename failed after retries" };
     }
-    if (env?.root && currentConfig.persistBridgeEnabled) {
+    if (env?.root && isPersistBridgeEnabled(gameId2)) {
       const stateFiles = collectHostedPersistStateFilesForModDir(newPath);
       updateActivePersistBridgeIncludesIncremental(
         env.root,
@@ -10240,8 +10618,8 @@ electron.ipcMain.handle("toggle-mod", async (_, { characterName, modName, enable
       );
     }
     clearConflictCache(characterName, gameId2);
-    if (enable && currentConfig.persistBridgeEnabled) {
-      restorePersistStateForMod(characterName, modName, newPath);
+    if (enable && isPersistBridgeEnabled(gameId2)) {
+      restorePersistStateForMod(characterName, modName, newPath, gameId2);
     }
     notifyCharacterListChanged(characterName, { modName, reason: "manager-toggle" });
     return { success: true, persistRestored: false, autoReloaded: false };
@@ -10435,7 +10813,7 @@ function summarizeIniBackupSnapshot(snapshot) {
 }
 function resolveModDirectory(characterName, modName) {
   const gameId2 = getActiveGameScopeId();
-  const modsPath = getModsPath();
+  const modsPath = getModsPath(gameId2);
   if (!modsPath || !fs.existsSync(modsPath)) {
     throw new Error("Mods 路径未设置或不存在");
   }
@@ -11767,14 +12145,14 @@ function isDisguisedMp4(filePath) {
     }
     try {
       const sevenZipPath = get7zaPath();
-      const { execSync } = require("child_process");
-      const output = execSync(`"${sevenZipPath}" l "${filePath}"`, {
+      const output = child_process.execFileSync(sevenZipPath, ["l", "-slt", filePath], {
         timeout: 1e4,
         encoding: "utf-8",
         windowsHide: true,
         stdio: ["pipe", "pipe", "pipe"]
       });
-      return output.includes(".7z");
+      // Only archive entries count; the listing header contains the input filename.
+      return parse7zSltPaths(output).some((entry) => entry.endsWith(".7z"));
     } catch (_) {
       return false;
     }
@@ -12257,7 +12635,7 @@ async function importModFromLocalPath({
         targetPath = null;
         try {
           const env = resolveActiveGameEnvRoot(gameId2);
-          if (env?.root && currentConfig.persistBridgeEnabled) {
+          if (env?.root && isPersistBridgeEnabled(gameId2)) {
             for (const modDir of integratedResult.installedModDirs || []) {
               ensurePersistBridgeMigrationForModDir(env.root, modDir);
             }
@@ -12280,7 +12658,7 @@ async function importModFromLocalPath({
     }
     try {
       const env = resolveActiveGameEnvRoot(gameId2);
-      if (env?.root && currentConfig.persistBridgeEnabled)
+      if (env?.root && isPersistBridgeEnabled(gameId2))
         ensurePersistBridgeMigrationForModDir(env.root, targetPath);
       if (gameId2 === getActiveGameScopeId()) await ensureKeypressBridgeForActiveGame();
     } catch (e) {
@@ -12480,7 +12858,7 @@ async function fetchMarketDownloadResponse(url, abortController2, options = {}) 
     signal: abortController2.signal,
     headers: options.headers || {}
   };
-  return fetchWithElectronNet(url, requestOptions);
+  return (options.fetch || fetchWithElectronNet)(url, requestOptions);
 }
 function getMarketDownloadResumePath(downloadDir, fileName, download = {}) {
   const identity = String(download.sha256 || download.objectKey || download.modId || download.url || fileName);
@@ -12524,7 +12902,7 @@ function readMarketDownloadChunk(reader, abortController2) {
     );
   });
 }
-async function downloadMarketFile(event, taskId, download, control = null) {
+async function downloadMarketFile(event, taskId, download, control = null, fetchImpl = fetchWithElectronNet) {
   const fileName = sanitizeDownloadFileName(download?.fileName);
   const downloadDir = ensureMarketDownloadCacheDir();
   fs.mkdirSync(downloadDir, { recursive: true });
@@ -12553,7 +12931,7 @@ async function downloadMarketFile(event, taskId, download, control = null) {
       existingSize = 0;
     }
     const headers = existingSize > 0 ? { Range: `bytes=${existingSize}-` } : {};
-    let response = await fetchMarketDownloadResponse(download.url, abortController2, { headers });
+    let response = await fetchMarketDownloadResponse(download.url, abortController2, { headers, fetch: fetchImpl });
     const rangeSatisfiedTotal = parseContentRangeTotal(response.headers.get("content-range"));
     const completedTotal = expectedTotal || rangeSatisfiedTotal;
     if (response.status === 416 && existingSize > 0 && completedTotal > 0 && existingSize >= completedTotal) {
@@ -12578,7 +12956,7 @@ async function downloadMarketFile(event, taskId, download, control = null) {
       }
       fs.unlinkSync(targetPath);
       existingSize = 0;
-      response = await fetchMarketDownloadResponse(download.url, abortController2, { headers: {} });
+      response = await fetchMarketDownloadResponse(download.url, abortController2, { headers: {}, fetch: fetchImpl });
     }
     if (existingSize > 0 && response.status !== 206) {
       try {
@@ -12590,7 +12968,7 @@ async function downloadMarketFile(event, taskId, download, control = null) {
       } catch (_) {
       }
       existingSize = 0;
-      response = await fetchMarketDownloadResponse(download.url, abortController2, { headers: {} });
+      response = await fetchMarketDownloadResponse(download.url, abortController2, { headers: {}, fetch: fetchImpl });
     }
     if (!response.ok || !response.body) {
       throw new Error(`下载失败：HTTP ${response.status}`);
@@ -12702,13 +13080,16 @@ async function downloadMarketFile(event, taskId, download, control = null) {
     if (control?.abortController === abortController2) control.abortController = null;
   }
 }
-registerArchiveDownloads({
+archiveDownloadManager = registerArchiveDownloads({
   ipcMain: electron.ipcMain, app: electron.app, BrowserWindow: electron.BrowserWindow,
-  userData: localProfile, services: { pawchive: pawchiveService, kemono: kemonoService },
+  userData: localProfile, services: { pawchive: pawchiveService, kemono: kemonoService,
+    ...Object.fromEntries(['gamebanana', 'arca', 'loverslab', 'huiyue', 'keke'].map(source => [source, { getPost: ref => modSiteContent.getPost({ ...ref, source }) }])) },
+  getCacheDir: ensureMarketDownloadCacheDir, openSource: () => { throw Error('请回到该来源的详情卡片重新下载；需要登录时将在页面内验证。'); },
   transfer: async (task, onProgress) => {
     const sender = { send: (_channel, progress) => onProgress(progress) };
     const control = createMarketDownloadControl(task.taskId, sender);
-    try { return await downloadMarketFile({ sender }, task.taskId, task.download, control); }
+    try { return await downloadMarketFile({ sender }, task.taskId, task.download, control,
+      ['gamebanana', 'arca', 'loverslab', 'huiyue', 'keke'].includes(task.source) ? (...args) => siteSessions.fetch(task.source, ...args) : fetchWithElectronNet); }
     finally { marketDownloadControls.delete(task.taskId); }
   },
   controlTransfer: (taskId, action) => {
@@ -13497,7 +13878,8 @@ let modPersistState = { scopes: {} };
 function loadModPersistState() {
   try {
     if (fs.existsSync(MOD_PERSIST_STATE_PATH)) {
-      const data = fs.readFileSync(MOD_PERSIST_STATE_PATH, "utf-8");
+      const data = fs.existsSync(MOD_PERSIST_STATE_PATH + ".copying")
+        ? JSON.stringify(readJsonFileSync(MOD_PERSIST_STATE_PATH)) : fs.readFileSync(MOD_PERSIST_STATE_PATH, "utf-8");
       if (!data.trim()) {
         modPersistState = { scopes: {} };
         return;
@@ -13514,20 +13896,36 @@ function loadModPersistState() {
   }
 }
 loadModPersistState();
+const persistManager = createPersistManager({
+  userData: electron.app.getPath("userData"),
+  getConfig: () => currentConfig, saveConfig, getGame: getSettingsGame, getModsPath,
+  getLegacy: () => modPersistState, saveLegacy: saveModPersistState,
+  migrateFiles: root => { migrateQaqmBridgeFilesToBridgeDir(root); migratePersistBridgeStateFilesToCacheDir(root); },
+  getIniFiles, descriptor: buildPersistBridgeDescriptor, hostedFiles: extractHostedPersistStateFilesFromContent,
+  resolveMod: (gameId, characterName, modName) => resolveExistingStandardModDirectory(characterName, modName, gameId),
+  characterName: (gameId, name) => getCharacterMappingEntry(name, gameId)?.displayName || name,
+  describeSource: (gameId, mods, ini) => {
+    const parts = path.relative(mods, ini).split(path.sep);
+    if (isLegacyCharacterContainerName(parts[0])) parts.shift();
+    if (parts.length < 3) return {};
+    return { characterName: getCharacterMappingEntry(parts[0], gameId)?.displayName || parts[0], modName: parts[1].replace(/^DISABLED_/i, ""), iniPath: parts.slice(2).join("/") };
+  },
+  parseDeclarations: parseLocalPersistDeclarations, sync: syncPersistBridgeStateForModDir,
+  restoreBackups: restorePersistBakFiles, readConstants: readD3dxUserConstants, writeConstants: writeD3dxUserConstants,
+  removeTracking: (root, names) => updateActivePersistBridgeIncludesIncremental(root, { removeStateFiles: names }),
+  invalidate: root => { preparedPersistBridgeRoots.delete(root); preparedKeypressRoots.delete(root); }
+});
 function saveModPersistState() {
   try {
-    const tempPath = `${MOD_PERSIST_STATE_PATH}.tmp`;
-    fs.writeFileSync(tempPath, JSON.stringify(modPersistState, null, 2));
-    if (fs.existsSync(MOD_PERSIST_STATE_PATH)) {
-      fs.unlinkSync(MOD_PERSIST_STATE_PATH);
-    }
-    fs.renameSync(tempPath, MOD_PERSIST_STATE_PATH);
+    writeJsonFileSync(MOD_PERSIST_STATE_PATH, modPersistState);
+    return true;
   } catch (e) {
     console.error("Failed to save mod persist state:", e);
+    throw e;
   }
 }
-function getModPersistScopeKey() {
-  const activeGame = getActiveGame();
+function getModPersistScopeKey(gameId = getActiveGameScopeId()) {
+  const activeGame = getGameById(gameId);
   if (activeGame?.id) return `game:${activeGame.id}`;
   const env = resolveActiveGameEnvRoot();
   if (env?.root) return `root:${env.root.toLowerCase()}`;
@@ -13555,11 +13953,11 @@ function dirUsesManagedPersistBridge(modDirPath) {
   }
   return false;
 }
-function usesManagedPersistBridge(characterName, modName) {
+function usesManagedPersistBridge(characterName, modName, gameId = getActiveGameScopeId()) {
   if (MANAGED_PERSIST_BRIDGE_MODS.has(getModPersistRecordKey(characterName, modName))) {
     return true;
   }
-  const charPath = resolveCharacterPath(characterName, getActiveGameScopeId());
+  const charPath = resolveCharacterPath(characterName, gameId);
   if (!charPath || !fs.existsSync(charPath)) return false;
   const candidatePaths = [path.join(charPath, modName), path.join(charPath, `DISABLED_${modName}`)];
   return candidatePaths.some((candidatePath) => dirUsesManagedPersistBridge(candidatePath));
@@ -13660,18 +14058,17 @@ function buildD3dxUserVariableKey(envRoot, iniPath, variableName) {
   const normalizedVarName = String(variableName || "").replace(/^\$/u, "").trim().toLowerCase();
   return normalizedVarName ? `$\\${relPath}\\${normalizedVarName}` : `$\\${relPath}`;
 }
-function restorePersistStateForMod(characterName, modName, modDirPath) {
+function restorePersistStateForMod(characterName, modName, modDirPath, gameId = getActiveGameScopeId()) {
   try {
-    if (usesManagedPersistBridge(characterName, modName)) {
+    if (usesManagedPersistBridge(characterName, modName, gameId)) {
       return { restored: false, managed: true };
     }
-    const env = resolveActiveGameEnvRoot();
-    const d3dxUserPath = getD3dxUserIniPath();
+    const env = resolveActiveGameEnvRoot(gameId);
+    const d3dxUserPath = env && path.join(env.root, "d3dx_user.ini");
     if (!env || !d3dxUserPath || !fs.existsSync(modDirPath)) {
       return { restored: false };
     }
-    const scopeKey = getModPersistScopeKey();
-    const record = modPersistState.scopes?.[scopeKey]?.[getModPersistRecordKey(characterName, modName)];
+    const record = persistManager.legacyRecord(gameId, getModPersistRecordKey(characterName, modName));
     if (!record || !Array.isArray(record.files) || record.files.length === 0) {
       return { restored: false };
     }
@@ -13765,14 +14162,14 @@ function saveHotkeysCache() {
   }
 }
 function getIniFiles(dir, fileList = []) {
-  const files = fs.readdirSync(dir);
-  files.forEach((file) => {
-    const filePath = path.join(dir, file);
-    const stat = fs.statSync(filePath);
-    if (stat.isDirectory()) {
+  const files = fs.readdirSync(dir, { withFileTypes: true });
+  files.forEach((entry) => {
+    const filePath = path.join(dir, entry.name);
+    const isDirectory = entry.isDirectory() || (entry.isSymbolicLink() && fs.statSync(filePath).isDirectory());
+    if (isDirectory) {
       getIniFiles(filePath, fileList);
     } else {
-      if (path.extname(file).toLowerCase() === ".ini") {
+      if (path.extname(entry.name).toLowerCase() === ".ini") {
         fileList.push(filePath);
       }
     }
@@ -13892,7 +14289,7 @@ electron.ipcMain.handle("detect-mod-conflicts", async (_, characterName) => {
     return { error: error.message };
   }
 });
-const HOTKEYS_CACHE_VERSION = 8;
+const HOTKEYS_CACHE_VERSION = 9;
 function getHotkeyExpressionSemanticKey(expression) {
   const parsed = parseHotkeyExpression(expression);
   const normalizeTokens = (tokens) => (Array.isArray(tokens) ? tokens : []).map((token) => `${String(token?.device || "")}:${String(token?.code || "")}`).filter((token) => token !== ":").sort();
@@ -14071,7 +14468,7 @@ electron.ipcMain.handle("get-mod-details", async (_, { characterName, modName, r
         const imageBuffer = fs.readFileSync(imagePath2);
         previewUrl2 = `data:${mimeType};base64,${imageBuffer.toString("base64")}`;
       }
-      return { success: true, previewUrl: previewUrl2, hotkeys: [] };
+      return { success: true, previewUrl: previewUrl2, hotkeys: [], hotkeyGroups: [] };
     }
     organizeLegacyCharacterFoldersIfNeeded(gameId2);
     let actualModName = modName;
@@ -14126,45 +14523,61 @@ electron.ipcMain.handle("get-mod-details", async (_, { characterName, modName, r
       previewUrl = `data:${mimeType};base64,${base64}`;
     }
     const cacheKey = getPrimaryHotkeysCacheKey(characterName, modName, gameId2);
+    const iniFiles = fs.existsSync(modPath) ? getIniFiles(modPath) : [];
     let hotkeys = [];
-    if (!refresh && hotkeysCache[cacheKey] && hotkeysCache[cacheKey].version === HOTKEYS_CACHE_VERSION) {
-      hotkeys = hotkeysCache[cacheKey].hotkeys;
-    } else {
-      if (fs.existsSync(modPath)) {
-        try {
-          const iniFiles = getIniFiles(modPath);
-          const allHotkeys = [];
-          iniFiles.forEach((iniPath) => {
-            const fileHotkeys = parseIniForHotkeys(iniPath);
-            if (fileHotkeys.length > 0) {
-              allHotkeys.push(...fileHotkeys);
+    let hotkeyGroups = [];
+    // Always read the current INI files when a detail panel is opened or refreshed.
+    if (fs.existsSync(modPath)) {
+      try {
+        const allHotkeys = [];
+        const groupsByDirectory = new Map();
+        iniFiles.forEach((iniPath) => {
+          const fileHotkeys = parseIniForHotkeys(iniPath);
+          if (fileHotkeys.length > 0) {
+            allHotkeys.push(...fileHotkeys);
+            const directory = path.dirname(iniPath);
+            const relativePath = path.relative(modPath, directory).split(path.sep).join("/");
+            if (!groupsByDirectory.has(relativePath)) {
+              groupsByDirectory.set(relativePath, {
+                name: relativePath ? path.basename(directory) : modName,
+                relativePath,
+                hotkeys: []
+              });
             }
-          });
-          hotkeys = dedupeHotkeysBySemanticBinding(allHotkeys).sort((a, b) => {
-            if (a.isMenu && !b.isMenu) return -1;
-            if (!a.isMenu && b.isMenu) return 1;
-            return 0;
-          });
-          hotkeysCache[cacheKey] = {
-            scanned: true,
-            hotkeys,
-            timestamp: Date.now(),
-            version: HOTKEYS_CACHE_VERSION
-          };
-          saveHotkeysCache();
-        } catch (err) {
-          console.error("Error scanning hotkeys:", err);
-          hotkeysCache[cacheKey] = {
-            scanned: true,
-            hotkeys: [],
-            error: err.message,
-            version: HOTKEYS_CACHE_VERSION
-          };
-          saveHotkeysCache();
-        }
+            groupsByDirectory.get(relativePath).hotkeys.push(...fileHotkeys);
+          }
+        });
+        const menuFirst = (a, b) => {
+          if (a.isMenu && !b.isMenu) return -1;
+          if (!a.isMenu && b.isMenu) return 1;
+          return 0;
+        };
+        const groups = Array.from(groupsByDirectory.values()).sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+        hotkeyGroups = groups.map((group) => ({
+          ...group,
+          name: groups.some((other) => other !== group && other.name === group.name)
+            ? group.relativePath || `${group.name}（根目录）` : group.name,
+          hotkeys: dedupeHotkeysBySemanticBinding(group.hotkeys).sort(menuFirst)
+        }));
+        // Keep the flat list for older consumers; both detail views use directory groups.
+        hotkeys = dedupeHotkeysBySemanticBinding(allHotkeys).sort(menuFirst);
+        hotkeysCache[cacheKey] = {
+          scanned: true,
+          hotkeys,
+          hotkeyGroups,
+          timestamp: Date.now(),
+          version: HOTKEYS_CACHE_VERSION
+        };
+        saveHotkeysCache();
+      } catch (err) {
+        console.error("Error scanning hotkeys:", err);
+        delete hotkeysCache[cacheKey];
+        saveHotkeysCache();
+        return { success: false, error: err.message };
       }
     }
-    return { success: true, previewUrl, hotkeys };
+    if (refresh) notifyHotkeysChanged(characterName, modName, gameId2, _?.sender?.id);
+    return { success: true, previewUrl, hotkeys, hotkeyGroups };
   } catch (error) {
     console.error("get-mod-details error:", error);
     return { error: error.message };
@@ -14440,11 +14853,11 @@ electron.ipcMain.handle("delete-mod", async (_, { characterName, modName }) => {
       }
     }
     let hostedStateFiles = [];
-    if (currentConfig.persistBridgeEnabled) {
+    if (isPersistBridgeEnabled(gameId2)) {
       hostedStateFiles = collectHostedPersistStateFilesForModDir(modPath);
     }
     await movePathToRecycleBin(modPath, "delete mod");
-    if (env?.root && currentConfig.persistBridgeEnabled && hostedStateFiles.length > 0) {
+    if (env?.root && isPersistBridgeEnabled(gameId2) && hostedStateFiles.length > 0) {
       updateActivePersistBridgeIncludesIncremental(env.root, { removeStateFiles: hostedStateFiles });
     }
     const currentPinned = getPinnedModsForCharacter(characterName);
@@ -14536,7 +14949,7 @@ function snapshotEnabledPresetMods(gameId2 = getActiveGameScopeId()) {
     }
     return presetMods;
   }
-  const modsPath = getModsPath();
+  const modsPath = getModsPath(gameId2);
   if (!modsPath || !fs.existsSync(modsPath)) return [];
   const characterEntries = listCharacterDirectories(modsPath, gameId2);
   for (const entry of characterEntries) {
@@ -14593,8 +15006,8 @@ async function applyPresetModsForGame(preset, gameId2 = getActiveGameScopeId()) 
     clearConflictCache();
     return { success: true, results };
   }
-  const modsPath = getModsPath();
-  const env = resolveActiveGameEnvRoot();
+  const modsPath = getModsPath(gameId2);
+  const env = resolveActiveGameEnvRoot(gameId2);
   if (!modsPath || !fs.existsSync(modsPath)) {
     return { error: "Mods 文件夹未设置或不存在" };
   }
@@ -14612,7 +15025,7 @@ async function applyPresetModsForGame(preset, gameId2 = getActiveGameScopeId()) 
       const currentModPath = path.join(charPath, mod.name);
       try {
         if (shouldEnable && isDisabled) {
-          if (currentConfig.persistBridgeEnabled) {
+          if (isPersistBridgeEnabled(gameId2)) {
             const stateFiles = collectHostedPersistStateFilesForModDir(currentModPath);
             enabledStateFiles.push(...stateFiles);
           }
@@ -14625,10 +15038,10 @@ async function applyPresetModsForGame(preset, gameId2 = getActiveGameScopeId()) 
           }
           results.enabled++;
         } else if (!shouldEnable && !isDisabled) {
-          if (currentConfig.persistBridgeEnabled) {
+          if (isPersistBridgeEnabled(gameId2)) {
             const stateFiles = collectHostedPersistStateFilesForModDir(currentModPath);
             if (dirUsesManagedPersistBridge(currentModPath)) {
-              syncPersistBridgeStateForModDir(currentModPath);
+              syncPersistBridgeStateForModDir(currentModPath, gameId2);
             }
             disabledStateFiles.push(...stateFiles);
           }
@@ -14646,7 +15059,7 @@ async function applyPresetModsForGame(preset, gameId2 = getActiveGameScopeId()) 
       }
     }
   }
-  if (env?.root && currentConfig.persistBridgeEnabled) {
+  if (env?.root && isPersistBridgeEnabled(gameId2)) {
     updateActivePersistBridgeIncludesIncremental(env.root, {
       enableStateFiles: enabledStateFiles,
       disableStateFiles: disabledStateFiles
@@ -15474,6 +15887,16 @@ electron.ipcMain.handle("set-mod-market-card-size", async (_, size) => {
     return { success: true, modMarketCardSize: normalized };
   } catch (error) {
     return { error: error.message };
+  }
+});
+electron.ipcMain.handle("set-mod-download-image-ratio", async (_, ratio) => {
+  try {
+    if (!["4:3", "16:9", "16:10", "1:1", "3:4"].includes(ratio)) throw new Error("不支持的封面比例");
+    currentConfig.modDownloadImageRatio = ratio;
+    saveConfig(currentConfig);
+    return { success: true, modDownloadImageRatio: ratio };
+  } catch (error) {
+    return { success: false, error: error.message };
   }
 });
 electron.ipcMain.handle("set-compatibility-mode", async (_, enabled) => {
@@ -17027,8 +17450,8 @@ electron.ipcMain.handle("batch:add-mods", async (event, { items }) => {
     setNevernessModMode("dx12");
   }
   try {
-    const env = resolveActiveGameEnvRoot();
-    if (env?.root && currentConfig.persistBridgeEnabled) {
+    const env = resolveActiveGameEnvRoot(gameId2);
+    if (env?.root && isPersistBridgeEnabled(gameId2)) {
       for (const p of installedPaths) {
         ensurePersistBridgeMigrationForModDir(env.root, p);
       }
@@ -17355,7 +17778,7 @@ electron.ipcMain.handle("dev:copy-mod-info", async (_, { modPath, modName, chara
       cachedPreviewPath,
       copiedAt: Date.now()
     };
-    electron.clipboard.writeText(
+    await electron.clipboard.writeText(
       [
         "QAQ Mod 信息已复制",
         `Mod: ${sourceModName}`,
@@ -18083,7 +18506,7 @@ electron.ipcMain.handle("persist-bridge-reset-character", async (_, characterNam
       totalRestored += restorePersistBakFiles(modDir);
     }
     const root = path.dirname(modsPath);
-    if (currentConfig.persistBridgeEnabled) {
+    if (isPersistBridgeEnabled()) {
       for (const modEntry of modDirs) {
         const modDir = path.join(charDir, modEntry.name);
         ensurePersistBridgeMigrationForModDir(root, modDir);
@@ -19453,10 +19876,10 @@ electron.ipcMain.handle("autoinstall:get-bundled-packages", async () => {
         label: "异环 NEMI 加载器"
       });
     }
-    for (const importerName of ["WWMI", "ZZMI", "EFMI", "SRMI"]) {
+    for (const importerName of BUNDLED_GAME_IMPORTERS) {
       const bundledPackage = resolveBundledGamePackage(files, importerName);
       if (bundledPackage) {
-        const gameLabels = { WWMI: "鸣潮", ZZMI: "绝区零", EFMI: "终末地", SRMI: "星穹铁道" };
+        const gameLabels = { WWMI: "鸣潮", ZZMI: "绝区零", EFMI: "终末地", SRMI: "星穹铁道", GIMI: "原神" };
         packages.push({
           type: "game-package",
           file: bundledPackage.file,
@@ -20166,7 +20589,8 @@ electron.ipcMain.handle("autoinstall:detect-game-path", async (_, gameId2) => {
         return candidates2;
       })(),
       "neverness-to-everness": buildNevernessGamePathCandidates(),
-      "honkai-star-rail": buildHonkaiStarRailGamePathCandidates()
+      "honkai-star-rail": buildHonkaiStarRailGamePathCandidates(),
+      "genshin-impact": buildGenshinGamePathCandidates()
     };
     const candidates = gameDetection[gameId2] || [];
     for (const p of candidates) {

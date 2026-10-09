@@ -1,0 +1,770 @@
+{
+  "schemaVersion": 1,
+  "gameId": "genshin-impact",
+  "characters": [
+    {
+      "nameZh": "安柏",
+      "nameEn": "Amber",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-202101",
+          "sectionId": "skin:genshin-outfit-202101",
+          "sourceFashionId": "202101",
+          "nameZh": "100%侦察骑士",
+          "nameEn": "100% Outrider",
+          "aliases": [
+            "100%侦察骑士",
+            "100% Outrider"
+          ],
+          "releaseVersion": "2.5",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_AmborCostumeWic.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_AmborCostumeWic.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "班尼特",
+      "nameEn": "Bennett",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-203201",
+          "sectionId": "skin:genshin-outfit-203201",
+          "sourceFashionId": "203201",
+          "nameZh": "炽绘奇旅",
+          "nameEn": "Adventures in Blazing Hue",
+          "aliases": [
+            "炽绘奇旅",
+            "Adventures in Blazing Hue"
+          ],
+          "releaseVersion": "5.8",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_BennettCostumeSummer.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_BennettCostumeSummer.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "空",
+      "nameEn": "Aether",
+      "aliases": [
+        "男主",
+        "旅行者男",
+        "TravelerMale",
+        "TravelerBoy",
+        "PlayerBoy"
+      ],
+      "skins": [
+        {
+          "id": "genshin-outfit-200501",
+          "sectionId": "skin:genshin-outfit-200501",
+          "sourceFashionId": "200501",
+          "nameZh": "复地重天",
+          "nameEn": "As Heaven and Earth Are Made Anew",
+          "aliases": [
+            "复地重天",
+            "As Heaven and Earth Are Made Anew"
+          ],
+          "releaseVersion": "6.3",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_PlayerBoyCostumeCWXR.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_PlayerBoyCostumeCWXR.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "荧",
+      "nameEn": "Lumine",
+      "aliases": [
+        "女主",
+        "旅行者女",
+        "TravelerFemale",
+        "TravelerGirl",
+        "PlayerGirl"
+      ],
+      "skins": [
+        {
+          "id": "genshin-outfit-200701",
+          "sectionId": "skin:genshin-outfit-200701",
+          "sourceFashionId": "200701",
+          "nameZh": "复地重天",
+          "nameEn": "As Heaven and Earth Are Made Anew",
+          "aliases": [
+            "复地重天",
+            "As Heaven and Earth Are Made Anew"
+          ],
+          "releaseVersion": "6.3",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_PlayerGirlCostumeCWXR.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_PlayerGirlCostumeCWXR.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "丽莎",
+      "nameEn": "Lisa",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-200601",
+          "sectionId": "skin:genshin-outfit-200601",
+          "sourceFashionId": "200601",
+          "nameZh": "叶隐芳名",
+          "nameEn": "A Sobriquet Under Shade",
+          "aliases": [
+            "叶隐芳名",
+            "A Sobriquet Under Shade"
+          ],
+          "releaseVersion": "3.4",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_LisaCostumeStudentin.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_LisaCostumeStudentin.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "行秋",
+      "nameEn": "Xingqiu",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-202501",
+          "sectionId": "skin:genshin-outfit-202501",
+          "sourceFashionId": "202501",
+          "nameZh": "雨化竹身",
+          "nameEn": "Bamboo Rain",
+          "aliases": [
+            "雨化竹身",
+            "Bamboo Rain"
+          ],
+          "releaseVersion": "4.4",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_XingqiuCostumeBamboo.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_XingqiuCostumeBamboo.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "可莉",
+      "nameEn": "Klee",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-202901",
+          "sectionId": "skin:genshin-outfit-202901",
+          "sourceFashionId": "202901",
+          "nameZh": "琪花星烛",
+          "nameEn": "Blossoming Starlight",
+          "aliases": [
+            "琪花星烛",
+            "Blossoming Starlight"
+          ],
+          "releaseVersion": "3.8",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_KleeCostumeWitch.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_KleeCostumeWitch.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "妮露",
+      "nameEn": "Nilou",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-207001",
+          "sectionId": "skin:genshin-outfit-207001",
+          "sourceFashionId": "207001",
+          "nameZh": "莎邦之息",
+          "nameEn": "Breeze of Sabaa",
+          "aliases": [
+            "莎邦之息",
+            "Breeze of Sabaa"
+          ],
+          "releaseVersion": "4.8",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_NilouCostumeFairy.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_NilouCostumeFairy.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "胡桃",
+      "nameEn": "Hu Tao",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-204601",
+          "sectionId": "skin:genshin-outfit-204601",
+          "sourceFashionId": "204601",
+          "nameZh": "宿雪桃红",
+          "nameEn": "Cherries Snow-Laden",
+          "aliases": [
+            "宿雪桃红",
+            "Cherries Snow-Laden"
+          ],
+          "releaseVersion": "5.3",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_HutaoCostumeWinter.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_HutaoCostumeWinter.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "菲谢尔",
+      "nameEn": "Fischl",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-203101",
+          "sectionId": "skin:genshin-outfit-203101",
+          "sourceFashionId": "203101",
+          "nameZh": "极夜真梦",
+          "nameEn": "Ein Immernachtstraum",
+          "aliases": [
+            "极夜真梦",
+            "Ein Immernachtstraum"
+          ],
+          "releaseVersion": "2.8",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_FischlCostumeHighness.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_FischlCostumeHighness.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "申鹤",
+      "nameEn": "Shenhe",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-206301",
+          "sectionId": "skin:genshin-outfit-206301",
+          "sourceFashionId": "206301",
+          "nameZh": "冷花幽露",
+          "nameEn": "Frostflower Dew",
+          "aliases": [
+            "冷花幽露",
+            "Frostflower Dew"
+          ],
+          "releaseVersion": "4.4",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_ShenheCostumeDai.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_ShenheCostumeDai.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "琴",
+      "nameEn": "Jean",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-200302",
+          "sectionId": "skin:genshin-outfit-200302",
+          "sourceFashionId": "200302",
+          "nameZh": "古恩希尔德的传承",
+          "nameEn": "Gunnhildr's Legacy",
+          "aliases": [
+            "古恩希尔德的传承",
+            "Gunnhildr's Legacy"
+          ],
+          "releaseVersion": "2.5",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_QinCostumeWic.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_QinCostumeWic.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        },
+        {
+          "id": "genshin-outfit-200301",
+          "sectionId": "skin:genshin-outfit-200301",
+          "sourceFashionId": "200301",
+          "nameZh": "海风之梦",
+          "nameEn": "Sea Breeze Dandelion",
+          "aliases": [
+            "海风之梦",
+            "Sea Breeze Dandelion"
+          ],
+          "releaseVersion": "1.6",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_QinCostumeSea.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_QinCostumeSea.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "夏洛蒂",
+      "nameEn": "Charlotte",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-208801",
+          "sectionId": "skin:genshin-outfit-208801",
+          "sourceFashionId": "208801",
+          "nameZh": "赫尔洛克变奏曲",
+          "nameEn": "Hurlock Variations",
+          "aliases": [
+            "赫尔洛克变奏曲",
+            "Hurlock Variations"
+          ],
+          "releaseVersion": "6.7",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_CharlotteCostumeDong.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_CharlotteCostumeDong.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "那维莱特",
+      "nameEn": "Neuvillette",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-208701",
+          "sectionId": "skin:genshin-outfit-208701",
+          "sourceFashionId": "208701",
+          "nameZh": "莘露的赠礼",
+          "nameEn": "Melusent Gift",
+          "aliases": [
+            "莘露的赠礼",
+            "Melusent Gift"
+          ],
+          "releaseVersion": "6.3",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_NeuvilletteCostumeWinter.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_NeuvilletteCostumeWinter.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "香菱",
+      "nameEn": "Xiangling",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-202301",
+          "sectionId": "skin:genshin-outfit-202301",
+          "sourceFashionId": "202301",
+          "nameZh": "岁夜欢哗",
+          "nameEn": "New Year's Cheer",
+          "aliases": [
+            "岁夜欢哗",
+            "New Year's Cheer"
+          ],
+          "releaseVersion": "5.3",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_XianglingCostumeWinter.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_XianglingCostumeWinter.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "刻晴",
+      "nameEn": "Keqing",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-204201",
+          "sectionId": "skin:genshin-outfit-204201",
+          "sourceFashionId": "204201",
+          "nameZh": "霓裾翩跹",
+          "nameEn": "Opulent Splendor",
+          "aliases": [
+            "霓裾翩跹",
+            "Opulent Splendor"
+          ],
+          "releaseVersion": "2.4",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_KeqingCostumeFeather.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_KeqingCostumeFeather.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "凝光",
+      "nameEn": "Ningguang",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-202701",
+          "sectionId": "skin:genshin-outfit-202701",
+          "sourceFashionId": "202701",
+          "nameZh": "纱中幽兰",
+          "nameEn": "Orchid's Evening Gown",
+          "aliases": [
+            "纱中幽兰",
+            "Orchid's Evening Gown"
+          ],
+          "releaseVersion": "2.4",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_NingguangCostumeFloral.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_NingguangCostumeFloral.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "莫娜",
+      "nameEn": "Mona",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-204101",
+          "sectionId": "skin:genshin-outfit-204101",
+          "sourceFashionId": "204101",
+          "nameZh": "星与月之约",
+          "nameEn": "Pact of Stars and Moon",
+          "aliases": [
+            "星与月之约",
+            "Pact of Stars and Moon"
+          ],
+          "releaseVersion": "2.5",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_MonaCostumeWic.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_MonaCostumeWic.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "绮良良",
+      "nameEn": "Kirara",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-206101",
+          "sectionId": "skin:genshin-outfit-206101",
+          "sourceFashionId": "206101",
+          "nameZh": "倩影游侠",
+          "nameEn": "Phantom in Boots",
+          "aliases": [
+            "倩影游侠",
+            "Phantom in Boots"
+          ],
+          "releaseVersion": "4.8",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_MomokaCostumeErrantry.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_MomokaCostumeErrantry.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "瑶瑶",
+      "nameEn": "Yaoyao",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-207701",
+          "sectionId": "skin:genshin-outfit-207701",
+          "sourceFashionId": "207701",
+          "nameZh": "聆雨听竹",
+          "nameEn": "Rainlit Bamboo Reverie",
+          "aliases": [
+            "聆雨听竹",
+            "Rainlit Bamboo Reverie"
+          ],
+          "releaseVersion": "6.3",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_YaoyaoCostumeWinter.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_YaoyaoCostumeWinter.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "迪卢克",
+      "nameEn": "Diluc",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-201601",
+          "sectionId": "skin:genshin-outfit-201601",
+          "sourceFashionId": "201601",
+          "nameZh": "殷红终夜",
+          "nameEn": "Red Dead of Night",
+          "aliases": [
+            "殷红终夜",
+            "Red Dead of Night"
+          ],
+          "releaseVersion": "2.8",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_DilucCostumeFlamme.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_DilucCostumeFlamme.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "凯亚",
+      "nameEn": "Kaeya",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-201501",
+          "sectionId": "skin:genshin-outfit-201501",
+          "sourceFashionId": "201501",
+          "nameZh": "帆影游风",
+          "nameEn": "Sailwind Shadow",
+          "aliases": [
+            "帆影游风",
+            "Sailwind Shadow"
+          ],
+          "releaseVersion": "3.8",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_KaeyaCostumeDancer.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_KaeyaCostumeDancer.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "神里绫华",
+      "nameEn": "Kamisato Ayaka",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-200201",
+          "sectionId": "skin:genshin-outfit-200201",
+          "sourceFashionId": "200201",
+          "nameZh": "花时来信",
+          "nameEn": "Springbloom Missive",
+          "aliases": [
+            "花时来信",
+            "Springbloom Missive"
+          ],
+          "releaseVersion": "3.4",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_AyakaCostumeFruhling.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_AyakaCostumeFruhling.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "芭芭拉",
+      "nameEn": "Barbara",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-201401",
+          "sectionId": "skin:genshin-outfit-201401",
+          "sourceFashionId": "201401",
+          "nameZh": "闪耀协奏",
+          "nameEn": "Summertime Sparkle",
+          "aliases": [
+            "闪耀协奏",
+            "Summertime Sparkle"
+          ],
+          "releaseVersion": "1.6",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_BarbaraCostumeSummertime.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_BarbaraCostumeSummertime.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "罗莎莉亚",
+      "nameEn": "Rosaria",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-204501",
+          "sectionId": "skin:genshin-outfit-204501",
+          "sourceFashionId": "204501",
+          "nameZh": "致教会自由人",
+          "nameEn": "To the Church's Free Spirit",
+          "aliases": [
+            "致教会自由人",
+            "To the Church's Free Spirit"
+          ],
+          "releaseVersion": "2.5",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_RosariaCostumeWic.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_RosariaCostumeWic.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "杜林",
+      "nameEn": "Durin",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-212301",
+          "sectionId": "skin:genshin-outfit-212301",
+          "sourceFashionId": "212301",
+          "nameZh": "故事的远方",
+          "nameEn": "Toward the Distant Horizon",
+          "aliases": [
+            "故事的远方",
+            "Toward the Distant Horizon"
+          ],
+          "releaseVersion": "6.2",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_DurinCostumeWic.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_DurinCostumeWic.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "夜兰",
+      "nameEn": "Yelan",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-206001",
+          "sectionId": "skin:genshin-outfit-206001",
+          "sourceFashionId": "206001",
+          "nameZh": "静暇雅宴",
+          "nameEn": "Tranquil Banquet",
+          "aliases": [
+            "静暇雅宴",
+            "Tranquil Banquet"
+          ],
+          "releaseVersion": "5.8",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_YelanCostumeSummer.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_YelanCostumeSummer.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "甘雨",
+      "nameEn": "Ganyu",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-203701",
+          "sectionId": "skin:genshin-outfit-203701",
+          "sourceFashionId": "203701",
+          "nameZh": "玄玉瑶芳",
+          "nameEn": "Twilight Blossom",
+          "aliases": [
+            "玄玉瑶芳",
+            "Twilight Blossom"
+          ],
+          "releaseVersion": "4.4",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_GanyuCostumeYu.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_GanyuCostumeYu.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    },
+    {
+      "nameZh": "茜特菈莉",
+      "nameEn": "Citlali",
+      "aliases": [],
+      "skins": [
+        {
+          "id": "genshin-outfit-210701",
+          "sectionId": "skin:genshin-outfit-210701",
+          "sourceFashionId": "210701",
+          "nameZh": "星与烟帷的夜语",
+          "nameEn": "Whispers of Stars and Smoke",
+          "aliases": [
+            "星与烟帷的夜语",
+            "Whispers of Stars and Smoke"
+          ],
+          "releaseVersion": "6.7",
+          "type": [
+            "Character Outfit"
+          ],
+          "image": "https://enka.network/ui/UI_Costume_CitlaliCostumeXia.png",
+          "sourceImageUrl": "https://enka.network/ui/UI_Costume_CitlaliCostumeXia.png",
+          "sourcePageUrl": "https://github.com/theBowja/genshin-db"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "name": "genshin-db / Enka.Network",
+    "url": "https://github.com/theBowja/genshin-db",
+    "urls": [
+      "https://genshin-db-api.vercel.app/api/v5/outfits?query=names&matchCategories=true&verboseCategories=true&resultLanguage=ChineseSimplified",
+      "https://genshin-db-api.vercel.app/api/v5/outfits?query=names&matchCategories=true&verboseCategories=true&resultLanguage=English"
+    ],
+    "license": "genshin-db: MIT; game images and data belong to HoYoverse"
+  }
+}

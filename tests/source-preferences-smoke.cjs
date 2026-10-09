@@ -19,8 +19,8 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, passed }) => {
   await captureUI('window-titlebar-integrated.png');
   assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-market-header button')].map(el => el.textContent.trim())`), ['网页版', '布局▾', '🔄 刷新▾']);
   await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
-  await waitFor(`document.querySelectorAll('.mod-download-source-option').length === 3`, 'source menu');
-  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option')].map(el => el.dataset.source)`), ['qaqm', 'kemono', 'pawchive']);
+  await waitFor(`document.querySelectorAll('.mod-download-source-option').length === 8`, 'source menu');
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option')].map(el => el.dataset.source)`), ['qaqm', 'kemono', 'pawchive', 'gamebanana', 'arca', 'loverslab', 'huiyue', 'keke']);
   await evaluate(`document.querySelector('[data-source="kemono"].mod-download-source-option').click()`);
   await waitFor(`localStorage.getItem('qaqm.downloadSource') === 'kemono'`, 'source selection saved');
   await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));

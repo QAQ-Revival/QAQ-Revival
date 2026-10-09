@@ -7091,7 +7091,7 @@ const Sidebar = reactExports.memo(function Sidebar2({ activeTab, setActiveTab, a
     collapsed && jsxRuntimeExports.jsx(DownloadManagerButton, {}),
     jsxRuntimeExports.jsx(GameSelector, {
       games, activeGame, collapsed,
-      onSwitch: async () => { await onGameSwitch(); if (activeTab !== "settings") setActiveTab("characters"); }
+      onSwitch: async () => { await onGameSwitch(); if (!["settings", "game-settings", "modmarket"].includes(activeTab)) setActiveTab("characters"); }
     }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "nav-menu", "aria-label": "主导航", children: sorting.items.map((item) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "button",
@@ -7114,7 +7114,7 @@ const Sidebar = reactExports.memo(function Sidebar2({ activeTab, setActiveTab, a
     jsxRuntimeExports.jsx("div", { className: "sort-announcement", role: "status", children: sorting.announcement }),
     sorting.error && jsxRuntimeExports.jsx("div", { className: "game-selector-error", role: "alert", children: sorting.error }),
     jsxRuntimeExports.jsxs("div", { className: "sidebar-footer", children: [
-      jsxRuntimeExports.jsx(LaunchControls, { activeGame, collapsed }),
+      jsxRuntimeExports.jsx(LaunchControls, { activeGame, collapsed, settingsActive: activeTab === "game-settings", onOpenSettings: () => setActiveTab("game-settings") }),
       jsxRuntimeExports.jsxs("button", {
         type: "button", className: `sidebar-settings ${activeTab === "settings" ? "active" : ""}`,
         "aria-label": "系统设置", "aria-current": activeTab === "settings" ? "page" : void 0,
@@ -8407,6 +8407,7 @@ function lazyWithPreload(factory) {
 const CharacterView = lazyWithPreload(() => __vitePreload(() => import("./CharacterView.js"), true ? __vite__mapDeps([0,1]) : void 0, import.meta.url));
 const ModView = lazyWithPreload(() => __vitePreload(() => import("./ModView.js"), true ? __vite__mapDeps([2,3,1]) : void 0, import.meta.url));
 const SettingsView = lazyWithPreload(() => __vitePreload(() => import("./SettingsView.js"), true ? __vite__mapDeps([4,5]) : void 0, import.meta.url));
+const GameSettingsView = lazyWithPreload(() => import("./GameSettings.js"));
 const ModDownloadView = lazyWithPreload(() => __vitePreload(() => import("./ModDownloadView.js"), ["./PawchiveView.css", "./ModMarketView.css"], import.meta.url));
 const PresetView = lazyWithPreload(() => __vitePreload(() => import("./PresetView.js"), true ? [] : void 0, import.meta.url));
 const MarketUpdateToast = reactExports.lazy(() => __vitePreload(() => import("./MarketUpdateToast.js"), true ? __vite__mapDeps([8,9]) : void 0, import.meta.url));
@@ -8570,6 +8571,8 @@ function App() {
   const [pendingBatchContext, setPendingBatchContext] = reactExports.useState(null);
   const [isDraggingFiles, setIsDraggingFiles] = reactExports.useState(false);
   const dragCounterRef = reactExports.useRef(0);
+  const dropScanPendingRef = reactExports.useRef(false);
+  const [dropError, setDropError] = reactExports.useState("");
   const [modViewKey, setModViewKey] = reactExports.useState(0);
   const [pendingModMove, setPendingModMove] = reactExports.useState(null);
   const [activeGame, setActiveGame] = reactExports.useState(null);
@@ -8645,6 +8648,8 @@ function App() {
         const result = await window.api.getConfig();
         if (result.success) {
           const zoom = result.config.uiZoom;
+          const ratio = ["4:3", "16:9", "16:10", "1:1", "3:4"].includes(result.config.modDownloadImageRatio) ? result.config.modDownloadImageRatio : "4:3";
+          document.documentElement.style.setProperty("--mod-download-image-ratio", ratio.replace(":", " / "));
           if (zoom && zoom !== 1) {
             document.documentElement.style.setProperty("--ui-scale", String(zoom));
           }
@@ -8672,7 +8677,7 @@ function App() {
   }, []);
   const handleSetActiveTab = reactExports.useCallback((tab) => {
     if (tab === "pawchive") tab = "modmarket";
-    if (!["characters", "modmarket", "presets", "settings"].includes(tab)) return;
+    if (!["characters", "modmarket", "presets", "settings", "game-settings"].includes(tab)) return;
     if (tab === "characters") setModViewKey((k2) => k2 + 1);
     if (tab === "modmarket") setHasOpenedMarket(true);
     setActiveTab(tab);
@@ -9037,6 +9042,45 @@ function App() {
       setIsDraggingFiles(true);
     }
   }, [selectedCharacter, isDraggingFiles]);
+  const handleDroppedPaths = reactExports.useCallback(async (paths) => {
+    setIsDraggingFiles(false);
+    dragCounterRef.current = 0;
+    if (selectedCharacter || dropScanPendingRef.current || pendingBatchItems || document.querySelector(".batch-import-overlay, .modal-backdrop, .cropper-overlay")) return;
+    if (!paths.length || paths.every(file => /\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(file))) return;
+    if (!activeGame?.modFolderPath) {
+      setDropError("请先在游戏设置中配置 Mod 目录，再拖入文件");
+      return;
+    }
+    dropScanPendingRef.current = true;
+    setDropError("");
+    try {
+      const result = await window.api.batchScanPaths([...new Set(paths)]);
+      if (result?.error) throw new Error(result.error);
+      if (!result?.items?.length) throw new Error("未识别到可导入的 Mod，支持文件夹、zip、rar、7z、mp4 等文件");
+      const current = await window.api.getConfig();
+      if ((current?.config || current)?.activeGameId !== activeGame.id) return;
+      setSelectedCharacter(null);
+      handleSetActiveTab("characters");
+      setPendingBatchContext(null);
+      setPendingBatchItems(result.items);
+    } catch (error) {
+      setDropError(error?.message || "扫描拖入文件失败");
+    } finally {
+      dropScanPendingRef.current = false;
+    }
+  }, [activeGame?.id, activeGame?.modFolderPath, handleSetActiveTab, selectedCharacter, pendingBatchItems]);
+  reactExports.useEffect(() => window.api.onNativeFileDrop?.(({ paths }) => {
+    // Native reception only supplies paths; the existing scan/review/install flow owns the import.
+    if (Array.isArray(paths)) handleDroppedPaths(paths);
+  }), [handleDroppedPaths]);
+  reactExports.useEffect(() => window.api.onNativeFileDragState?.((dragging) => {
+    setIsDraggingFiles(!!dragging && !selectedCharacter && !dropScanPendingRef.current && !document.querySelector(".batch-import-overlay, .modal-backdrop, .cropper-overlay"));
+  }), [selectedCharacter]);
+  reactExports.useEffect(() => {
+    if (!dropError) return;
+    const timer = setTimeout(() => setDropError(""), 5000);
+    return () => clearTimeout(timer);
+  }, [dropError]);
   const handleDrop = reactExports.useCallback(async (e) => {
     if (selectedCharacter) {
       setIsDraggingFiles(false);
@@ -9051,16 +9095,10 @@ function App() {
       (f2) => f2.type.startsWith("image/") || /\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(f2.name)
     );
     if (allImages) return;
-    const paths = files.map((f2) => f2.path).filter(Boolean);
+    const paths = files.map((f2) => window.api.getPathForFile(f2)).filter(Boolean);
     if (!paths.length) return;
-    setSelectedCharacter(null);
-    handleSetActiveTab("characters");
-    const result = await window.api.batchScanPaths(paths);
-    if (result?.items?.length) {
-      setPendingBatchContext(null);
-      setPendingBatchItems(result.items);
-    }
-  }, [handleSetActiveTab, selectedCharacter]);
+    await handleDroppedPaths(paths);
+  }, [handleDroppedPaths, selectedCharacter]);
   const handleRequestBatchImportReview = reactExports.useCallback((items, context = {}) => {
     if (!Array.isArray(items) || !items.length) return;
     setPendingBatchContext({
@@ -9162,10 +9200,7 @@ function App() {
         effectiveCustomBg && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "app-custom-bg-layer", "aria-hidden": "true" }),
         jsxRuntimeExports.jsx(WindowControls, {}),
         effectiveCustomBg && bgNeedsBlur && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "app-custom-bg-layer app-custom-bg-blur-layer", "aria-hidden": "true" }),
-        isDraggingFiles && runtimeInfo?.elevated && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { position: "fixed", inset: 0, zIndex: 9998, pointerEvents: "none", display: "flex", alignItems: "center", justifyContent: "center" }, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { maxWidth: "420px", padding: "18px 22px", borderRadius: "18px", background: "rgba(255,255,255,0.96)", boxShadow: "0 16px 48px rgba(0,0,0,0.18)", border: "1px solid rgba(244,114,182,0.28)", color: "#7f1d1d", textAlign: "center" }, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontWeight: 700, marginBottom: "8px" }, children: "当前以管理员模式运行" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { fontSize: "13px", lineHeight: 1.6 }, children: "Windows 会阻止从普通权限资源管理器拖拽文件到管理员程序。如果鼠标变成禁止符号，请使用“批量导入 Mod / 添加 Mod”的选择按钮，或关闭管理员模式后再拖拽。" })
-        ] }) }),
+        dropError && jsxRuntimeExports.jsx("div", { className: "toast toast-error", role: "alert", children: dropError }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           Sidebar,
           {
@@ -9186,7 +9221,7 @@ function App() {
               initialCache: currentCharacterViewCache,
               onCacheChange: handleCharacterCacheChange,
               onSelectCharacter: setSelectedCharacter,
-              onOpenSettings: () => setActiveTab("settings"),
+              onOpenSettings: () => setActiveTab("game-settings"),
               pendingBatchItems,
               pendingBatchPreferredCharacter: pendingBatchContext?.preferredCharacter || "",
               onPendingBatchConsumed: () => {
@@ -9230,6 +9265,7 @@ function App() {
             },
             "mod-download"
           ) }),
+          activeTab === "game-settings" && jsxRuntimeExports.jsx(GameSettingsView, { activeGame }, activeGame?.id || "game-settings"),
           activeTab === "settings" && /* @__PURE__ */ jsxRuntimeExports.jsx(
             SettingsView,
             {

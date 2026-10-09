@@ -4,21 +4,31 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { readJsonFileSync, writeJsonFileSync } = require('./json-store.cjs');
 const { allowedFileUrl } = require('./archive-media.cjs');
+const { SITES, siteUrl } = require('./mod-sites.cjs');
 
-function createArchiveDownloads({ userData, services, transfer, controlTransfer, onProgress = () => {}, openFile = async () => {} }) {
+function createArchiveDownloads({ userData, services, transfer, controlTransfer, getCacheDir, openSource, onProgress = () => {}, openFile = async () => {} }) {
   const stateFile = path.join(userData, 'attachment-downloads.json');
   const tasks = new Map(), running = new Set(), pending = new Map();
+  const browserItems = new Map();
   let stopping = false, stateError = '', saveTimer;
   try {
     const saved = readJsonFileSync(stateFile);
     if (!Array.isArray(saved)) throw Error('Invalid attachment state');
     for (const task of saved) {
-      if (!task.taskId?.startsWith('attachment:') || !allowedFileUrl(task.download?.url, task.source)) continue;
-      if (['queued', 'checking', 'downloading'].includes(task.status)) task.status = 'paused';
+      if (!task.taskId?.startsWith('attachment:')) continue;
+      if (task.browser) {
+        if (!Object.hasOwn(SITES, task.source) || !siteUrl(task.sourceUrl, task.source)) continue;
+        if (!['completed', 'canceled', 'error'].includes(task.status)) {
+          task.status = 'error'; task.error = '网页下载在重启时中断，请点击重试回到原站重新下载。';
+        }
+      } else {
+        if (!allowedFileUrl(task.download?.url, task.source)) continue;
+        if (['queued', 'checking', 'downloading'].includes(task.status)) task.status = 'paused';
+      }
       tasks.set(task.taskId, task);
     }
   } catch (error) { if (error.code !== 'ENOENT') stateError = '附件下载记录无法读取，原文件已保留'; }
-  const view = ({ download, ref, ...task }) => ({ ...task, provider: 'archive', retryPayload: { provider: 'archive' }, canImport: /\.(zip|rar|7z|mp4|ini)$/i.test(task.name) });
+  const view = ({ download, ref, sourceUrl, ...task }) => ({ ...task, provider: 'archive', retryPayload: { provider: 'archive' }, canImport: /\.(zip|rar|7z|mp4|ini)$/i.test(task.name) });
   function save() { if (stateError) throw Error(stateError); clearTimeout(saveTimer); writeJsonFileSync(stateFile, [...tasks.values()]); }
   function update(task, change, immediate = false, explicitResume = false) {
     if (stopping || !tasks.has(task.taskId)) return;
@@ -32,7 +42,7 @@ function createArchiveDownloads({ userData, services, transfer, controlTransfer,
     if (stopping) return;
     for (const task of tasks.values()) {
       if (running.size >= 2) return;
-      if (task.status !== 'queued' || running.has(task.taskId)) continue;
+      if (task.browser || task.status !== 'queued' || running.has(task.taskId)) continue;
       running.add(task.taskId);
       Promise.resolve().then(async () => {
         if (stopping || !tasks.has(task.taskId) || task.status !== 'queued') return;
@@ -51,25 +61,70 @@ function createArchiveDownloads({ userData, services, transfer, controlTransfer,
     if (stateError) throw Error(stateError);
     const { source, post, filePath } = payload;
     if (!Object.hasOwn(services, source) || typeof filePath !== 'string') throw Error('附件来源无效');
-    const requestKey = JSON.stringify([source, post?.service, post?.user, post?.id, filePath]);
+    const requestKey = JSON.stringify([source, post?.service, post?.user, post?.id, post?.gameId, filePath]);
     if (pending.has(requestKey)) return pending.get(requestKey);
     const request = (async () => {
       const result = await services[source].getPost(post);
       const file = [result.post.file, ...result.post.attachments].find(item => item?.path === filePath);
       if (!file || file.previewOnly || file.isImage || !allowedFileUrl(file.url, source)) throw Error('此附件不可下载，请刷新帖子后重试');
-      const existing = [...tasks.values()].find(task => task.download.url === file.url && !['error', 'canceled'].includes(task.status) && (task.status !== 'completed' || fs.existsSync(task.archivePath || '')));
+      const existing = [...tasks.values()].find(task => task.download?.url === file.url && !['error', 'canceled'].includes(task.status) && (task.status !== 'completed' || fs.existsSync(task.archivePath || '')));
       if (existing) return { task: view(existing) };
-      const task = { taskId: 'attachment:' + crypto.randomUUID(), source, ref: { service: result.post.service, user: result.post.user, id: result.post.id },
-        name: file.name, download: { url: file.url, fileName: file.name, rejectHtml: true }, status: 'queued', percent: 0, createdAt: Date.now() };
+      const task = { taskId: 'attachment:' + crypto.randomUUID(), source, gameId: result.post.gameId,
+        ref: { service: result.post.service, user: result.post.user, id: result.post.id, gameId: result.post.gameId },
+        name: file.name, download: { url: file.url, fileName: file.name, fileSize: file.size, rejectHtml: true }, status: 'queued', percent: 0, createdAt: Date.now() };
       tasks.set(task.taskId, task);
       try { save(); } catch (error) { tasks.delete(task.taskId); throw error; }
       onProgress(view(task)); pump(); return { task: view(task) };
     })().finally(() => pending.delete(requestKey));
     pending.set(requestKey, request); return request;
   }
+  function adoptBrowserDownload({ source, gameId, sourceUrl, item }) {
+    if (stateError) throw Error(stateError);
+    if (!Object.hasOwn(SITES, source) || !siteUrl(sourceUrl, source) || !getCacheDir) return false;
+    const filename = String(item.getFilename()).replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(-180);
+    if (!/\.(zip|rar|7z|ini|pak|mp4)$/i.test(filename) || /text\/html/i.test(item.getMimeType())) return false;
+    const taskId = 'attachment:' + crypto.randomUUID();
+    const folder = path.join(getCacheDir(), 'sites', taskId.slice(11));
+    fs.mkdirSync(folder, { recursive: true });
+    const archivePath = path.join(folder, filename);
+    item.setSavePath(archivePath);
+    const task = { taskId, source, gameId, sourceUrl, browser: true, name: filename, status: 'downloading',
+      percent: 0, downloaded: 0, total: item.getTotalBytes(), createdAt: Date.now() };
+    tasks.set(taskId, task);
+    try { save(); } catch (error) { tasks.delete(taskId); throw error; }
+    browserItems.set(taskId, item); onProgress(view(task));
+    let previousBytes = 0, previousTime = Date.now();
+    item.on('updated', (_event, state) => {
+      const downloaded = item.getReceivedBytes(), total = item.getTotalBytes(), now = Date.now();
+      const status = state === 'interrupted' ? 'error' : item.isPaused() ? 'paused' : 'downloading';
+      try { update(task, { status, downloaded, total, percent: total > 0 ? downloaded / total * 100 : 0,
+        speed: status === 'downloading' ? (downloaded - previousBytes) * 1000 / Math.max(1, now - previousTime) : 0,
+        error: state === 'interrupted' ? '网页下载中断，请重试或返回原站。' : '' }); } catch {}
+      previousBytes = downloaded; previousTime = now;
+    });
+    item.once('done', (_event, state) => {
+      browserItems.delete(taskId);
+      try { update(task, { status: state === 'completed' ? 'completed' : state === 'cancelled' ? 'canceled' : 'error',
+        ...(state === 'completed' ? { archivePath, percent: 100 } : {}), speed: 0,
+        error: state === 'completed' ? '' : '网页下载未完成，请点击重试返回原站。' }, true); } catch {}
+    });
+    return true;
+  }
   function control({ taskId, action } = {}) {
     const task = tasks.get(taskId);
     if (!task) throw Error('附件下载任务不存在');
+    if (task.browser) {
+      const item = browserItems.get(taskId);
+      if (action === 'delete') { if (item) item.cancel(); browserItems.delete(taskId); tasks.delete(taskId); save(); }
+      else if (action === 'pause' && item && task.status === 'downloading') { item.pause(); update(task, { status: 'paused', speed: 0 }, true); }
+      else if (['resume', 'retry'].includes(action) && item && item.canResume()) { item.resume(); update(task, { status: 'downloading', error: '' }, true, true); }
+      else if (['resume', 'retry'].includes(action) && ['error', 'canceled', 'paused'].includes(task.status)) {
+        if (!openSource) throw Error('请返回原站重新下载');
+        return openSource({ source: task.source, gameId: task.gameId, url: task.sourceUrl });
+      } else if (action === 'cancel' && item) { item.cancel(); update(task, { status: 'canceled', speed: 0 }, true); }
+      else throw Error('当前网页下载不支持此操作');
+      return {};
+    }
     const active = running.has(taskId);
     if (action === 'delete') {
       if (active) controlTransfer(taskId, 'cancel');
@@ -98,11 +153,12 @@ function createArchiveDownloads({ userData, services, transfer, controlTransfer,
     await openFile(task.archivePath); return {};
   }
   function shutdown() {
+    if (stopping) return;
     stopping = true; clearTimeout(saveTimer);
     for (const task of tasks.values()) if (['checking', 'queued', 'downloading'].includes(task.status)) task.status = 'paused';
     if (!stateError) { try { save(); } catch {} }
   }
-  return { download, control, importPaths, open, shutdown, list: () => { if (stateError) throw Error(stateError); return { tasks: [...tasks.values()].map(view) }; } };
+  return { download, adoptBrowserDownload, control, importPaths, open, shutdown, list: () => { if (stateError) throw Error(stateError); return { tasks: [...tasks.values()].map(view) }; } };
 }
 function registerArchiveDownloads({ ipcMain, app, BrowserWindow, ...options }) {
   const manager = createArchiveDownloads({ ...options, onProgress: progress => {
@@ -111,7 +167,7 @@ function registerArchiveDownloads({ ipcMain, app, BrowserWindow, ...options }) {
   for (const [channel, method] of Object.entries({ download: 'download', list: 'list', control: 'control', open: 'open', importPaths: 'importPaths' })) {
     ipcMain.handle('attachment:' + channel, async (_event, payload) => {
       try { return { success: true, ...await manager[method](payload) }; }
-      catch (error) { return { success: false, error: error.message || '附件下载操作失败' }; }
+      catch (error) { return { success: false, error: error.message || '附件下载操作失败', code: error.code, verifyUrl: error.verifyUrl }; }
     });
   }
   app.on('before-quit', manager.shutdown);

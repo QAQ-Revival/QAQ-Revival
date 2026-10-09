@@ -20,13 +20,25 @@ if (prepareRunner.error || prepareRunner.status !== 0) {
   fs.unlinkSync(testExecutable);
   throw prepareRunner.error || Error(prepareRunner.stderr || 'Could not prepare the smoke runner');
 }
-const testEntry = process.argv.includes('--single-instance') ? 'single-instance-smoke.cjs' : process.argv.includes('--hidden-characters-restart') ? 'hidden-characters-restart.cjs' : 'electron-smoke.cjs';
+const testEntry = process.argv.includes('--window-state') ? 'window-state-smoke.cjs' : process.argv.includes('--single-instance') ? 'single-instance-smoke.cjs' : process.argv.includes('--hidden-characters-restart') ? 'hidden-characters-restart.cjs' : 'electron-smoke.cjs';
 fs.writeFileSync(entry, `require(${JSON.stringify(path.join(root, 'tests', testEntry))});`);
 manifest.main = './smoke-entry.cjs';
 fs.writeFileSync(manifestPath, JSON.stringify(manifest));
 const env = { ...process.env, QAQM_TEST_RESULTS: results, QAQM_USER_DATA: path.join(results, 'AppData/QAQ-Revival') };
 if (process.argv.includes('--translation')) env.QAQM_SMOKE_SCOPE = 'translation';
+if (process.argv.includes('--genshin')) env.QAQM_SMOKE_SCOPE = 'genshin';
+if (process.argv.includes('--genshin-check')) env.QAQM_SMOKE_SCOPE = 'genshin-check';
+if (process.argv.includes('--genshin-anticrash')) env.QAQM_SMOKE_SCOPE = 'genshin-anticrash';
+if (process.argv.includes('--game-settings')) env.QAQM_SMOKE_SCOPE = 'game-settings';
 if (process.argv.includes('--hidden-characters')) env.QAQM_SMOKE_SCOPE = 'hidden-characters';
+if (process.argv.includes('--character-images')) env.QAQM_SMOKE_SCOPE = 'character-images';
+if (process.argv.includes('--character-skins')) env.QAQM_SMOKE_SCOPE = 'character-skins';
+if (process.argv.includes('--skin-cover-live')) env.QAQM_SMOKE_SCOPE = 'skin-cover-live';
+if (process.argv.includes('--file-drop')) env.QAQM_SMOKE_SCOPE = 'file-drop';
+if (process.argv.includes('--persist')) env.QAQM_SMOKE_SCOPE = 'persist';
+if (process.argv.includes('--mod-sites')) env.QAQM_SMOKE_SCOPE = 'mod-sites';
+if (process.argv.includes('--card-images')) env.QAQM_SMOKE_SCOPE = 'card-images';
+if (process.argv.includes('--overlay-activity')) env.QAQM_SMOKE_SCOPE = 'overlay-activity';
 delete env.ELECTRON_RUN_AS_NODE;
 const log = fs.openSync(path.join(results, 'electron.log'), 'w');
 const child = spawn(testExecutable, [], { cwd: runtime, env, windowsHide: true, stdio: ['ignore', log, log] });

@@ -17,14 +17,14 @@ module.exports = async function ({ evaluate, waitFor, captureUI, window, passed,
     await evaluate(`(() => { const button = [...document.querySelectorAll('${active} button')].find(item => item.textContent.trim() === ${JSON.stringify(text)}); if (!button || button.disabled) throw Error('Missing enabled button: ' + ${JSON.stringify(text)}); button.click(); })()`);
   }
   await openSources();
-  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option strong')].map(option => option.textContent)`), ['QAQM', 'Kemono', 'Pawchive']);
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option strong')].map(option => option.textContent)`), ['QAQM', 'Kemono', 'Pawchive', '香蕉网', '韩网 · Arca', 'LoversLab', '辉站', '可可站']);
   await waitFor(`document.activeElement?.dataset.source === 'pawchive'`, 'selected source focused');
   await evaluate(`document.dispatchEvent(new Event('scroll'))`);
   assert.equal(await evaluate(`!!document.querySelector('.mod-download-source-menu')`), true, 'Content reflow must not dismiss the source menu');
   await captureUI('mod-download-source-menu.png');
   await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }))`);
-  assert.equal(await evaluate(`document.activeElement.dataset.source`), 'pawchive');
-  await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }))`);
+  assert.equal(await evaluate(`document.activeElement.dataset.source`), 'keke');
+  await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true })); document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }))`);
   assert.equal(await evaluate(`document.activeElement.dataset.source`), 'kemono');
   await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))`);
   await waitFor(`document.querySelector('${active}').dataset.source === 'kemono' && !document.querySelector('.mod-download-source-menu')`, 'keyboard source selection');

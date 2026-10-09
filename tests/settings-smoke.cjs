@@ -8,51 +8,20 @@ module.exports = async function testSettings({ evaluate, waitFor, captureUI, win
     await click(`[data-category="${id}"]`);
     await waitFor(`document.querySelector('[data-category="${id}"][aria-current="page"]') !== null`, 'settings category ' + id);
   };
+  await click('.game-selector-trigger');
+  await waitFor(`!!document.querySelector('#sidebar-game-menu')`, 'choose current game before settings');
+  await click('.game-selector-option[data-sort-id="endfield"]');
+  await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('明日方舟终末地')`, 'current game is Endfield');
+  await evaluate(`sessionStorage.removeItem('qaqm.settings.game')`);
   await click('.sidebar-settings');
   await waitFor(`!!document.querySelector('#settings-window .system-choice')`, 'global settings loaded');
-  const numberSelector = '[aria-label="保留最近使用的 Mod 状态数值"]';
-  const sliderSelector = 'input[type="range"][aria-label="保留最近使用的 Mod 状态"]';
-  assert.equal((await evaluate('window.api.overlayGetSettings()')).settings.persistBridgeCacheSize, 50);
-  assert.equal(await evaluate(`document.querySelector('${sliderSelector}').max`), '200');
-  const enterNumber = async value => {
-    await evaluate(`(() => { const input = document.querySelector('${numberSelector}'); input.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(value)}); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-  };
-  for (const invalid of ['201', '-1', '1.5', '', 'abc']) {
-    await enterNumber(invalid);
-    assert.equal(await evaluate(`document.querySelector('${numberSelector}').getAttribute('aria-invalid')`), 'true');
-    await evaluate(`document.querySelector('${numberSelector}').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))`);
-    assert.equal((await evaluate('window.api.overlayGetSettings()')).settings.persistBridgeCacheSize, 50);
-  }
-  await captureUI('settings-invalid-number.png');
-  for (const invalid of [201, -1, 1.5, null, 'abc', '50']) {
-    assert.equal((await evaluate(`window.api.overlayUpdateSettings({ persistBridgeCacheSize: ${JSON.stringify(invalid)} })`)).success, false);
-  }
-  await enterNumber('200');
-  assert.equal(await evaluate(`document.querySelector('${numberSelector}').getAttribute('aria-invalid')`), 'false');
-  await evaluate(`document.querySelector('${numberSelector}').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))`);
-  await waitFor(`!document.querySelector('${numberSelector}').disabled`, 'number saved');
-  assert.equal((await evaluate('window.api.overlayGetSettings()')).settings.persistBridgeCacheSize, 200);
-  // Real mouse dragging must not save/disable the range before mouseup.
-  const rect = await evaluate(`(() => { const r = document.querySelector('${sliderSelector}').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })()`);
-  const y = Math.round(rect.y + rect.height / 2);
-  if (!window.webContents.debugger.isAttached()) window.webContents.debugger.attach('1.3');
-  const mouse = (type, x) => window.webContents.debugger.sendCommand('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons: type === 'mouseReleased' ? 0 : 1, clickCount: type === 'mouseMoved' ? 0 : 1 });
-  await mouse('mousePressed', Math.round(rect.x + rect.width - 8));
-  for (const fraction of [0.8, 0.6, 0.35]) {
-    await mouse('mouseMoved', Math.round(rect.x + rect.width * fraction));
-    await new Promise(resolve => setTimeout(resolve, 40));
-    assert.equal(await evaluate(`document.querySelector('${sliderSelector}').disabled`), false);
-  }
-  const draggedValue = Number(await evaluate(`document.querySelector('${sliderSelector}').value`));
-  assert.ok(draggedValue > 40 && draggedValue < 100, 'drag updates continuously: ' + draggedValue);
-  assert.equal((await evaluate('window.api.overlayGetSettings()')).settings.persistBridgeCacheSize, 200);
-  await mouse('mouseReleased', Math.round(rect.x + rect.width * 0.35));
-  await waitFor(`!document.querySelector('${sliderSelector}').disabled`, 'drag saved');
-  assert.equal((await evaluate('window.api.overlayGetSettings()')).settings.persistBridgeCacheSize, draggedValue);
-  await enterNumber('50');
-  await evaluate(`document.querySelector('${numberSelector}').blur()`);
-  await waitFor(`!document.querySelector('${numberSelector}').disabled`, 'restore cache default');
-  passed('Persistence setting: default 50, maximum 200, native dragging saves on release, editable numbers validate before UI/IPC save');
+  assert.equal((await evaluate('window.api.overlayGetSettings()')).settings.persistBridgeCacheSize, null);
+  assert.equal(await evaluate(`!!document.querySelector('[aria-label="保留最近使用的 Mod 状态数值"]')`), false);
+  await category('persist');
+  await waitFor(`document.querySelectorAll('[data-persist-game]').length >= 2`, 'per-game persistence cards');
+  assert.ok(await evaluate(`document.querySelector('.persist-manager').textContent.includes('保存数量无上限')`));
+  await category('general');
+  passed('Persistence settings use a dedicated per-game management page with unlimited storage');
   assert.equal(await evaluate(`document.querySelectorAll('.nav-menu [aria-label="系统设置"]').length`), 0);
   assert.ok(await evaluate(`document.querySelector('.sidebar-settings').getBoundingClientRect().top >= document.querySelector('.launch-actions').getBoundingClientRect().bottom`));
   assert.equal(handlers.has('autoinstall:check-first-run'), false);
@@ -62,32 +31,17 @@ module.exports = async function testSettings({ evaluate, waitFor, captureUI, win
   await click('#settings-window .system-choice');
   await waitFor(`document.querySelector('#settings-window .system-choice').getAttribute('aria-pressed') === 'true'`, 'close behavior persisted');
   assert.equal((await evaluate('window.api.getCloseBehavior()')).closeBehavior, 'ask');
-  await category('games');
-  const settingsOrder = () => evaluate(`[...document.querySelectorAll('.system-subnav [data-subsection]')].map(item => item.dataset.subsection)`);
-  const sidebarOrder = () => evaluate(`[...document.querySelectorAll('.game-selector-option')].map(item => item.dataset.sortId)`);
-  await click('.game-selector-trigger');
-  await waitFor(`!!document.querySelector('#sidebar-game-menu')`, 'game order comparison');
-  assert.deepEqual(await settingsOrder(), await sidebarOrder());
-  const initialOrder = await sidebarOrder();
-  await evaluate(`(() => { const item = document.querySelector('.game-selector-option'); item.focus(); item.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true })); })()`);
-  const expectedOrder = [initialOrder[1], initialOrder[0], ...initialOrder.slice(2)];
-  await waitFor(`JSON.stringify([...document.querySelectorAll('.system-subnav [data-subsection]')].map(item => item.dataset.subsection)) === ${JSON.stringify(JSON.stringify(expectedOrder))}`, 'settings follows live game reorder');
-  assert.deepEqual(await settingsOrder(), await sidebarOrder());
-  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
-  await click('[data-subsection="endfield"]');
-  await waitFor(`document.querySelector('.system-game-detail')?.dataset.gameId === 'endfield'`, 'edit non-active game');
+  assert.equal(await evaluate(`!!document.querySelector('[data-category="games"]')`), false);
+  await click('[aria-label="游戏设置"]');
+  await waitFor(`document.querySelector('.system-game-detail')?.dataset.gameId === 'endfield'`, 'current game settings');
+  await captureUI('settings-current-game.png');
   const before = await evaluate('window.api.getConfig()');
-  assert.equal(before.config.activeGameId, 'wuthering-waves');
   const editedExe = path.join(root, 'settings-other-game.exe');
   fs.writeFileSync(editedExe, 'Synthetic settings fixture, never executed');
   setSelection({ canceled: false, filePaths: [editedExe] });
   await click('[aria-label="选择游戏程序"]');
-  await waitFor(`document.querySelector('[aria-label="游戏程序"]')?.value === ${JSON.stringify(editedExe)}`, 'other game path saved');
-  let after = await evaluate('window.api.getConfig()');
-  assert.equal(after.config.activeGameId, before.config.activeGameId);
-  assert.equal(after.config.games.find(g => g.id === 'wuthering-waves').gamePath, before.config.games.find(g => g.id === 'wuthering-waves').gamePath);
-  assert.equal(after.config.games.find(g => g.id === 'endfield').gamePath, editedExe);
-  // A canceled picker leaves the selected game's path intact.
+  await waitFor(`document.querySelector('[aria-label="游戏程序"]')?.value === ${JSON.stringify(editedExe)}`, 'current game path saved');
+  assert.equal((await evaluate(`window.api.gameGetSettings('endfield')`)).game.gamePath, editedExe);
   setSelection({ canceled: true, filePaths: [] });
   await click('[aria-label="选择游戏程序"]');
   await waitFor(`document.querySelector('.system-game-detail')?.getAttribute('aria-busy') === 'false'`, 'canceled picker');
@@ -100,20 +54,16 @@ module.exports = async function testSettings({ evaluate, waitFor, captureUI, win
   setSelection({ canceled: false, filePaths: [editedExe] });
   await click('[aria-label="选择XXMI 启动器"]');
   await waitFor(`document.querySelector('[aria-label="XXMI 启动器"]')?.value === ${JSON.stringify(editedExe)}`, 'scoped loader saved');
-  after = await evaluate('window.api.getConfig()');
-  assert.equal(after.config.activeGameId, 'wuthering-waves');
+  const after = await evaluate('window.api.getConfig()');
   assert.equal(after.config.games.find(g => g.id === 'wuthering-waves').modFolderPath, before.config.games.find(g => g.id === 'wuthering-waves').modFolderPath);
   assert.equal(after.config.games.find(g => g.id === 'wuthering-waves').modLoaderPath, before.config.games.find(g => g.id === 'wuthering-waves').modLoaderPath);
   assert.ok((await evaluate(`window.api.selectGamePath('missing-game')`)).error);
-  assert.equal((await evaluate('window.api.getConfig()')).config.activeGameId, 'wuthering-waves');
   await captureUI('settings-game-paths.png');
-  // Switching the launch target keeps settings open and does not change the editing target.
   await click('.game-selector-trigger');
-  await waitFor(`!!document.querySelector('#sidebar-game-menu')`, 'sidebar game menu');
-  await click('.game-selector-option[data-sort-id="zzz"]');
-  await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('绝区零')`, 'launch game switched');
-  assert.equal(await evaluate(`document.querySelector('.system-game-detail').dataset.gameId`), 'endfield');
-  // Capture the target before the file dialog yields.
+  await waitFor(`!!document.querySelector('#sidebar-game-menu')`, 'game switch while settings open');
+  await click('.game-selector-option[data-sort-id="wuthering-waves"]');
+  await waitFor(`document.querySelector('.system-game-detail')?.dataset.gameId === 'wuthering-waves'`, 'game settings follow active game');
+  // File dialogs keep the captured target even if the sidebar changes meanwhile.
   let finishPicker;
   setSelection(new Promise(resolve => { finishPicker = resolve; }));
   const pendingSelection = handlers.get('select-game-path')({}, 'endfield');
@@ -122,6 +72,8 @@ module.exports = async function testSettings({ evaluate, waitFor, captureUI, win
   assert.equal((await pendingSelection).success, true);
   assert.equal((await evaluate('window.api.getConfig()')).config.activeGameId, 'wuthering-waves');
   assert.equal((await evaluate(`window.api.gameGetSettings('endfield')`)).game.gamePath, editedExe);
+  passed('Game Settings follows the sidebar selection; edits and canceled or delayed pickers preserve other games');
+  await click('.sidebar-settings');
   await category('general');
   assert.equal((await evaluate('window.api.getCloseBehavior()')).closeBehavior, 'ask');
   await category('downloads');
@@ -141,12 +93,11 @@ module.exports = async function testSettings({ evaluate, waitFor, captureUI, win
   await waitFor(`!!document.querySelector('.sidebar-settings')`, 'settings persistence reload');
   await click('.sidebar-settings');
   await waitFor(`document.querySelector('[aria-label="下载目录"]')?.value === ${JSON.stringify(cache)}`, 'download directory survives reload');
-  await category('games');
-  await waitFor(`document.querySelector('.system-game-detail')?.dataset.gameId === 'endfield'`, 'settings game remembered independently');
-  assert.deepEqual(await settingsOrder(), expectedOrder);
-  passed('Settings game order matches sidebar defaults, live reordering and saved order after reload');
-  assert.equal(await evaluate(`document.querySelector('[aria-label="游戏程序"]').value`), editedExe);
+  await click('[aria-label="游戏设置"]');
+  await waitFor(`document.querySelector('.system-game-detail')?.dataset.gameId === 'wuthering-waves'`, 'game settings follows sidebar after reload');
+  assert.equal((await evaluate(`window.api.gameGetSettings('endfield')`)).game.gamePath, editedExe);
   assert.equal((await evaluate('window.api.getCloseBehavior()')).closeBehavior, 'ask');
+  await click('.sidebar-settings');
   await category('shortcuts');
   assert.ok(await evaluate(`!!document.querySelector('#settings-overlay kbd')?.textContent`));
   await evaluate(`Array.from(document.querySelectorAll('.system-button')).find(b => b.textContent === '修改快捷键').click()`);
@@ -187,13 +138,14 @@ module.exports = async function testSettings({ evaluate, waitFor, captureUI, win
   const size = window.getSize();
   window.setSize(1000, 700);
   await evaluate(`document.documentElement.style.setProperty('--ui-scale', '1.4')`);
-  await category('games');
+  await click('[aria-label="游戏设置"]');
   await waitFor(`!!document.querySelector('.system-game-detail')`, 'game at small viewport');
   await captureUI('settings-compact.png');
   assert.ok(await evaluate(`document.querySelector('.sidebar-settings').getBoundingClientRect().bottom <= innerHeight`));
   assert.ok(await evaluate(`document.querySelector('.system-settings-pane').scrollWidth <= document.querySelector('.system-settings-pane').clientWidth + 1`));
   await evaluate(`document.documentElement.style.setProperty('--ui-scale', '1')`);
   window.setSize(...size);
+  await click('.sidebar-settings');
   await category('about');
   await waitFor(`document.querySelector('.system-version')?.textContent === ${JSON.stringify(require('../app/package.json').version)}`, 'about version');
   passed('Settings: fixed footer entry, no wizard, categorized global preferences, independent per-game paths, cancellation, shared download storage, keyboard access and compact layout');
