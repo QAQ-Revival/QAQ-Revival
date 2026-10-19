@@ -118,6 +118,14 @@ const characterImageRequests = [];
 const characterImageBytes = electron.nativeImage.createFromBitmap(Buffer.from([0x70, 0x90, 0xe0, 0xff]), { width: 1, height: 1 }).toPNG();
 let characterImagesOffline = false;
 electron.net.fetch = async (address, options = {}) => {
+  if (String(address) === 'https://reshade.me/') return new Response('<a href="/downloads/ReShade_Setup_6.8.0_Addon.exe">Full add-on support</a>');
+  if (String(address).startsWith('https://api.github.com/repos/lekarsenten/wwmi-dx12/') || String(address) === 'https://github.com/lekarsenten/wwmi-dx12/releases/download/v2026.11.1/wwmi-dx12-2026.11.1.zip') {
+    // A synthetic future release exercises the updater without any live download or execution.
+    const zip = new (runtimeRequire('adm-zip'))(path.join(path.dirname(process.execPath), 'local-components/wwmi-dx12/wwmi-dx12-2026.10.3.zip'));
+    zip.updateFile('wwmi_dx12.addon64', Buffer.concat([zip.readFile('wwmi_dx12.addon64'), Buffer.from('smoke component update')]));
+    const bytes = zip.toBuffer(), url = 'https://github.com/lekarsenten/wwmi-dx12/releases/download/v2026.11.1/wwmi-dx12-2026.11.1.zip';
+    return String(address) === url ? new Response(bytes) : Response.json({ tag_name: 'v2026.11.1', assets: [{ name: 'wwmi-dx12-2026.11.1.zip', browser_download_url: url, digest: 'sha256:' + crypto.createHash('sha256').update(bytes).digest('hex') }] });
+  }
   const url = new URL(address);
   if (options.redirect === 'manual' && ['api.encore.moe', 'enka.network', 'raw.githubusercontent.com', 'web.hycdn.cn', 'wiki.mysqil.com', 'static.wikia.nocookie.net'].includes(url.hostname)) {
     characterImageRequests.push(url.href);
@@ -217,6 +225,18 @@ runtimeRequire.cache[launchModulePath].exports = {
   } })
 };
 const antiCrashRequests = [];
+const steamBridgeFixture = require('./steam-bridge-smoke.cjs').fixture(root);
+const steamBridgeModulePath = runtimeRequire.resolve('./out/main/steam-bridge.cjs');
+const steamBridgeModule = runtimeRequire(steamBridgeModulePath);
+runtimeRequire.cache[steamBridgeModulePath].exports = { ...steamBridgeModule,
+  registerSteamBridgeIpc: options => steamBridgeModule.registerSteamBridgeIpc({ ...options, schedule: false, runNative: steamBridgeFixture.runNative })
+};
+const wuwaDx12ModulePath = runtimeRequire.resolve('./out/main/wuwa-dx12.cjs');
+const wuwaDx12Module = runtimeRequire(wuwaDx12ModulePath);
+runtimeRequire.cache[wuwaDx12ModulePath].exports = { ...wuwaDx12Module,
+  createWuwaDx12Service: options => wuwaDx12Module.createWuwaDx12Service({ ...options,
+    stopped: async () => {}, waitForStart: async () => ({ success: true }) })
+};
 const antiCrashModulePath = runtimeRequire.resolve('./out/main/genshin-anticrash.cjs');
 const antiCrashModule = runtimeRequire(antiCrashModulePath);
 runtimeRequire.cache[antiCrashModulePath].exports = {
@@ -335,6 +355,11 @@ async function main() {
   if (process.env.QAQM_SMOKE_SCOPE === 'game-settings') {
     await require('./game-settings-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, handlers, passed, launchRequests,
       setSelection: result => { nextFixerSelection = result; } });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQM_SMOKE_SCOPE === 'steam-bridge') {
+    await require('./steam-bridge-smoke.cjs').run({ electron, evaluate, waitFor, captureUI, passed, fixture: steamBridgeFixture });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }

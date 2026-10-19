@@ -12,15 +12,23 @@ async function main() {
   const remote = git(['remote', 'get-url', 'origin']);
   if (remote.replace(/\.git$/, '').toLowerCase() !== `https://github.com/${REPOSITORY}`.toLowerCase()) throw Error('Unexpected origin; refusing to change credentials');
   const app = readRegistration();
-  await installationToken(app);
+  const access = await installationToken(app);
+  const identityResponse = await fetch(`https://api.github.com/users/${encodeURIComponent(app.slug + '[bot]')}`, {
+    headers: { Authorization: `Bearer ${access.token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'QAQ-Revival-publisher' },
+    signal: AbortSignal.timeout(15000)
+  });
+  if (!identityResponse.ok) throw Error('Could not verify the GitHub App bot identity');
+  const identity = await identityResponse.json();
+  if (identity.type !== 'Bot' || identity.login !== app.slug + '[bot]' || !Number.isSafeInteger(identity.id)) throw Error('Unexpected GitHub App bot identity');
   const helper = `!${quote(process.execPath)} ${quote(path.join(__dirname, 'github-app-auth.cjs'))} credential`;
   git(['config', '--local', '--unset-all', 'credential.https://github.com.helper'], true);
   git(['config', '--local', '--add', 'credential.https://github.com.helper', '']);
   git(['config', '--local', '--add', 'credential.https://github.com.helper', helper]);
   git(['config', '--local', 'credential.useHttpPath', 'true']);
   git(['config', '--local', '--replace-all', 'http.https://github.com/.extraheader', '']);
-  git(['config', '--local', 'user.name', 'Anonymous']);
-  git(['config', '--local', 'user.email', 'lol@icu.io']);
+  git(['config', '--local', 'user.name', identity.login]);
+  git(['config', '--local', 'user.email', `${identity.id}+${identity.login}@users.noreply.github.com`]);
+  git(['config', '--local', 'user.useConfigOnly', 'true']);
   const credential = spawnSync('git', ['credential', 'fill'], {
     cwd: root, input: `protocol=https\nhost=github.com\npath=${REPOSITORY}.git\n\n`, encoding: 'utf8', windowsHide: true,
     env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never', GIT_TRACE: '0', GIT_TRACE_CURL: '0', GIT_CURL_VERBOSE: '0' }
@@ -32,6 +40,6 @@ async function main() {
   if (!response.ok) throw Error('The configured Git credential is not an installation token');
   const data = await response.json();
   if (data.total_count !== 1 || data.repositories?.[0]?.full_name?.toLowerCase() !== REPOSITORY.toLowerCase()) throw Error('GitHub App token is not restricted to the expected repository');
-  console.log(`Configured ${app.slug}[bot] for ${REPOSITORY}; commit identity remains Anonymous.`);
+  console.log(`Configured ${identity.login} for ${REPOSITORY}; author and committer use the verified bot identity.`);
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

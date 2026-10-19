@@ -8,6 +8,7 @@ export function LaunchControls({ activeGame, collapsed, settingsActive, onOpenSe
   const gameId = React.useRef(activeGame?.id);
   gameId.current = activeGame?.id;
   const supportsXxmi = activeGame?.id !== 'neverness-to-everness';
+  const wuwaDx12 = activeGame?.id === 'wuthering-waves' && activeGame.wuwaDx12Enabled === true;
   React.useEffect(() => { setError(''); setNotice(''); }, [activeGame?.id]);
   async function launch(mode) {
     if (inFlight.current) return;
@@ -30,9 +31,9 @@ export function LaunchControls({ activeGame, collapsed, settingsActive, onOpenSe
   return jsx.jsxs('div', { className: `launch-actions ${collapsed ? 'launch-actions-collapsed' : 'card launch-control-card'}`, children: [
     jsx.jsx('button', {
       type: 'button', className: 'btn btn-primary', 'aria-label': '直接启动',
-      title: '加载当前游戏的 Mod，跳过 XXMI 界面直接启动',
+      title: wuwaDx12 ? '使用 wwmi-dx12 加载当前鸣潮 Mod 并启动 DX12' : '加载当前游戏的 Mod，跳过 XXMI 界面直接启动',
       disabled: !!launching || !activeGame?.id, onClick: () => launch('DIRECT'),
-      children: collapsed ? (launching === 'DIRECT' ? '…' : '▶') : launching === 'DIRECT' ? '启动中…' : '直接启动'
+      children: collapsed ? (launching === 'DIRECT' ? '…' : '▶') : launching === 'DIRECT' ? '启动中…' : wuwaDx12 ? '直接启动 · DX12' : '直接启动'
     }),
     jsx.jsx('button', {
       type: 'button', className: 'btn btn-secondary', 'aria-label': 'XXMI 启动',

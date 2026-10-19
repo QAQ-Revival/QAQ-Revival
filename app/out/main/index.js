@@ -8593,6 +8593,50 @@ for (const [channel, action] of Object.entries({
     try { return await action(payload); } catch (error) { return { success: false, error: error.message }; }
   });
 }
+const { createWuwaDx12Packages, createWuwaDx12Components } = require("./wuwa-dx12-components.cjs");
+const { createWuwaDx12Service, resolveWuwaDx12Paths } = require("./wuwa-dx12.cjs");
+const wuwaDx12StateDir = path.join(electron.app.getPath("userData"), "wuwa-dx12");
+const wuwaDx12Packages = createWuwaDx12Packages({
+    bundledDir: path.join(electron.app.isPackaged ? path.dirname(process.execPath) : path.resolve(__dirname, "../../.."), "local-components", "wwmi-dx12"),
+    cacheDir: path.join(wuwaDx12StateDir, "packages"),
+    fetch: (...args) => electron.net.fetch(...args)
+});
+const wuwaDx12Components = createWuwaDx12Components({
+  stateDir: path.join(wuwaDx12StateDir, "components"),
+  getPackage: wuwaDx12Packages
+});
+const wuwaDx12Service = createWuwaDx12Service({
+  components: wuwaDx12Components,
+  packages: wuwaDx12Packages,
+  backupDir: path.join(wuwaDx12StateDir, "config-backups"),
+  resolvePaths: () => {
+    const game = getSettingsGame("wuthering-waves");
+    const info = readXxmiImporterPathInfo(game.modLoaderPath, game.id);
+    return resolveWuwaDx12Paths({ gamePath: game.gamePath, gameFolder: info.gameFolder && info.xxmiRootDir ? path.resolve(info.xxmiRootDir, info.gameFolder) : "",
+      importerPath: info.importerPath, modsPath: game.modFolderPath, launcherPath: game.modLoaderPath });
+  },
+  getEnabled: () => getSettingsGame("wuthering-waves").wuwaDx12Enabled,
+  saveEnabled: enabled => {
+    const game = getSettingsGame("wuthering-waves"), previous = game.wuwaDx12Enabled;
+    game.wuwaDx12Enabled = enabled;
+    try { if (!saveConfig(currentConfig)) throw Error("无法保存 DX12 设置，请检查配置目录权限"); } catch (error) { game.wuwaDx12Enabled = previous; throw error; }
+    notifyGamesChanged();
+  },
+  launchProcess: (file, cwd, args) => windowsLauncher.launch(file, cwd, args, { requireElevation: false })
+});
+for (const [channel, action] of Object.entries({ "wuwa:dx12-status": () => wuwaDx12Service.status(), "wuwa:dx12-set-enabled": enabled => wuwaDx12Service.setEnabled(enabled),
+  "wuwa:dx12-check-updates": () => wuwaDx12Service.checkUpdates(), "wuwa:dx12-update-component": kind => wuwaDx12Service.updateComponent(kind) })) {
+  electron.ipcMain.handle(channel, async (_, payload) => {
+    try { return await action(payload); } catch (error) { return { success: false, error: error.message }; }
+  });
+}
+const steamBridgeService = require("./steam-bridge.cjs").registerSteamBridgeIpc({
+  ipcMain: electron.ipcMain, dialog: electron.dialog, shell: electron.shell, getWindow: () => mainWindowRef,
+  userData: electron.app.getPath("userData"), managerExecutable: path.join(path.dirname(process.execPath), "QAQ-Revival.exe"),
+  executable: path.resolve(__dirname, "../../resources/steam-bridge/steam-bridge.exe"),
+  getGame: gameId => ({ ...getSettingsGame(gameId), gamePath: getResolvedGamePaths(gameId).gamePath })
+});
+electron.app.on("will-quit", () => steamBridgeService.dispose());
 const wuwaTuningService = require("./wuwa-tuning.cjs").createWuwaTuningService({
   backupDir: path.join(electron.app.getPath("userData"), "game-settings-backups", "wuthering-waves"),
   resolvePaths: () => {
@@ -9329,7 +9373,7 @@ electron.ipcMain.handle("launch-game", async (_, { launchMode, gameId } = {}) =>
     const activeGame = getActiveGame();
     const { gamePath, modLoaderPath } = getResolvedActiveGamePaths();
     if (gameId && gameId !== activeGame?.id) return { success: false, error: "当前游戏已切换，请重新点击启动。" };
-    const resolvedLaunchMode = launchMode === "DIRECT" ? getDirectLaunchMode(activeGame) : launchMode === void 0 ? activeGame?.launchMode || "VANILLA" : launchMode || "VANILLA";
+    const resolvedLaunchMode = launchMode === "DIRECT" || (launchMode === void 0 && activeGame?.id === "wuthering-waves" && activeGame.wuwaDx12Enabled === true) ? getDirectLaunchMode(activeGame) : launchMode === void 0 ? activeGame?.launchMode || "VANILLA" : launchMode || "VANILLA";
     if (!resolvedLaunchMode) return { success: false, error: "当前游戏尚未支持快捷启动，请使用 XXMI 启动。" };
     if (activeGame?.id === "genshin-impact" && resolvedLaunchMode === "GIMI" && activeGame.genshinPreflightEnabled === true) {
       const report = genshinDiagnostics.check({ includeLogs: false });
@@ -9344,6 +9388,10 @@ electron.ipcMain.handle("launch-game", async (_, { launchMode, gameId } = {}) =>
       }
     }
     const customLaunchArgs = String(activeGame?.launchArgs || "").trim();
+    if (resolvedLaunchMode === "WWMI-DX12") {
+      if (activeGame?.id !== "wuthering-waves") return { success: false, error: "WWMI-DX12 仅支持鸣潮。" };
+      return await wuwaDx12Service.launch(parseLaunchArgs(customLaunchArgs));
+    }
     if (resolvedLaunchMode !== "DX12") await ensureKeypressBridgeForActiveGame();
     if (resolvedLaunchMode === "VANILLA") {
       if (!gamePath || !fs.existsSync(gamePath)) {

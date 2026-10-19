@@ -7,7 +7,8 @@ export default function GameSettingsView({ activeGame }) {
   React.useEffect(() => { if (toast) { const timer = setTimeout(() => setToast(null), 6000); return () => clearTimeout(timer); } }, [toast]);
   const sections = [['game-paths', '路径与启动'],
     ...(activeGame?.id === 'genshin-impact' ? [['genshin-anticrash', '防报错'], ['genshin-compatibility', '兼容检查']] : []),
-    ...(activeGame?.id === 'wuthering-waves' ? [['wuwa-tuning', '远景与纹理']] : []),
+    ...(activeGame?.id === 'wuthering-waves' ? [['wuwa-dx12', 'DX12 Mod'], ['wuwa-tuning', '远景与纹理']] : []),
+    ...(['endfield', 'wuthering-waves'].includes(activeGame?.id) ? [['steam-bridge', 'Steam 桥接']] : []),
     ...(activeGame?.id === 'neverness-to-everness' ? [['pak', 'Pak 模式']] : []), ['fixer', '独立修复器'], ['game-persist', 'Mod 状态管理']];
   return h('div', { className: 'settings-view system-settings game-settings-view', 'data-game-id': activeGame?.id },
     h('aside', { className: 'system-settings-nav' },

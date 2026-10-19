@@ -13,6 +13,8 @@ const runtimeExe = 'electron.exe';
 if (source === target || !fs.existsSync(path.join(source, runtimeExe))) throw Error('Run node tools/prepare-release.cjs to download the official Electron runtime');
 const megaBuild = require('node:child_process').spawnSync(process.execPath, [path.join(root, 'tools/build-mega.cjs')], { stdio: 'inherit', windowsHide: true });
 if (megaBuild.status !== 0) process.exit(megaBuild.status || 1);
+const steamBuild = require('node:child_process').spawnSync(process.execPath, [path.join(root, 'tools/build-steam-bridge.cjs')], { stdio: 'inherit', windowsHide: true });
+if (steamBuild.status !== 0) process.exit(steamBuild.status || 1);
 if (fs.existsSync(target)) {
   const resolvedTarget = fs.realpathSync(target);
   const resolvedBuild = fs.realpathSync(buildRoot);

@@ -21,7 +21,7 @@ async function main() {
   const elevationCheck = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'tools/stamp-manifest.ps1'), '-Executable', path.join(stage, 'QAQ-Revival.exe'), '-CheckOnly'], { encoding: 'utf8', windowsHide: true });
   if (elevationCheck.error) throw elevationCheck.error;
   if (elevationCheck.status !== 0) throw Error('Release EXE must request administrator privileges: ' + elevationCheck.stderr);
-  for (const name of ['LICENSE', 'LICENSE.electron.txt', 'QAQ-Revival.exe', 'Start.cmd', 'resources/overlay.html', 'resources/UnRAR.exe', 'resources/QaqmKeyHelper.exe', 'resources/app/resources/mega-worker/QAQMMegaWorker.exe']) {
+  for (const name of ['LICENSE', 'LICENSE.electron.txt', 'QAQ-Revival.exe', 'Start.cmd', 'resources/overlay.html', 'resources/UnRAR.exe', 'resources/QaqmKeyHelper.exe', 'resources/app/resources/mega-worker/QAQMMegaWorker.exe', 'resources/app/resources/steam-bridge/steam-bridge.exe', 'resources/app/resources/steam-bridge/LICENSE']) {
     if (!fs.existsSync(path.join(stage, name))) throw Error('Required portable file missing: ' + name);
   }
   const files = await inventory(stage);

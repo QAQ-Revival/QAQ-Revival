@@ -1,0 +1,11 @@
+Optional DX12 components installed by QAQ-Revival:
+
+wwmi-dx12 2026.10.3 (GPL-3.0)
+Project and corresponding source: https://github.com/lekarsenten/wwmi-dx12/tree/v2026.10.3
+Release: https://github.com/lekarsenten/wwmi-dx12/releases/tag/v2026.10.3
+Its LICENSE, THIRD-PARTY-NOTICES and component licenses are preserved in the installed wwmi_dx12 directory.
+
+ReShade 6.8.0, full add-on support (BSD-3-Clause)
+Official download: https://reshade.me/
+Corresponding source: https://github.com/crosire/reshade/tree/v6.8.0
+The license is included in ReShade-LICENSE.txt and copied into the installed component licenses directory.

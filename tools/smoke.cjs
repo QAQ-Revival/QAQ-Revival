@@ -30,6 +30,7 @@ if (process.argv.includes('--genshin')) env.QAQM_SMOKE_SCOPE = 'genshin';
 if (process.argv.includes('--genshin-check')) env.QAQM_SMOKE_SCOPE = 'genshin-check';
 if (process.argv.includes('--genshin-anticrash')) env.QAQM_SMOKE_SCOPE = 'genshin-anticrash';
 if (process.argv.includes('--game-settings')) env.QAQM_SMOKE_SCOPE = 'game-settings';
+if (process.argv.includes('--steam-bridge')) env.QAQM_SMOKE_SCOPE = 'steam-bridge';
 if (process.argv.includes('--hidden-characters')) env.QAQM_SMOKE_SCOPE = 'hidden-characters';
 if (process.argv.includes('--character-images')) env.QAQM_SMOKE_SCOPE = 'character-images';
 if (process.argv.includes('--character-skins')) env.QAQM_SMOKE_SCOPE = 'character-skins';

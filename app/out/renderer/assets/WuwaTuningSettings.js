@@ -43,5 +43,5 @@ export function WuwaTuningSettings() {
       h(Button, { disabled: busy || !data, onClick: () => act(() => window.api.wuwaImportDeviceProfile({ revision: data.revision })) }, '选择文件并应用')),
     error && h('p', { className: 'system-notice', role: 'alert' }, error),
     message && h('p', { className: 'system-notice', role: 'status' }, message),
-    h('p', { className: 'system-notice' }, '应用前请关闭鸣潮与 XXMI；保存后通过 XXMI 重启游戏。这里只调整配置参数，不能自动生成 Mod 缺失的远景模型。'));
+    h('p', { className: 'system-notice' }, '应用前请关闭鸣潮与 XXMI；保存后重新启动游戏。DX12 模式请使用「直接启动」。这里只调整配置参数，不能自动生成 Mod 缺失的远景模型。'));
 }

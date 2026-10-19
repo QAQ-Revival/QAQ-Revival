@@ -12,6 +12,7 @@ function buildElevationScript(executablePath, workingDir, args) {
   return `$ErrorActionPreference = 'Stop'; Start-Process -FilePath ${literal(executablePath)} -WorkingDirectory ${literal(workingDir)}${argumentsOption} -Verb RunAs -PassThru | Out-Null`;
 }
 function getDirectLaunchMode(game) {
+  if (game?.id === 'wuthering-waves' && game.wuwaDx12Enabled === true) return 'WWMI-DX12';
   const importer = { 'genshin-impact': 'GIMI', endfield: 'EFMI', 'wuthering-waves': 'WWMI', zzz: 'ZZMI', 'honkai-star-rail': 'SRMI' }[game?.id];
   if (importer) return importer;
   if (game?.id === 'neverness-to-everness') return game.launchMode === 'DX12' ? 'DX12' : 'NEMI';
@@ -34,8 +35,11 @@ function createWindowsLauncher({ isElevated, spawn = childProcess.spawn, execFil
         return await elevate(executablePath, workingDir, args);
       }
       return await new Promise(resolve => {
+        // Windows PowerShell exits before executing its script under DETACHED_PROCESS.
+        // Hidden, unreferenced children still outlive the manager without that flag.
+        const detached = !/^(?:powershell|pwsh)(?:\.exe)?$/i.test(path.win32.basename(executablePath));
         const child = spawn(executablePath, args, {
-          cwd: workingDir, shell: false, windowsHide: true, detached: true, stdio: 'ignore'
+          cwd: workingDir, shell: false, windowsHide: true, detached, stdio: 'ignore'
         });
         child.once('error', error => resolve({ success: false, error: error.message }));
         child.once('spawn', () => {

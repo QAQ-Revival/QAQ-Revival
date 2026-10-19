@@ -2,6 +2,8 @@ import { r as React, ThemeContext } from './index.js';
 import { e as evaluateXxmiImporterPathConsistency } from './xxmiPaths.js';
 import { SoftwareUpdateSettings } from './SoftwareUpdates.js';
 import { WuwaTuningSettings } from './WuwaTuningSettings.js';
+import { WuwaDx12Settings } from './WuwaDx12Settings.js';
+import { SteamBridgeSettings } from './SteamBridgeSettings.js';
 import { GenshinCompatibilitySettings } from './GenshinCompatibilitySettings.js';
 import { GenshinAntiErrorSettings } from './GenshinAntiErrorSettings.js';
 import PersistStateManager from './PersistStateManager.js';
@@ -129,7 +131,9 @@ function GameSettings({ gameId, notify }) {
     game.id === 'genshin-impact' && h(GenshinCompatibilitySettings, { onPathsChanged: () => {
       window.api.gameGetSettings(game.id).then(result => { check(result); setData(previous => previous ? { ...previous, ...result } : previous); }).catch(e => notify('error', e.message));
     } }),
+    game.id === 'wuthering-waves' && h(WuwaDx12Settings),
     game.id === 'wuthering-waves' && h(WuwaTuningSettings),
+    ['endfield', 'wuthering-waves'].includes(game.id) && h(SteamBridgeSettings, { key: `${game.id}:${game.gamePath}`, gameId: game.id }),
     isNte && h(Section, { id: 'pak', title: '异环 · Pak 模式' },
       pathRow('Pak Mod 目录', '由异环游戏路径自动确定，用于存放启用的 Pak Mod。', data.pak?.paths?.pakModsDir),
       pathRow('停用 Mod 存储目录', '停用的 Pak Mod 会移到这里；重新启用时移回游戏目录。', data.pak?.paths?.disabledModsDir, () => window.api.nevernessDx12SelectDisabledModsDir(), h(Button, { disabled: busy, onClick: () => act(() => window.api.nevernessDx12ResetDisabledModsDir()) }, '恢复默认')),
