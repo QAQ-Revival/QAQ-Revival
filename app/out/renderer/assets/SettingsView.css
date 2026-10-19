@@ -138,6 +138,19 @@
 .wuwa-tuning-options { display: grid; gap: 10px; width: 100%; }
 .wuwa-tuning-options .system-choice { width: 100%; text-align: left; }
 .wuwa-tuning-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.wuwa-dx12-component { padding: 12px 0; border-bottom: 1px solid var(--color-border, #8883); }
+.wuwa-dx12-component:last-child { border-bottom: 0; padding-bottom: 0; }
+.wuwa-dx12-component > div { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.wuwa-dx12-component p { margin: 6px 0 0; font-size: 12px; color: var(--color-text-secondary); }
+.wuwa-dx12-update { margin-top: 10px; font-size: 12px; color: var(--color-text-secondary); }
+.wuwa-dx12-source { padding: 4px 9px; border-radius: 6px; font-size: 12px; background: #8882; }
+.wuwa-dx12-source.managed { color: var(--color-accent-primary); background: #698ddd18; }
+.wuwa-dx12-source.user { color: #28916a; background: #28916a18; }
+.wuwa-dx12-checks { font-size: 12px; line-height: 1.9; overflow-wrap: anywhere; margin-top: 16px; }
+.wuwa-dx12-checks > strong { display: block; margin-bottom: 6px; }
+.wuwa-dx12-checks .ready { color: var(--color-text-secondary); }
+.wuwa-dx12-checks .missing { color: var(--color-text-primary); }
+#settings-wuwa-dx12 .system-row-control:has(.system-switch) { flex-shrink: 0; }
 .compatibility-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .compatibility-summary { font-size: 13px; line-height: 1.7; }
 .compatibility-checks { display: grid; gap: 0; }
@@ -222,3 +235,8 @@
 .mod-persist-summary .persist-detail-heading { margin: 0 0 10px; }
 .mod-persist-summary p, .mod-persist-summary summary { font-size: 12px; color: var(--color-text-secondary); }
 .mod-persist-summary .persist-entries { margin-top: 12px; }
+.steam-bridge-checks { display: grid; gap: 8px; margin: 16px 20px; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.steam-bridge-checks .ready { color: var(--color-text-secondary); }
+.steam-bridge-checks .missing { color: var(--color-accent-primary); }
+.steam-bridge-actions { flex-wrap: wrap; }
+#settings-steam-bridge .system-row-control > .system-path { width: 100%; min-width: 0; }

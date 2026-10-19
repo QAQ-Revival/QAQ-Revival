@@ -10,6 +10,8 @@ test('direct launch selects the correct importer instead of the saved launcher U
   }
   assert.equal(getDirectLaunchMode({ id: 'neverness-to-everness', launchMode: 'DX12' }), 'DX12');
   assert.equal(getDirectLaunchMode({ id: 'neverness-to-everness', launchMode: 'NEMI' }), 'NEMI');
+  assert.equal(getDirectLaunchMode({ id: 'wuthering-waves', wuwaDx12Enabled: true }), 'WWMI-DX12');
+  assert.equal(getDirectLaunchMode({ id: 'genshin-impact', wuwaDx12Enabled: true }), 'GIMI');
   assert.equal(getDirectLaunchMode({ id: 'unknown' }), null);
 });
 test('elevated launch inherits the parent token without requesting RunAs again', async () => {

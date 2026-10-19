@@ -58,6 +58,8 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, handlers, 
   assert.notEqual(launchRequests.at(-1).file, loader); assert.match(path.basename(launchRequests.at(-1).file), /^r[a-f0-9]{24}\.exe$/);
   passed('WuWa schemes read current files without changing them, explicitly apply with backup, restore byte-for-byte, and XXMI obeys the global switch');
 
+  await require('./wuwa-dx12-smoke.cjs')({ call, click, evaluate, waitFor, captureUI, root, launchRequests, passed, gameRoot, xxmi });
+
   await click('.game-selector-trigger');
   await waitFor(`!!document.querySelector('.game-selector-option[data-sort-id="genshin-impact"]')`, 'Genshin choice');
   await click('.game-selector-option[data-sort-id="genshin-impact"]');
