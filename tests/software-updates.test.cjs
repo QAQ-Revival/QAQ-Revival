@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { createSoftwareUpdates, newerVersion, startUpdateChecks, API_URL } = require('../app/out/main/software-updates.cjs');
+const { createSoftwareUpdates, newerVersion, startUpdateChecks, API_URL } = require('../app/src/main/runtime/software-updates.cjs');
 const release = (version='1.0.2') => ({ tag_name: 'v'+version, html_url: 'https://github.com/QAQ-Revival/QAQ-Revival/releases/tag/v'+version, published_at: '2026-10-06T00:00:00Z', body: '修复说明' });
 function fixture(t) {
   const base = fs.realpathSync(os.tmpdir()), userData = fs.mkdtempSync(path.join(base, 'qaq-updates-'));

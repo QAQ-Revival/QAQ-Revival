@@ -1,0 +1,29 @@
+{
+  "title": "Mod market",
+  "search": {
+    "placeholder": "Search Mods"
+  },
+  "actions": {
+    "login": "Sign in",
+    "logout": "Sign out",
+    "publish": "Publish Mod",
+    "favorite": "Favorite",
+    "unfavorite": "Remove favorite"
+  },
+  "fields": {
+    "tags": "Tags",
+    "source": "Source",
+    "downloads": "Downloads"
+  },
+  "status": {
+    "loading": "Loading market…"
+  },
+  "errors": {
+    "load": "Failed to load market",
+    "siteContent": "Failed to read site content",
+    "gamebanana": "GameBanana request failed"
+  },
+  "filters": {
+    "functionCategory": "Utilities"
+  }
+}

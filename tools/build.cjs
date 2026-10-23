@@ -11,6 +11,8 @@ const relativeTarget = path.relative(buildRoot, target);
 if (!relativeTarget || relativeTarget.startsWith('..') || path.isAbsolute(relativeTarget)) throw Error('Build target must be inside the workspace build directory');
 const runtimeExe = 'electron.exe';
 if (source === target || !fs.existsSync(path.join(source, runtimeExe))) throw Error('Run node tools/prepare-release.cjs to download the official Electron runtime');
+const appBuild = require('node:child_process').spawnSync(process.execPath, [path.join(root, 'tools/build-app.cjs')], { stdio: 'inherit', windowsHide: true });
+if (appBuild.status !== 0) process.exit(appBuild.status || 1);
 const megaBuild = require('node:child_process').spawnSync(process.execPath, [path.join(root, 'tools/build-mega.cjs')], { stdio: 'inherit', windowsHide: true });
 if (megaBuild.status !== 0) process.exit(megaBuild.status || 1);
 const steamBuild = require('node:child_process').spawnSync(process.execPath, [path.join(root, 'tools/build-steam-bridge.cjs')], { stdio: 'inherit', windowsHide: true });
@@ -59,7 +61,10 @@ fs.cpSync(path.join(root, 'runtime-resources'), resources, { recursive: true });
 // User data lives outside resources/app and is preserved.
 const appTarget = path.join(resources, 'app');
 fs.rmSync(appTarget, { recursive: true, force: true });
-fs.cpSync(path.join(root, 'app'), appTarget, { recursive: true });
+fs.mkdirSync(appTarget, { recursive: true });
+for (const name of ['out', 'resources', 'node_modules', 'package.json', 'package-lock.json']) {
+  fs.cpSync(path.join(root, 'app', name), path.join(appTarget, name), { recursive: true });
+}
 require('./package-files.cjs').copyLocalComponents(root, target);
 // Product name and version come from the application manifest.
 const manifestPath = path.join(resources, 'app', 'package.json');

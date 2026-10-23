@@ -1,0 +1,157 @@
+/* QQ Groups Styles (Cleaned up) */
+
+/* Modern QQ Group UI - Wide Version */
+.qq-group-view-wide {
+  padding: 40px 60px;
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease-out;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.qq-group-banner {
+  background: linear-gradient(135deg, #fff5f7 0%, #ffffff 100%);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  margin-bottom: 40px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(255, 143, 163, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.qq-group-icon-huge {
+  font-size: 64px;
+  margin-bottom: 16px;
+  background: var(--color-accent-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 4px 8px rgba(255, 143, 163, 0.3));
+}
+
+.banner-content h2 {
+  font-size: 32px;
+  margin: 0 0 12px 0;
+  color: var(--color-text-primary);
+}
+
+.banner-content p {
+  font-size: 18px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.qq-groups-grid-wide {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+}
+
+.qq-group-card-wide {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 24px 40px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.qq-group-card-wide:hover {
+  transform: translateX(8px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(255, 143, 163, 0.3);
+  background: linear-gradient(to right, #ffffff, #fffbfc);
+}
+
+.qq-avatar-large {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #fcecef 0%, #f0f2f5 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--color-accent-primary);
+  border: 2px solid white;
+  box-shadow: var(--shadow-md);
+}
+
+.qq-card-middle {
+  flex: 1;
+}
+
+.qq-group-name-large {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--color-text-primary);
+  margin-bottom: 8px;
+}
+
+.qq-group-number-large {
+  font-family: "Consolas", monospace;
+  font-size: 20px;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+.qq-group-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-success);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.qq-copy-btn-large {
+  padding: 14px 32px;
+  background: var(--color-accent-gradient);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 140px;
+  box-shadow: var(--shadow-sm);
+}
+
+.qq-copy-btn-large:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+  filter: brightness(1.05);
+}
+
+.qq-copy-btn-large.copied {
+  background: var(--color-success);
+  pointer-events: none;
+}
+
+.qq-footer-note.huge {
+  margin-top: 40px;
+  font-size: 16px;
+  opacity: 0.7;
+}

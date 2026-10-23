@@ -1,0 +1,257 @@
+{
+  "archiveDownloads": {
+    "invalidAttachmentState": "Invalid attachment state"
+  },
+  "megaTaskManager": {
+    "invalidTaskState": "Invalid task state"
+  },
+  "archives": {
+    "disguised": {
+      "unexpectedEOFWhileDecodingDisguisedMod": "Unexpected EOF while decoding disguised mod",
+      "unexpectedEOFWhileReadingDisguisedPayload": "Unexpected EOF while reading disguised payload",
+      "unexpectedEOFWhileExtractingOuterZIPEntry": "Unexpected EOF while extracting outer ZIP entry"
+    },
+    "extract": {
+      "sevenZipExitedWithCode": "7z exited with code {{code}}: {{stderr}}"
+    },
+    "temp": {
+      "noWritableTempExtractDirectoryAvailable": "No writable temp extract directory available"
+    }
+  },
+  "characterCatalog": {
+    "invalidCharacterList": "Invalid character list",
+    "characterSourceReturnedTooFewValidEntries": "Character source returned too few valid entries",
+    "unsupportedCharacterSource": "Unsupported character source",
+    "unsupportedGame": "Unsupported game",
+    "characterSourceReturnedHTTP": "Character source returned HTTP {{status}}",
+    "characterSourceTooLarge": "Character source too large"
+  },
+  "characterImageCache": {
+    "invalidCharacterImageRedirect": "Invalid character image redirect",
+    "characterImageRequestFailedHTTPOrIsTooLarge": "Character image request failed (HTTP {{status}}) or is too large",
+    "characterImageIsTooLarge": "Character image is too large",
+    "invalidCharacterImage": "Invalid character image",
+    "tooManyCharacterImageRedirects": "Too many character image redirects",
+    "invalidCharacterImageURL": "Invalid character image URL"
+  },
+  "characters": {
+    "cleanup": {
+      "tooManyDuplicateFoldersFor": "Too many duplicate folders for {{baseName}}",
+      "unableToResolveQuarantineCharacterFolder": "Unable to resolve quarantine character folder",
+      "unableToResolveTargetCharacterFolder": "Unable to resolve target character folder: {{targetCharacterName}}"
+    },
+    "skins": {
+      "invalidCoverDataURL": "Invalid cover data URL",
+      "unsupportedCoverImageFormat": "Unsupported cover image format",
+      "coverImageIsEmpty": "Cover image is empty",
+      "coverImageNotFound": "Cover image not found",
+      "coverImageCouldNotBePrepared": "Cover image could not be prepared"
+    }
+  },
+  "ipc": {
+    "characters": {
+      "characterAlreadyExists": "Character already exists.",
+      "characterNotFound": "Character not found",
+      "invalidDataURL": "Invalid data URL",
+      "imageFileNotFound": "Image file not found"
+    },
+    "games": {
+      "selectModsFolder": "Select Mods Folder",
+      "selectGameExecutable": "Select Game Executable ({{executableHint}})",
+      "selectExecutable": "Select {{modLoaderLabel}} Executable",
+      "selectEFMIQuickStartExe": "Select EFMI Quick Start.exe",
+      "selectNEMIStartCmdOr3DMigotoLoaderExe": "Select NEMI Start.cmd or 3DMigoto Loader.exe",
+      "selectXXMILauncherExe": "Select XXMI Launcher.exe",
+      "nEMILoader": "NEMI Loader",
+      "chooseExecutable": "Choose an executable",
+      "chooseFile": "Choose a file"
+    },
+    "mods": {
+      "modFolderNotFound": "Mod folder not found",
+      "noINIFilesFoundInModFolder": "No INI files found in mod folder",
+      "sectionKeyNotFoundInAnyINIFile": "Section [Key{{sectionName}}] not found in any INI file",
+      "renameFailedAfterRetries": "Rename failed after retries",
+      "sourceImageNotFound": "Source image not found: {{imagePath}}"
+    },
+    "shell": {
+      "folderNotFound": "Folder not found"
+    },
+    "settings": {
+      "exportPresets": "Export presets",
+      "importPresets": "Import presets"
+    }
+  },
+  "developer": {
+    "ai": {
+      "aIRequestDeadlineExceeded": "AI request deadline exceeded",
+      "aIRequestTimedOutAfterS": "AI request timed out after {{ceil}}s",
+      "openAICompatibleRequestHasNoUsableMessages": "OpenAI-compatible request has no usable messages",
+      "openAICompatibleReturnedHTMLInsteadOfAnAPIResponse": "OpenAI-compatible returned HTML instead of an API response",
+      "openAICompatible": "OpenAI-compatible {{status}}: {{devAiUpstreamBody}}",
+      "openAICompatibleReturnedEmptyContent": "OpenAI-compatible returned empty content",
+      "anthropicMessages": "Anthropic Messages {{status}}: {{devAiUpstreamBody}}",
+      "anthropicMessagesReturnedInvalidJSON": "Anthropic Messages returned invalid JSON: {{devAiUpstreamBody}}",
+      "anthropicMessagesReturnedEmptyContent": "Anthropic Messages returned empty content"
+    },
+    "cloud": {
+      "hTTP": "HTTP {{status}}"
+    },
+    "export": {
+      "encryptedExportSizeVerificationFailed": "Encrypted export size verification failed"
+    },
+    "publish": {
+      "startupFailed": "Startup failed: {{reason}}"
+    },
+    "metadata": {
+      "modPathRequired": "modPath required"
+    }
+  },
+  "overlay": {
+    "window": {
+      "failedToCreateSideWindow": "Failed to create side window"
+    },
+    "helper": {
+      "helperExitedWithCode": "helper exited with code {{code}}"
+    },
+    "hotkeyExpression": {
+      "leftMouse": "Left mouse button",
+      "rightMouse": "Right mouse button",
+      "middleMouse": "Middle mouse button",
+      "extraMouseOne": "Mouse button 4",
+      "extraMouseTwo": "Mouse button 5"
+    }
+  },
+  "games": {
+    "launch": {
+      "gamePathNotSetOrInvalid": "Game path not set or invalid.",
+      "unknownLaunchMode": "Unknown launch mode"
+    }
+  },
+  "imports": {
+    "batch": {
+      "allFiles": "All Files",
+      "unsupportedFileFormat": "Unsupported file format",
+      "multipleModSourceNotFound": "Multiple Mod source not found"
+    },
+    "local": {
+      "multipleModInstallRequiresAtLeastTwoNonEmptyFolders": "Multiple Mod install requires at least two non-empty folders",
+      "characterFolderNotFound": "Character folder not found",
+      "modWithThisNameAlreadyExists": "Mod with this name already exists",
+      "unsupportedFileFormatPleaseUseZipRar7zOrDisguisedMP4": "Unsupported file format. Please use Zip, Rar, 7z, or disguised MP4."
+    }
+  },
+  "install": {
+    "setup": {
+      "selectUpdatePackageOrExtractedFolder": "Select update package or extracted folder",
+      "zIPPackage": "ZIP package",
+      "invalidXXMIUpdateFolder": "Invalid XXMI update folder: {{sourcePath}}",
+      "copyingXXMIUpdateFolder": "Copying XXMI update folder...",
+      "extractingXXMIUpdatePackage": "Extracting XXMI update package...",
+      "updating": "Updating: {{displayName}}",
+      "xXMIUpdateComplete": "XXMI update complete!",
+      "updateXXMIFailed": "Update XXMI failed: {{reason}}",
+      "updateSourceNotFound": "Update source not found: {{sourcePath}}",
+      "gamePackageDirectoryNotFound": "Game package directory not found: {{packageDir}}",
+      "invalidGamePackageUpdateFolder": "Invalid game package update folder: {{sourcePath}}",
+      "copyingGamePackageUpdateFolder": "Copying game package update folder...",
+      "extractingGamePackageUpdate": "Extracting game package update...",
+      "gamePackageUpdateCompleteModsFolderPreserved": "Game package update complete! Mods folder preserved.",
+      "updateGamePackageFailed": "Update game package failed: {{reason}}",
+      "chooseFolder": "Choose a folder",
+      "chooseArchive": "Choose an archive",
+      "archiveFilter": "Archives",
+      "allFiles": "All files"
+    },
+    "advice": {
+      "mB": "{{progress}} MB",
+      "kB": "{{progress}} KB",
+      "b": "{{size}} B"
+    },
+    "managed": {
+      "xxmiResourcesTitle": "XXMI Resources · {{root}}"
+    }
+  },
+  "mods": {
+    "nevernessPaks": {
+      "pakModNotFound": "Pak Mod not found"
+    },
+    "backups": {
+      "unknownTime": "Unknown time"
+    }
+  },
+  "system": {
+    "files": {
+      "failedToMoveToRecycleBin": "{{context}} failed to move to Recycle Bin: {{windowsFileOperationError}}",
+      "extractedNoFilesThePackageMayBeIncompleteOrCorrupted": "{{context}} extracted no files; the package may be incomplete or corrupted."
+    }
+  },
+  "jsonStore": {
+    "jSONRecoverySnapshotIsUnreadable": "JSON recovery snapshot is unreadable",
+    "invalidJSONRecoverySnapshot": "Invalid JSON recovery snapshot",
+    "jSONFileHasNotBeenSavedYet": "JSON file has not been saved yet"
+  },
+  "pawchive": {
+    "invalidState": "Invalid state",
+    "duplicateAuthor": "Duplicate author",
+    "invalidSnapshot": "Invalid snapshot"
+  },
+  "siteSessions": {
+    "invalidSections": "Invalid sections"
+  },
+  "softwareUpdates": {
+    "invalidUpdatePreferences": "Invalid update preferences"
+  },
+  "index": {
+    "startupFailed": "Startup failed",
+    "installationWritableAdvice": "{{reason}}\nMake sure the installation directory is writable and try again."
+  },
+  "desktop": {
+    "windows": {
+      "closeTitle": "Close window",
+      "closePrompt": "Choose how to close the window:",
+      "minimizeToTray": "Minimize to tray",
+      "quit": "Quit",
+      "cancel": "Cancel",
+      "showWindow": "Show window",
+      "quitApplication": "Quit application",
+      "mainWindowUnavailable": "The main window is unavailable",
+      "unknownWindowAction": "Unknown window action",
+      "rememberCloseChoice": "Remember my choice"
+    }
+  },
+  "characterContextMenu": {
+    "unpin": "Unpin",
+    "pin": "Pin to top",
+    "openSourceFolder": "Open source folder",
+    "moveHere": "Move here",
+    "fixer": "Fixer",
+    "resetAllModIni": "Reset all Mod INI files",
+    "changeFixer": "Change fixer"
+  },
+  "config": {
+    "appearance": {
+      "auroraName": "Aurora Mint",
+      "auroraDescription": "Light gradients, glass surfaces, and mint highlights",
+      "themeUnavailable": "This theme is unavailable. Select a built-in theme."
+    }
+  },
+  "common": {
+    "none": "None",
+    "notConfigured": "Not configured"
+  },
+  "modSites": {
+    "gamebananaLabel": "GameBanana",
+    "arcaLabel": "Arca",
+    "huiyueLabel": "Huiyue",
+    "kekeLabel": "Keke"
+  },
+  "validation": {
+    "characterName": "Character name",
+    "canonicalCharacterName": "Canonical character name",
+    "modName": "Mod name",
+    "gameId": "Game ID",
+    "targetDirectory": "Target directory",
+    "targetModsDirectory": "Target Mods directory",
+    "downloadCacheDirectory": "Download cache directory"
+  }
+}

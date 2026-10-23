@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createHiddenCharactersStore, applyDisablePlan } = require('../app/out/main/hidden-characters.cjs');
+const { createHiddenCharactersStore, applyDisablePlan } = require('../app/src/main/characters/hidden-store.cjs');
 
 function fixture(t) {
   const parent = fs.realpathSync(os.tmpdir());

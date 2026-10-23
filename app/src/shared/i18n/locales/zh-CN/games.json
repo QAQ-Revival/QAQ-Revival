@@ -1,0 +1,15 @@
+{
+  "launch": {
+    "direct": "直接启动",
+    "directDx12": "直接启动 · DX12",
+    "xxmi": "XXMI 启动",
+    "launching": "启动中...",
+    "directHint": "加载 Mod 并直接启动游戏",
+    "dx12Hint": "使用 wwmi-dx12 加载 Mod 并启动 DX12",
+    "xxmiHint": "打开 XXMI 启动器",
+    "nteHint": "异环请使用直接启动",
+    "failed": "启动失败",
+    "checkPaths": "启动失败，请检查游戏和加载器路径"
+  },
+  "settingsLabel": "{{name}} · 游戏设置"
+}

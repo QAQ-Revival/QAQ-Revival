@@ -1,0 +1,62 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family:
+    "Segoe UI",
+    "Microsoft YaHei UI",
+    "PingFang SC",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: linear-gradient(
+    135deg,
+    var(--color-bg-gradient-start, #fdfbfb) 0%,
+    var(--color-bg-gradient-end, #ebedee) 100%
+  );
+  color: var(--color-text-primary);
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  user-select: none;
+  transition:
+    background 0.3s ease,
+    color 0.3s ease;
+}
+
+:root[data-theme-switching="true"] *,
+:root[data-theme-switching="true"] *::before,
+:root[data-theme-switching="true"] *::after {
+  transition-property:
+    color, background-color, border-color, box-shadow, outline-color, fill,
+    stroke !important;
+  transition-duration: 180ms !important;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme-switching="true"] *,
+  :root[data-theme-switching="true"] *::before,
+  :root[data-theme-switching="true"] *::after {
+    transition-duration: 0ms !important;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}

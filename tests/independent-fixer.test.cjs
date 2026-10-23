@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createIndependentFixer } = require('../app/out/main/independent-fixer.cjs');
+const { createIndependentFixer } = require('../app/src/main/fixes/independent-fixer.cjs');
 
 function fixture(t, overrides = {}) {
   const base = fs.realpathSync(os.tmpdir());

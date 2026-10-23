@@ -16,7 +16,7 @@ module.exports = async ({ electron, window, evaluate, waitFor, captureUI, root, 
   const isolated = new electron.BrowserWindow({ show: false, webPreferences: { preload: path.join(process.resourcesPath, 'app/out/preload/index.js'), sandbox: false } });
   const errors = [];
   const listenersBefore = electron.ipcMain.listenerCount('files:internal-drag');
-  runtimeRequire('./out/main/native-file-drop.cjs').enableNativeFileDrop(isolated, { screen: electron.screen, ipcMain: electron.ipcMain, preferLegacy: true, onDrop() {}, onError: error => errors.push(error.message) });
+  runtimeRequire('./out/main/desktop/native-file-drop.cjs').enableNativeFileDrop(isolated, { screen: electron.screen, ipcMain: electron.ipcMain, preferLegacy: true, onDrop() {}, onError: error => errors.push(error.message) });
   const isolatedHandle = isolated.getNativeWindowHandle().readBigUInt64LE();
   try {
     await isolated.loadURL('data:text/html,<p draggable="true">drag</p>');

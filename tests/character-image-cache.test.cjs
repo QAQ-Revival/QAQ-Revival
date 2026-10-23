@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createCharacterImageCache, MAX_IMAGE_BYTES } = require('../app/out/main/character-image-cache.cjs');
+const { createCharacterImageCache, MAX_IMAGE_BYTES } = require('../app/src/main/characters/image-cache.cjs');
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64');
 const source = 'https://api.encore.moe/portrait.png';
 const response = () => new Response(png, { headers: { 'Content-Type': 'image/png' } });

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { readJsonFileSync, writeJsonFileSync } = require('../app/out/main/json-store.cjs');
+const { readJsonFileSync, writeJsonFileSync } = require('../app/src/main/core/json-store.cjs');
 const failure = code => Object.assign(new Error(code), { code });
 function fixture(t, previous) {
   const parent = fs.realpathSync(os.tmpdir());

@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createHotkeyTranslator, registerHotkeyTranslation } = require('../app/out/main/hotkey-translation.cjs');
+const { createHotkeyTranslator, registerHotkeyTranslation } = require('../app/src/main/overlay/hotkey-translation.cjs');
 const reply = text => new Response(JSON.stringify([[[text, 'source', null, null]], null, 'en']));
 
 test('Google request encodes labels, joins segments, preserves row order and caches duplicate names', async () => {

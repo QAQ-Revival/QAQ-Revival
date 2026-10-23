@@ -1,0 +1,227 @@
+/* Hotkey Display Styles */
+.hotkey-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.hotkey-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.hotkey-row:last-child {
+  border-bottom: none;
+}
+
+.hotkey-desc {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.hotkey-keys {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.kbd-key {
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  border: 1px solid #d1d1d1;
+  border-bottom: 2px solid #b0b0b0;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-family: "Consolas", monospace;
+  font-size: 12px;
+  font-weight: bold;
+  color: #555;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  min-width: 20px;
+  text-align: center;
+}
+
+.character-card .card-image {
+  flex: 1; /* take up more vertical space */
+  min-height: 205px;
+  /* More emphasis on image area */
+  width: 100%;
+  overflow: hidden;
+  background: linear-gradient(to bottom, #f5f7fa, #c3cfe2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.character-pin-badge {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  font-size: 13px;
+  z-index: 6;
+}
+
+.character-card .card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s;
+}
+
+.character-card:hover .card-image img {
+  transform: scale(1.05);
+  /* Quick zoom effect */
+}
+
+.character-card .card-name {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-text-primary);
+  z-index: 1;
+  position: relative;
+  padding: 0 8px;
+  gap: 4px;
+  width: 100%;
+}
+
+.character-card .hide-character-btn,
+.character-card .delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-danger);
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 10;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+}
+
+.character-card:hover .hide-character-btn,
+.character-card:focus-within .hide-character-btn,
+.character-card:focus-within .delete-btn,
+.character-card:hover .delete-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.character-card .hide-character-btn {
+  right: 42px;
+  color: #64748b;
+}
+
+.character-card .hide-character-btn:hover:not(:disabled) {
+  background: var(--color-accent-primary);
+  color: white;
+}
+
+.character-card .hide-character-btn:disabled {
+  cursor: wait;
+  opacity: 0.45;
+}
+
+.character-card .hide-character-btn:focus-visible,
+.character-card .delete-btn:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
+
+.character-card .delete-btn:hover {
+  background: var(--color-danger);
+  color: white;
+}
+
+/* Rename button - absolutely positioned so it doesn't affect text centering */
+.rename-btn {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.character-card:hover .rename-btn {
+  opacity: 0.6;
+}
+
+.rename-btn:hover {
+  opacity: 1 !important;
+}
+
+.character-card.dragging {
+  border: 2px solid var(--color-accent-primary);
+}
+
+.character-card.dragging-self {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+.character-card.drag-target {
+  border: 2px dashed var(--color-accent-primary);
+  box-shadow: 0 0 20px rgba(255, 143, 163, 0.3);
+}
+
+.character-card .drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  z-index: 20;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.2s;
+}
+
+.character-card .drop-overlay.reorder-overlay {
+  background: rgba(255, 143, 163, 0.8);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,17 @@
+.header-left .market-header-sync-indicator-layout {
+  color: #e67e22;
+}
+
+.market-toolbar-mod-market-select-layout {
+  min-width: 80px;
+}
+
+.market-detail-dialog-row {
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}

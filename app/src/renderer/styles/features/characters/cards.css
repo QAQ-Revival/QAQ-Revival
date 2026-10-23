@@ -1,0 +1,78 @@
+/* Character Card Redesign */
+.card-stats-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(255, 154, 158, 0.2);
+  border: 1px solid rgba(255, 154, 158, 0.3);
+  z-index: 5;
+  transition: transform 0.2s;
+}
+
+.character-card:hover .card-stats-badge {
+  transform: scale(1.05);
+}
+
+.card-stats-badge .icon {
+  font-size: 13px;
+}
+
+.card-stats-badge .count {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.card-bottom-section {
+  display: flex;
+  height: 48px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  z-index: 1;
+  position: relative;
+  border-top: 1px solid rgba(0, 0, 0, 0.03);
+  padding: 0 8px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.card-stats-pill {
+  margin-top: 6px;
+  padding: 4px 12px;
+  background: rgba(255, 154, 158, 0.15);
+  color: var(--color-accent-primary, #ff9a9e);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.5px;
+}
+
+@keyframes modRowFocusPulse {
+  0% {
+    transform: scale(0.992);
+    box-shadow: 0 0 0 0 rgba(255, 154, 158, 0.04);
+  }
+  35% {
+    transform: scale(1.008);
+    box-shadow:
+      0 0 0 3px rgba(255, 154, 158, 0.22),
+      0 14px 30px rgba(255, 154, 158, 0.16);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 154, 158, 0.04);
+  }
+}

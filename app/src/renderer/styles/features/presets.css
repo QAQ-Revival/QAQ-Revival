@@ -1,0 +1,265 @@
+.preset-view-centered-content {
+  padding: 40px;
+  text-align: center;
+  color: #888;
+}
+
+.preset-view {
+  animation: preset-fade-in 0.3s ease-out;
+}
+
+.preset-view-page-header-layout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preset-view-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preset-view-stack .preset-view-hint {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.preset-view-row {
+  display: flex;
+  gap: 8px;
+}
+
+.preset-view-row .preset-view-btn-layout {
+  font-size: 13px;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+}
+
+.preset-view-row .preset-view-toggle-create {
+  font-size: 14px;
+  padding: 8px 16px;
+}
+
+.preset-create-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 2px dashed var(--color-accent-primary, #667eea);
+  animation: preset-fade-in 0.2s ease-out;
+}
+
+.preset-create-panel .preset-view-content {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+}
+
+.preset-view-snapshot-hint {
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 16px 0;
+}
+
+.preset-view-vertical-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preset-view-input-field {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.preset-view-create-snapshot {
+  align-self: flex-start;
+}
+
+.preset-view-centered-content-spaced {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.preset-view-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.preset-view-heading {
+  font-size: 16px;
+  font-weight: 600;
+  color: #666;
+}
+
+.preset-view-empty-presets-hint {
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.preset-view-create-first {
+  margin-top: 16px;
+}
+
+.preset-view-preset-card {
+  background: white;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.preset-view-row-spaced {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.preset-view-preset-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.preset-view-name-editor {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.preset-view-input-field-emphasis {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.preset-view-name-editor .preset-view-save-name {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.preset-view-preset-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preset-view-preset-heading .preset-view-heading-emphasis {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.preset-view-preset-heading .preset-view-built-in-badge {
+  font-size: 11px;
+  background: rgba(255, 154, 158, 0.16);
+  color: #d85b79;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.preset-view-preset-heading .preset-view-heading-spaced {
+  font-size: 11px;
+  background: var(--color-accent-primary, #667eea);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.preset-view-preset-summary {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.preset-view-activate-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.preset-view-activate-actions .preset-view-btn-layout-spaced {
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+.preset-expanded-content {
+  border-top: 1px solid #f0f0f0;
+  padding: 16px 20px;
+  background: #fafafa;
+  animation: preset-fade-in 0.2s ease-out;
+}
+
+.preset-view-preset-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.preset-view-preset-actions .preset-view-edit-action {
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+.preset-view-preset-actions .preset-view-delete-action {
+  font-size: 12px;
+  padding: 5px 10px;
+  color: #e74c3c;
+}
+
+.preset-view-built-in-hint {
+  font-size: 12px;
+  color: #888;
+}
+
+.preset-view-empty-mods-hint {
+  font-size: 13px;
+  color: #999;
+}
+
+.preset-view-character-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preset-view-character-heading {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.preset-view-mod-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.preset-view-mod-list .preset-view-panel {
+  font-size: 11px;
+  background: #e8eaf6;
+  color: #444;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+@keyframes preset-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

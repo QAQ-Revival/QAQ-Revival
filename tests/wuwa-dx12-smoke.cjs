@@ -39,7 +39,7 @@ module.exports = async ({ call, click, evaluate, waitFor, captureUI, root, launc
   const probeEngine = path.join(probe, 'Engine.ini'), probeResult = path.join(probe, 'result.json'), probeRequest = path.join(probe, 'request.json');
   fs.writeFileSync(probeEngine, '[SystemSettings]');
   fs.writeFileSync(probeRequest, JSON.stringify({ gameRoot: probe, engine: probeEngine, resultFile: probeResult, arguments: '-dx12', engineReadOnly: false }));
-  const helper = launchRequests.at(-1), nativeLauncher = require('../app/out/main/windows-launch.cjs').createWindowsLauncher({ isElevated: () => true });
+  const helper = launchRequests.at(-1), nativeLauncher = require('../app/out/main/system/launch.cjs').createWindowsLauncher({ isElevated: () => true });
   const helperArgs = [...helper.args]; helperArgs[helperArgs.length - 1] = probeRequest;
   assert.equal((await nativeLauncher.launch(helper.file, helper.cwd, helperArgs, { requireElevation: false })).success, true);
   for (let i = 0; i < 50 && !fs.existsSync(probeResult); i++) await new Promise(resolve => setTimeout(resolve, 100));
@@ -61,7 +61,7 @@ module.exports = async ({ call, click, evaluate, waitFor, captureUI, root, launc
   assert.ok(fs.readFileSync(path.join(win64, 'dxgi.dll')).includes(Buffer.from('user replacement')));
   assert.equal(fs.existsSync(path.join(win64, 'wwmi_dx12.addon64')), false);
   assert.match(await evaluate(`document.querySelector('[data-dx12-component="reshade"]').textContent`), /用户安装/);
-  assert.match(await evaluate(`document.querySelector('[data-dx12-component="addon"]').textContent`), /已停用/);
+  assert.match(await evaluate(`document.querySelector('[data-dx12-component="addon"]').textContent`), /已禁用/);
   await captureUI('wuwa-dx12-mixed.png');
   await click('[aria-label="直接启动"]');
   await waitFor(`!document.querySelector('[aria-label="直接启动"]').disabled`, 'WWMI route restored');

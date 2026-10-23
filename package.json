@@ -1,12 +1,12 @@
 {
   "name": "qaq-revival",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "license": "MIT",
   "description": "QAQ-Revival — locally maintained Mod manager",
   "scripts": {
     "build": "node tools/build.cjs",
-    "test": "node tools/build-mega.cjs --test && node tools/build-steam-bridge.cjs --test && node --test tests/steam-bridge.test.cjs tests/single-instance.test.cjs tests/window-state.test.cjs tests/windows-launch.test.cjs tests/random-executable.test.cjs tests/wuwa-tuning.test.cjs tests/wuwa-dx12.test.cjs tests/genshin.test.cjs tests/genshin-diagnostics.test.cjs tests/genshin-anticrash.test.cjs tests/independent-fixer.test.cjs tests/pawchive.test.cjs tests/mega-manager.test.cjs tests/archive-downloads.test.cjs tests/software-updates.test.cjs tests/mega-worker.test.cjs tests/character-catalog.test.cjs tests/character-image-cache.test.cjs tests/character-skin-catalog.test.cjs tests/json-store.test.cjs tests/persist-settings.test.cjs tests/mod-sites.test.cjs tests/overlay-activity.test.cjs tests/release.test.cjs tests/executable-manifest.test.cjs tests/hotkey-translation.test.cjs tests/hidden-characters.test.cjs && node tools/smoke.cjs && node tools/smoke.cjs --single-instance && node tools/smoke.cjs --translation && node tools/smoke.cjs --hidden-characters && node tools/smoke.cjs --steam-bridge",
+    "test": "node tools/build-mega.cjs --test && node tools/build-steam-bridge.cjs --test && node --test tests/*.test.cjs && node tools/smoke.cjs && node tools/smoke.cjs --single-instance && node tools/smoke.cjs --translation && node tools/smoke.cjs --hidden-characters && node tools/smoke.cjs --steam-bridge",
     "test:single-instance": "node --test tests/single-instance.test.cjs && node tools/smoke.cjs --single-instance",
     "test:genshin": "node --test tests/genshin.test.cjs tests/windows-launch.test.cjs && node tools/smoke.cjs --genshin",
     "test:random-launch": "node --test tests/random-executable.test.cjs tests/single-instance.test.cjs tests/windows-launch.test.cjs && node tests/random-runtime-smoke.cjs",
@@ -21,7 +21,25 @@
     "test:genshin-anticrash": "node --test tests/genshin-anticrash.test.cjs && node tools/smoke.cjs --genshin-anticrash",
     "test:persist": "node --test tests/persist-settings.test.cjs && node tools/smoke.cjs --persist",
     "test:overlay-activity": "node --test tests/overlay-activity.test.cjs && node tools/smoke.cjs --overlay-activity",
-    "test:steam-bridge": "node tools/build-steam-bridge.cjs --test && node --test tests/steam-bridge.test.cjs && node tools/smoke.cjs --steam-bridge"
+    "test:steam-bridge": "node tools/build-steam-bridge.cjs --test && node --test tests/steam-bridge.test.cjs && node tools/smoke.cjs --steam-bridge",
+    "build:app": "node tools/build-app.cjs",
+    "dev:renderer": "vite --config vite.config.mjs",
+    "check:i18n": "node tools/check-i18n.cjs",
+    "lint": "eslint app/src",
+    "test:unit": "node --test tests/*.test.cjs",
+    "check": "npm run lint && npm run check:i18n",
+    "format": "prettier --write app/src"
   },
-  "productName": "QAQ-Revival"
+  "productName": "QAQ-Revival",
+  "devDependencies": {
+    "@babel/parser": "8.0.8",
+    "@babel/traverse": "8.0.7",
+    "eslint": "10.13.0",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "vite": "8.3.5"
+  },
+  "engines": {
+    "node": ">=24"
+  }
 }

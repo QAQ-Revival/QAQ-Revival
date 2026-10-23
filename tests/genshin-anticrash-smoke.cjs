@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const { TWIN_EXE } = require('../app/out/main/genshin-anticrash.cjs');
+const { TWIN_EXE } = require('../app/out/main/games/genshin/anticrash.cjs');
 
 module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, handlers, launchRequests, antiCrashRequests, passed, setLaunchFailure }) => {
   const call = (channel, ...args) => handlers.get(channel)({ sender: window.webContents }, ...args);

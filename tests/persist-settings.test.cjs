@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { migratePersistSettings } = require('../app/out/main/persist-settings.cjs');
+const { migratePersistSettings } = require('../app/src/main/persist/settings.cjs');
 
 test('migrate the legacy switch to every existing game without discarding tracking or overrides', () => {
   for (const enabled of [true, false]) {

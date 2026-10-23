@@ -4,12 +4,12 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { resolveSite, siteUrl, GAMES } = require('../app/out/main/mod-sites.cjs');
-const { createGameBananaService } = require('../app/out/main/gamebanana.cjs');
-const { createArchiveDownloads } = require('../app/out/main/archive-downloads.cjs');
-const { standardChromeUserAgent } = require('../app/out/main/site-sessions.cjs');
-const { createSiteContent, huiPost } = require('../app/out/main/site-content.cjs');
-const { canFinishVerification, sameDocument } = require('../app/out/main/site-verification.cjs');
+const { resolveSite, siteUrl, GAMES } = require('../app/src/main/market/sites/definitions.cjs');
+const { createGameBananaService } = require('../app/src/main/market/sites/gamebanana.cjs');
+const { createArchiveDownloads } = require('../app/src/main/market/archive-downloads.cjs');
+const { standardChromeUserAgent } = require('../app/src/main/market/sites/sessions.cjs');
+const { createSiteContent, huiPost } = require('../app/src/main/market/sites/content.cjs');
+const { canFinishVerification, sameDocument } = require('../app/src/main/market/sites/verification.cjs');
 
 test('game routes share sources while unknown sections never fall back to Endfield', () => {
   for (const game of Object.keys(GAMES)) assert.ok(resolveSite('gamebanana', game).hasSection);

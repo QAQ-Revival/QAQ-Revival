@@ -5,6 +5,20 @@ const { execFileSync } = require('node:child_process');
 const { createRequire } = require('node:module');
 module.exports = async ({ evaluate, waitFor, captureUI, window, root, setSelection, passed }) => {
   await evaluate(`localStorage.setItem('batch-import-guide-dismissed', 'true')`);
+  async function dropArchive(importPath) {
+    const position = await evaluate(`(() => { const r = document.querySelector('.character-toolbar-subtitle').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+    const alreadyAttached = window.webContents.debugger.isAttached();
+    if (!alreadyAttached) window.webContents.debugger.attach('1.3');
+    try {
+      for (const type of ['dragEnter', 'dragOver', 'drop']) {
+        await window.webContents.debugger.sendCommand('Input.dispatchDragEvent', {
+          type, ...position, data: { items: [], files: [importPath], dragOperationsMask: 1 }
+        });
+      }
+    } finally {
+      if (!alreadyAttached) window.webContents.debugger.detach();
+    }
+  }
   async function importFixture(name, target, confirm = false, archive = false) {
     const source = path.join(root, 'manual-group-import', name);
     const bytes = '[TextureOverrideImportFixture]\nhash = deadbeef\n';
@@ -13,22 +27,12 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, setSelecti
     let importPath = source;
     if (archive) {
       const runtimeRequire = createRequire(path.join(process.resourcesPath, 'app/package.json'));
-      importPath = source + '.7z';
-      execFileSync(runtimeRequire('7zip-bin').path7za, ['a', importPath, name], {
+      importPath = source + (archive === 'rar' ? '.RAR' : '.7z');
+      if (archive === 'rar') fs.copyFileSync(path.join(__dirname, 'fixtures/import-mod.rar'), importPath);
+      else execFileSync(runtimeRequire('7zip-bin').path7za, ['a', importPath, name], {
         cwd: path.dirname(source), windowsHide: true, stdio: 'pipe'
       });
-      const position = await evaluate(`(() => { const r = document.querySelector('.character-toolbar-subtitle').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
-      const alreadyAttached = window.webContents.debugger.isAttached();
-      if (!alreadyAttached) window.webContents.debugger.attach('1.3');
-      try {
-        for (const type of ['dragEnter', 'dragOver', 'drop']) {
-          await window.webContents.debugger.sendCommand('Input.dispatchDragEvent', {
-            type, ...position, data: { items: [], files: [importPath], dragOperationsMask: 1 }
-          });
-        }
-      } finally {
-        if (!alreadyAttached) window.webContents.debugger.detach();
-      }
+      await dropArchive(importPath);
     } else {
       setSelection({ canceled: false, filePaths: [importPath] });
       await evaluate(`document.querySelector('.batch-import-trigger-btn').click()`);
@@ -58,4 +62,18 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, setSelecti
   passed('Real import: unknown grouping honors a typed new name without Enter, edited automatic matches honor trimmed names, and only blank input falls back to 其他');
   await importFixture('安可_NormalArchive', '安可', false, true);
   passed('Ordinary 7z Mod passes analysis and installs intact without being treated as a disguised archive');
+  await importFixture('安可_Normal RAR', '安可', false, 'rar');
+  passed('RAR5 Mod with a Chinese name, spaces and uppercase extension passes analysis and installs intact using bundled UnRAR');
+  const brokenArchive = path.join(root, 'invalid.rar');
+  fs.writeFileSync(brokenArchive, 'This is not an archive');
+  await dropArchive(brokenArchive);
+  await waitFor(`!!document.querySelector('.batch-import-overlay')`, 'invalid RAR preview');
+  await evaluate(`[...document.querySelectorAll('.batch-import-overlay button')].find(button => button.textContent.includes('开始分析')).click()`);
+  await waitFor(`!!document.querySelector('.batch-import-summary')`, 'invalid RAR analysis result');
+  const failureText = await evaluate(`document.querySelector('.batch-import-overlay').textContent`);
+  assert.match(failureText, /分析失败:.*UnRAR 解压失败/s);
+  assert.doesNotMatch(failureText, /解密失败/);
+  await evaluate(`[...document.querySelectorAll('.batch-import-overlay button')].find(button => button.textContent.trim() === '取消').click()`);
+  await waitFor(`!document.querySelector('.batch-import-overlay')`, 'invalid RAR dismissed');
+  passed('An invalid RAR reports the extraction failure without labeling it a decryption failure');
 };

@@ -32,6 +32,7 @@ QAQM_DownloadCache/
 Thumbs.db
 Desktop.ini
 
-# app/out contains the maintained recovered JavaScript; keep it tracked.
+# Application output is generated from app/src.
+/app/out/
 # Private components (included in local release builds; never commit)
 /local-components/

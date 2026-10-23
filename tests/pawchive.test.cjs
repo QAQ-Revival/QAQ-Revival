@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createPawchiveService, startDailyChecks, localDayKey, timestamp } = require('../app/out/main/pawchive.cjs');
+const { createPawchiveService, startDailyChecks, localDayKey, timestamp } = require('../app/src/main/market/pawchive.cjs');
 
 function fixture(t) {
   const base = fs.realpathSync(os.tmpdir());

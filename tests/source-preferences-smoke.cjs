@@ -2,22 +2,31 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 module.exports = async ({ evaluate, waitFor, captureUI, window, passed }) => {
   const retired = [];
+  const likedClientIds = [];
   window.webContents.session.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*'] }, (request, callback) => {
-    if (/\/api\/(features|skins|supporters|server-support|announcements|blocks)(\/|$)/.test(new URL(request.url).pathname)) retired.push(request.url);
+    const pathname = new URL(request.url).pathname;
+    if (/\/api\/(features|skins|supporters|server-support|announcements|blocks)(\/|$)/.test(pathname)) retired.push(request.url);
+    const likedRequest = pathname.match(/^\/api\/mods\/liked\/([^/]+)$/);
+    if (likedRequest) likedClientIds.push(decodeURIComponent(likedRequest[1]));
     callback({ cancel: true });
   });
   await evaluate(`localStorage.setItem('clientId', 'legacy-client-for-test')`);
-  const canonical = await evaluate(`import(new URL('./assets/clientIdentity.js', location.href).href).then(m => m.g())`);
-  assert.equal(canonical, (await evaluate('window.api.getConfig()')).config.clientId);
+  const canonical = (await evaluate('window.api.getConfig()')).config.clientId;
+  assert.ok(canonical && canonical !== 'legacy-client-for-test', 'Config provides a distinct canonical client id');
   const openDownloads = async expected => {
-    await waitFor(`!!document.querySelector('.nav-item[aria-label="MOD下载"]')`, 'download navigation');
-    await evaluate(`document.querySelector('.nav-item[aria-label="MOD下载"]').click()`);
+    await waitFor(`!!document.querySelector('.nav-item[aria-label="Mod 下载"]')`, 'download navigation');
+    await evaluate(`document.querySelector('.nav-item[aria-label="Mod 下载"]').click()`);
     await waitFor(`document.querySelector('.mod-download-provider:not([hidden])')?.dataset.source === ${JSON.stringify(expected)}`, 'remembered source ' + expected);
   };
   await openDownloads('qaqm');
   await waitFor(`!!document.querySelector('.mod-market-header')`, 'QAQM header');
+  for (let attempt = 0; attempt < 50 && likedClientIds.length === 0; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  assert.ok(likedClientIds.length > 0, 'Opening the market requests the current client’s liked mods');
+  assert.ok(likedClientIds.every(id => id === canonical), 'Market requests use the canonical id instead of legacy localStorage');
   await captureUI('window-titlebar-integrated.png');
-  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-market-header button')].map(el => el.textContent.trim())`), ['网页版', '布局▾', '🔄 刷新▾']);
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-market-header button')].map(el => el.textContent.trim())`), ['网页版', '布局▾', '刷新▾']);
   await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
   await waitFor(`document.querySelectorAll('.mod-download-source-option').length === 8`, 'source menu');
   assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option')].map(el => el.dataset.source)`), ['qaqm', 'kemono', 'pawchive', 'gamebanana', 'arca', 'loverslab', 'huiyue', 'keke']);
@@ -35,9 +44,10 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, passed }) => {
   await waitFor(`document.querySelectorAll('.qaqm-download-item').length === 3`, 'download status UI');
   const downloadText = await evaluate(`document.querySelector('.qaqm-download-list').textContent`);
   assert.doesNotMatch(downloadText, /赞助|高速通道|权益|Plus|支持服务器/);
-  assert.match(downloadText, /下载速度较慢/);
-  assert.match(downloadText, /该下载源暂不可用/);
+  assert.match(downloadText, /下载(?:速度)?较慢/);
+  assert.match(downloadText, /下载源暂不可用/);
   assert.match(downloadText, /检查网络/);
   assert.deepEqual(retired, []);
+  assert.ok(likedClientIds.every(id => id === canonical), 'All observed market requests use the canonical client id');
   passed('Sources default to QAQM, use the requested order and remember selection after restart; removed header actions and retired service requests stay absent, download errors have actionable neutral guidance');
 };

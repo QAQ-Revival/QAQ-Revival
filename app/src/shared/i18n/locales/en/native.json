@@ -1,0 +1,23 @@
+{
+  "window": {
+    "controls": "Window controls",
+    "minimize": "Minimize window",
+    "maximize": "Maximize window",
+    "restore": "Restore window",
+    "close": "Close window",
+    "failed": "Window action failed"
+  },
+  "startup": {
+    "failed": "Startup failed",
+    "directoryNotWritable": "{{error}}\nCheck that the app folder is writable, then try again."
+  },
+  "dialog": {
+    "selectFolder": "Choose folder",
+    "selectFile": "Choose file",
+    "selectExecutable": "Choose executable",
+    "selectImage": "Choose image",
+    "imageFiles": "Images",
+    "allFiles": "All files",
+    "executableFiles": "Executables"
+  }
+}

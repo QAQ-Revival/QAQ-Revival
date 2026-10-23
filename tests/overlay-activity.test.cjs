@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { findActivityFlags, patchConfig, readSnapshot, createActivityTracker } = require('../app/out/main/overlay-activity.cjs');
+const { findActivityFlags, patchConfig, readSnapshot, createActivityTracker } = require('../app/src/main/overlay/activity-tracker.cjs');
 const modIni = '[Constants]\nglobal $object_detected = 0\nglobal $mod_enabled = 0\n[Present]\npost $object_detected = 0\n[TextureOverrideBody]\nhash = 12345678\n$object_detected = 1\n';
 
 function fixture(t) {
