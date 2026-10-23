@@ -26,7 +26,7 @@ module.exports = async ({ electron, liveImageFetch, evaluate, waitFor, captureUI
   const skin = sections.sections.find(section => section.name === '蜜桃冰');
   const url = new URL(skin.coverUrl);
   assert.match(url.searchParams.get('fallback'), /^https:\/\/hw-media-cdn-mingchao\.kurogame\.com\//);
-  const { createCharacterImageCache } = require('../app/out/main/character-image-cache.cjs');
+  const { createCharacterImageCache } = require('../app/out/main/characters/image-cache.cjs');
   const offlineCache = createCharacterImageCache({ cacheDir: path.join(profile, 'character-image-cache'), fetchFn: () => { throw Error('offline'); } });
   const saved = await offlineCache.get(url.searchParams.get('url'));
   assert.equal(electron.nativeImage.createFromBuffer(saved.bytes).getSize().width, 1080);

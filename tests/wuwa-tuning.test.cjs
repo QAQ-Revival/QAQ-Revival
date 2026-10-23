@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createWuwaTuningService } = require('../app/out/main/wuwa-tuning.cjs');
+const { createWuwaTuningService } = require('../app/src/main/games/wuwa/tuning.cjs');
 function fixture(t, assertStopped) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qaq-wuwa-tuning-'));
   t.after(() => { t.mock.restoreAll(); assert.equal(path.dirname(fs.realpathSync(root)), fs.realpathSync(os.tmpdir())); fs.rmSync(root, { recursive: true, force: true }); });

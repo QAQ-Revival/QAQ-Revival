@@ -192,7 +192,7 @@ const launchRequests = [];
 const revivalRequests = [];
 const revivalChildren = [];
 fs.writeFileSync(path.join(profile, 'market-download-settings.json'), JSON.stringify({ cacheDir: path.join(root, 'download-cache') }));
-const revivalModulePath = runtimeRequire.resolve('./out/main/mega-task-manager.cjs');
+const revivalModulePath = runtimeRequire.resolve('./out/main/market/mega/task-manager.cjs');
 const revivalModule = runtimeRequire(revivalModulePath);
 runtimeRequire.cache[revivalModulePath].exports = { ...revivalModule,
   registerRevivalIpc: options => revivalModule.registerRevivalIpc({ ...options,
@@ -214,7 +214,7 @@ runtimeRequire.cache[revivalModulePath].exports = { ...revivalModule,
 };
 let launchFailure = false;
 let fixerLaunchFailure = false;
-const launchModulePath = runtimeRequire.resolve('./out/main/windows-launch.cjs');
+const launchModulePath = runtimeRequire.resolve('./out/main/system/launch.cjs');
 const launchModule = runtimeRequire(launchModulePath);
 runtimeRequire.cache[launchModulePath].exports = {
   ...launchModule,
@@ -226,18 +226,18 @@ runtimeRequire.cache[launchModulePath].exports = {
 };
 const antiCrashRequests = [];
 const steamBridgeFixture = require('./steam-bridge-smoke.cjs').fixture(root);
-const steamBridgeModulePath = runtimeRequire.resolve('./out/main/steam-bridge.cjs');
+const steamBridgeModulePath = runtimeRequire.resolve('./out/main/games/steam/bridge.cjs');
 const steamBridgeModule = runtimeRequire(steamBridgeModulePath);
 runtimeRequire.cache[steamBridgeModulePath].exports = { ...steamBridgeModule,
   registerSteamBridgeIpc: options => steamBridgeModule.registerSteamBridgeIpc({ ...options, schedule: false, runNative: steamBridgeFixture.runNative })
 };
-const wuwaDx12ModulePath = runtimeRequire.resolve('./out/main/wuwa-dx12.cjs');
+const wuwaDx12ModulePath = runtimeRequire.resolve('./out/main/games/wuwa/dx12.cjs');
 const wuwaDx12Module = runtimeRequire(wuwaDx12ModulePath);
 runtimeRequire.cache[wuwaDx12ModulePath].exports = { ...wuwaDx12Module,
   createWuwaDx12Service: options => wuwaDx12Module.createWuwaDx12Service({ ...options,
     stopped: async () => {}, waitForStart: async () => ({ success: true }) })
 };
-const antiCrashModulePath = runtimeRequire.resolve('./out/main/genshin-anticrash.cjs');
+const antiCrashModulePath = runtimeRequire.resolve('./out/main/games/genshin/anticrash.cjs');
 const antiCrashModule = runtimeRequire(antiCrashModulePath);
 runtimeRequire.cache[antiCrashModulePath].exports = {
   ...antiCrashModule,
@@ -462,7 +462,7 @@ async function main() {
   }
   const navigation = await evaluate(`Array.from(document.querySelectorAll('.nav-item')).map(item => item.textContent)`);
   assert.equal(navigation.length, 3, JSON.stringify(navigation));
-  assert.match(navigation[1], /MOD下载/);
+  assert.match(navigation[1], /Mod 下载/);
   assert.ok(navigation.every(label => !/支持主包|个性化/.test(label)));
   for (const tab of ['support', 'personalization']) {
     await evaluate(`window.dispatchEvent(new CustomEvent('qaqm-navigate', { detail: { tab: ${JSON.stringify(tab)} } }))`);
@@ -475,9 +475,6 @@ async function main() {
     assert.ok(!handlers.has(name), 'Removed IPC handler: ' + name);
   }
   const assetsPath = path.join(process.resourcesPath, 'app/out/renderer/assets');
-  // Parse the authored module in Electron's V8 for actionable syntax locations.
-  new (require('node:vm').Script)(fs.readFileSync(path.join(assetsPath, 'ModPostDialog.js'), 'utf8')
-    .replace(/^import .*$/mg, '').replaceAll('export default ', '').replaceAll('export ', ''), { filename: 'ModPostDialog.js' });
   for (const file of ['SupportView-CinAzyNM.js', 'PersonalizationView-C63jzEOP.js']) {
     assert.ok(!fs.existsSync(path.join(assetsPath, file)), 'Removed module must not survive packaging: ' + file);
   }
@@ -487,8 +484,9 @@ async function main() {
       assert.ok(fs.existsSync(path.join(assetsPath, match[1])), `${file} refers to missing asset ${match[1]}`);
     }
   }
-  for (const file of ['SettingsView.js', 'PresetView.js', 'ModMarketView.js', 'ModView.js', 'ModPostDialog.js', 'PawchiveView.js', 'ModDownloadView.js']) {
-    await evaluate(`import(new URL('./assets/' + ${JSON.stringify(file)}, location.href).href).then(() => true)`);
+  const bundles = JSON.parse(fs.readFileSync(path.join(assetsPath, '../.vite/manifest.json'), 'utf8'));
+  for (const { file } of Object.values(bundles).filter(bundle => bundle.isDynamicEntry)) {
+    await evaluate(`import(new URL(${JSON.stringify(file)}, location.href).href).then(() => true)`);
   }
   passed('Removed pages, IPC and bundles are absent; stale navigation preserves the current page and remaining modules load');
   // Suppress the import tutorial in this isolated test profile.
@@ -524,7 +522,7 @@ async function main() {
   passed('Refresh, Update Characters and Organize are separate; online metadata updates and failures never move or edit Mods');
   await waitFor(`document.body.innerText.includes('安可')`, 'character data loaded');
   const beforeFixer = snapshot(mods);
-  await clickText('🔧 修复器');
+  await clickText('修复器');
   await waitFor(`document.body.innerText.includes('独立修复器已打开')`, 'fixer opened');
   assert.equal(fixerSelections.length, 1);
   assert.ok(fixerSelections[0].title.includes('鸣潮'));
@@ -556,20 +554,20 @@ async function main() {
   fs.unlinkSync(fixerExe);
   nextFixerSelection = { canceled: true, filePaths: [] };
   const beforeCancel = launchRequests.length;
-  await clickText('🔧 修复器');
-  await waitFor(`Array.from(document.querySelectorAll('button')).some(b => b.textContent.trim() === '🔧 修复器' && !b.disabled)`, 'selection cancelled');
+  await clickText('修复器');
+  await waitFor(`Array.from(document.querySelectorAll('button')).some(b => b.textContent.trim() === '修复器' && !b.disabled)`, 'selection cancelled');
   assert.equal(fixerSelections.length, 2);
   assert.equal(launchRequests.length, beforeCancel);
   assert.equal(JSON.parse(fs.readFileSync(path.join(profile, 'config.json'))).independentFixerPaths['wuthering-waves'], fixerExe);
   nextFixerSelection = { canceled: false, filePaths: [replacementFixerExe] };
-  await clickText('🔧 修复器');
-  await waitFor(`Array.from(document.querySelectorAll('button')).some(b => b.textContent.trim() === '🔧 修复器' && !b.disabled)`, 'replacement opened');
+  await clickText('修复器');
+  await waitFor(`Array.from(document.querySelectorAll('button')).some(b => b.textContent.trim() === '修复器' && !b.disabled)`, 'replacement opened');
   assert.equal(fixerSelections.length, 3);
   assert.equal(launchRequests.at(-1).file, replacementFixerExe);
   assert.equal(JSON.parse(fs.readFileSync(path.join(profile, 'config.json'))).independentFixerPaths['wuthering-waves'], replacementFixerExe);
   passed('Deleted saved fixer prompts again; cancelling is harmless and a replacement path is persisted');
   fixerLaunchFailure = true;
-  await clickText('🔧 修复器');
+  await clickText('修复器');
   await waitFor(`document.body.innerText.includes('修复器启动失败')`, 'fixer error shown');
   assert.equal(fixerSelections.length, 3);
   fixerLaunchFailure = false;
@@ -595,7 +593,7 @@ async function main() {
   fixture('安可/新增模组/mod.ini');
   const beforeRefresh = snapshot(mods);
   await clickText('刷新');
-  await waitFor(`document.body.innerText.includes('已刷新本地角色、Mod 和快捷键配置')`, 'refresh completion');
+  await waitFor(`document.body.innerText.includes('已刷新角色、Mod 和快捷键')`, 'refresh completion');
   assert.equal(snapshot(mods), beforeRefresh);
   assert.equal((await handlers.get('get-characters')({})).characters.find(c => c.name === '安可').modCount, 2);
   passed('Refresh button sees an externally added Mod without moving files or opening a dialog');
@@ -639,7 +637,7 @@ async function main() {
   passed('Sidebar switch updates active game, character data and launch modes without a switch page');
   fs.writeFileSync(fixerExe, 'Synthetic Endfield fixer, never executed');
   nextFixerSelection = { canceled: false, filePaths: [fixerExe] };
-  await clickText('🔧 修复器');
+  await clickText('修复器');
   await waitFor(`document.body.innerText.includes('独立修复器已打开')`, 'Endfield fixer opened');
   assert.equal(fixerSelections.length, 4);
   assert.ok(fixerSelections.at(-1).title.includes('终末地'));
@@ -687,7 +685,7 @@ async function main() {
   await waitFor(`document.querySelector('.launch-error')?.innerText.includes('用户取消管理员授权')`, 'launch failure shown');
   assert.equal(await evaluate(`document.querySelector('[aria-label="直接启动"]').disabled`), false);
   passed('Launch errors are visible and both buttons become usable after cancellation');
-  await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('MOD下载')).click()`);
+  await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('Mod 下载')).click()`);
   await waitFor(`document.querySelector('.mod-download-source-name')?.textContent === 'QAQM'`, 'default download source is QAQM');
   await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
   await waitFor(`document.querySelectorAll('.mod-download-source-option').length === 8`, 'download source menu');
@@ -703,7 +701,7 @@ async function main() {
   await waitFor(`!!document.querySelector('.paw-modal')`, 'whole post card opens detail');
   await evaluate(`document.querySelector('[aria-label="关闭内容详情"]').click()`);
   assert.equal(await evaluate(`document.querySelector('.pawchive-view').scrollWidth > document.querySelector('.pawchive-view').clientWidth + 1`), false);
-  await clickText('下一页 →');
+  await clickText('下一页');
   await waitFor(`document.querySelectorAll('.paw-post-card').length === 1 && document.querySelector('.paw-post-title').textContent === '历史模组 50'`, 'Pawchive post pagination');
   await clickText('作者');
   await waitFor(`document.querySelectorAll('.paw-creator-card').length === 24`, 'Pawchive authors');
@@ -714,7 +712,7 @@ async function main() {
   assert.equal(await evaluate(`document.querySelectorAll('.paw-author-tab').length`), 0, 'favorite must not trigger the card action');
   await evaluate(`document.querySelector('.paw-creator-card[data-author-id="123"][data-author-service="patreon"] .paw-creator-stats').click()`);
   await waitFor(`document.querySelectorAll('.paw-author-tab').length === 1 && document.querySelectorAll('.paw-post-card').length === 50`, 'whole author card opens its own tab');
-  await clickText('下一页 →');
+  await clickText('下一页');
   await waitFor(`document.querySelectorAll('.paw-post-card').length === 1`, 'author page two');
   await evaluate(`(() => { const input = document.querySelector('.paw-search input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'saved draft'); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   for (const [service, id] of [['fanbox', '123'], ['patreon', '200'], ['fanbox', '201'], ['patreon', '202'], ['fanbox', '203']]) {
@@ -741,7 +739,7 @@ async function main() {
   pawPosts[50].edited = '2026-09-11T15:15:06';
   pawPosts[50].content = `<p>历史帖子更新了下载链接。</p><a href="${pawMegaFolder}">MEGA 文件夹</a><script>window.pawXss=true</script>`;
   pawPosts.unshift({ ...pawPosts[0], id: 'new-post', title: '新发布的模组', published: '2026-09-12T00:00:00' });
-  await clickText('↻ 检查更新');
+  await clickText('检查更新');
   await waitFor(`document.querySelector('.paw-summary')?.textContent.includes('2 条未读更新')`, 'new and edited post detection');
   await clickText('有更新 2');
   await waitFor(`document.querySelectorAll('.paw-post-card').length === 2`, 'updates feed');
@@ -751,9 +749,9 @@ async function main() {
   await evaluate(`Array.from(document.querySelectorAll('.paw-post-card')).find(card => card.querySelector('.paw-post-title').textContent === '历史模组 50').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))`);
   await waitFor(`!!document.querySelector('.paw-download-button')`, 'MEGA folder link recognized in detail');
   assert.equal(await evaluate(`window.pawXss === true`), false);
-  assert.ok(await evaluate(`document.querySelector('.paw-post-meta').textContent.includes('Published:') && document.querySelector('.paw-post-meta').textContent.includes('Edited:')`));
+  assert.ok(await evaluate(`document.querySelector('.paw-post-meta').textContent.includes('发布') && document.querySelector('.paw-post-meta').textContent.includes('编辑')`));
   await captureUI('pawchive-post.png');
-  await clickText('↓ 下载');
+  await clickText('下载');
   await waitFor(`document.querySelector('.paw-mega-download')?.textContent.includes('已添加 1 个下载任务')`, 'source worker queue feedback');
   assert.deepEqual(revivalRequests[0].args, []);
   assert.equal(revivalRequests[0].url, pawMegaFolder);
@@ -798,16 +796,16 @@ async function main() {
   await waitFor(`!document.querySelector('.sidebar.collapsed')`, 'sidebar restored');
   await evaluate(`document.querySelector('.paw-post-card:has(.paw-change-kind.edited) .paw-read-button').click()`);
   await waitFor(`document.querySelector('.paw-summary')?.textContent.includes('1 条未读更新')`, 'mark a single revision read');
-  await clickText('↻ 检查更新');
+  await clickText('检查更新');
   await waitFor(`!Array.from(document.querySelectorAll('button')).some(button => button.textContent === '正在检查…')`, 'repeat check finished');
   assert.ok(await evaluate(`document.querySelector('.paw-summary').textContent.includes('1 条未读更新')`));
   pawOffline = true;
-  await clickText('↻ 检查更新');
-  await waitFor(`document.querySelector('.paw-alert')?.textContent.includes('失败作者的上次记录已保留')`, 'partial failure remains visible');
+  await clickText('检查更新');
+  await waitFor(`document.querySelector('.paw-alert')?.textContent.includes('已保留上次记录')`, 'partial failure remains visible');
   assert.equal((await handlers.get('pawchive:get-state')({})).postUpdateCount, 1);
   pawOffline = false;
   await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('角色一览')).click()`);
-  await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('MOD下载')).click()`);
+  await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('Mod 下载')).click()`);
   assert.ok(await evaluate(`document.querySelector('.paw-summary').textContent.includes('1 条未读更新')`));
   passed('Pawchive real IPC/React: pagination, persistent favorites, old-page Edited changes, new IDs, unread state, failure reporting and sanitized detail');
   passed('MEGA folder becomes a source-worker task in the built-in manager; progress, pause, resume, completion and expanded/collapsed sidebar entry work');
@@ -820,14 +818,14 @@ async function main() {
   await evaluate(`Array.from(document.querySelectorAll('.character-card')).find(x => (x.getAttribute('aria-label') || x.innerText).includes('安可')).click()`);
   await waitFor(`!!document.querySelector('[data-mod-name]')`, 'Mod view loaded');
   await evaluate(`document.querySelector('[data-mod-name]').click()`);
-  await clickText('🔧 修复器');
+  await clickText('修复器');
   await waitFor(`document.body.innerText.includes('独立修复器已打开')`, 'Mod detail fixer opened');
   assert.equal(launchRequests.at(-1).file, replacementFixerExe);
   await evaluate(`document.querySelector('[data-mod-name]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 450, clientY: 320 }))`);
   await waitFor(`!!document.querySelector('.mod-context-menu')`, 'Mod context menu');
-  assert.equal(await evaluate(`Array.from(document.querySelectorAll('.mod-context-menu button')).filter(b => b.textContent.trim() === '🔧 修复器').length`), 1);
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('.mod-context-menu button')).filter(b => b.textContent.trim() === '修复器').length`), 1);
   assert.equal(await evaluate(`document.body.innerText.includes('内置修复')`), false);
-  await evaluate(`Array.from(document.querySelectorAll('.mod-context-menu button')).find(b => b.textContent.trim() === '🔧 修复器').click()`);
+  await evaluate(`Array.from(document.querySelectorAll('.mod-context-menu button')).find(b => b.textContent.trim() === '修复器').click()`);
   await waitFor(`!document.querySelector('.mod-context-menu')`, 'Mod context fixer opened');
   assert.equal(launchRequests.at(-1).file, replacementFixerExe);
   assert.equal(fixerSelections.length, 4);

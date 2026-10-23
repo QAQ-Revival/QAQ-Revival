@@ -25,35 +25,37 @@ fs.writeFileSync(entry, `require(${JSON.stringify(path.join(root, 'tests', testE
 manifest.main = './smoke-entry.cjs';
 fs.writeFileSync(manifestPath, JSON.stringify(manifest));
 const env = { ...process.env, QAQM_TEST_RESULTS: results, QAQM_USER_DATA: path.join(results, 'AppData/QAQ-Revival') };
-if (process.argv.includes('--translation')) env.QAQM_SMOKE_SCOPE = 'translation';
-if (process.argv.includes('--genshin')) env.QAQM_SMOKE_SCOPE = 'genshin';
-if (process.argv.includes('--genshin-check')) env.QAQM_SMOKE_SCOPE = 'genshin-check';
-if (process.argv.includes('--genshin-anticrash')) env.QAQM_SMOKE_SCOPE = 'genshin-anticrash';
-if (process.argv.includes('--game-settings')) env.QAQM_SMOKE_SCOPE = 'game-settings';
-if (process.argv.includes('--steam-bridge')) env.QAQM_SMOKE_SCOPE = 'steam-bridge';
-if (process.argv.includes('--hidden-characters')) env.QAQM_SMOKE_SCOPE = 'hidden-characters';
-if (process.argv.includes('--character-images')) env.QAQM_SMOKE_SCOPE = 'character-images';
-if (process.argv.includes('--character-skins')) env.QAQM_SMOKE_SCOPE = 'character-skins';
-if (process.argv.includes('--skin-cover-live')) env.QAQM_SMOKE_SCOPE = 'skin-cover-live';
-if (process.argv.includes('--file-drop')) env.QAQM_SMOKE_SCOPE = 'file-drop';
-if (process.argv.includes('--persist')) env.QAQM_SMOKE_SCOPE = 'persist';
-if (process.argv.includes('--mod-sites')) env.QAQM_SMOKE_SCOPE = 'mod-sites';
-if (process.argv.includes('--card-images')) env.QAQM_SMOKE_SCOPE = 'card-images';
-if (process.argv.includes('--overlay-activity')) env.QAQM_SMOKE_SCOPE = 'overlay-activity';
+const scopes = [
+  'translation', 'genshin', 'genshin-check', 'genshin-anticrash', 'game-settings',
+  'steam-bridge', 'hidden-characters', 'character-images', 'character-skins',
+  'skin-cover-live', 'file-drop', 'persist', 'mod-sites', 'card-images',
+  'overlay-activity', 'mod-layout', 'window-layout', 'post-links', 'market-scope',
+  'imports', 'sources', 'sorting', 'settings'
+];
+const scope = scopes.find(name => process.argv.includes('--' + name));
+if (scope) env.QAQM_SMOKE_SCOPE = scope;
 delete env.ELECTRON_RUN_AS_NODE;
 const log = fs.openSync(path.join(results, 'electron.log'), 'w');
 const child = spawn(testExecutable, [], { cwd: runtime, env, windowsHide: true, stdio: ['ignore', log, log] });
 const timeout = setTimeout(() => child.kill(), 180000);
 let restored = false;
-function restore() {
+async function restore() {
   if (restored) return;
   restored = true;
   clearTimeout(timeout); fs.writeFileSync(manifestPath, original); fs.closeSync(log);
-  fs.unlinkSync(entry); fs.unlinkSync(testExecutable);
+  fs.unlinkSync(entry);
+  // Windows can retain the executable briefly while Electron's child processes exit.
+  for (let attempt = 0; ; attempt++) {
+    try { await fs.promises.unlink(testExecutable); break; }
+    catch (error) {
+      if (error.code !== 'EPERM' || attempt === 4) throw error;
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
 }
-child.on('error', err => { restore(); console.error(err); process.exitCode = 1; });
-child.on('exit', code => {
-  restore();
+child.on('error', async err => { await restore(); console.error(err); process.exitCode = 1; });
+child.on('exit', async code => {
+  await restore();
   const report = path.join(results, 'report.json');
   if (fs.existsSync(report)) console.log(fs.readFileSync(report, 'utf8'));
   else console.error('No test report; see ' + path.join(results, 'electron.log'));

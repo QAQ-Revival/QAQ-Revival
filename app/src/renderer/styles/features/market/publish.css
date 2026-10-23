@@ -1,0 +1,559 @@
+.publish-mod-dialog-request-close-action {
+  position: fixed;
+  inset: 0;
+  z-index: 10003;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.publish-mod-dialog-stack {
+  background: #fff;
+  border-radius: 14px;
+  max-width: 600px;
+  width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.publish-mod-dialog-row {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.06),
+    rgba(245, 158, 11, 0.06)
+  );
+}
+
+.publish-mod-dialog-heading {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.publish-mod-dialog-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.publish-mod-dialog-close-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #9ca3af;
+}
+
+.publish-mod-dialog-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 20px;
+}
+
+.publish-mod-dialog-preview-and-options {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.publish-mod-dialog-preview-frame {
+  width: 90px;
+  height: 120px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.publish-mod-dialog-preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.publish-mod-dialog-preview-placeholder {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d1d5db;
+  font-size: 28px;
+}
+
+.publish-mod-dialog-flex-content {
+  flex: 1;
+}
+
+.publish-mod-dialog-option-field {
+  margin-bottom: 10px;
+}
+
+.publish-mod-dialog-field-label {
+  font-size: 11px;
+  color: #9ca3af;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.publish-mod-dialog-game-version-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.publish-mod-dialog-action {
+  padding: 2px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.publish-mod-dialog-mod-version-options {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.publish-mod-dialog-version-option {
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.publish-mod-dialog-input-field {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.publish-mod-dialog-mod-mode-options {
+  display: flex;
+  gap: 6px;
+}
+
+.publish-mod-dialog-action-spaced {
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.publish-mod-dialog-textarea-field {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.publish-mod-dialog-author-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.publish-mod-dialog-section {
+  margin-bottom: 14px;
+}
+
+.publish-mod-dialog-tags-heading {
+  font-size: 11px;
+  color: #9ca3af;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.publish-mod-dialog-selected-tag-count {
+  margin-left: 6px;
+  font-size: 10px;
+  color: #6366f1;
+}
+
+.publish-mod-dialog-load-tags-and-local-tags-action {
+  margin-left: 6px;
+  font-size: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+}
+
+.publish-mod-dialog-tags-status {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.publish-mod-dialog-tag-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #ef4444;
+}
+
+.publish-mod-dialog-retry-tags {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #6366f1;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.publish-mod-dialog-tag-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.publish-mod-dialog-tag-option {
+  padding: 3px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.publish-mod-dialog-content-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 16px;
+}
+
+.publish-mod-dialog-option-switch {
+  width: 34px;
+  height: 18px;
+  border-radius: 9px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.publish-mod-dialog-option-switch-thumb {
+  position: absolute;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.publish-mod-dialog-content-option-label {
+  font-size: 12px;
+}
+
+.publish-mod-dialog-developer-settings {
+  border-top: 1px solid #f3f4f6;
+  padding-top: 10px;
+}
+
+.publish-mod-dialog-developer-settings-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: #9ca3af;
+  padding: 0;
+}
+
+.publish-mod-dialog-tool-path-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.publish-mod-dialog-tool-path-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.publish-mod-dialog-tool-path-label {
+  font-size: 10px;
+  color: #9ca3af;
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.publish-mod-dialog-tool-path-input {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  outline: none;
+  font-family: monospace;
+}
+
+.publish-mod-dialog-browse-tool-path {
+  padding: 4px 8px;
+  font-size: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.publish-mod-dialog-progress-status {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+.publish-mod-dialog-upload-metrics {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6366f1;
+  margin-bottom: 6px;
+}
+
+.publish-mod-dialog-progress-track {
+  height: 5px;
+  border-radius: 3px;
+  background: #f3f4f6;
+  overflow: hidden;
+}
+
+.publish-mod-dialog-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #6366f1, #f59e0b);
+  transition: width 0.4s;
+}
+
+.publish-mod-dialog-retry-r2-action {
+  margin-top: 10px;
+  padding: 6px 12px;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #c2410c;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.publish-mod-dialog-heading-emphasis {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid #22c55e;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.publish-mod-dialog-content-emphasis {
+  font-weight: 400;
+  margin-top: 3px;
+}
+
+.publish-mod-dialog-quark-result {
+  font-weight: 400;
+  margin-top: 3px;
+  color: #c2410c;
+}
+
+.publish-mod-dialog-baidu-result {
+  font-weight: 400;
+  margin-top: 3px;
+  color: #2563eb;
+}
+
+.publish-mod-dialog-upload-speed-result {
+  font-weight: 400;
+  margin-top: 3px;
+  color: #4f46e5;
+}
+
+.publish-mod-dialog-error-result {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid #ef4444;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #ef4444;
+  user-select: text;
+  cursor: text;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.publish-mod-dialog-danger-action {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-size: 10px;
+  border: 1px solid #ef4444;
+  border-radius: 4px;
+  background: transparent;
+  color: #ef4444;
+  cursor: pointer;
+}
+
+.publish-mod-dialog-logs-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: #9ca3af;
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+.publish-mod-dialog-panel {
+  background: #111827;
+  border-radius: 8px;
+  padding: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 10px;
+  user-select: text;
+  cursor: text;
+}
+
+.publish-mod-dialog-log-entry {
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.publish-mod-dialog-log-cursor {
+  color: #818cf8;
+}
+
+.publish-mod-dialog-actions {
+  padding: 14px 20px;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.publish-mod-dialog-cancel-button {
+  padding: 7px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.publish-mod-dialog-action-emphasis {
+  padding: 7px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #2563eb;
+  background: #eff6ff;
+  font-weight: 700;
+}
+
+.publish-mod-dialog-supplement-link {
+  padding: 7px 12px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #c2410c;
+  background: #fff7ed;
+  font-weight: 700;
+}
+
+.publish-mod-dialog-retry-r2-action-emphasis {
+  padding: 7px 12px;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #a16207;
+  background: #fefce8;
+  font-weight: 700;
+}
+
+.publish-mod-dialog-primary-action {
+  padding: 7px 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, #dc2626, #f97316);
+  font-weight: 700;
+}
+
+.publish-mod-dialog-publish-action {
+  padding: 7px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #fff;
+  background: linear-gradient(135deg, #6366f1, #f59e0b);
+  font-weight: 600;
+}
+
+.publish-mod-dialog-open-logs {
+  padding: 7px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.publish-mod-dialog-retry-upload {
+  padding: 7px 16px;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  background: #fff7ed;
+  cursor: pointer;
+  font-size: 13px;
+  color: #c2410c;
+  font-weight: 700;
+}
+
+.publish-mod-dialog-close-action {
+  padding: 7px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #fff;
+  background: #6366f1;
+}

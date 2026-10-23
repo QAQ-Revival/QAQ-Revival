@@ -92,7 +92,7 @@ if (process.versions.electron) {
       assert.notEqual(second.executable, first.executable); assert.equal(second.profile, first.profile);
       await stop();
       // Renderer/GPU processes can briefly retain the image after the main process exits.
-      const { cleanupExecutables } = require('../app/out/main/random-executable.cjs');
+      const { cleanupExecutables } = require('../app/out/main/runtime/random-executable.cjs');
       await wait(() => { cleanupExecutables(executable); return !fs.existsSync(first.executable); }, 'old child-process image unlocked and cleaned');
       checks.push('A new session gets another random name; closed copies are removed once Windows releases their images');
       fs.unlinkSync(path.join(resultRoot, 'ready.json'));
@@ -116,7 +116,7 @@ if (process.versions.electron) {
       for (const child of children) child.kill();
       fs.writeFileSync(entry, originalEntry); fs.writeFileSync(executable, originalExe);
       if (fs.existsSync(savedEntry)) fs.unlinkSync(savedEntry);
-      const { cleanupExecutables } = require('../app/out/main/random-executable.cjs'); cleanupExecutables(executable);
+      const { cleanupExecutables } = require('../app/out/main/runtime/random-executable.cjs'); cleanupExecutables(executable);
     }
   })();
 }

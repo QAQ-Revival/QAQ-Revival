@@ -53,6 +53,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($releases -contains $env:RELEASE_TAG) { throw "Release already exists: $env:RELEASE_TAG" }
 
+      - name: Install locked build dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
       - name: Install locked application dependencies
         run: npm ci --prefix app --omit=dev --ignore-scripts --legacy-peer-deps --no-audit --no-fund
 

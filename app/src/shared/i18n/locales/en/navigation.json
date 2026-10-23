@@ -1,0 +1,16 @@
+{
+  "characters": "Characters",
+  "mods": "Mods",
+  "presets": "Presets",
+  "market": "Mod market",
+  "downloads": "Downloads",
+  "settings": "Settings",
+  "gameSettings": "Game settings",
+  "currentGame": "Current game",
+  "chooseGame": "Choose a game",
+  "switchGame": "Switch game",
+  "switchGameLabel": "Switch game. Current: {{name}}",
+  "switchingGame": "Switching…",
+  "switchGameFailed": "Failed to switch game",
+  "switchGameRetry": "Failed to switch game. Try again."
+}

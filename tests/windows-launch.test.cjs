@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { createWindowsLauncher, getDirectLaunchMode, quoteWindowsArgument, buildElevationScript } = require('../app/out/main/windows-launch.cjs');
+const { createWindowsLauncher, getDirectLaunchMode, quoteWindowsArgument, buildElevationScript } = require('../app/src/main/system/launch.cjs');
 
 test('direct launch selects the correct importer instead of the saved launcher UI mode', () => {
   for (const [id, expected] of Object.entries({ 'genshin-impact': 'GIMI', endfield: 'EFMI', 'wuthering-waves': 'WWMI', zzz: 'ZZMI', 'honkai-star-rail': 'SRMI' })) {

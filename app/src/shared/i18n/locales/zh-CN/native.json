@@ -1,0 +1,23 @@
+{
+  "window": {
+    "controls": "窗口控制",
+    "minimize": "最小化窗口",
+    "maximize": "最大化窗口",
+    "restore": "还原窗口",
+    "close": "关闭窗口",
+    "failed": "窗口操作失败"
+  },
+  "startup": {
+    "failed": "启动失败",
+    "directoryNotWritable": "{{error}}\n请确认程序目录可写后重试。"
+  },
+  "dialog": {
+    "selectFolder": "选择文件夹",
+    "selectFile": "选择文件",
+    "selectExecutable": "选择程序",
+    "selectImage": "选择图片",
+    "imageFiles": "图片文件",
+    "allFiles": "所有文件",
+    "executableFiles": "可执行文件"
+  }
+}

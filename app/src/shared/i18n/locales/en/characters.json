@@ -1,0 +1,26 @@
+{
+  "actions": {
+    "add": "Add character",
+    "delete": "Delete character",
+    "rename": "Rename character",
+    "pin": "Pin to top",
+    "unpin": "Unpin",
+    "openSource": "Open source folder",
+    "moveHere": "Move here",
+    "changeCover": "Change cover",
+    "hide": "Hide character",
+    "showHidden": "Hidden characters"
+  },
+  "search": {
+    "placeholder": "Search characters"
+  },
+  "empty": "No characters yet",
+  "fixer": {
+    "title": "Fixer",
+    "change": "Change fixer",
+    "resetIni": "Reset all Mod ini files"
+  },
+  "import": {
+    "globalDropHint": "Drop a Mod, package, update, or fixer"
+  }
+}

@@ -50,7 +50,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, handle
   async function click(label) {
     await evaluate(`(() => { const button = [...document.querySelectorAll('${active} button')].find(b => b.textContent.trim() === ${JSON.stringify(label)}); if (!button || button.disabled) throw Error('Missing button '+${JSON.stringify(label)}); button.click(); })()`);
   }
-  await evaluate(`document.querySelector('.nav-item[aria-label="MOD下载"]').click()`);
+  await evaluate(`document.querySelector('.nav-item[aria-label="Mod 下载"]').click()`);
   await waitFor(`!!document.querySelector('.mod-download-source-trigger')`, 'downloads');
   await select('keke');
   await waitFor(`!!document.querySelector('${active} .mod-site-verification-viewport')`, '403 embeds verification');
@@ -111,13 +111,13 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, handle
   }
   assert.equal(BrowserWindow.getAllWindows().filter(w=>/^https?:/.test(w.webContents.getURL())).length,0,'No source creates a standalone web window');
   passed('Arca, LoversLab and Hui adapters parse lists and full details into the same local card UI without standalone windows');
-  const parser=require('../app/out/main/site-parsers.cjs').parseSiteDocument;
+  const { parseSiteDocument: parser, createParserMessages } = require('../app/out/main/market/sites/parsers.cjs');
   const blank=new BrowserView({webPreferences:{sandbox:true,nodeIntegration:false,contextIsolation:true}});await blank.webContents.loadURL('about:blank');
   const sample=path.join(__dirname,'../test-results/mod-source-probe/keke-unlocked.html');
   if(fs.existsSync(sample)){
-    const data=await blank.webContents.executeJavaScriptInIsolatedWorld(1001,[{code:'('+parser.toString()+')('+JSON.stringify({source:'keke',url:'https://kekehxl.org/product-category/endfield-mod/',html:fs.readFileSync(sample,'utf8')})+')'}]);
+    const data=await blank.webContents.executeJavaScriptInIsolatedWorld(1001,[{code:'('+parser.toString()+')('+JSON.stringify({source:'keke',messages:createParserMessages(),url:'https://kekehxl.org/product-category/endfield-mod/',html:fs.readFileSync(sample,'utf8')})+')'}]);
     assert.ok(data.items.length>=20,'Real Keke page contains parsed product cards');assert.ok(data.nextUrl,'Real Keke pagination parsed');
-    const detail=await blank.webContents.executeJavaScriptInIsolatedWorld(1001,[{code:'('+parser.toString()+')('+JSON.stringify({source:'keke',url:data.items[0].url,id:data.items[0].id,detail:true,html:fs.readFileSync(path.join(__dirname,'../test-results/mod-source-probe/keke-detail.html'),'utf8')})+')'}]);
+    const detail=await blank.webContents.executeJavaScriptInIsolatedWorld(1001,[{code:'('+parser.toString()+')('+JSON.stringify({source:'keke',messages:createParserMessages(),url:data.items[0].url,id:data.items[0].id,detail:true,html:fs.readFileSync(path.join(__dirname,'../test-results/mod-source-probe/keke-detail.html'),'utf8')})+')'}]);
     assert.ok(detail.items[0].images.length>0);assert.ok(detail.items[0].links.some(x=>x.url.includes('mega.nz')));
     passed('Saved real Keke HTML verifies product lists, pagination, detail images and download links');
   }

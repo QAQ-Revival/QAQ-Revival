@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { TWIN_EXE, normalizeSettings, anyEnabled, firewallRuleName, createGenshinAntiCrashService } = require('../app/out/main/genshin-anticrash.cjs');
+const { TWIN_EXE, normalizeSettings, anyEnabled, firewallRuleName, createGenshinAntiCrashService } = require('../app/src/main/games/genshin/anticrash.cjs');
 
 const pe = Buffer.alloc(1024);
 pe.write('MZ'); pe.writeUInt32LE(128, 60); pe.write('PE\0\0', 128); pe.writeUInt16LE(0x8664, 132); pe.writeUInt16LE(1, 134);

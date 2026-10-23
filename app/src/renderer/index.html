@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>QAQ-Revival</title>
+    <script>
+      (function bootstrapTheme() {
+        try {
+          var root = document.documentElement;
+          var skinId = localStorage.getItem("themeBootstrapSkinId");
+          localStorage.removeItem("themeBootstrapCssVars");
+          if (skinId !== "aurora-premium") {
+            localStorage.removeItem("themeBootstrapSkinId");
+            return;
+          }
+
+          root.setAttribute("data-skin", skinId);
+        } catch {}
+      })();
+    </script>
+    <script type="module" src="./main.jsx"></script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

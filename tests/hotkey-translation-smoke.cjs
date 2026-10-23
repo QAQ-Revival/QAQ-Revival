@@ -2,6 +2,14 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
+async function waitForUI(evaluate, code) {
+  for (let i = 0; i < 150; i++) {
+    if (await evaluate(code)) return;
+    await new Promise(resolve => setTimeout(resolve, 40));
+  }
+  throw Error('Timeout: ' + code);
+}
+
 module.exports = async function ({ electron, root, profile, mods, handlers, passed, manager }) {
   const { BrowserWindow, net } = electron;
   const names = ['belt', 'weist', 'cloth', 'gloves', 'hat', 'socks', 'wings', 'tail', 'bra', 'panty', 'swp_5a3faabb_help', 'swp_5a3faabb_zoom0', 'swp_5a3faabb_mouse_clicked'];
@@ -22,21 +30,23 @@ module.exports = async function ({ electron, root, profile, mods, handlers, pass
     const queryNames = fixtureNames.map(name => name.replace(/^swp_[a-f\d]+_/, '').replace(/_/g, ' '));
     return new Response(JSON.stringify([[[expected[queryNames.indexOf(name)] || '译文', name]], null, 'en']));
   };
-  const overlay = new BrowserWindow({ show: false, webPreferences: { preload: path.join(process.resourcesPath, 'overlay-preload.js'), sandbox: false, contextIsolation: true, offscreen: true } });
-  await overlay.loadFile(path.join(process.resourcesPath, 'overlay.html'));
+  const overlay = new BrowserWindow({ show: false, webPreferences: { preload: path.join(process.resourcesPath, 'app/out/preload/overlay.js'), sandbox: false, contextIsolation: true, offscreen: true } });
+  await overlay.loadFile(path.join(process.resourcesPath, 'app/out/renderer/overlay/index.html'));
   const runOverlay = code => overlay.webContents.executeJavaScript(code, true);
-  await runOverlay(`selectedChar = '安可'; currentMods = [{ name: 'TFLS_DBL', enabled: true }]; overlaySettings.clickableHotkeysEnabled = true; openDetail('TFLS_DBL')`);
-  const side = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/side-panel.html'));
+  await waitForUI(runOverlay, `!!document.querySelector('.char-chip[data-name="安可"]')`);
+  await runOverlay(`document.querySelector('.char-chip[data-name="安可"]').click()`);
+  await waitForUI(runOverlay, `!!document.querySelector('.mod-item[data-mod="TFLS_DBL"], .mod-gallery-item[data-mod="TFLS_DBL"]')`);
+  await runOverlay(`document.querySelector('.mod-item[data-mod="TFLS_DBL"], .mod-gallery-item[data-mod="TFLS_DBL"]').click()`);
+  let side;
+  for (let i = 0; i < 150; i++) {
+    side = BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/side-panel.html'));
+    if (side) break;
+    await new Promise(resolve => setTimeout(resolve, 40));
+  }
   assert.ok(side);
   side.setSize(300, 950);
   const evaluate = code => side.webContents.executeJavaScript(code, true);
-  const wait = async code => {
-    for (let i = 0; i < 150; i++) {
-      if (await evaluate(code)) return;
-      await new Promise(resolve => setTimeout(resolve, 40));
-    }
-    throw Error('Timeout: ' + code);
-  };
+  const wait = code => waitForUI(evaluate, code);
   const labels = () => evaluate(`[...document.querySelectorAll('.detail-hotkey-name')].map(el => el.textContent)`);
   const click = () => evaluate(`document.querySelector('#detailTranslateBtn').click()`);
   await wait(`document.querySelectorAll('.detail-hotkey-name').length === ${names.length}`);
@@ -55,7 +65,7 @@ module.exports = async function ({ electron, root, profile, mods, handlers, pass
   assert.equal(await evaluate(`document.querySelector('.detail-hotkey-note').textContent`), note);
   assert.deepEqual(await evaluate(`[...document.querySelectorAll('.detail-hotkey-name')].map(el => el.title)`), originals);
   const count = requests.length;
-  await side.loadFile(path.join(process.resourcesPath, 'side-panel.html'));
+  await side.loadFile(path.join(process.resourcesPath, 'app/out/renderer/overlay/side-panel.html'));
   await content({});
   assert.deepEqual(await labels(), translated);
   assert.equal(requests.length, count, 'Reload restores cached translation without network');
@@ -74,7 +84,7 @@ module.exports = async function ({ electron, root, profile, mods, handlers, pass
   await content({});
   await click();
   assert.deepEqual(await labels(), originals);
-  await side.loadFile(path.join(process.resourcesPath, 'side-panel.html'));
+  await side.loadFile(path.join(process.resourcesPath, 'app/out/renderer/overlay/side-panel.html'));
   await content({});
   assert.deepEqual(await labels(), originals, 'Disabled switch also survives reload');
   await click();
@@ -107,7 +117,7 @@ module.exports = async function ({ electron, root, profile, mods, handlers, pass
   assert.equal(await evaluate(`document.querySelector('#detailTranslateBtn').disabled`), true);
   assert.equal(fs.readFileSync(path.join(fixtureDir, 'mod.ini'), 'utf8'), ini);
   passed('Translation failure/retry, stale response isolation, empty list and unchanged Mod INI');
-  await require('./hotkey-groups-smoke.cjs')({ electron, root, profile, mods, handlers, passed, runOverlay, side, evaluate, wait, manager });
+  await require('./hotkey-groups-smoke.cjs')({ electron, root, profile, mods, handlers, passed, runOverlay, waitOverlay: code => waitForUI(runOverlay, code), side, evaluate, wait, manager });
   side.webContents.session.flushStorageData();
   side.destroy(); overlay.destroy();
 };

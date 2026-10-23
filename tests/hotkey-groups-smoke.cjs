@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-module.exports = async ({ electron, root, profile, mods, handlers, passed, runOverlay, side, evaluate, wait, manager }) => {
+module.exports = async ({ electron, root, profile, mods, handlers, passed, runOverlay, waitOverlay, side, evaluate, wait, manager }) => {
   const fixtures = new Map();
   const write = (relative, contents) => {
     const file = path.join(mods, '安可', relative);
@@ -28,7 +28,12 @@ module.exports = async ({ electron, root, profile, mods, handlers, passed, runOv
   assert.deepEqual(saved.hotkeyGroups, result.hotkeyGroups);
   assert.ok(result.hotkeyGroups.every(group => !path.isAbsolute(group.relativePath)));
 
-  await runOverlay(`selectedChar = '安可'; currentMods = [{ name: 'GroupedMod', enabled: true }]; selectedModName = null; openDetail('GroupedMod')`);
+  const openGroupedMod = async () => {
+    await runOverlay(`document.querySelector('.char-chip[data-name="安可"]').click()`);
+    await waitOverlay(`!!document.querySelector('.mod-item[data-mod="GroupedMod"], .mod-gallery-item[data-mod="GroupedMod"]')`);
+    await runOverlay(`document.querySelector('.mod-item[data-mod="GroupedMod"], .mod-gallery-item[data-mod="GroupedMod"]').click()`);
+  };
+  await openGroupedMod();
   await wait(`document.querySelectorAll('.detail-hotkey-group').length === 3`);
   const groups = () => evaluate(`[...document.querySelectorAll('.detail-hotkey-group')].map(group => ({ name: group.querySelector('h3').textContent, labels: [...group.querySelectorAll('.detail-hotkey-name')].map(label => label.textContent), bindings: [...group.querySelectorAll('.detail-hotkey-row')].map(row => row.dataset.hotkeyPayload) }))`);
   const before = await groups();
@@ -82,7 +87,7 @@ module.exports = async ({ electron, root, profile, mods, handlers, passed, runOv
   write('GroupedMod/TedomScaleControls.ini', key('world_toggle', 'no_ctrl no_alt SHIFT VK_F3') + key('preview_toggle', 'no_ctrl no_alt SHIFT VK_F4'));
   const fresh = await details('GroupedMod');
   assert.deepEqual(fresh.hotkeyGroups[0].hotkeys.filter(h => /toggle/.test(h.section)).map(h => h.keys), [['Shift', 'F3'], ['Shift', 'F4']]);
-  await runOverlay(`openDetail('GroupedMod', { force: true })`);
+  await openGroupedMod();
   await wait(`document.querySelector('.detail-hotkey-section').textContent.includes('F3')`);
   const sameSizeFile = path.join(mods, '安可', 'GroupedMod', 'TedomScaleControls.ini');
   const oldStat = fs.statSync(sameSizeFile);
@@ -103,7 +108,7 @@ module.exports = async ({ electron, root, profile, mods, handlers, passed, runOv
   assert.ok(await m.evaluate(`document.querySelector('.hotkey-section').textContent.includes('F5')`));
 
   write('GroupedMod/TedomScaleControls.ini', key('world_toggle', 'no_ctrl no_alt SHIFT VK_F3') + key('preview_toggle', 'no_ctrl no_alt SHIFT VK_F4'));
-  await m.evaluate(`document.querySelector('[title="刷新快捷键 (强制重新扫描)"]').click()`);
+  await m.evaluate(`document.querySelector('[title="重新扫描快捷键"]').click()`);
   await m.waitFor(`document.querySelector('.hotkey-section').textContent.includes('F3')`, 'manager manual refresh');
   await wait(`document.querySelector('.detail-hotkey-section').textContent.includes('F3')`, 'manager refresh updates overlay');
   await m.captureUI('hotkey-manager-groups.png');

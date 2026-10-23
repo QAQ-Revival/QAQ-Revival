@@ -1,0 +1,15 @@
+{
+  "launch": {
+    "direct": "Launch directly",
+    "directDx12": "Launch directly · DX12",
+    "xxmi": "Launch XXMI",
+    "launching": "Launching…",
+    "directHint": "Load Mods and launch the game directly",
+    "dx12Hint": "Load Mods with wwmi-dx12 and launch in DX12",
+    "xxmiHint": "Open the XXMI launcher",
+    "nteHint": "Use direct launch for Neverness to Everness",
+    "failed": "Launch failed",
+    "checkPaths": "Launch failed. Check the game and loader paths."
+  },
+  "settingsLabel": "{{name}} · Game settings"
+}

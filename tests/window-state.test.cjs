@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
-const { readWindowState, trackWindowState } = require('../app/out/main/window-state.cjs');
+const { readWindowState, trackWindowState } = require('../app/src/main/desktop/window-state.cjs');
 const workArea = { width: 1920, height: 1040 };
 function fixture(t) {
   const parent = fs.realpathSync(os.tmpdir());

@@ -1,0 +1,419 @@
+/* ========================================================================
+   Global floating download orb (always-on, draggable, snaps to edges).
+   Used by `FloatingDownloadOrb` rendered at the App root.
+   ======================================================================== */
+
+.qaqm-download-float {
+  position: fixed;
+  z-index: 10060;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: none;
+  /* Container has no width — only its children capture pointer events. */
+}
+
+.qaqm-download-float.side-left {
+  flex-direction: row;
+}
+
+.qaqm-download-float.side-right {
+  flex-direction: row-reverse;
+}
+
+.qaqm-download-orb {
+  width: 56px;
+  height: 56px;
+  border: 0;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  color: #ec4899;
+  box-shadow: 0 14px 34px rgba(236, 72, 153, 0.22);
+  cursor: grab;
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto;
+  touch-action: none;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.18s ease;
+}
+
+.qaqm-download-orb:hover {
+  box-shadow: 0 18px 42px rgba(236, 72, 153, 0.32);
+  transform: translateY(-1px);
+}
+
+.qaqm-download-orb.dragging {
+  cursor: grabbing;
+  transform: scale(1.04);
+  box-shadow: 0 22px 52px rgba(236, 72, 153, 0.38);
+}
+
+.qaqm-download-orb-ring {
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(
+    #ec4899 var(--progress, 0%),
+    rgba(236, 72, 153, 0.16) 0
+  );
+  pointer-events: none;
+}
+
+.qaqm-download-orb::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  pointer-events: none;
+}
+
+.qaqm-download-orb-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.qaqm-download-plus-mark {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  color: #ec4899;
+}
+
+.qaqm-download-orb-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+}
+
+.qaqm-download-panel {
+  width: min(340px, calc(100vw - 96px));
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(18px);
+  pointer-events: auto;
+}
+
+.qaqm-download-panel-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  color: #111827;
+}
+
+.qaqm-download-panel-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qaqm-download-panel-head button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.qaqm-download-settings {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(248, 250, 252, 0.76);
+}
+
+.qaqm-download-settings-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.qaqm-download-settings-hint {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-left: 2px;
+}
+
+.qaqm-download-path {
+  margin-top: 6px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.35;
+  word-break: break-all;
+}
+
+.qaqm-download-settings-error {
+  margin-top: 6px;
+  color: #b91c1c;
+  font-size: 11px;
+}
+
+.qaqm-download-settings-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.qaqm-download-settings-actions button {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(148, 163, 184, 0.36);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qaqm-download-list {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 10px;
+  padding: 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.qaqm-download-empty {
+  padding: 18px 12px;
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.86);
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+}
+
+.qaqm-download-item {
+  position: relative;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(226, 232, 240, 0.92);
+}
+
+.qaqm-download-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  color: #111827;
+}
+
+.qaqm-download-item-top span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.qaqm-download-item-top em {
+  flex: 0 0 auto;
+  font-style: normal;
+  font-size: 12px;
+  color: #475569;
+}
+
+.qaqm-download-item-status-wrap {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qaqm-download-task-delete {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #64748b;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.16s ease;
+}
+
+.qaqm-download-task-delete:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  transform: scale(1.05);
+}
+
+.qaqm-download-progress {
+  height: 4px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+  overflow: hidden;
+}
+
+.qaqm-download-progress i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  transition: width 0.2s ease;
+}
+
+.qaqm-download-meta {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #64748b;
+  min-height: 14px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.qaqm-download-item.status-error .qaqm-download-meta {
+  color: #b91c1c;
+}
+
+.qaqm-download-item.status-canceled .qaqm-download-meta {
+  color: #64748b;
+}
+
+.qaqm-download-retained {
+  margin-top: 7px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: rgba(255, 251, 235, 0.92);
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  color: #92400e;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.qaqm-download-tip {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 9px;
+  background: rgba(240, 249, 255, 0.96);
+  border: 1px solid rgba(14, 165, 233, 0.22);
+  color: #0369a1;
+  font-size: 11px;
+  line-height: 1.35;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.qaqm-download-tip span {
+  min-width: 0;
+}
+
+.qaqm-download-tip button {
+  flex: 0 0 auto;
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #0ea5e9;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 5px 14px rgba(14, 165, 233, 0.22);
+}
+
+.qaqm-download-tip button:hover {
+  background: #0284c7;
+}
+
+.qaqm-download-task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.qaqm-download-action {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qaqm-download-action:hover {
+  background: #f8fafc;
+}
+
+.qaqm-download-action.danger {
+  border-color: rgba(239, 68, 68, 0.24);
+  background: rgba(254, 242, 242, 0.94);
+  color: #b91c1c;
+}
+
+.qaqm-download-action.danger:hover {
+  background: #fee2e2;
+}
+
+.qaqm-download-action.primary {
+  border-color: rgba(14, 165, 233, 0.28);
+  background: rgba(240, 249, 255, 0.96);
+  color: #0369a1;
+}
+
+.qaqm-download-action.primary:hover {
+  background: #e0f2fe;
+}
+
+.qaqm-download-item.status-completed .qaqm-download-progress i {
+  background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+}
+
+.qaqm-download-item.status-paused .qaqm-download-progress i {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.qaqm-download-item.status-canceled .qaqm-download-progress i {
+  background: linear-gradient(90deg, #94a3b8, #64748b);
+}

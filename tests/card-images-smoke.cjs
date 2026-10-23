@@ -3,7 +3,7 @@ const path = require('node:path');
 
 module.exports = async ({ evaluate, waitFor, window, captureUI, passed }) => {
   async function downloads() {
-    await evaluate(`document.querySelector('.nav-item[aria-label="MOD下载"]').click()`);
+    await evaluate(`document.querySelector('.nav-item[aria-label="Mod 下载"]').click()`);
     await waitFor(`!!document.querySelector('.mod-download-source-trigger')`, 'downloads');
     if (await evaluate(`document.querySelector('.mod-download-provider:not([hidden])')?.dataset.source !== 'pawchive'`)) {
       await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);

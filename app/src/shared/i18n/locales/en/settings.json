@@ -1,0 +1,103 @@
+{
+  "language": {
+    "title": "Language",
+    "simplifiedChinese": "Simplified Chinese",
+    "unsupported": "This language is not available yet",
+    "saveFailed": "Failed to save language"
+  },
+  "categories": {
+    "general": "General",
+    "generalDescription": "Window behavior and Mod state.",
+    "persist": "Mod state",
+    "persistDescription": "Manage saved Mod state for each game.",
+    "appearance": "Appearance",
+    "appearanceDescription": "Theme, scaling, and visual effects.",
+    "downloads": "Downloads and network",
+    "downloadsDescription": "Download folders and market connection.",
+    "shortcuts": "Shortcuts",
+    "shortcutsDescription": "Set the in-game Mod panel shortcut.",
+    "maintenance": "Maintenance",
+    "maintenanceDescription": "Update loaders and troubleshoot Mods.",
+    "about": "About and updates",
+    "aboutDescription": "Version and updates."
+  },
+  "window": {
+    "title": "Window behavior"
+  },
+  "randomLaunch": {
+    "title": "Random executable names"
+  },
+  "persist": {
+    "title": "Presets and state"
+  },
+  "theme": {
+    "title": "Theme"
+  },
+  "scale": {
+    "title": "Interface size"
+  },
+  "cards": {
+    "title": "Download cards"
+  },
+  "compatibility": {
+    "title": "Display compatibility",
+    "mode": "Compatibility mode"
+  },
+  "downloadStorage": {
+    "title": "Download storage"
+  },
+  "server": {
+    "title": "Market server"
+  },
+  "overlay": {
+    "title": "In-game panel"
+  },
+  "maintenance": {
+    "loaderUpdates": "Loader updates",
+    "troubleshooting": "Troubleshooting"
+  },
+  "game": {
+    "loading": "Loading game settings…",
+    "description": "Save paths and fixers for each game.",
+    "detectPaths": "Detect paths",
+    "paths": "Game paths",
+    "modsFolder": "Mods folder",
+    "executable": "Game executable",
+    "xxmiLauncher": "XXMI launcher",
+    "nemiLoader": "NEMI loader",
+    "fixer": "Standalone fixer",
+    "fixerExecutable": "Fixer executable"
+  },
+  "range": {
+    "valueLabel": "{{label}} value",
+    "saveHint": "Press Enter or leave the field to save",
+    "integerHint": "Enter an integer from {{min}} to {{max}}",
+    "stepHint": "Enter a value from {{min}} to {{max}}, in steps of {{step}}"
+  },
+  "updates": {
+    "title": "App updates",
+    "loading": "Loading update settings…",
+    "automatic": "Check for updates automatically",
+    "automaticLabel": "Check GitHub updates automatically",
+    "automaticDescription": "Check GitHub for stable releases.",
+    "frequency": "Check frequency",
+    "frequencyDescription": "Check once on each scheduled day.",
+    "everyPrefix": "Every ",
+    "daysSuffix": " days",
+    "intervalLabel": "Days between update checks",
+    "intervalInvalid": "Enter an integer from 1 to 365",
+    "checkingGitHub": "Checking GitHub…",
+    "available": "Version {{version}} available (current: {{currentVersion}})",
+    "noReleases": "No stable releases yet",
+    "current": "Version {{version}} is up to date",
+    "unchecked": "Version {{version}}, not checked yet",
+    "lastCheck": "Last checked: {{date}}",
+    "checking": "Checking…",
+    "checkNow": "Check now",
+    "openRelease": "View release",
+    "notice": "QAQ-Revival {{version}} is available",
+    "viewUpdate": "View update",
+    "dismissVersion": "Dismiss this version",
+    "failed": "Update failed"
+  }
+}

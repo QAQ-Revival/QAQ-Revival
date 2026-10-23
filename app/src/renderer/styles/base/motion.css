@@ -1,0 +1,51 @@
+/* Page & Staggered Animations */
+.page-transition-enter {
+  animation: pageEnter 0.25s ease-out forwards;
+}
+
+.staggered-enter {
+  opacity: 0;
+  animation: staggerEnter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes staggerEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.form-pop-enter {
+  animation: formPop 0.18s ease-out forwards;
+  will-change: opacity;
+}
+
+@keyframes formPop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Honor reduced-motion + skip the fade entirely when the grid is huge so
+   the first paint isn't blocked by hundreds of synchronized animations. */
+@media (prefers-reduced-motion: reduce) {
+  .form-pop-enter {
+    animation: none !important;
+  }
+}

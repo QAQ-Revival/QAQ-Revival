@@ -1,0 +1,113 @@
+.publish-progress-float-floating-panel {
+  position: fixed;
+  right: 16px;
+  z-index: 10004;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.publish-progress-float-column {
+  width: 284px;
+  background: rgba(17, 24, 39, 0.96);
+  color: #fff;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.publish-progress-float-column .publish-progress-float-expand-action {
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.publish-progress-float-expand-action .publish-progress-float-row {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.publish-progress-float-expand-action .publish-progress-float-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.publish-progress-float-content .publish-progress-float-heading {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.publish-progress-float-content .publish-progress-float-truncated-text {
+  display: block;
+  font-size: 11px;
+  color: #d1d5db;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.publish-progress-float-expand-action .publish-progress-float-hint {
+  font-size: 11px;
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+.publish-progress-float-content-spaced {
+  padding: 0 14px 12px;
+}
+
+.publish-progress-float-content-spaced .publish-progress-float-progress-track {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.publish-progress-float-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.publish-progress-float-status-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.publish-progress-float-status-text {
+  flex: 1;
+  min-width: 0;
+  color: #d1d5db;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.publish-progress-float-status-actions .publish-progress-float-close-action {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: transparent;
+  color: #d1d5db;
+  cursor: pointer;
+  line-height: 1;
+}

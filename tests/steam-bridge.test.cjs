@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const { createSteamBridgeService, createNativeClient, validateOptions } = require('../app/out/main/steam-bridge.cjs');
+const { createSteamBridgeService, createNativeClient, validateOptions } = require('../app/src/main/games/steam/bridge.cjs');
 function host(extra = {}) {
   return createSteamBridgeService({ userData: 'D:/fixture/profile', managerExecutable: 'D:/fixture/QAQ-Revival.exe', executable: 'D:/fixture/steam-bridge.exe',
     getGame: id => ({ gamePath: `D:/fixture/${id}/game.exe` }), confirm: async () => true, ...extra });

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { imageUrl, mergeCharacters, createCharacterCatalogService, fetchCharacters } = require('../app/out/main/character-catalog.cjs');
+const { imageUrl, mergeCharacters, createCharacterCatalogService, fetchCharacters } = require('../app/src/main/characters/catalog-source.cjs');
 const records = ['新角色', '安可', '今汐', '散华', '吟霖'].map((name, id) => ({ name, en: 'Character ' + id, image: 'https://api.encore.moe/portrait.webp' }));
 const response = (items = records) => new Response(JSON.stringify({ roleList: items.map((record, Id) => ({ Id, Name: record.name, RoleHeadIcon: record.image })) }), { headers: { 'content-type': 'application/json' } });
 

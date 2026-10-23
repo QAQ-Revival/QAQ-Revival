@@ -3,8 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createWuwaDx12Components, createWuwaDx12Packages, releasePackage } = require('../app/out/main/wuwa-dx12-components.cjs');
-const { createWuwaDx12Service, resolveWuwaDx12Paths, buildWuwaDx12Args } = require('../app/out/main/wuwa-dx12.cjs');
+const { createWuwaDx12Components, createWuwaDx12Packages, releasePackage } = require('../app/src/main/games/wuwa/dx12-components.cjs');
+const { createWuwaDx12Service, resolveWuwaDx12Paths, buildWuwaDx12Args } = require('../app/src/main/games/wuwa/dx12.cjs');
 
 function pe() {
   const b = Buffer.alloc(512); b.write('MZ'); b.writeUInt32LE(64, 60); b.write('PE\0\0', 64);

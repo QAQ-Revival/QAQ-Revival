@@ -24,7 +24,7 @@ module.exports = async ({ evaluate, waitFor, window, passed, requests, externalL
   await waitFor(`document.querySelector('.software-update-summary')?.textContent.includes(${JSON.stringify(nextVersion)})`, 'manual check while disabled');
   assert.equal(requests.length, 2);
   for (const options of requests) assert.equal(Object.hasOwn(options.headers, 'Authorization'), false);
-  await evaluate(`Array.from(document.querySelectorAll('#settings-software-update button')).find(button=>button.textContent==='查看 GitHub 发布页').click()`);
+  await evaluate(`Array.from(document.querySelectorAll('#settings-software-update button')).find(button=>button.textContent==='查看发布页').click()`);
   await waitFor(`!Array.from(document.querySelectorAll('#settings-software-update button')).some(button=>button.disabled)`, 'release page opened');
   assert.ok(externalLinks.includes('https://github.com/QAQ-Revival/QAQ-Revival/releases/tag/v' + nextVersion));
   await evaluate(`document.querySelector('[aria-label="不再提醒此版本"]').click()`);

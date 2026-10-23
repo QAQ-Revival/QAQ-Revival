@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createGenshinDiagnostics, peInfo } = require('../app/out/main/genshin-diagnostics.cjs');
+const { createGenshinDiagnostics, peInfo } = require('../app/src/main/games/genshin/diagnostics.cjs');
 
 function peFixture(machine = 0x8664) {
   const b = Buffer.alloc(1024); b.write('MZ'); b.writeUInt32LE(128, 60); b.write('PE\0\0', 128);

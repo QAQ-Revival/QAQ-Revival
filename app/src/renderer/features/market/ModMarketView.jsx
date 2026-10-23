@@ -1,0 +1,1741 @@
+import { t } from "../../../shared/i18n/index.mjs";
+import { useMarketFiltering } from "./hooks/useMarketFiltering.js";
+import { useMarketSync } from "./hooks/useMarketSync.js";
+import { useMarketDownloads } from "./hooks/useMarketDownloads.js";
+import { MarketDownloadPrompt } from "./components/MarketDownloadPrompt.jsx";
+import { MarketDetailDialog } from "./components/MarketDetailDialog.jsx";
+import { MarketToolbar } from "./components/MarketToolbar.jsx";
+import { MarketHeader } from "./components/MarketHeader.jsx";
+import React from "react";
+import ReactDOM from "react-dom";
+import { readAuthSession } from "../../lib/authSession.js";
+import {
+  getCanonicalClientId,
+  getCachedClientId,
+} from "../../lib/clientIdentity.js";
+import {
+  getMarketSessionCache,
+  createMarketSyncStatus,
+  createLoginRequiredMarketAccess,
+  readMarketCharacterPickerCache,
+  normalizeMarketCharacterDetails,
+  areStringMapsEqual,
+  areCharacterDetailsEqual,
+  getMarketScrollStorageKey,
+  normalizeMarketScrollFilters,
+  getMarketScrollFilterKey,
+  readMarketScrollState,
+  cancelMarketWork,
+  scheduleMarketWork,
+  logMarketPerf,
+  clearMarketSessionCache,
+  writeMarketSessionCache,
+  writeMarketCharacterPickerCache,
+  MARKET_SCROLL_RESTORE_MIN_TOP,
+  removeMarketScrollState,
+  writeMarketScrollState,
+} from "./model/marketSession.js";
+import {
+  shouldHideControlledMarketCache,
+  getMarketSnapshotSignature,
+} from "./model/marketSnapshots.js";
+import {
+  createEmptyCollectionData,
+  createMarketCharacterAliasIndex,
+  normalizeMarketCardScale,
+  getModGameId,
+  buildCollectionData,
+  getMarketCanonicalCharacterName,
+  getMarketRecentDownloadScore,
+  getMarketDownloadCount,
+  filterVisibleMarketTags,
+  getMarketCardMinWidth,
+  getMarketCardGap,
+  isHiddenMarketTag,
+  getVariantVersionLabel,
+  isMarketRecentlyPublished,
+  buildImageList,
+  getVariantLabel,
+  getVariantSourceLabel,
+  getCollectionCardTitle,
+  getModModeLabel,
+  getMarketVersionLabel,
+  getMarketCardImageMinHeight,
+  getMarketCardWideImageMinHeight,
+  getMarketCardImageMaxHeight,
+} from "./model/marketCollections.js";
+import { MarketImage } from "./components/MarketImage.jsx";
+import { LightboxOverlay } from "../../components/LightboxOverlay.jsx";
+import { ModFeedbackModal } from "./components/ModFeedbackModal.jsx";
+function ModMarketView({
+  activeGameId,
+  games = [],
+  devMode = false,
+  isActive = true,
+  pendingDetailMod,
+  onPendingDetailConsumed,
+}) {
+  const initialMarketGameId = activeGameId || "endfield";
+  const marketVisibleRef = React.useRef(isActive);
+  marketVisibleRef.current = isActive;
+  React.useEffect(
+    () => () => {
+      marketVisibleRef.current = false;
+    },
+    [],
+  );
+  const initialMarketSessionCache = getMarketSessionCache(initialMarketGameId);
+  const initialAuthSession = readAuthSession();
+  const initialCachedMarketAccess =
+    initialMarketSessionCache?.syncStatus?.marketAccess;
+  const initialCacheHiddenForAnonymous = shouldHideControlledMarketCache(
+    initialCachedMarketAccess,
+    Boolean(initialAuthSession?.token),
+  );
+  const [mods, setMods] = React.useState(() =>
+    initialCacheHiddenForAnonymous ? [] : initialMarketSessionCache?.mods || [],
+  );
+  const [marketDataGameId, setMarketDataGameId] = React.useState(() =>
+    initialMarketSessionCache?.mods?.length
+      ? initialMarketSessionCache.gameId
+      : null,
+  );
+  const [loading, setLoading] = React.useState(false);
+  const [initialCacheReady, setInitialCacheReady] = React.useState(
+    () =>
+      Boolean(initialMarketSessionCache?.mods?.length) ||
+      initialCacheHiddenForAnonymous,
+  );
+  const [syncing, setSyncing] = React.useState(false);
+  const [error, setError] = React.useState(null);
+  const [serverUrl, setServerUrl] = React.useState(
+    () => initialMarketSessionCache?.serverUrl || "https://qaqm.top",
+  );
+  const [syncStatus, setSyncStatus] = React.useState(() =>
+    initialCacheHiddenForAnonymous
+      ? createMarketSyncStatus(
+          {
+            refreshBlocked: true,
+            marketAccess: createLoginRequiredMarketAccess(
+              initialCachedMarketAccess,
+            ),
+          },
+          initialMarketSessionCache?.syncStatus,
+        )
+      : initialMarketSessionCache?.syncStatus || null,
+  );
+  const [searchQuery, setSearchQuery] = React.useState(
+    () => initialMarketSessionCache?.filters?.searchQuery || "",
+  );
+  const [selectedGameId, setSelectedGameId] = React.useState(
+    () =>
+      initialMarketSessionCache?.filters?.selectedGameId ||
+      activeGameId ||
+      "endfield",
+  );
+  const [selectedCharacter, setSelectedCharacter] = React.useState(
+    () => initialMarketSessionCache?.filters?.selectedCharacter || "all",
+  );
+  const [selectedGameVersion, setSelectedGameVersion] = React.useState(
+    () => initialMarketSessionCache?.filters?.selectedGameVersion || "all",
+  );
+  const [selectedModMode, setSelectedModMode] = React.useState(
+    () => initialMarketSessionCache?.filters?.selectedModMode || "all",
+  );
+  const [likedOnly, setLikedOnly] = React.useState(
+    () => initialMarketSessionCache?.filters?.likedOnly === true,
+  );
+  const [selectedTags, setSelectedTags] = React.useState(
+    () => initialMarketSessionCache?.filters?.selectedTags || [],
+  );
+  const [sortBy, setSortBy] = React.useState(
+    () => initialMarketSessionCache?.filters?.sortBy || "newest",
+  );
+  const PAGE_SIZE = 24;
+  const [currentPage, setCurrentPage] = React.useState(
+    () => initialMarketSessionCache?.currentPage || 1,
+  );
+  const [infiniteScroll, setInfiniteScroll] = React.useState(() => {
+    const saved = localStorage.getItem("modmarket-infinite-scroll");
+    return saved === null ? true : saved === "true";
+  });
+  const [equalRowHeight, setEqualRowHeight] = React.useState(() => {
+    const saved = localStorage.getItem("modmarket-equal-row-height");
+    return saved === null ? true : saved === "true";
+  });
+  const [showHotSection, setShowHotSection] = React.useState(() => {
+    const saved = localStorage.getItem("modmarket-show-hot-section");
+    return saved === null ? true : saved === "true";
+  });
+  const [showLayoutMenu, setShowLayoutMenu] = React.useState(false);
+  const [lightboxData, setLightboxData] = React.useState(null);
+  const [cardImageIdx, setCardImageIdx] = React.useState({});
+  const [selectedCollectionVariants, setSelectedCollectionVariants] =
+    React.useState({});
+  const [openCollectionVariantMenu, setOpenCollectionVariantMenu] =
+    React.useState(null);
+  const [detailMod, setDetailMod] = React.useState(null);
+  const [detailGalleryIdx, setDetailGalleryIdx] = React.useState(0);
+  const [closingDetail, setClosingDetail] = React.useState(false);
+  const relatedScrollRef = React.useRef(null);
+  const [feedbackTargetMod, setFeedbackTargetMod] = React.useState(null);
+  const [toast, setToast] = React.useState(null);
+  const [likedMods, setLikedMods] = React.useState(new Set());
+  const [commentCounts, setCommentCounts] = React.useState({});
+  const [modMarketCardScale, setModMarketCardScale] = React.useState(100);
+  const [clientId, setClientId] = React.useState(
+    () => getCachedClientId() || "",
+  );
+  React.useEffect(() => {
+    let cancelled = false;
+    getCanonicalClientId().then((id) => {
+      if (cancelled) return;
+      if (id && id !== clientId) setClientId(id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const [showBackToTop, setShowBackToTop] = React.useState(false);
+  const [showBackToMarketPosition, setShowBackToMarketPosition] =
+    React.useState(false);
+  const [savedMarketScroll, setSavedMarketScroll] = React.useState(null);
+  const contentRef = React.useRef(null);
+  const marketGridRef = React.useRef(null);
+  const currentPageRef = React.useRef(1);
+  const infiniteScrollRef = React.useRef(infiniteScroll);
+  const marketScrollFiltersRef = React.useRef(null);
+  const skipNextFilterPageResetRef = React.useRef(false);
+  const pendingMarketRestoreRef = React.useRef(null);
+  const marketRestoreTimerRef = React.useRef(null);
+  const marketWarmupTimerRef = React.useRef(null);
+  const marketModsRef = React.useRef(mods);
+  const marketSyncStatusRef = React.useRef(syncStatus);
+  const activeGameIdRef = React.useRef(activeGameId || null);
+  const [marketGridColumns, setMarketGridColumns] = React.useState(4);
+  React.useEffect(() => {
+    marketModsRef.current = mods;
+  }, [mods]);
+  React.useEffect(() => {
+    marketSyncStatusRef.current = syncStatus;
+  }, [syncStatus]);
+  const [serverGameVersions, setServerGameVersions] = React.useState(
+    () => initialMarketSessionCache?.serverGameVersions || [],
+  );
+  const [defaultCharacterCovers, setDefaultCharacterCovers] = React.useState(
+    () => initialMarketSessionCache?.defaultCharacterCovers || {},
+  );
+  const [defaultCharacterDetails, setDefaultCharacterDetails] = React.useState(
+    () => initialMarketSessionCache?.defaultCharacterDetails || [],
+  );
+  const [marketCharacterAliasPools, setMarketCharacterAliasPools] =
+    React.useState(
+      () => initialMarketSessionCache?.marketCharacterAliasPools || [],
+    );
+  const [cachedCharacterPickerOptions, setCachedCharacterPickerOptions] =
+    React.useState(() => ({
+      roleOptions: [],
+      functionOptions: [],
+    }));
+  const [marketWarmData, setMarketWarmData] = React.useState(() => ({
+    ready: Boolean(
+      initialMarketSessionCache?.marketWarmData?.ready &&
+      initialMarketSessionCache?.mods?.length,
+    ),
+    sourceSignature: initialMarketSessionCache?.modsSignature || "",
+    collectionData:
+      initialMarketSessionCache?.marketWarmData?.collectionData ||
+      createEmptyCollectionData(),
+    characterStats:
+      initialMarketSessionCache?.marketWarmData?.characterStats || new Map(),
+  }));
+  const [popularityData, setPopularityData] = React.useState(
+    () => initialMarketSessionCache?.popularityData || {},
+  );
+  const loadedCommentCountIdsRef = React.useRef(new Set());
+  const [showRefreshMenu, setShowRefreshMenu] = React.useState(false);
+  const [showCharacterPicker, setShowCharacterPicker] = React.useState(false);
+  const refreshMenuRef = React.useRef(null);
+  const layoutMenuRef = React.useRef(null);
+  const characterPickerRef = React.useRef(null);
+  const gameOptions = React.useMemo(
+    () =>
+      games.map((game) => ({
+        id: game.id,
+        name: game.name,
+      })),
+    [games],
+  );
+  const gameNameMap = React.useMemo(
+    () => Object.fromEntries(gameOptions.map((game) => [game.id, game.name])),
+    [gameOptions],
+  );
+  const marketGameId = gameOptions.some((game) => game.id === selectedGameId)
+    ? selectedGameId
+    : activeGameId || "endfield";
+  const { silentlyRefreshMarket, syncMods } = useMarketSync({
+    isActive,
+    marketGameId,
+    setInitialCacheReady,
+    marketVisibleRef,
+    setMods,
+    setMarketDataGameId,
+    setSyncStatus,
+    serverUrl,
+    setServerUrl,
+    activeGameId,
+    setSelectedGameId,
+    setSyncing,
+    setLoading,
+    setError,
+    mods,
+    marketDataGameId,
+    loadPopularityData,
+    loadLikedMods,
+    marketSyncStatusRef,
+    setDetailMod,
+    marketModsRef,
+    setServerGameVersions,
+  });
+  const {
+    downloadPrompt,
+    setDownloadPrompt,
+    handleDirectDownload,
+    shouldShowDirectDownload,
+    handleDownload,
+  } = useMarketDownloads({
+    serverUrl,
+    setToast,
+    clientId,
+    setSyncStatus,
+    silentlyRefreshMarket,
+    syncMods,
+  });
+  const marketCharacterAliasIndex = React.useMemo(
+    () => createMarketCharacterAliasIndex(marketCharacterAliasPools),
+    [marketCharacterAliasPools],
+  );
+  const {
+    gameFilteredMods,
+    gameFilteredModsSignature,
+    selectedCharacterLabel,
+    visibleSelectedTags,
+    characterPickerOptions,
+    visibleCharacterPickerOptions,
+    gameVersionOptions,
+    gameDisplayedMods,
+    displayedMods,
+    sectionedDisplayedMods,
+    detailCollectionGroup,
+    totalPages,
+    pagedMods,
+    adaptiveColumns,
+  } = useMarketFiltering({
+    mods,
+    selectedGameId,
+    marketCharacterAliasIndex,
+    searchQuery,
+    selectedCharacter,
+    selectedGameVersion,
+    selectedModMode,
+    likedOnly,
+    selectedTags,
+    sortBy,
+    marketWarmData,
+    defaultCharacterCovers,
+    cachedCharacterPickerOptions,
+    serverGameVersions,
+    likedMods,
+    popularityData,
+    selectedCollectionVariants,
+    marketGridColumns,
+    showHotSection,
+    detailMod,
+    PAGE_SIZE,
+    infiniteScroll,
+    currentPage,
+  });
+  React.useEffect(() => {
+    const cached = readMarketCharacterPickerCache(marketGameId);
+    const cachedDetails = normalizeMarketCharacterDetails(
+      cached?.characterDetails,
+    );
+    setCachedCharacterPickerOptions({
+      roleOptions: cached?.roleOptions || [],
+      functionOptions: cached?.functionOptions || [],
+    });
+    setDefaultCharacterCovers(cached?.covers || {});
+    setDefaultCharacterDetails(cachedDetails);
+    setMarketCharacterAliasPools(
+      cachedDetails.map((item) => ({
+        canonical: item.name,
+        aliases: item.aliases,
+      })),
+    );
+  }, [marketGameId]);
+  React.useEffect(() => {
+    if (!toast) return void 0;
+    const timer = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(timer);
+  }, [toast]);
+  React.useEffect(() => {
+    let cancelled = false;
+    window.api
+      .getConfig?.()
+      .then((result) => {
+        if (cancelled || !result?.success) return;
+        setModMarketCardScale(
+          normalizeMarketCardScale(result.config?.modMarketCardSize),
+        );
+      })
+      .catch(() => {});
+    function handleCardSizeChanged(event) {
+      setModMarketCardScale(normalizeMarketCardScale(event?.detail?.size));
+    }
+    window.addEventListener(
+      "qaqm:mod-market-card-size-changed",
+      handleCardSizeChanged,
+    );
+    return () => {
+      cancelled = true;
+      window.removeEventListener(
+        "qaqm:mod-market-card-size-changed",
+        handleCardSizeChanged,
+      );
+    };
+  }, []);
+  React.useEffect(() => {
+    let cancelled = false;
+    let timer = null;
+    async function loadDefaultCharacterCovers() {
+      try {
+        const result = await window.api.getDefaultCharacters?.(marketGameId);
+        if (cancelled || !result?.success) return;
+        const covers = {};
+        const details = [];
+        if (Array.isArray(result.characterDetails)) {
+          result.characterDetails.forEach((item) => {
+            if (item?.name && item?.coverUrl) covers[item.name] = item.coverUrl;
+            if (item?.name) {
+              details.push({
+                name: item.name,
+                coverUrl: item.coverUrl || null,
+                aliases: Array.isArray(item.aliases) ? item.aliases : [],
+              });
+            }
+          });
+        }
+        const normalizedDetails = normalizeMarketCharacterDetails(details);
+        setDefaultCharacterCovers((prev) =>
+          areStringMapsEqual(prev, covers) ? prev : covers,
+        );
+        setDefaultCharacterDetails((prev) =>
+          areCharacterDetailsEqual(prev, normalizedDetails)
+            ? prev
+            : normalizedDetails,
+        );
+      } catch {
+        if (!cancelled) setDefaultCharacterCovers({});
+      }
+    }
+    timer = window.setTimeout(
+      loadDefaultCharacterCovers,
+      showCharacterPicker ? 0 : 1800,
+    );
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [marketGameId, showCharacterPicker]);
+  React.useEffect(() => {
+    if (!showRefreshMenu) return void 0;
+    function handleDocClick(e) {
+      if (
+        refreshMenuRef.current &&
+        !refreshMenuRef.current.contains(e.target)
+      ) {
+        setShowRefreshMenu(false);
+      }
+    }
+    function handleKey(e) {
+      if (e.key === "Escape") setShowRefreshMenu(false);
+    }
+    document.addEventListener("mousedown", handleDocClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDocClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [showRefreshMenu]);
+  React.useEffect(() => {
+    if (!showLayoutMenu) return void 0;
+    function handleDocClick(e) {
+      if (layoutMenuRef.current && !layoutMenuRef.current.contains(e.target)) {
+        setShowLayoutMenu(false);
+      }
+    }
+    function handleKey(e) {
+      if (e.key === "Escape") setShowLayoutMenu(false);
+    }
+    document.addEventListener("mousedown", handleDocClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDocClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [showLayoutMenu]);
+  React.useEffect(() => {
+    if (!showCharacterPicker) return void 0;
+    function handleDocClick(e) {
+      if (
+        characterPickerRef.current &&
+        !characterPickerRef.current.contains(e.target)
+      ) {
+        setShowCharacterPicker(false);
+      }
+    }
+    function handleKey(e) {
+      if (e.key === "Escape") setShowCharacterPicker(false);
+    }
+    document.addEventListener("mousedown", handleDocClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDocClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [showCharacterPicker]);
+  React.useEffect(() => {
+    if (!openCollectionVariantMenu) return void 0;
+    function handleDocClick() {
+      setOpenCollectionVariantMenu(null);
+    }
+    function handleKey(e) {
+      if (e.key === "Escape") setOpenCollectionVariantMenu(null);
+    }
+    document.addEventListener("mousedown", handleDocClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDocClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [openCollectionVariantMenu]);
+  React.useEffect(() => {
+    if (!activeGameId || activeGameIdRef.current === activeGameId) return;
+    activeGameIdRef.current = activeGameId;
+    setSelectedGameId(activeGameId);
+    setSelectedCharacter("all");
+    setSelectedGameVersion("all");
+    setSelectedModMode("all");
+  }, [activeGameId]);
+  const marketScrollStorageKey = getMarketScrollStorageKey(marketGameId);
+  React.useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
+  React.useEffect(() => {
+    infiniteScrollRef.current = infiniteScroll;
+  }, [infiniteScroll]);
+  const currentMarketScrollFilters = React.useMemo(
+    () =>
+      normalizeMarketScrollFilters({
+        selectedGameId,
+        searchQuery,
+        selectedCharacter,
+        selectedGameVersion,
+        selectedModMode,
+        likedOnly,
+        sortBy,
+        selectedTags,
+        showHotSection,
+      }),
+    [
+      selectedGameId,
+      searchQuery,
+      selectedCharacter,
+      selectedGameVersion,
+      selectedModMode,
+      likedOnly,
+      sortBy,
+      selectedTags,
+      showHotSection,
+    ],
+  );
+  const currentMarketScrollFilterKey = React.useMemo(
+    () => getMarketScrollFilterKey(currentMarketScrollFilters),
+    [currentMarketScrollFilters],
+  );
+  React.useEffect(() => {
+    marketScrollFiltersRef.current = currentMarketScrollFilters;
+  }, [currentMarketScrollFilters]);
+  React.useEffect(() => {
+    const saved = readMarketScrollState(marketScrollStorageKey);
+    setSavedMarketScroll(saved);
+    setShowBackToMarketPosition(Boolean(saved));
+  }, [marketScrollStorageKey]);
+  const marketIsBooting =
+    !initialCacheReady && marketDataGameId !== marketGameId;
+  React.useEffect(() => {
+    if (marketIsBooting) {
+      if (marketWarmupTimerRef.current) {
+        cancelMarketWork(marketWarmupTimerRef.current);
+        marketWarmupTimerRef.current = null;
+      }
+      setMarketWarmData((prev) =>
+        prev.ready || prev.sourceSignature
+          ? {
+              ready: false,
+              sourceSignature: "",
+              collectionData: prev.collectionData,
+              characterStats: new Map(),
+            }
+          : prev,
+      );
+      return void 0;
+    }
+    const startedAt = performance.now();
+    setMarketWarmData((prev) =>
+      prev.sourceSignature === gameFilteredModsSignature
+        ? prev
+        : {
+            ready: false,
+            sourceSignature: gameFilteredModsSignature,
+            collectionData: prev.collectionData,
+            characterStats: new Map(),
+          },
+    );
+    if (marketWarmupTimerRef.current) {
+      cancelMarketWork(marketWarmupTimerRef.current);
+      marketWarmupTimerRef.current = null;
+    }
+    marketWarmupTimerRef.current = scheduleMarketWork(() => {
+      marketWarmupTimerRef.current = null;
+      const buildStartedAt = performance.now();
+      const nextCollectionData = buildCollectionData(
+        gameFilteredMods,
+        marketCharacterAliasIndex,
+      );
+      logMarketPerf(
+        "buildCollectionData",
+        buildStartedAt,
+        `${gameFilteredMods.length} mods`,
+      );
+      const statsStartedAt = performance.now();
+      const nextCharacterStats = (() => {
+        const stats = new Map();
+        gameFilteredMods.forEach((mod) => {
+          const name = getMarketCanonicalCharacterName(
+            mod.characterName,
+            marketCharacterAliasIndex,
+          );
+          if (!name) return;
+          const current = stats.get(name) || {
+            count: 0,
+            recentScore: 0,
+            totalDownloads: 0,
+          };
+          current.count += 1;
+          current.recentScore += getMarketRecentDownloadScore(
+            mod,
+            popularityData,
+          );
+          current.totalDownloads += getMarketDownloadCount(mod);
+          stats.set(name, current);
+        });
+        return stats;
+      })();
+      logMarketPerf(
+        "buildCharacterStats",
+        statsStartedAt,
+        `${nextCharacterStats.size} characters`,
+      );
+      setMarketWarmData({
+        ready: true,
+        sourceSignature: gameFilteredModsSignature,
+        collectionData: nextCollectionData,
+        characterStats: nextCharacterStats,
+      });
+      logMarketPerf(
+        "marketWarmupTotal",
+        startedAt,
+        `${gameFilteredMods.length} mods`,
+      );
+    });
+    return () => {
+      if (marketWarmupTimerRef.current) {
+        cancelMarketWork(marketWarmupTimerRef.current);
+        marketWarmupTimerRef.current = null;
+      }
+    };
+  }, [
+    gameFilteredMods,
+    gameFilteredModsSignature,
+    popularityData,
+    marketCharacterAliasIndex,
+    marketIsBooting,
+  ]);
+  React.useEffect(() => {
+    setSelectedTags((prev) => {
+      const filtered = filterVisibleMarketTags(prev);
+      return filtered.length === prev.length ? prev : filtered;
+    });
+  }, []);
+  React.useEffect(() => {
+    if (!marketGameId || marketDataGameId !== marketGameId) return;
+    if (!mods.length) {
+      if (!syncStatus?.refreshBlocked) clearMarketSessionCache(marketGameId);
+      return;
+    }
+    writeMarketSessionCache(marketGameId, {
+      mods,
+      modsSignature: getMarketSnapshotSignature(mods),
+      serverUrl,
+      syncStatus,
+      filters: currentMarketScrollFilters,
+      currentPage,
+      serverGameVersions,
+      defaultCharacterCovers,
+      defaultCharacterDetails,
+      marketCharacterAliasPools,
+      popularityData,
+      marketWarmData: marketWarmData.ready
+        ? {
+            ready: true,
+            sourceSignature: marketWarmData.sourceSignature,
+            collectionData: marketWarmData.collectionData,
+            characterStats: marketWarmData.characterStats,
+          }
+        : null,
+    });
+  }, [
+    marketGameId,
+    marketDataGameId,
+    mods,
+    serverUrl,
+    syncStatus,
+    currentMarketScrollFilters,
+    currentPage,
+    serverGameVersions,
+    defaultCharacterCovers,
+    defaultCharacterDetails,
+    marketCharacterAliasPools,
+    popularityData,
+    marketWarmData,
+  ]);
+  React.useEffect(() => {
+    if (
+      !characterPickerOptions.roleOptions.length &&
+      !characterPickerOptions.functionOptions.length
+    )
+      return;
+    writeMarketCharacterPickerCache(marketGameId, {
+      ...characterPickerOptions,
+      covers: defaultCharacterCovers,
+      characterDetails: defaultCharacterDetails,
+    });
+    setCachedCharacterPickerOptions(characterPickerOptions);
+  }, [
+    marketGameId,
+    characterPickerOptions,
+    defaultCharacterCovers,
+    defaultCharacterDetails,
+  ]);
+  React.useEffect(() => {
+    const grid = marketGridRef.current;
+    if (!grid) return void 0;
+    let rafId = null;
+    const updateColumns = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        let columns = 0;
+        if (equalRowHeight) {
+          const computed = window.getComputedStyle(grid);
+          columns = computed.gridTemplateColumns
+            .split(" ")
+            .filter((part) => part && part !== "none").length;
+        } else {
+          const minWidth = getMarketCardMinWidth(modMarketCardScale);
+          const gap = getMarketCardGap(modMarketCardScale);
+          columns = Math.max(
+            1,
+            Math.floor((grid.clientWidth + gap) / (minWidth + gap)),
+          );
+        }
+        if (columns > 0) setMarketGridColumns(columns);
+      });
+    };
+    updateColumns();
+    const observer = new ResizeObserver(updateColumns);
+    observer.observe(grid);
+    window.addEventListener("resize", updateColumns);
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      observer.disconnect();
+      window.removeEventListener("resize", updateColumns);
+    };
+  }, [displayedMods.length, modMarketCardScale, equalRowHeight]);
+  React.useEffect(() => {
+    if (skipNextFilterPageResetRef.current) {
+      skipNextFilterPageResetRef.current = false;
+      return;
+    }
+    setCurrentPage(1);
+  }, [
+    searchQuery,
+    selectedCharacter,
+    selectedGameVersion,
+    selectedModMode,
+    likedOnly,
+    sortBy,
+    selectedGameId,
+    selectedTags,
+    showHotSection,
+  ]);
+  React.useEffect(() => {
+    if (!isActive) return void 0;
+    const el = document.querySelector(".main-content");
+    if (!el) return;
+    contentRef.current = el;
+    let rafId = null;
+    let loadingMore = false;
+    const saveScroll = (allowClear = false) => {
+      const scrollTop = Math.round(el.scrollTop || 0);
+      if (scrollTop < MARKET_SCROLL_RESTORE_MIN_TOP) {
+        if (allowClear) {
+          const saved = readMarketScrollState(marketScrollStorageKey);
+          const savedFilterKey = getMarketScrollFilterKey(saved?.filters);
+          const currentFilterKey = getMarketScrollFilterKey(
+            marketScrollFiltersRef.current,
+          );
+          if (!savedFilterKey || savedFilterKey === currentFilterKey) {
+            removeMarketScrollState(marketScrollStorageKey);
+            if (showBackToMarketPosition) {
+              setSavedMarketScroll(null);
+              setShowBackToMarketPosition(false);
+            }
+          }
+        }
+        return;
+      }
+      const payload = {
+        scrollTop,
+        page: Math.max(1, Number(currentPageRef.current || 1)),
+        infiniteScroll: Boolean(infiniteScrollRef.current),
+        filters: marketScrollFiltersRef.current,
+        savedAt: Date.now(),
+      };
+      writeMarketScrollState(marketScrollStorageKey, payload);
+    };
+    const handler = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        setShowBackToTop(el.scrollTop > 300);
+        saveScroll(true);
+        if (
+          infiniteScroll &&
+          !loadingMore &&
+          el.scrollHeight - el.scrollTop - el.clientHeight < 200
+        ) {
+          setCurrentPage((p) => {
+            if (p * PAGE_SIZE < sectionedDisplayedMods.length) {
+              loadingMore = true;
+              setTimeout(() => {
+                loadingMore = false;
+              }, 300);
+              return p + 1;
+            }
+            return p;
+          });
+        }
+      });
+    };
+    el.addEventListener("scroll", handler, {
+      passive: true,
+    });
+    return () => {
+      saveScroll(false);
+      el.removeEventListener("scroll", handler);
+      if (rafId) cancelAnimationFrame(rafId);
+      if (contentRef.current === el) contentRef.current = null;
+    };
+  }, [
+    infiniteScroll,
+    marketScrollStorageKey,
+    sectionedDisplayedMods.length,
+    showBackToMarketPosition,
+    isActive,
+  ]);
+  async function loadPopularityData() {
+    if (!marketVisibleRef.current || !serverUrl) return;
+    try {
+      const [today, week, month] = await Promise.all([
+        fetch(`${serverUrl}/api/mods/popular/today`).then((r) => r.json()),
+        fetch(`${serverUrl}/api/mods/popular/week`).then((r) => r.json()),
+        fetch(`${serverUrl}/api/mods/popular/month`).then((r) => r.json()),
+      ]);
+      setPopularityData({
+        hot_today: today.popular || [],
+        hot_week: week.popular || [],
+        hot_month: month.popular || [],
+      });
+    } catch (e) {
+      console.error("Load popularity data failed:", e);
+    }
+  }
+  async function loadLikedMods() {
+    if (!marketVisibleRef.current || !serverUrl || !clientId) return;
+    try {
+      const res = await fetch(`${serverUrl}/api/mods/liked/${clientId}`);
+      const data = await res.json();
+      if (data.success) {
+        setLikedMods(
+          new Set((data.likedModIds || []).map((modId) => String(modId))),
+        );
+      }
+    } catch (e) {
+      console.error("Load liked mods failed:", e);
+    }
+  }
+  React.useEffect(() => {
+    loadLikedMods();
+  }, [serverUrl, clientId, isActive]);
+  React.useEffect(() => {
+    if (!isActive || !serverUrl || pagedMods.length === 0) return;
+    const timer = setTimeout(() => {
+      loadCommentCounts(pagedMods);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [serverUrl, pagedMods, isActive]);
+  React.useEffect(() => {
+    if (!isActive || !serverUrl || !detailMod?.id) return;
+    if (loadedCommentCountIdsRef.current.has(String(detailMod.id))) return;
+    loadCommentCounts([detailMod]);
+  }, [serverUrl, detailMod, isActive]);
+  async function loadCommentCounts(modsList) {
+    if (!marketVisibleRef.current || !serverUrl) return;
+    const ids = (modsList || [])
+      .map((m) => m?.id)
+      .filter(Boolean)
+      .map((id) => String(id))
+      .filter((id) => !loadedCommentCountIdsRef.current.has(id));
+    if (!ids.length) return;
+    try {
+      const res = await fetch(
+        `${serverUrl}/api/mod-comments/counts?modIds=${ids.join(",")}`,
+      );
+      const data = await res.json();
+      if (data.success && data.counts) {
+        ids.forEach((id) => loadedCommentCountIdsRef.current.add(id));
+        setCommentCounts((prev) => ({
+          ...prev,
+          ...data.counts,
+        }));
+      }
+    } catch (e) {
+      console.error("Load comment counts failed:", e);
+    }
+  }
+  async function handleToggleLike(modId) {
+    if (!serverUrl) return;
+    try {
+      const res = await fetch(`${serverUrl}/api/mods/${modId}/like`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientId,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const likedModId = String(modId);
+        setLikedMods((prev) => {
+          const next = new Set(prev);
+          if (data.liked) {
+            next.add(likedModId);
+          } else {
+            next.delete(likedModId);
+          }
+          return next;
+        });
+      }
+    } catch (e) {
+      console.error("Like toggle failed:", e);
+    }
+  }
+  function scrollToTop() {
+    const el = document.querySelector(".main-content");
+    if (el)
+      el.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+  }
+  function runPendingMarketRestore(smooth = false) {
+    const pending = pendingMarketRestoreRef.current;
+    if (!pending) return;
+    const el = contentRef.current || document.querySelector(".main-content");
+    if (!el) return;
+    const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
+    if (maxTop < pending.scrollTop - 24 && pending.attempts < 18) {
+      pending.attempts += 1;
+      marketRestoreTimerRef.current = setTimeout(
+        () => runPendingMarketRestore(smooth),
+        80,
+      );
+      return;
+    }
+    el.scrollTo({
+      top: Math.min(pending.scrollTop, maxTop),
+      behavior: smooth ? "smooth" : "auto",
+    });
+    pendingMarketRestoreRef.current = null;
+    marketRestoreTimerRef.current = null;
+  }
+  function restoreMarketScrollPosition() {
+    const saved =
+      readMarketScrollState(marketScrollStorageKey) || savedMarketScroll;
+    if (!saved) return;
+    const targetPage = Math.max(1, Number(saved.page || 1));
+    const savedFilters = normalizeMarketScrollFilters(saved.filters);
+    const savedFilterKey = getMarketScrollFilterKey(savedFilters);
+    const shouldRestoreFilters =
+      savedFilterKey && savedFilterKey !== currentMarketScrollFilterKey;
+    pendingMarketRestoreRef.current = {
+      scrollTop: Math.max(0, Number(saved.scrollTop || 0)),
+      attempts: 0,
+    };
+    if (shouldRestoreFilters) {
+      skipNextFilterPageResetRef.current = true;
+      setSelectedGameId(savedFilters.selectedGameId);
+      setSearchQuery(savedFilters.searchQuery);
+      setSelectedCharacter(savedFilters.selectedCharacter);
+      setSelectedGameVersion(savedFilters.selectedGameVersion);
+      setSelectedModMode(savedFilters.selectedModMode);
+      setLikedOnly(savedFilters.likedOnly === true);
+      setShowHotSection(savedFilters.showHotSection !== false);
+      setSortBy(savedFilters.sortBy);
+      setSelectedTags(filterVisibleMarketTags(savedFilters.selectedTags));
+    }
+    if (targetPage !== currentPageRef.current || shouldRestoreFilters) {
+      setCurrentPage(targetPage);
+    }
+    setShowBackToMarketPosition(false);
+    if (marketRestoreTimerRef.current)
+      clearTimeout(marketRestoreTimerRef.current);
+    marketRestoreTimerRef.current = setTimeout(
+      () => runPendingMarketRestore(true),
+      shouldRestoreFilters ? 160 : 60,
+    );
+  }
+  React.useEffect(() => {
+    return () => {
+      if (marketRestoreTimerRef.current)
+        clearTimeout(marketRestoreTimerRef.current);
+    };
+  }, []);
+  function openModDetail(mod) {
+    setClosingDetail(false);
+    setDetailMod(mod);
+    setDetailGalleryIdx(0);
+  }
+  function selectCollectionVariant(identity, variant, openDetail = false) {
+    if (!identity || !variant) return;
+    setSelectedCollectionVariants((prev) => ({
+      ...prev,
+      [identity]: variant.id,
+    }));
+    setCardImageIdx((prev) => ({
+      ...prev,
+      [`collection:${identity}`]: 0,
+    }));
+    if (openDetail) openModDetail(variant);
+  }
+  function closeDetailModal() {
+    setClosingDetail(true);
+    setTimeout(() => {
+      setDetailMod(null);
+      setClosingDetail(false);
+    }, 250);
+  }
+  React.useEffect(() => {
+    if (!detailMod || !relatedScrollRef.current) return;
+    const active = relatedScrollRef.current.querySelector(
+      ".xhs-related-item.active",
+    );
+    if (active) {
+      active.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+    }
+  }, [detailMod]);
+  React.useEffect(() => {
+    if (!pendingDetailMod) return;
+    const match =
+      mods.find((m) => m.id === pendingDetailMod.id) || pendingDetailMod;
+    openModDetail(match);
+    onPendingDetailConsumed?.();
+  }, [pendingDetailMod]);
+  function openFeedbackModal(mod) {
+    setFeedbackTargetMod(mod);
+  }
+  function addTagFilter(tag) {
+    if (isHiddenMarketTag(tag)) return;
+    setSelectedTags((prev) => {
+      if (prev.some((t) => t.id === tag.id)) return prev;
+      return [...prev, tag];
+    });
+  }
+  function removeTagFilter(tagId) {
+    setSelectedTags((prev) => prev.filter((t) => t.id !== tagId));
+  }
+  function applyQuickFilter({
+    gameId,
+    character,
+    gameVersion,
+    closeDetail = false,
+  }) {
+    if (gameId) {
+      setSelectedGameId(gameId);
+    }
+    if (character !== void 0) {
+      setSelectedCharacter(
+        character === "all"
+          ? "all"
+          : getMarketCanonicalCharacterName(
+              character,
+              marketCharacterAliasIndex,
+            ),
+      );
+    }
+    if (gameVersion !== void 0) {
+      setSelectedGameVersion(gameVersion);
+    }
+    setSearchQuery("");
+    setSelectedTags([]);
+    if (closeDetail) {
+      closeDetailModal();
+    }
+    requestAnimationFrame(() => scrollToTop());
+  }
+  function renderFilterTag({
+    label,
+    className = "",
+    onClick,
+    title = t("market.filters.categoryHint"),
+  }) {
+    return (
+      <button
+        type="button"
+        className={`tag tag-clickable ${className}`.trim()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.();
+        }}
+        title={title}
+      >
+        {label}
+      </button>
+    );
+  }
+  function renderMarketCard(mod, visualIndex = 0) {
+    const cardKey = mod._displayKey || mod.id;
+    const displayCharacterName = getMarketCanonicalCharacterName(
+      mod.characterName || mod._originalCharacterName || "通用",
+      marketCharacterAliasIndex,
+    );
+    const collectionVariants = Array.isArray(mod._collectionVariants)
+      ? mod._collectionVariants
+      : [];
+    const isVariantMenuOpen =
+      openCollectionVariantMenu === mod._collectionIdentity;
+    const selectedVariantIndex = collectionVariants.findIndex(
+      (variant) => String(variant.id) === String(mod.id),
+    );
+    const selectedVariantVersion = getVariantVersionLabel(
+      mod,
+      selectedVariantIndex >= 0 ? selectedVariantIndex : 0,
+    );
+    const isPinnedCard = mod._marketSection === "pinned";
+    const isHotCard = mod._marketSection === "hot";
+    const isUpdatedCard = isMarketRecentlyPublished(mod);
+    const isFirstRowCard = visualIndex < Math.max(1, marketGridColumns || 1);
+    const useFixedImage = equalRowHeight || isPinnedCard || isFirstRowCard;
+    return (
+      <div
+        className={[
+          "mod-card",
+          equalRowHeight ? "mod-card-equal-row" : "mod-card-adaptive-row",
+          isFirstRowCard ? "mod-card-first-row" : "",
+          isPinnedCard ? "mod-card-fixed-image" : "",
+          isVariantMenuOpen ? "variant-menu-open" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        key={cardKey}
+      >
+        <div
+          className={`mod-card-image ${useFixedImage ? "mod-card-image-fixed" : "mod-card-image-adaptive"}`}
+          onClick={() => openModDetail(mod)}
+        >
+          {(() => {
+            const images = buildImageList(mod);
+            const idx = Math.min(cardImageIdx[cardKey] || 0, images.length - 1);
+            return images.length > 0 ? (
+              <MarketImage
+                src={images[idx].url}
+                alt={mod.name}
+                className="market-image-card"
+                key={`${cardKey}-${mod.id}-${idx}`}
+              />
+            ) : (
+              <div className="mod-card-placeholder">{"🖼️"}</div>
+            );
+          })()}
+          {buildImageList(mod).length > 1 && (
+            <React.Fragment>
+              <div className="mod-card-img-count">
+                {"🖼 "}
+                {buildImageList(mod).length}
+              </div>
+              <button
+                className="mod-card-nav-btn mod-card-nav-prev"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const len = buildImageList(mod).length;
+                  setCardImageIdx((prev) => ({
+                    ...prev,
+                    [cardKey]: ((prev[cardKey] || 0) - 1 + len) % len,
+                  }));
+                }}
+              >
+                {"‹"}
+              </button>
+              <button
+                className="mod-card-nav-btn mod-card-nav-next"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const len = buildImageList(mod).length;
+                  setCardImageIdx((prev) => ({
+                    ...prev,
+                    [cardKey]: ((prev[cardKey] || 0) + 1) % len,
+                  }));
+                }}
+              >
+                {"›"}
+              </button>
+              <div className="mod-card-dots">
+                {buildImageList(mod).map((_, i) => (
+                  <button
+                    className={`mod-card-dot ${i === (cardImageIdx[cardKey] || 0) ? "active" : ""}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCardImageIdx((prev) => ({
+                        ...prev,
+                        [cardKey]: i,
+                      }));
+                    }}
+                    key={i}
+                  />
+                ))}
+              </div>
+            </React.Fragment>
+          )}
+          {mod._isCollectionCard && collectionVariants.length > 1 && (
+            <div
+              className="mod-card-variant-row mod-card-variant-floating"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="mod-card-variant-trigger"
+                aria-haspopup="listbox"
+                aria-expanded={isVariantMenuOpen}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenCollectionVariantMenu((current) =>
+                    current === mod._collectionIdentity
+                      ? null
+                      : mod._collectionIdentity,
+                  );
+                }}
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "ArrowDown" ||
+                    e.key === "Enter" ||
+                    e.key === " "
+                  ) {
+                    e.preventDefault();
+                    setOpenCollectionVariantMenu(mod._collectionIdentity);
+                  }
+                }}
+              >
+                <span className="mod-card-variant-trigger-main">
+                  {selectedVariantVersion}
+                </span>
+              </button>
+              {isVariantMenuOpen && (
+                <div className="mod-card-variant-menu" role="listbox">
+                  {collectionVariants.map((variant, index) => {
+                    const isSelected = String(variant.id) === String(mod.id);
+                    return (
+                      <button
+                        type="button"
+                        className={`mod-card-variant-option ${isSelected ? "active" : ""}`}
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectCollectionVariant(
+                            mod._collectionIdentity,
+                            variant,
+                          );
+                          setOpenCollectionVariantMenu(null);
+                        }}
+                        key={variant.id}
+                      >
+                        <span>{getVariantLabel(variant, index)}</span>
+                        <em>{getVariantSourceLabel(variant)}</em>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+          {mod._isCollectionCard && (
+            <div className="mod-card-collection-badge">
+              {t("market.collections.variantCount", {
+                collectionVariantsCount: collectionVariants.length,
+              })}
+            </div>
+          )}
+          {(isPinnedCard || isHotCard || isUpdatedCard) && (
+            <div className="mod-card-section-badges">
+              {isPinnedCard && (
+                <div className="mod-card-section-badge mod-card-section-pinned">
+                  {t("characters.actions.pinShort")}
+                </div>
+              )}
+              {isHotCard && (
+                <div className="mod-card-section-badge mod-card-section-hot">
+                  {t("market.collections.popular")}
+                </div>
+              )}
+              {isUpdatedCard && (
+                <div className="mod-card-section-badge mod-card-section-update">
+                  {t("common.actions.update")}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="mod-card-body" onClick={() => openModDetail(mod)}>
+          <h3 className="mod-card-title">{getCollectionCardTitle(mod)}</h3>
+          <div className="mod-card-tags">
+            <div className="mod-card-tags-row">
+              {renderFilterTag({
+                label: `👤 ${displayCharacterName || t("settings.categories.general")}`,
+                className: "tag-character",
+                onClick: () =>
+                  applyQuickFilter({
+                    gameId: getModGameId(mod),
+                    character: displayCharacterName || "all",
+                  }),
+                title: displayCharacterName
+                  ? t("market.filters.characterHint", {
+                      displayCharacterName,
+                    })
+                  : t("market.filters.sharedModHint"),
+              })}
+              <span
+                className="tag"
+                title={(mod.modMode || "d3d") === "pak" ? "Pak Mod" : "3dm Mod"}
+              >
+                {getModModeLabel(mod.modMode || "d3d")}
+              </span>
+              {renderFilterTag({
+                label: getMarketVersionLabel(mod),
+                className: "tag-version",
+                onClick: () =>
+                  mod.game_version
+                    ? applyQuickFilter({
+                        gameId: getModGameId(mod),
+                        character: selectedCharacter,
+                        gameVersion: mod.game_version,
+                      })
+                    : void 0,
+                title: mod.game_version
+                  ? t("market.filters.versionHint", {
+                      mod: mod.game_version,
+                    })
+                  : t("mods.fields.version"),
+              })}
+            </div>
+          </div>
+          <div className="mod-card-bottom" onClick={(e) => e.stopPropagation()}>
+            <div className="mod-card-downloads">
+              <button
+                type="button"
+                className={`mod-dl-btn mod-dl-favorite ${likedMods.has(String(mod.id)) ? "active" : ""}`}
+                title={
+                  likedMods.has(String(mod.id))
+                    ? t("market.actions.unfavorite")
+                    : t("market.actions.favorite")
+                }
+                aria-label={
+                  likedMods.has(String(mod.id))
+                    ? t("market.actions.unfavorite")
+                    : t("market.actions.favorite")
+                }
+                aria-pressed={likedMods.has(String(mod.id))}
+                onClick={() => handleToggleLike(mod.id)}
+              >
+                <span className="mod-favorite-heart" aria-hidden="true">
+                  {likedMods.has(String(mod.id)) ? "♥" : "♡"}
+                </span>
+              </button>
+              {shouldShowDirectDownload(mod) && (
+                <button
+                  className="mod-dl-btn mod-dl-direct"
+                  onClick={() => handleDirectDownload(mod, "market_card")}
+                >
+                  {t("common.actions.download")}
+                </button>
+              )}
+              {mod.downloadUrl && (
+                <button
+                  className="mod-dl-btn mod-dl-baidu"
+                  onClick={() =>
+                    handleDownload(mod, mod.downloadUrl, "baidu", "market_card")
+                  }
+                >
+                  {t("market.sources.baidu")}
+                </button>
+              )}
+              {mod.quarkDownloadUrl && (
+                <button
+                  className="mod-dl-btn mod-dl-quark"
+                  onClick={() =>
+                    handleDownload(
+                      mod,
+                      mod.quarkDownloadUrl,
+                      "quark",
+                      "market_card",
+                    )
+                  }
+                >
+                  {t("market.sources.quark")}
+                </button>
+              )}
+              <button
+                type="button"
+                className="mod-dl-btn mod-dl-feedback"
+                title={t("market.feedback.brokenDownloadHint")}
+                onClick={() => openFeedbackModal(mod)}
+              >
+                {t("market.status.broken")}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="mod-market-container">
+      <MarketHeader
+        syncing={syncing}
+        syncStatus={syncStatus}
+        layoutMenuRef={layoutMenuRef}
+        setShowLayoutMenu={setShowLayoutMenu}
+        showLayoutMenu={showLayoutMenu}
+        infiniteScroll={infiniteScroll}
+        setInfiniteScroll={setInfiniteScroll}
+        setCurrentPage={setCurrentPage}
+        equalRowHeight={equalRowHeight}
+        setEqualRowHeight={setEqualRowHeight}
+        showHotSection={showHotSection}
+        setShowHotSection={setShowHotSection}
+        refreshMenuRef={refreshMenuRef}
+        setShowRefreshMenu={setShowRefreshMenu}
+        loading={loading}
+        serverUrl={serverUrl}
+        showRefreshMenu={showRefreshMenu}
+        syncMods={syncMods}
+      />
+      <MarketToolbar
+        serverUrl={serverUrl}
+        mods={mods}
+        visibleSelectedTags={visibleSelectedTags}
+        removeTagFilter={removeTagFilter}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        setSelectedTags={setSelectedTags}
+        selectedGameId={selectedGameId}
+        setSelectedGameId={setSelectedGameId}
+        setSelectedCharacter={setSelectedCharacter}
+        setSelectedGameVersion={setSelectedGameVersion}
+        setSelectedModMode={setSelectedModMode}
+        gameOptions={gameOptions}
+        characterPickerRef={characterPickerRef}
+        showCharacterPicker={showCharacterPicker}
+        setShowCharacterPicker={setShowCharacterPicker}
+        selectedCharacterLabel={selectedCharacterLabel}
+        setCurrentPage={setCurrentPage}
+        visibleCharacterPickerOptions={visibleCharacterPickerOptions}
+        selectedCharacter={selectedCharacter}
+        marketCharacterAliasIndex={marketCharacterAliasIndex}
+        likedOnly={likedOnly}
+        setLikedOnly={setLikedOnly}
+        gameVersionOptions={gameVersionOptions}
+        selectedGameVersion={selectedGameVersion}
+        selectedModMode={selectedModMode}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        displayedMods={displayedMods}
+        gameDisplayedMods={gameDisplayedMods}
+      />
+      {error && (
+        <div className="mod-market-error">
+          {"⚠️ "}
+          {error}
+        </div>
+      )}
+      {!serverUrl && (
+        <div className="mod-market-empty">
+          <div className="empty-icon">{"🔗"}</div>
+          <p>{t("market.errors.serverRequired")}</p>
+        </div>
+      )}
+      {(loading || marketIsBooting) && (
+        <div className="mod-market-loading">
+          <div className="spinner" />
+          <p>
+            {marketIsBooting
+              ? t("market.status.loadingCache")
+              : t("market.status.loadingMods")}
+          </p>
+        </div>
+      )}
+      {serverUrl && !loading && !marketIsBooting && !error && (
+        <div
+          className={[
+            "mod-market-grid",
+            equalRowHeight
+              ? "mod-market-grid-equal"
+              : "mod-market-grid-adaptive",
+          ].join(" ")}
+          style={{
+            "--market-card-min": `${getMarketCardMinWidth(modMarketCardScale)}px`,
+            "--market-card-gap": `${getMarketCardGap(modMarketCardScale)}px`,
+            "--market-card-min-image-height": `${getMarketCardImageMinHeight(modMarketCardScale)}px`,
+            "--market-card-wide-min-image-height": `${getMarketCardWideImageMinHeight(modMarketCardScale)}px`,
+            "--market-card-max-image-height": `${getMarketCardImageMaxHeight(modMarketCardScale)}px`,
+          }}
+          ref={marketGridRef}
+        >
+          {equalRowHeight
+            ? pagedMods.map((mod, index) => renderMarketCard(mod, index))
+            : adaptiveColumns.map((column, columnIndex) => (
+                <div
+                  className="mod-market-column"
+                  key={`market-column-${columnIndex}`}
+                >
+                  {column.map(({ mod, index }) => renderMarketCard(mod, index))}
+                </div>
+              ))}
+          {initialCacheReady && sectionedDisplayedMods.length === 0 && (
+            <div className="mod-market-no-results">
+              {t("market.status.noMatchingMods")}
+            </div>
+          )}
+        </div>
+      )}
+      {serverUrl &&
+        !loading &&
+        !marketIsBooting &&
+        !error &&
+        !infiniteScroll &&
+        sectionedDisplayedMods.length > 0 && (
+          <div className="mod-market-pagination">
+            <button
+              className="page-btn"
+              onClick={() => {
+                setCurrentPage(1);
+                scrollToTop();
+              }}
+              disabled={currentPage === 1}
+            >
+              {"«"}
+            </button>
+            <button
+              className="page-btn"
+              onClick={() => {
+                setCurrentPage((p) => Math.max(1, p - 1));
+                scrollToTop();
+              }}
+              disabled={currentPage === 1}
+            >
+              {"‹"}
+            </button>
+            {Array.from(
+              {
+                length: totalPages,
+              },
+              (_, i) => i + 1,
+            )
+              .filter(
+                (p) =>
+                  p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2,
+              )
+              .reduce((acc, p, idx, arr) => {
+                if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((item, idx) =>
+                item === "..." ? (
+                  <span className="page-ellipsis" key={`ellipsis-${idx}`}>
+                    {"…"}
+                  </span>
+                ) : (
+                  <button
+                    className={`page-btn ${item === currentPage ? "active" : ""}`}
+                    onClick={() => {
+                      setCurrentPage(item);
+                      scrollToTop();
+                    }}
+                    key={item}
+                  >
+                    {item}
+                  </button>
+                ),
+              )}
+            <button
+              className="page-btn"
+              onClick={() => {
+                setCurrentPage((p) => Math.min(totalPages, p + 1));
+                scrollToTop();
+              }}
+              disabled={currentPage === totalPages}
+            >
+              {"›"}
+            </button>
+            <button
+              className="page-btn"
+              onClick={() => {
+                setCurrentPage(totalPages);
+                scrollToTop();
+              }}
+              disabled={currentPage === totalPages}
+            >
+              {"»"}
+            </button>
+            <span className="page-info">
+              {t("market.status.pageSummary", {
+                currentPage,
+                totalPages,
+                sectionedDisplayedModsCount: sectionedDisplayedMods.length,
+              })}
+            </span>
+          </div>
+        )}
+      {lightboxData &&
+        isActive &&
+        ReactDOM.createPortal(
+          <LightboxOverlay
+            images={lightboxData.images}
+            index={lightboxData.index}
+            onClose={() => setLightboxData(null)}
+            onChange={(newIndex) =>
+              setLightboxData((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      index: newIndex,
+                    }
+                  : null,
+              )
+            }
+          />,
+          document.body,
+        )}
+      <MarketDetailDialog
+        detailMod={detailMod}
+        isActive={isActive}
+        closingDetail={closingDetail}
+        closeDetailModal={closeDetailModal}
+        displayedMods={displayedMods}
+        relatedScrollRef={relatedScrollRef}
+        openModDetail={openModDetail}
+        detailGalleryIdx={detailGalleryIdx}
+        setLightboxData={setLightboxData}
+        setDetailGalleryIdx={setDetailGalleryIdx}
+        detailCollectionGroup={detailCollectionGroup}
+        selectCollectionVariant={selectCollectionVariant}
+        marketCharacterAliasIndex={marketCharacterAliasIndex}
+        renderFilterTag={renderFilterTag}
+        gameNameMap={gameNameMap}
+        applyQuickFilter={applyQuickFilter}
+        selectedCharacter={selectedCharacter}
+        addTagFilter={addTagFilter}
+        serverUrl={serverUrl}
+        clientId={clientId}
+        devMode={devMode}
+        likedMods={likedMods}
+        handleToggleLike={handleToggleLike}
+        commentCounts={commentCounts}
+        openFeedbackModal={openFeedbackModal}
+        shouldShowDirectDownload={shouldShowDirectDownload}
+        handleDirectDownload={handleDirectDownload}
+        handleDownload={handleDownload}
+      />
+      {showBackToMarketPosition &&
+        ReactDOM.createPortal(
+          <button
+            className={`market-restore-position-btn ${showBackToTop ? "with-back-top" : ""}`}
+            onClick={restoreMarketScrollPosition}
+            title={t("market.actions.restoreScrollHint")}
+          >
+            {t("market.actions.restoreScroll")}
+          </button>,
+          document.body,
+        )}
+      {showBackToTop &&
+        ReactDOM.createPortal(
+          <button
+            className="back-to-top-btn"
+            onClick={scrollToTop}
+            title={t("common.actions.backToTop")}
+          >
+            {"↑"}
+          </button>,
+          document.body,
+        )}
+      <MarketDownloadPrompt
+        downloadPrompt={downloadPrompt}
+        isActive={isActive}
+        setDownloadPrompt={setDownloadPrompt}
+      />
+      <ModFeedbackModal
+        open={isActive && !!feedbackTargetMod}
+        mod={feedbackTargetMod}
+        clientId={clientId}
+        serverUrl={serverUrl}
+        onClose={() => setFeedbackTargetMod(null)}
+        onSubmitted={(payload) => setToast(payload)}
+      />
+      {toast &&
+        ReactDOM.createPortal(
+          <div className={`toast toast-${toast.type || "success"}`}>
+            {toast.message}
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}
+export { ModMarketView as default };

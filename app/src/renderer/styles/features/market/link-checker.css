@@ -1,0 +1,320 @@
+.link-checker-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.link-checker-panel-stack {
+  background: #fff;
+  border-radius: 12px;
+  width: 780px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.link-checker-panel-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.link-checker-panel-heading {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.link-checker-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.link-checker-panel-header-actions .link-checker-panel-hint {
+  font-size: 11px;
+}
+
+.link-checker-panel-header-actions
+  .link-checker-panel-copy-panel-content-action {
+  padding: 4px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.link-checker-panel-content {
+  font-size: 18px;
+  color: #9ca3af;
+  line-height: 1;
+}
+
+.link-checker-panel-content-spaced {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 20px;
+}
+
+.link-checker-panel-content-spaced .link-checker-panel-scan-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.link-checker-panel-scan-actions .link-checker-panel-start-check-action {
+  flex: 1;
+  min-width: 180px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.link-checker-panel-content-spaced .link-checker-panel-panel {
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #f0f9ff;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.link-checker-panel-panel .link-checker-panel-progress-status {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.link-checker-panel-progress-status .link-checker-panel-progress-message {
+  color: #1e40af;
+}
+
+.link-checker-panel-progress-status .link-checker-panel-progress-count {
+  color: #6b7280;
+}
+
+.link-checker-panel-progress-track {
+  height: 4px;
+  background: #dbeafe;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.link-checker-panel-progress-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.link-checker-panel-content-spaced .link-checker-panel-result-section {
+  margin-bottom: 12px;
+}
+
+.link-checker-panel-result-section .link-checker-panel-result-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.link-checker-panel-result-toolbar .link-checker-panel-heading-emphasis {
+  font-weight: 600;
+  font-size: 13px;
+  color: #dc2626;
+}
+
+.link-checker-panel-selection-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.link-checker-panel-selection-actions
+  .link-checker-panel-select-all-broken-action {
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.link-checker-panel-result-list {
+  max-height: 250px;
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.link-checker-panel-result-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.link-checker-panel-result-item .link-checker-panel-result-character {
+  font-weight: 600;
+  color: #374151;
+  min-width: 60px;
+}
+
+.link-checker-panel-result-item .link-checker-panel-result-mod-name {
+  flex: 1;
+  color: #1f2937;
+}
+
+.link-checker-panel-result-item .link-checker-panel-result-meta,
+.link-checker-panel-retry-actions .link-checker-panel-result-meta {
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.link-checker-panel-result-item .link-checker-panel-hint-spaced {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.link-checker-panel-healthy-summary {
+  padding: 20px;
+  text-align: center;
+  color: #059669;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.link-checker-panel-result-toolbar .link-checker-panel-orphan-summary {
+  font-weight: 600;
+  font-size: 13px;
+  color: #0e7490;
+}
+
+.link-checker-panel-result-item .link-checker-panel-mod-thumbnail {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #f3f4f6;
+}
+
+.link-checker-panel-thumbnail-fallback {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.link-checker-panel-result-item .link-checker-panel-pinned-badge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.link-checker-panel-result-item .link-checker-panel-panel-spaced {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #cffafe;
+  color: #0e7490;
+}
+
+.link-checker-panel-result-section .link-checker-panel-delete-warning {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.link-checker-panel-content-spaced .link-checker-panel-repair-result {
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.link-checker-panel-repair-summary {
+  font-weight: 600;
+}
+
+.link-checker-panel-repair-result .link-checker-panel-error-list {
+  margin-top: 6px;
+}
+
+.link-checker-panel-error-item {
+  color: #dc2626;
+  font-size: 11px;
+}
+
+.link-checker-panel-repair-result .link-checker-panel-retry-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.link-checker-panel-retry-actions .link-checker-panel-retry-failed-fix-action {
+  padding: 3px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 5px;
+  background: #fff;
+  color: #dc2626;
+  font-size: 11px;
+}
+
+.link-checker-panel-retry-actions .link-checker-panel-copy-result {
+  padding: 3px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.link-checker-panel-content-spaced .link-checker-panel-log-section {
+  margin-bottom: 8px;
+}
+
+.link-checker-panel-log-section .link-checker-panel-logs-toggle {
+  cursor: pointer;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 600;
+  margin-bottom: 4px;
+  user-select: none;
+}
+
+.link-checker-panel-log-output {
+  max-height: 200px;
+  overflow: auto;
+  background: #1f2937;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-family: Consolas, monospace;
+}
+
+.link-checker-panel-log-entry {
+  line-height: 1.6;
+}

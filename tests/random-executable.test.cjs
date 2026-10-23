@@ -3,9 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { prepareExecutable, readIdentity, releaseExecutable, cleanupExecutables, launchRandomExecutable, startRandomManager } = require('../app/out/main/random-executable.cjs');
-const { readRandomLaunchSettings } = require('../app/out/main/random-executable.cjs');
-const { executableNameFields } = require('../app/out/main/executable-name.cjs');
+const { prepareExecutable, readIdentity, releaseExecutable, cleanupExecutables, launchRandomExecutable, startRandomManager } = require('../app/src/main/runtime/random-executable.cjs');
+const { readRandomLaunchSettings } = require('../app/src/main/runtime/random-executable.cjs');
+const { executableNameFields } = require('../app/src/main/runtime/executable-name.cjs');
 function fixture(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'qaq-runtime-'));
   t.after(() => { assert.equal(path.dirname(fs.realpathSync(directory)), fs.realpathSync(os.tmpdir())); fs.rmSync(directory, { recursive: true, force: true }); });

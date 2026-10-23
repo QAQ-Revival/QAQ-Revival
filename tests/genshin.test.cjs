@@ -1,8 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseCharacters, parseOutfits, buildGamePathCandidates } = require('../app/out/main/genshin.cjs');
-const { mergeSkinCatalog, validateCatalog } = require('../app/out/main/character-skin-catalog.cjs');
-const { normalizeRecords } = require('../app/out/main/character-catalog.cjs');
+const { parseCharacters, parseOutfits, buildGamePathCandidates } = require('../app/src/main/games/genshin/catalog.cjs');
+const { mergeSkinCatalog, validateCatalog } = require('../app/src/main/characters/skin-catalog-source.cjs');
+const { normalizeRecords } = require('../app/src/main/characters/catalog-source.cjs');
 
 test('Genshin identities distinguish Travelers, collapse elements, and exclude test avatars', () => {
   const zh = [

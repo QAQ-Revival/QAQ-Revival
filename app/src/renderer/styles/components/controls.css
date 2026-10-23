@@ -1,0 +1,104 @@
+/* Card Styling */
+.card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  border: 1px solid white;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Buttons */
+.btn {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.btn-primary {
+  background: var(--color-accent-gradient);
+  color: var(--color-accent-text);
+  padding: 12px 24px;
+  box-shadow: var(--shadow-glow);
+  font-size: 15px;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 6px 25px rgba(255, 154, 162, 0.6);
+}
+
+.btn-secondary {
+  background: var(--color-glass-surface);
+  color: var(--color-text-secondary);
+  padding: 10px 20px;
+  border: 1px solid var(--color-glass-border);
+}
+
+.btn-secondary:hover {
+  background: white;
+  color: var(--color-text-primary);
+}
+
+.elevated-action-btn {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 8px 18px rgba(31, 41, 55, 0.14),
+    0 2px 5px rgba(31, 41, 55, 0.08);
+}
+
+.elevated-action-btn:hover {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow:
+    0 12px 26px rgba(31, 41, 55, 0.18),
+    0 4px 9px rgba(31, 41, 55, 0.1);
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: rgba(255, 118, 117, 0.1);
+  color: var(--color-danger-dark);
+  padding: 8px 16px;
+}
+
+.btn-danger:hover {
+  background: var(--color-danger-dark);
+  color: white;
+}
+
+/* Inputs */
+.input {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.input:focus {
+  background: white;
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 3px rgba(255, 143, 163, 0.2);
+}

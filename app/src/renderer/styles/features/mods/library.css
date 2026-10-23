@@ -1,0 +1,210 @@
+.mod-library-panel {
+  padding: 0;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.mod-search-field .mod-library-panel-action {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  color: #999;
+  padding: 2px;
+}
+
+.mod-library-panel .mod-library-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(99, 102, 241, 0.06);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.mod-library-panel-row .mod-library-panel-content {
+  color: var(--color-text-secondary, #555);
+  margin-right: 2px;
+  font-weight: 500;
+}
+
+.mod-library-panel-row .mod-library-panel-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  background: linear-gradient(90deg, #818cf8, #6366f1);
+  color: #fff;
+  border: 1px solid rgba(79, 70, 229, 0.8);
+  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
+}
+
+.mod-library-panel-panel .mod-library-panel-remove-tag-filter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.mod-library-panel-row .mod-library-panel-clear-tag-filters-action {
+  margin-left: 4px;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary, #555);
+  cursor: pointer;
+}
+
+.mod-library-panel-row .mod-library-panel-hint {
+  color: var(--color-text-tertiary, #888);
+  font-size: 11px;
+}
+
+.mod-library-panel-mod-count {
+  color: var(--color-accent-primary, #667eea);
+}
+
+.mod-library-panel .mod-library-panel-batch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(102, 126, 234, 0.05);
+  border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.mod-library-panel-batch-toolbar .mod-library-panel-selection-summary {
+  color: #666;
+  margin-right: 4px;
+}
+
+.mod-library-panel-batch-toolbar .mod-library-panel-select-all-mods-action {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+}
+
+.mod-library-panel-batch-toolbar .mod-library-panel-batch-action {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: none;
+  background: #27ae60;
+  color: white;
+}
+
+.mod-library-panel-batch-toolbar .mod-library-panel-action-spaced {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: none;
+  background: #f39c12;
+  color: white;
+}
+
+.mod-library-panel-batch-toolbar .mod-library-panel-batch-delete-action {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: none;
+  background: #e74c3c;
+  color: white;
+}
+
+.mod-library-panel-active-layout {
+  margin-top: 24px;
+  min-height: 100px;
+}
+
+.mod-library-panel-column {
+  width: 100%;
+}
+
+.mod-library-panel-content-emphasis {
+  font-weight: bold;
+  color: var(--color-accent-primary);
+  margin-bottom: 12px;
+}
+
+.mod-library-panel-column .mod-library-panel-input-layout {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.mod-library-panel-column .mod-library-panel-import-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.mod-library-panel-import-icon {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.mod-library-panel-import-target-hint {
+  font-size: 13px;
+}
+
+.mod-row .mod-library-panel-selection-checkbox {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mod-library-panel-selection-checkbox .mod-library-panel-hint-emphasis {
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.mod-row-name .mod-library-panel-marked-badge {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.mod-row .mod-library-panel-mark-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 0 4px;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.mod-library-panel-column .mod-library-panel-import-name {
+  width: 100%;
+  margin-bottom: 16px;
+}

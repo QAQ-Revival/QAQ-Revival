@@ -1,0 +1,20 @@
+{
+  "actions": {
+    "add": "Add Mod",
+    "delete": "Delete Mod",
+    "rename": "Rename Mod",
+    "enableAll": "Enable all",
+    "disableAll": "Disable all"
+  },
+  "search": {
+    "placeholder": "Search Mods"
+  },
+  "empty": "No Mods yet",
+  "presets": {
+    "title": "Presets",
+    "create": "Create preset",
+    "apply": "Apply preset",
+    "delete": "Delete preset",
+    "empty": "No presets yet"
+  }
+}

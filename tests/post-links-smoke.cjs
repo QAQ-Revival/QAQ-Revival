@@ -6,8 +6,8 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, passed, ha
   setSelection({ canceled: false, filePaths: [directory] });
   assert.equal((await evaluate('window.api.marketSelectDownloadCacheDir()')).success, true);
   await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));
-  await waitFor(`!!document.querySelector('.nav-item[aria-label="MOD下载"]')`, 'download navigation');
-  await evaluate(`document.querySelector('.nav-item[aria-label="MOD下载"]').click()`);
+  await waitFor(`!!document.querySelector('.nav-item[aria-label="Mod 下载"]')`, 'download navigation');
+  await evaluate(`document.querySelector('.nav-item[aria-label="Mod 下载"]').click()`);
   for (const [source, host] of [['pawchive', 'file.pawchive.pw'], ['kemono', 'n3.kemono.cr']]) {
     await waitFor(`!!document.querySelector('.mod-download-source-trigger')`, 'source selector');
     await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);

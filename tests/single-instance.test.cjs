@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { wrap } = require('node:module');
 
-const entry = path.resolve(__dirname, '../app/out/main/index.js');
+const entry = path.resolve(__dirname, '../app/src/main/index.js');
 const source = fs.readFileSync(entry, 'utf8');
 
 for (const override of [undefined, path.resolve('test-results/single-instance-profile')]) {

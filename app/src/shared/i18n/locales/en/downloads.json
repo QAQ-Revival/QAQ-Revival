@@ -1,0 +1,23 @@
+{
+  "title": "Downloads",
+  "actions": {
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel download",
+    "retry": "Download again",
+    "clearCompleted": "Clear completed"
+  },
+  "status": {
+    "waiting": "Waiting",
+    "downloading": "Downloading",
+    "paused": "Paused",
+    "completed": "Completed",
+    "failed": "Download failed",
+    "canceled": "Canceled",
+    "extracting": "Extracting…"
+  },
+  "modules": {
+    "extract": "Extract module"
+  },
+  "empty": "No downloads yet"
+}

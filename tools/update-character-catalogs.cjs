@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { SOURCES, RESOURCE_DIRS, fetchCharacters, mergeCharacters } = require('../app/out/main/character-catalog.cjs');
+const { SOURCES, RESOURCE_DIRS, fetchCharacters, mergeCharacters } = require('../app/src/main/characters/catalog-source.cjs');
 async function main() {
   for (const [gameId, directory] of Object.entries(RESOURCE_DIRS)) {
     try {

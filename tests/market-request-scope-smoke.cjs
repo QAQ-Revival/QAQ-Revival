@@ -48,11 +48,11 @@ module.exports = async ({ evaluate, waitFor, window, passed }) => {
   }
   try {
     await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));
-    await waitFor(`!!document.querySelector('.nav-item[aria-label="MOD下载"]')`, 'scope test loaded');
+    await waitFor(`!!document.querySelector('.nav-item[aria-label="Mod 下载"]')`, 'scope test loaded');
     await expectQuiet('startup on character list');
     assert.deepEqual(requests, []);
     assert.deepEqual(await evaluate('window.__marketScope.requests'), []);
-    await evaluate(`document.querySelector('.nav-item[aria-label="MOD下载"]').click()`);
+    await evaluate(`document.querySelector('.nav-item[aria-label="Mod 下载"]').click()`);
     await waitFor(`document.querySelector('.mod-download-provider:not([hidden])')?.dataset.source === 'qaqm' && window.__marketScope.polls.size > 0`, 'active QAQM schedules polling');
     await waitFor(`document.querySelectorAll('.mod-card').length > 0`, 'market mock response');
     await pause();

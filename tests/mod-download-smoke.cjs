@@ -104,7 +104,7 @@ module.exports = async function ({ evaluate, waitFor, captureUI, window, passed,
   await waitFor(`document.querySelector('${active} .paw-post-title')?.textContent === 'Kemono 测试 MOD'`, 'Kemono creator posts wrapped in results');
   await evaluate(`document.querySelector('${active} .paw-post-title').click()`);
   await waitFor(`document.querySelector('.paw-gallery-counter')?.textContent === '1 / 3'`, 'Kemono image gallery');
-  assert.equal(await evaluate(`document.querySelector('.paw-eyebrow').textContent`), 'KEMONO / MOD详情');
+  assert.equal(await evaluate(`document.querySelector('.paw-eyebrow').textContent`), 'KEMONO / Mod 详情');
   await evaluate(`document.querySelector('[aria-label="关闭内容详情"]').click()`);
   await selectSource('qaqm');
   await waitFor(`!!document.querySelector('${active} .mod-market-container')`, 'QAQM existing market');
@@ -117,8 +117,8 @@ module.exports = async function ({ evaluate, waitFor, captureUI, window, passed,
   assert.deepEqual(states, [{ favorites: 1, updates: 1 }, { favorites: 1, updates: 0 }]);
   assert.equal(await evaluate(`(() => { const ids = [...document.querySelectorAll('[id]')].map(el => el.id).filter(id => /-tab-|page-content/.test(id)); return new Set(ids).size === ids.length; })()`), true);
   await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));
-  await waitFor(`!!document.querySelector('[aria-label="MOD下载"]')`, 'reload navigation');
-  await evaluate(`document.querySelector('.nav-item[aria-label="MOD下载"]').click()`);
+  await waitFor(`!!document.querySelector('[aria-label="Mod 下载"]')`, 'reload navigation');
+  await evaluate(`document.querySelector('.nav-item[aria-label="Mod 下载"]').click()`);
   await waitFor(`document.querySelector('.mod-download-provider:not([hidden])')?.dataset.source === 'pawchive'`, 'last source survives reload');
   const [surfaceWidth, surfaceHeight] = window.getSize();
   window.setSize(surfaceWidth + 1, surfaceHeight);
