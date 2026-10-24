@@ -1,0 +1,17 @@
+.arknights-library-notice { position: absolute; top: 0; left: 18px; right: 18px; z-index: 2; padding: 9px 12px; border-radius: 8px; color: var(--text-secondary); background: var(--bg-secondary); font-size: 12px; line-height: 1.5; }
+.mod-view-container.arknights-mod-view { padding-top: 64px; }
+.arknights-library-notice.is-error, .arknights-error { color: #d44949; }
+.arknights-dialog-backdrop { position: fixed; inset: 0; z-index: 10020; background: #0008; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.arknights-dialog { width: min(880px, 100%); max-height: 90vh; overflow: auto; background: var(--bg-primary, #fff); color: var(--text-primary, #222); border: 1px solid var(--border-color, #ddd); border-radius: 14px; padding: 24px; box-shadow: 0 20px 80px #0004; }
+.arknights-dialog-heading, .arknights-dialog-actions { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+.arknights-dialog h2 { margin: 0; font-size: 20px; }
+.arknights-dialog p, .arknights-warnings { line-height: 1.6; margin: 12px 0; }
+.arknights-dialog-heading p { margin: 4px 0; color: var(--text-secondary, #666); }
+.arknights-plan { overflow: auto; max-height: 42vh; margin: 16px 0; border: 1px solid var(--border-color, #ddd); border-radius: 8px; }
+.arknights-plan table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.arknights-plan th, .arknights-plan td { padding: 10px; border-bottom: 1px solid var(--border-color, #ddd); text-align: left; overflow-wrap: anywhere; min-width: 120px; }
+.arknights-plan th { position: sticky; top: 0; background: var(--bg-secondary, #f5f6f8); }
+.arknights-plan td:last-child { min-width: 100px; }
+.arknights-warnings { color: var(--text-secondary, #777); padding-left: 20px; font-size: 13px; }
+.arknights-result { color: #238b57; }
+.arknights-dialog-actions { justify-content: flex-end; margin-top: 20px; }

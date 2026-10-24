@@ -56,8 +56,12 @@
       "imageFileNotFound": "Image file not found"
     },
     "games": {
+      "invalidVisibility": "Invalid game visibility setting",
+      "keepVisibleGame": "Keep at least one game visible",
+      "gameHidden": "This game is hidden. Restore it in System settings → General first.",
       "selectModsFolder": "Select Mods Folder",
       "selectGameExecutable": "Select Game Executable ({{executableHint}})",
+      "selectOfficialLauncher": "Select the official launcher",
       "selectExecutable": "Select {{modLoaderLabel}} Executable",
       "selectEFMIQuickStartExe": "Select EFMI Quick Start.exe",
       "selectNEMIStartCmdOr3DMigotoLoaderExe": "Select NEMI Start.cmd or 3DMigoto Loader.exe",
@@ -123,6 +127,8 @@
   },
   "games": {
     "launch": {
+      "officialLauncherMissing": "Official launcher not found. Select it under Game settings → Paths.",
+      "officialLauncherInvalid": "Select the official launcher.exe, HoYoPlay.exe or NTELauncher.exe, rather than the game client or a Mod loader.",
       "gamePathNotSetOrInvalid": "Game path not set or invalid.",
       "unknownLaunchMode": "Unknown launch mode"
     }

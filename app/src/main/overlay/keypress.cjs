@@ -25,14 +25,14 @@ async function ensureKeypressBridgeForActiveGame() {
   persistMigration.ensurePersistBridgeMigrationForActiveGame(root);
   if (persistLayout.preparedKeypressRoots.has(root)) {
     const bridgeDir = persistLayout.getQaqmBridgeDir(root);
-    const keypressFile = path.join(bridgeDir, persistLayout.QAQM_KEYPRESS_FILE);
-    const includerFile = path.join(bridgeDir, persistLayout.QAQM_INCLUDER_FILE);
+    const keypressFile = path.join(bridgeDir, persistLayout.QAQR_KEYPRESS_FILE);
+    const includerFile = path.join(bridgeDir, persistLayout.QAQR_INCLUDER_FILE);
     const bridgeFilesExist = fs.existsSync(bridgeDir) && fs.existsSync(keypressFile) && fs.existsSync(includerFile);
     if (bridgeFilesExist) {
       let d3dxHasInclude = false;
       try {
         const d3dxContent = fs.readFileSync(d3dxPath, "utf-8");
-        d3dxHasInclude = new RegExp(`^\\s*include\\s*=\\s*${persistLayout.escapeRegExp(persistLayout.QAQM_BRIDGE_DIR)}[/\\\\]${persistLayout.escapeRegExp(persistLayout.QAQM_INCLUDER_FILE)}\\s*$`, "im").test(d3dxContent);
+        d3dxHasInclude = new RegExp(`^\\s*include\\s*=\\s*${persistLayout.escapeRegExp(persistLayout.QAQR_BRIDGE_DIR)}[/\\\\]${persistLayout.escapeRegExp(persistLayout.QAQR_INCLUDER_FILE)}\\s*$`, "im").test(d3dxContent);
       } catch (_) {
         d3dxHasInclude = true;
       }
@@ -44,8 +44,8 @@ async function ensureKeypressBridgeForActiveGame() {
     persistLayout.preparedKeypressRoots.delete(root);
   }
   try {
-    const keypressPath = persistLayout.getQaqmBridgeFilePath(root, persistLayout.QAQM_KEYPRESS_FILE);
-    const includerPath = persistLayout.getQaqmBridgeFilePath(root, persistLayout.QAQM_INCLUDER_FILE);
+    const keypressPath = persistLayout.getQaqmBridgeFilePath(root, persistLayout.QAQR_KEYPRESS_FILE);
+    const includerPath = persistLayout.getQaqmBridgeFilePath(root, persistLayout.QAQR_INCLUDER_FILE);
     persistLayout.ensureQaqmBridgeDir(root);
     const keypressContent = "[System]\ncheck_foreground_window = 0\n";
     try {
@@ -59,7 +59,7 @@ async function ensureKeypressBridgeForActiveGame() {
           existingIncluderContent = fs.readFileSync(includerPath, "utf-8");
         } catch (_) {}
       }
-      let nextIncluderContent = persistLayout.ensureIncludeEntry(existingIncluderContent, "IncludeKeypress", persistLayout.QAQM_KEYPRESS_FILE);
+      let nextIncluderContent = persistLayout.ensureIncludeEntry(existingIncluderContent, "IncludeKeypress", persistLayout.QAQR_KEYPRESS_FILE);
       nextIncluderContent = persistLayout.ensureIncludeEntry(nextIncluderContent, "IncludePersistBridgeActive", persistLayout.PERSIST_ACTIVE_INCLUDE_FILE);
       if (existingIncluderContent.replace(/\r\n/g, "\n").trim() !== nextIncluderContent.trim()) {
         fs.writeFileSync(includerPath, nextIncluderContent, "utf-8");
@@ -70,7 +70,7 @@ async function ensureKeypressBridgeForActiveGame() {
     try {
       const original = fs.readFileSync(d3dxPath, "utf-8");
       let normalized = original.replace(/\r\n/g, "\n");
-      const nextIncludeTarget = `${persistLayout.QAQM_BRIDGE_DIR}\\${persistLayout.QAQM_INCLUDER_FILE}`;
+      const nextIncludeTarget = `${persistLayout.QAQR_BRIDGE_DIR}\\${persistLayout.QAQR_INCLUDER_FILE}`;
       const includeHeaderCount = (normalized.match(/^\[Include\]/gim) || []).length;
       if (includeHeaderCount > 1) {
         const backupPath = `${d3dxPath}.qaqmbak`;
@@ -123,7 +123,7 @@ async function ensureKeypressBridgeForActiveGame() {
         kept.push("", "[Include]", ...uniqueIncludes, "");
         normalized = kept.join("\n");
       }
-      const alreadyPresent = new RegExp(`^\\s*include\\s*=\\s*${persistLayout.escapeRegExp(persistLayout.QAQM_BRIDGE_DIR)}[/\\\\]${persistLayout.escapeRegExp(persistLayout.QAQM_INCLUDER_FILE)}\\s*$`, "im").test(normalized);
+      const alreadyPresent = new RegExp(`^\\s*include\\s*=\\s*${persistLayout.escapeRegExp(persistLayout.QAQR_BRIDGE_DIR)}[/\\\\]${persistLayout.escapeRegExp(persistLayout.QAQR_INCLUDER_FILE)}\\s*$`, "im").test(normalized);
       if (!alreadyPresent) {
         const backupPath = `${d3dxPath}.qaqmbak`;
         if (!fs.existsSync(backupPath)) {
@@ -161,7 +161,7 @@ function setBackgroundKeypressEnabled(enabled) {
   const {
     root
   } = env;
-  const keypressPath = persistLayout.getQaqmBridgeFilePath(root, persistLayout.QAQM_KEYPRESS_FILE);
+  const keypressPath = persistLayout.getQaqmBridgeFilePath(root, persistLayout.QAQR_KEYPRESS_FILE);
   try {
     // Window startup only updates this small option. Mod scanning and migration
     // remain in the explicit game-launch/import paths, before the loader starts.

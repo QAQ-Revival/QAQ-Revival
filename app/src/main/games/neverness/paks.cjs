@@ -23,6 +23,7 @@ const fs = require("fs");
 const AdmZip = require("adm-zip");
 const archivesDisguised = require("../../archives/disguised.cjs");
 const archivesExtract = require("../../archives/extract.cjs");
+const archivesNames = require("../../archives/names.cjs");
 const charactersCatalog = require("../../characters/catalog.cjs");
 const charactersDirectories = require("../../characters/directories.cjs");
 const charactersHidden = require("../../characters/hidden.cjs");
@@ -502,7 +503,7 @@ async function importNevernessDx12PakMod(characterName, filePath, modInfo = {}, 
     error: i18n.t("backend.imports.local.characterFolderNotFound")
   };
   const paths = gamesNevernessLoader.ensureNevernessDx12GamePaths(gameId2);
-  const cleanModName = charactersSkins.assertSafeAppearancePathSegment(String(modInfo.name || path.basename(filePath, path.extname(filePath)) || "Pak Mod").replace(/^DISABLED_/i, "").trim(), i18n.t("backend.validation.modName"));
+  const cleanModName = charactersSkins.assertSafeAppearancePathSegment(String(modInfo.name || archivesNames.getModArchiveName(filePath) || "Pak Mod").replace(/^DISABLED_/i, "").trim(), i18n.t("backend.validation.modName"));
   const allowDuplicateRename = !!options.allowDuplicateRename || !!modInfo.allowDuplicateRename;
   const availableTarget = importsLocal.getAvailableModFolderName(charPath, cleanModName);
   const metaDir = allowDuplicateRename ? availableTarget.path : path.join(charPath, cleanModName);

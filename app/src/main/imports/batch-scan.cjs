@@ -20,6 +20,7 @@ module.exports = {
 const path = require("path");
 const fs = require("fs");
 const archivesDisguised = require("../archives/disguised.cjs");
+const archivesNames = require("../archives/names.cjs");
 const importsIntegrated = require("./integrated.cjs");
 const installAdvice = require("../install/advice.cjs");
 const installManaged = require("../install/managed.cjs");
@@ -297,7 +298,7 @@ function batchArchiveItem(filePath, allowExtensionlessDisguised = false) {
     fileSize = 0;
   }
   return {
-    name: path.basename(filePath, path.extname(filePath)),
+    name: archivesNames.getModArchiveName(filePath),
     path: filePath,
     type: ext ? ext.slice(1) : "disguised",
     disguised,

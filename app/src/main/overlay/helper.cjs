@@ -36,8 +36,8 @@ function runBundledHelperProcess(command, args = []) {
 }
 async function runManagedOverlayHelper(kind, hotkeyBase64 = "") {
   let lastError = null;
-  const helperExePath = overlayHelperPaths.resolveBundledHelperPath("QaqmKeyHelper.exe");
-  if (helperExePath && /qaqmkeyhelper\.exe$/i.test(helperExePath) && fs.existsSync(helperExePath)) {
+  const helperExePath = overlayHelperPaths.resolveBundledHelperPath("QaqrKeyHelper.exe");
+  if (helperExePath && /qaqrkeyhelper\.exe$/i.test(helperExePath) && fs.existsSync(helperExePath)) {
     const args = kind === "reload" ? ["f10"] : ["hotkey", hotkeyBase64];
     try {
       await runBundledHelperProcess(helperExePath, args);

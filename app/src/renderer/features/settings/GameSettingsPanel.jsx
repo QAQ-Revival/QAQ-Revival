@@ -7,6 +7,7 @@ import { SteamBridgeSettings } from "./SteamBridgeSettings.jsx";
 import { GenshinCompatibilitySettings } from "./GenshinCompatibilitySettings.jsx";
 import { GenshinAntiErrorSettings } from "./GenshinAntiErrorSettings.jsx";
 import PersistStateManager from "./PersistStateBrowser.jsx";
+import { ArknightsSettings } from "../arknights/ArknightsTools.jsx";
 import {
   check,
   Button,
@@ -114,7 +115,7 @@ function GameSettings({ gameId, notify }) {
       <Section id="game-paths" title={t("settings.game.paths")}>
         {pathRow(
           t("settings.game.modsFolder"),
-          t("settings.game.modsFolderHint", {
+          game.id === "arknights" ? t("arknights.settings.libraryHint") : t("settings.game.modsFolderHint", {
             name: game.name,
           }),
           game.modFolderPath,
@@ -132,6 +133,12 @@ function GameSettings({ gameId, notify }) {
           () => window.api.selectGamePath(game.id),
         )}
         {pathRow(
+          t("settings.game.officialLauncher"),
+          t("settings.game.officialLauncherHint"),
+          game.officialLauncherPath,
+          () => window.api.selectOfficialLauncherPath(game.id),
+        )}
+        {game.id !== "arknights" && pathRow(
           isNte
             ? t("settings.game.nemiLoader")
             : t("settings.game.xxmiLauncher"),
@@ -154,6 +161,7 @@ function GameSettings({ gameId, notify }) {
           </div>
         )}
       </Section>
+      {game.id === "arknights" && <ArknightsSettings notify={notify} />}
       {game.id === "genshin-impact" && <GenshinAntiErrorSettings />}
       {game.id === "genshin-impact" && (
         <GenshinCompatibilitySettings
@@ -251,17 +259,17 @@ function GameSettings({ gameId, notify }) {
           </Row>
         </Section>
       )}
-      <Section id="fixer" title={t("settings.game.fixer")}>
+      {game.id !== "arknights" && <Section id="fixer" title={t("settings.game.fixer")}>
         {pathRow(
           t("settings.game.fixerExecutable"),
           t("settings.game.fixerHint"),
           data.fixer,
           () => window.api.fixSelectCustomExe(game.id),
         )}
-      </Section>
-      <Section id="game-persist" title={t("settings.categories.persist")}>
+      </Section>}
+      {game.id !== "arknights" && <Section id="game-persist" title={t("settings.categories.persist")}>
         <PersistStateManager key={game.id} gameId={game.id} />
-      </Section>
+      </Section>}
     </div>
   );
 }

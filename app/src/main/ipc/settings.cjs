@@ -162,7 +162,7 @@ function registerIpc() {
       const devMode = !!options?.devMode;
       configStore.currentConfig.serverUrl = devMode ? netQaqm.normalizeDeveloperServerUrlInput(url) : netQaqm.normalizePersistedServerUrlInput(url) || netQaqm.DEFAULT_SERVER_URL;
       configStore.saveConfig(configStore.currentConfig);
-      console.log(`[QAQM ServerUrl] 保存服务器地址: ${configStore.currentConfig.serverUrl}${devMode ? " (developer mode)" : ""}`);
+      console.log(`[QAQR ServerUrl] 保存服务器地址: ${configStore.currentConfig.serverUrl}${devMode ? " (developer mode)" : ""}`);
       return {
         success: true,
         serverUrl: configStore.currentConfig.serverUrl

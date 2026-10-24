@@ -8,9 +8,9 @@ const preparedKeypressRoots = new Set();
 const preparedPersistBridgeRoots = new Set();
 const PERSIST_BRIDGE_STATE_FILE_REGEX = /^qaqm_state_.+\.ini$/i;
 const PERSIST_ACTIVE_INCLUDE_FILE = "qaqm_persist_active.ini";
-const QAQM_BRIDGE_DIR = "qaqm";
-const QAQM_INCLUDER_FILE = "qaqm_includer.ini";
-const QAQM_KEYPRESS_FILE = "qaqm_keypress.ini";
+const QAQR_BRIDGE_DIR = "qaqm";
+const QAQR_INCLUDER_FILE = "qaqm_includer.ini";
+const QAQR_KEYPRESS_FILE = "qaqm_keypress.ini";
 const PERSIST_BRIDGE_STATE_DIR = "cache";
 const PERSIST_BRIDGE_SEED_FILES = [{
   filename: "qaqm_state_laevatain_2bfall.ini",
@@ -35,7 +35,7 @@ include = ${includeTarget}
 ${block}` : block;
 }
 function getQaqmBridgeDir(root) {
-  return path.join(root, QAQM_BRIDGE_DIR);
+  return path.join(root, QAQR_BRIDGE_DIR);
 }
 function ensureQaqmBridgeDir(root) {
   const bridgeDir = getQaqmBridgeDir(root);
@@ -114,7 +114,7 @@ function migratePersistBridgeStateFilesToCacheDir(root) {
 function migrateQaqmBridgeFilesToBridgeDir(root) {
   if (!root || !fs.existsSync(root)) return;
   const bridgeDir = ensureQaqmBridgeDir(root);
-  const legacyBridgeFiles = [QAQM_INCLUDER_FILE, QAQM_KEYPRESS_FILE, PERSIST_ACTIVE_INCLUDE_FILE];
+  const legacyBridgeFiles = [QAQR_INCLUDER_FILE, QAQR_KEYPRESS_FILE, PERSIST_ACTIVE_INCLUDE_FILE];
   for (const fileName of legacyBridgeFiles) {
     const sourcePath = path.join(root, fileName);
     const targetPath = path.join(bridgeDir, fileName);
@@ -131,7 +131,7 @@ function migrateQaqmBridgeFilesToBridgeDir(root) {
       }
       fs.unlinkSync(sourcePath);
     } catch (e) {
-      coreLogger.logger.warn(`Failed to migrate QAQM bridge file ${fileName}:`, e?.message || e);
+      coreLogger.logger.warn(`Failed to migrate QAQR bridge file ${fileName}:`, e?.message || e);
     }
   }
   const legacyCacheDir = path.join(root, "qaqm_cache");
@@ -147,7 +147,7 @@ function migrateQaqmBridgeFilesToBridgeDir(root) {
       try {
         migratePersistBridgeStateFile(sourcePath, targetPath);
       } catch (e) {
-        coreLogger.logger.warn(`Failed to migrate QAQM cache file ${entry.name}:`, e?.message || e);
+        coreLogger.logger.warn(`Failed to migrate QAQR cache file ${entry.name}:`, e?.message || e);
       }
     }
     try {
@@ -219,7 +219,7 @@ module.exports = {
   preparedPersistBridgeRoots,
   PERSIST_BRIDGE_STATE_FILE_REGEX,
   PERSIST_ACTIVE_INCLUDE_FILE,
-  QAQM_BRIDGE_DIR,
-  QAQM_INCLUDER_FILE,
-  QAQM_KEYPRESS_FILE
+  QAQR_BRIDGE_DIR,
+  QAQR_INCLUDER_FILE,
+  QAQR_KEYPRESS_FILE
 };

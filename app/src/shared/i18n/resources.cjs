@@ -14,6 +14,8 @@ module.exports = {
       native: require("./locales/zh-CN/native.json"),
       backend: require("./locales/zh-CN/backend.json"),
       overlay: require("./locales/zh-CN/overlay.json"),
+      gacha: require("./locales/zh-CN/gacha.json"),
+      arknights: require("./locales/zh-CN/arknights.json"),
     },
   },
   en: {
@@ -29,6 +31,8 @@ module.exports = {
       native: require("./locales/en/native.json"),
       backend: require("./locales/en/backend.json"),
       overlay: require("./locales/en/overlay.json"),
+      gacha: require("./locales/en/gacha.json"),
+      arknights: require("./locales/en/arknights.json"),
     },
   },
 };

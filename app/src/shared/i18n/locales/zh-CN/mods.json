@@ -7,6 +7,7 @@
     "disableAll": "全部停用",
     "open": "打开 Mod",
     "openSource": "源文件",
+    "copyPath": "复制路径",
     "publish": "发布到市场",
     "copyInfo": "复制信息",
     "importMetadata": "导入标签与图片",
@@ -16,6 +17,7 @@
     "placeholder": "搜索 Mod"
   },
   "empty": "暂无 Mod",
+  "pathCopied": "路径已复制",
   "presets": {
     "title": "预设管理",
     "create": "新建预设",

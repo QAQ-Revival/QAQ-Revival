@@ -12,17 +12,17 @@ function getTempExtractFallbackBase(anchorPath) {
     const resolved = anchorPath ? path.resolve(anchorPath) : "";
     const driveRoot = resolved ? path.parse(resolved).root : "";
     if (!driveRoot) return "";
-    return path.join(driveRoot, "QAQM_TempExtractCache");
+    return path.join(driveRoot, "QAQR_TempExtractCache");
   } catch (_) {
     return "";
   }
 }
 function ensureTempRootNearPath(anchorPath, folderName) {
-  const candidates = [path.join(marketSettings.getMarketDownloadCacheDir(), "QAQM_TempExtract"), getTempExtractFallbackBase(anchorPath), path.join(electron.app.getPath("temp"), "QAQM_TempExtract")].filter(Boolean);
+  const candidates = [path.join(marketSettings.getMarketDownloadCacheDir(), "QAQR_TempExtract"), getTempExtractFallbackBase(anchorPath), path.join(electron.app.getPath("temp"), "QAQR_TempExtract")].filter(Boolean);
   let lastError = null;
   for (const baseDir of candidates) {
     try {
-      systemWindows.probeWritableDirectory(baseDir, "QAQM temp extract cache");
+      systemWindows.probeWritableDirectory(baseDir, "QAQR temp extract cache");
       cleanupTempExtractCache(baseDir);
       const tempRoot = path.join(baseDir, folderName);
       fs.mkdirSync(tempRoot, {

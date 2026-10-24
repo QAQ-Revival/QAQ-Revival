@@ -5,11 +5,13 @@ export function ModContextMenu({
   modContextMenu,
   setModContextMenu,
   handlePinMod,
+  handleRequestRenameMod,
   openModSourceFolder,
   isDx12PakMod,
   handleRequestMoveMod,
   handleFixMod,
   fixRunning,
+  isArknights = false,
   loadModIniBackups,
   iniRollbackBackups,
   requestRollbackModIni,
@@ -49,6 +51,18 @@ export function ModContextMenu({
             onClick={() => {
               const mod = modContextMenu.mod;
               setModContextMenu(null);
+              handleRequestRenameMod(mod);
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+            className="mod-context-menu-action"
+          >
+            {t("common.actions.rename")}
+          </button>
+          <button
+            onClick={() => {
+              const mod = modContextMenu.mod;
+              setModContextMenu(null);
               openModSourceFolder(mod);
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
@@ -58,6 +72,30 @@ export function ModContextMenu({
             {isDx12PakMod(modContextMenu.mod)
               ? t("mods.actions.open")
               : t("characters.actions.openSource")}
+          </button>
+          <button
+            onClick={async () => {
+              const mod = modContextMenu.mod;
+              setModContextMenu(null);
+              try {
+                if (!mod.path) throw new Error(t("common.errors.copyFailed"));
+                await navigator.clipboard.writeText(mod.path);
+                setToast({
+                  type: "success",
+                  message: t("mods.pathCopied"),
+                });
+              } catch {
+                setToast({
+                  type: "error",
+                  message: t("common.errors.copyFailed"),
+                });
+              }
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+            className="mod-context-menu-action"
+          >
+            {t("mods.actions.copyPath")}
           </button>
           <button
             onClick={() => handleRequestMoveMod(modContextMenu.mod)}
@@ -75,9 +113,9 @@ export function ModContextMenu({
             onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             className="mod-context-menu-fixer-action"
           >
-            {t("characters.fixer.title")}
+            {t(isArknights ? "arknights.tools" : "characters.fixer.title")}
           </button>
-          <div
+          {!isArknights && <><div
             className="qaqm-context-submenu-wrap"
             onMouseEnter={() => loadModIniBackups(modContextMenu.mod.name)}
           >
@@ -165,7 +203,7 @@ export function ModContextMenu({
             className="mod-context-menu-action-spaced"
           >
             {t("mods.ini.reset")}
-          </button>
+          </button></>}
         </div>
       </div>,
       document.body,

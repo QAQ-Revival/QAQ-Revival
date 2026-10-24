@@ -19,7 +19,7 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, passed }) => {
     await waitFor(`document.querySelector('.mod-download-provider:not([hidden])')?.dataset.source === ${JSON.stringify(expected)}`, 'remembered source ' + expected);
   };
   await openDownloads('qaqm');
-  await waitFor(`!!document.querySelector('.mod-market-header')`, 'QAQM header');
+  await waitFor(`!!document.querySelector('.mod-market-header')`, 'QAQR header');
   for (let attempt = 0; attempt < 50 && likedClientIds.length === 0; attempt++) {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
@@ -49,5 +49,5 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, passed }) => {
   assert.match(downloadText, /检查网络/);
   assert.deepEqual(retired, []);
   assert.ok(likedClientIds.every(id => id === canonical), 'All observed market requests use the canonical client id');
-  passed('Sources default to QAQM, use the requested order and remember selection after restart; removed header actions and retired service requests stay absent, download errors have actionable neutral guidance');
+  passed('Sources default to QAQR, use the requested order and remember selection after restart; removed header actions and retired service requests stay absent, download errors have actionable neutral guidance');
 };

@@ -21,10 +21,16 @@ test('optional private components are copied beside the executable and included 
   const components = ['d3d11-giml.dll', 'd3d11-nocheck.dll', 'd3d11-qaq.dll', 'd3d11-xxmi.dll'];
   for (const name of components) fs.writeFileSync(path.join(source, name), 'private fixture: ' + name);
   fs.writeFileSync(path.join(source, 'extra', 'support.bin'), 'support fixture');
+  fs.mkdirSync(path.join(source, 'arknights', 'M4A'), { recursive: true });
+  fs.writeFileSync(path.join(source, 'arknights', 'M4A', 'M4ALauncher.exe'), 'legacy opaque fixture');
   assert.equal(copyLocalComponents(root, stage), true);
+  assert.equal(fs.existsSync(path.join(stage, 'local-components', 'arknights')), false);
   const files = await inventory(stage);
   for (const name of components) assert.equal(files['local-components/' + name].sha256, await hash(path.join(source, name)));
   assert.equal(files['local-components/extra/support.bin'].sha256, await hash(path.join(source, 'extra', 'support.bin')));
+  fs.mkdirSync(path.join(source, 'arknights-tools'), { recursive: true });
+  fs.writeFileSync(path.join(source, 'arknights-tools', 'fmod.dll'), 'unused proprietary fixture');
+  assert.throws(() => copyLocalComponents(root, stage), /opaque/);
 });
 test('product metadata and executable resources contain no personal attribution', () => {
   const manifest = require('../app/package.json');

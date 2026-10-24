@@ -61,7 +61,7 @@ export function useModContextActions({
     e.stopPropagation();
     const menuWidth = 220;
     const submenuWidth = 252;
-    const menuHeight = 310;
+    const menuHeight = 350;
     const pad = 12;
     const maxX = window.innerWidth - menuWidth - submenuWidth - pad;
     const fallbackMaxX = window.innerWidth - menuWidth - pad;

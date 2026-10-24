@@ -34,6 +34,7 @@ let characterImageCache;
 let characterCatalogService;
 function getGameCharacterResourceDir(gameId2 = gamesSettings.getActiveGameScopeId()) {
   return {
+    arknights: "arknights",
     "genshin-impact": "genshin-impact",
     endfield: "endfield",
     zzz: "zzz",

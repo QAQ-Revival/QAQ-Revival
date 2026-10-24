@@ -11,6 +11,7 @@ const desktopWindows = require("../desktop/windows.cjs");
 const gamesDetection = require("../games/detection.cjs");
 const gamesNevernessLaunch = require("../games/neverness/paths.cjs");
 const gamesSettings = require("../games/settings.cjs");
+const { isOfficialLauncherPath, resolveOfficialLauncherPath } = require("../games/official-launcher.cjs");
 const installPaths = require("../install/paths.cjs");
 const marketSources = require("../market/sources.cjs");
 function registerIpc() {
@@ -24,6 +25,7 @@ function registerIpc() {
           ...gamesSettings.serializeGameForRenderer(game),
           modFolderPath: paths.modsPath,
           gamePath: paths.gamePath,
+          officialLauncherPath: resolveOfficialLauncherPath(game, { gamePath: paths.gamePath }),
           modLoaderPath: paths.modLoaderPath
         },
         xxmiImporterInfo: gamesSettings.readXxmiImporterPathInfo(paths.modLoaderPath, game.id)
@@ -39,7 +41,7 @@ function registerIpc() {
     gamesSettings.ensureBuiltInGamesConfigured();
     return {
       success: true,
-      games: (configStore.currentConfig.games || []).map(gamesSettings.serializeGameForRenderer),
+      games: (configStore.currentConfig.games || []).filter(game => game.hidden !== true).map(gamesSettings.serializeGameForRenderer),
       activeGameId: configStore.currentConfig.activeGameId
     };
   });
@@ -78,6 +80,7 @@ function registerIpc() {
         shortName: game.shortName || game.name.trim(),
         description: game.description || "",
         gamePath: game.gamePath || "",
+        officialLauncherPath: game.officialLauncherPath || "",
         modLoaderPath: game.modLoaderPath || "",
         modFolderPath: modsFolderResult.path,
         launchMode: game.launchMode || "XXMI",
@@ -128,8 +131,14 @@ function registerIpc() {
           resolvedModFolderPath = modsFolderResult.path;
         }
       }
+      if (updates.officialLauncherPath && !isOfficialLauncherPath(game, updates.officialLauncherPath)) return {
+        success: false,
+        error: i18n.t("backend.games.launch.officialLauncherInvalid")
+      };
+      if (game.id === "arknights") require("../games/arknights/service.cjs").validateLibrary(resolvedModFolderPath || game.modFolderPath, updates.gamePath || game.gamePath);
       if (updates.name !== void 0) game.name = updates.name.trim();
       if (updates.gamePath !== void 0) game.gamePath = updates.gamePath;
+      if (updates.officialLauncherPath !== void 0) game.officialLauncherPath = updates.officialLauncherPath;
       if (updates.modLoaderPath !== void 0) game.modLoaderPath = updates.modLoaderPath;
       if (updates.dx12LauncherPath !== void 0) game.dx12LauncherPath = updates.dx12LauncherPath;
       if (updates.modFolderPath !== void 0) game.modFolderPath = resolvedModFolderPath;
@@ -162,9 +171,13 @@ function registerIpc() {
           error: i18n.t("backend.ipc.games.builtInGameCannotDelete")
         };
       }
+      const nextVisible = configStore.currentConfig.games.find(game => game.id !== gameId2 && game.hidden !== true);
+      if (configStore.currentConfig.activeGameId === gameId2 && !nextVisible) return {
+        error: i18n.t("backend.ipc.games.keepVisibleGame")
+      };
       configStore.currentConfig.games.splice(idx, 1);
       if (configStore.currentConfig.activeGameId === gameId2) {
-        configStore.currentConfig.activeGameId = configStore.currentConfig.games.length > 0 ? configStore.currentConfig.games[0].id : null;
+        configStore.currentConfig.activeGameId = nextVisible.id;
       }
       configStore.saveConfig(configStore.currentConfig);
       gamesSettings.notifyGamesChanged();
@@ -177,6 +190,31 @@ function registerIpc() {
       };
     }
   });
+  electron.ipcMain.handle("game:set-hidden", async (_, { gameId, hidden, nextGameId } = {}) => {
+    try {
+      const config = configStore.currentConfig;
+      const game = config.games?.find(item => item.id === gameId);
+      if (!game) throw new Error(i18n.t("backend.ipc.characters.gameMissing"));
+      if (typeof hidden !== "boolean") throw new Error(i18n.t("backend.ipc.games.invalidVisibility"));
+      const remaining = config.games.filter(item => item.id !== gameId && item.hidden !== true);
+      if (hidden && !remaining.length) throw new Error(i18n.t("backend.ipc.games.keepVisibleGame"));
+      const activeGameId = hidden && config.activeGameId === gameId
+        ? (remaining.find(item => item.id === nextGameId) || remaining[0]).id
+        : config.activeGameId;
+      const next = {
+        ...config,
+        activeGameId,
+        games: config.games.map(item => item.id === gameId ? { ...item, hidden } : item)
+      };
+      if (!configStore.saveConfig(next)) throw new Error(i18n.t("backend.ipc.settings.saveSettingsFailed"));
+      configStore.currentConfig = next;
+      gamesSettings.notifyGamesChanged();
+      if (activeGameId !== config.activeGameId) marketSources.siteSessions.setGame(activeGameId).catch(() => {});
+      return { success: true, activeGameId };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
   electron.ipcMain.handle("game:switch", async (_, gameId2) => {
     try {
       if (!configStore.currentConfig.games) return {
@@ -185,6 +223,10 @@ function registerIpc() {
       const game = configStore.currentConfig.games.find(g => g.id === gameId2);
       if (!game) return {
         error: i18n.t("backend.ipc.characters.gameMissing")
+      };
+      if (game.hidden === true) return {
+        success: false,
+        error: i18n.t("backend.ipc.games.gameHidden")
       };
       configStore.currentConfig.activeGameId = gameId2;
       configStore.saveConfig(configStore.currentConfig);
@@ -419,6 +461,27 @@ function registerIpc() {
       };
     }
   });
+  electron.ipcMain.handle("select-official-launcher-path", async (_, gameId) => {
+    try {
+      const game = gamesSettings.getSettingsGame(gameId);
+      const result = await electron.dialog.showOpenDialog({
+        title: i18n.t("backend.ipc.games.selectOfficialLauncher"),
+        properties: ["openFile"],
+        filters: [{ name: "Executables", extensions: ["exe"] }],
+        defaultPath: resolveOfficialLauncherPath(game) || undefined
+      });
+      if (result.canceled || !result.filePaths.length) return { success: false, canceled: true };
+      const selectedPath = result.filePaths[0];
+      if (!isOfficialLauncherPath(game, selectedPath)) return {
+        success: false,
+        error: i18n.t("backend.games.launch.officialLauncherInvalid")
+      };
+      gamesSettings.updateActiveGameConfig({ officialLauncherPath: selectedPath }, game.id);
+      return { success: true, path: selectedPath };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
   electron.ipcMain.handle("select-loader-path", async () => {
     try {
       const activeGame = gamesSettings.getActiveGame();
@@ -457,6 +520,15 @@ function registerIpc() {
     try {
       const activeGame = gamesSettings.getSettingsGame(gameId);
       const gameId2 = activeGame?.id || "endfield";
+      if (gameId2 === "arknights") {
+        const candidates = ["C", "D", "E", "F", "G"].flatMap(drive => ["Arknights", "Arknights Game"].map(folder => path.join(`${drive}:\\`, "Hypergryph Launcher", "games", folder, "Arknights.exe")));
+        if (!activeGame.gamePath || !fs.existsSync(activeGame.gamePath)) {
+          const found = candidates.find(file => fs.existsSync(file));
+          if (found) gamesSettings.updateActiveGameConfig({ gamePath: found }, gameId2);
+        }
+        require("../games/arknights/service.cjs").initialize();
+        return { success: true, config: gamesSettings.buildRendererConfig() };
+      }
       const xxmiCandidates = [];
       for (const drive of ["C", "D", "E", "F", "G"]) {
         xxmiCandidates.push(`${drive}:\\XXMI\\Resources\\Bin\\XXMI Launcher.exe`);

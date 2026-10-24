@@ -15,7 +15,10 @@ function getQaqInstallDir() {
   return path.resolve(electron.app.getAppPath());
 }
 function getDefaultMarketDownloadCacheDir() {
-  return path.join(getQaqInstallDir(), "QAQM_DownloadCache");
+  const installDir = getQaqInstallDir();
+  const cacheDir = path.join(installDir, "QAQR_DownloadCache");
+  const legacyDir = path.join(installDir, "QAQM_DownloadCache");
+  return !fs.existsSync(cacheDir) && fs.existsSync(legacyDir) ? legacyDir : cacheDir;
 }
 function loadMarketDownloadSettings() {
   try {

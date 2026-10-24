@@ -7,7 +7,7 @@ const fs = require("fs");
 const crypto = require("crypto");
 const configStore = require("../config/store.cjs");
 const DEV_MODE_PASSWORD_HASH = "b37eaacb1b884cad8748dccce485af6fb41d105a68813ab25a1c225aa87e0752";
-const DEV_KIT_DIR_NAME = "QAQManagerDevKit";
+const DEV_KIT_DIR_NAME = "QAQRDevKit";
 let devModeSessionUnlocked = false;
 function uniqueExistingStrings(values) {
   return [...new Set(values.filter(value => typeof value === "string" && value.trim()).map(value => value.trim()))];
@@ -26,7 +26,12 @@ function getDevKitCandidates() {
   const appPath = electron.app.getAppPath();
   const appDir = fs.existsSync(appPath) && fs.statSync(appPath).isDirectory() ? appPath : path.dirname(appPath);
   const cwd = process.cwd();
-  return uniqueExistingStrings([configStore.currentConfig.developerKitPath, process.env.QAQM_DEVKIT_PATH, path.join(exeDir, DEV_KIT_DIR_NAME), path.join(path.dirname(exeDir), DEV_KIT_DIR_NAME), path.join(appDir, DEV_KIT_DIR_NAME), path.join(path.dirname(appDir), DEV_KIT_DIR_NAME), path.join(cwd, DEV_KIT_DIR_NAME), path.join(path.dirname(cwd), DEV_KIT_DIR_NAME)]);
+  const directories = [exeDir, path.dirname(exeDir), appDir, path.dirname(appDir), cwd, path.dirname(cwd)];
+  return uniqueExistingStrings([
+    configStore.currentConfig.developerKitPath,
+    process.env.QAQR_DEVKIT_PATH,
+    ...directories.map(directory => path.join(directory, DEV_KIT_DIR_NAME))
+  ]);
 }
 function resolveDevKitScript(rootPath, config, keys, fallbackNames) {
   for (const key of keys) {

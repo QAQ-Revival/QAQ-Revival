@@ -226,6 +226,9 @@
       "gameAlreadyExists": "该游戏已存在",
       "gameConfigMissing": "没有游戏配置",
       "builtInGameCannotDelete": "内置游戏不可删除",
+      "invalidVisibility": "无效的游戏显隐设置",
+      "keepVisibleGame": "至少保留一个可见游戏",
+      "gameHidden": "此游戏已隐藏，请先在系统设置 → 通用中恢复显示",
       "chooseExecutable": "选择程序",
       "chooseFile": "选择文件",
       "selectModsFolder": "Select Mods Folder",
@@ -236,6 +239,7 @@
       "confirmOrganization": "确认迁移",
       "deferOrganization": "暂不处理",
       "selectGameExecutable": "Select Game Executable ({{executableHint}})",
+      "selectOfficialLauncher": "选择官方启动器",
       "selectExecutable": "Select {{modLoaderLabel}} Executable",
       "gameDetectionUnsupported": "暂未为「{{name}}」提供自动检测，请手动配置路径。",
       "pathsDetected": "已自动检测到：{{path}}",
@@ -333,7 +337,7 @@
   },
   "developer": {
     "access": {
-      "developerKitMissingAdvice": "未找到外部开发者包，请将 {{detail}} 放到管理器安装目录旁或设置 QAQM_DEVKIT_PATH",
+      "developerKitMissingAdvice": "未找到外部开发者包，请将 {{detail}} 放到管理器安装目录旁或设置 QAQR_DEVKIT_PATH",
       "developerModeLocked": "开发者模式未解锁",
       "developerKitMissing": "未找到外部开发者包：{{detail}}",
       "wrongPassword": "密码错误"
@@ -488,6 +492,8 @@
     },
     "launch": {
       "launchInProgress": "正在启动，请稍候。",
+      "officialLauncherMissing": "未找到官方启动器，请到游戏设置 → 路径中选择官方启动器。",
+      "officialLauncherInvalid": "请选择官方启动器 launcher.exe、HoYoPlay.exe 或 NTELauncher.exe，不要选择游戏客户端或 Mod 加载器。",
       "gameChanged": "当前游戏已切换，请重新点击启动。",
       "quickLaunchUnsupported": "当前游戏尚未支持快捷启动，请使用 XXMI 启动。",
       "genshinPreflightFailed": "原神启动前检查未通过：{{path}}。请到游戏设置 → 兼容检查查看详情。",

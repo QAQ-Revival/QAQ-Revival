@@ -10,7 +10,7 @@ const {
 const {
   fetchSkinCatalog
 } = require("./skin-sources.cjs");
-const SUPPORTED = new Set(['genshin-impact', 'wuthering-waves', 'zzz', 'honkai-star-rail', 'neverness-to-everness']);
+const SUPPORTED = new Set(['arknights', 'genshin-impact', 'wuthering-waves', 'zzz', 'honkai-star-rail', 'neverness-to-everness']);
 const key = value => String(value || '').replace(/_/g, ' ').trim().toLowerCase();
 const unique = values => [...new Set(values.filter(Boolean))];
 const count = catalog => (catalog.characters || []).reduce((total, character) => total + (character.skins || []).length, 0);

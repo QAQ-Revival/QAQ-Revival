@@ -52,9 +52,10 @@ function createBuiltInGameConfig(definition, overrides = {}) {
     shortName: definition.shortName,
     description: definition.description,
     gamePath: "",
+    officialLauncherPath: "",
     modLoaderPath: "",
     dx12LauncherPath: "",
-    modFolderPath: "",
+    modFolderPath: definition.id === "arknights" ? path.join(electron.app.getPath("userData"), "arknights", "Mods") : "",
     launchMode: definition.defaultLaunchMode,
     supportedLaunchModes: definition.supportedLaunchModes || ["XXMI"],
     launchArgs: definition.defaultLaunchArgs || "",
@@ -132,9 +133,16 @@ function ensureBuiltInGamesConfigured() {
     }
   }
   if (migratePersistSettings(configStore.currentConfig)) changed = true;
-  const validIds = new Set(configStore.currentConfig.games.map(game => game.id));
+  // Always retain an accessible selection, including after loading older backups.
+  let visibleGames = configStore.currentConfig.games.filter(game => game.hidden !== true);
+  if (!visibleGames.length) {
+    configStore.currentConfig.games[0].hidden = false;
+    visibleGames = [configStore.currentConfig.games[0]];
+    changed = true;
+  }
+  const validIds = new Set(visibleGames.map(game => game.id));
   if (!configStore.currentConfig.activeGameId || !validIds.has(configStore.currentConfig.activeGameId)) {
-    configStore.currentConfig.activeGameId = "endfield";
+    configStore.currentConfig.activeGameId = validIds.has("endfield") ? "endfield" : visibleGames[0].id;
     changed = true;
   }
   if (changed) {
@@ -190,6 +198,7 @@ function getSettingsGame(gameId) {
 function updateActiveGameConfig(updates, gameId) {
   const activeGame = gameId === undefined ? getActiveGame() : getSettingsGame(gameId);
   if (activeGame) {
+    if (activeGame.id === "arknights") require("./arknights/service.cjs").validateLibrary(updates.modFolderPath || activeGame.modFolderPath, updates.gamePath || activeGame.gamePath);
     Object.entries(updates || {}).forEach(([key, value]) => {
       activeGame[key] = value;
     });
@@ -267,6 +276,12 @@ function resolveSelectedModsFolder(selectedPath, {
     };
   }
   const basePath = path.resolve(selectedPath);
+  if (gameId2 === "arknights") {
+    try {
+      require("./arknights/service.cjs").validateLibrary(basePath);
+      return { ok: true, path: basePath, modsPath: basePath, originalPath: basePath, adjusted: false };
+    } catch (error) { return { ok: false, error: error.message }; }
+  }
   const candidates = new Map();
   let current = basePath;
   for (let depth = 0; depth < 6; depth++) {
