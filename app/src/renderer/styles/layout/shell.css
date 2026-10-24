@@ -161,15 +161,14 @@
 }
 
 .launch-control-card {
-  padding: 24px;
+  padding: 12px;
   margin-top: auto;
   background: rgba(255, 255, 255, 0.85);
-  border-radius: 28px;
+  border-radius: 20px;
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
   transition:
-    transform 0.2s,
     box-shadow 0.2s,
     background 0.3s;
 }
@@ -188,8 +187,7 @@
 }
 
 .launch-control-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 
 /* Nav Menu */

@@ -7,9 +7,9 @@ const { createRequire } = require('node:module');
 const runtimeRequire = createRequire(path.join(process.resourcesPath, 'app/package.json'));
 const electron = runtimeRequire('electron');
 const { app, BrowserWindow } = electron;
-const root = process.env.QAQM_TEST_RESULTS;
-const profile = process.env.QAQM_USER_DATA;
-const childId = process.env.QAQM_SINGLE_INSTANCE_CHILD;
+const root = process.env.QAQR_TEST_RESULTS;
+const profile = process.env.QAQR_USER_DATA;
+const childId = process.env.QAQR_SINGLE_INSTANCE_CHILD;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 if (childId) {
@@ -54,7 +54,7 @@ if (childId) {
     return new Promise((resolve, reject) => {
       const child = spawn(process.execPath, [], {
         cwd: path.dirname(process.execPath), windowsHide: true,
-        env: { ...process.env, QAQM_SINGLE_INSTANCE_CHILD: id }, stdio: 'ignore'
+        env: { ...process.env, QAQR_SINGLE_INSTANCE_CHILD: id }, stdio: 'ignore'
       });
       children.add(child);
       const timeout = setTimeout(() => { child.kill(); reject(new Error(`Duplicate ${id} did not exit`)); }, 15000);

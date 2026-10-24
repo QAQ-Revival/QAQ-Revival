@@ -22,7 +22,7 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - name: Check out source and pinned MEGA submodule
+      - name: Check out source and component submodules
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
@@ -34,12 +34,20 @@ jobs:
           node-version: '24'
           package-manager-cache: false
 
+      - name: Set up Python for source-built resource tools
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Update components to their configured branches
+        run: node tools/update-components.cjs
+
       - name: Read version from app/package.json
         id: release
         run: |
           node -e 'const fs = require("fs"); const { releaseNames } = require("./tools/package-release.cjs"); const names = releaseNames(require("./app/package.json").version); fs.appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(names).map(([k,v]) => `${k}=${v}`).join("\n") + "\n");'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          "QAQM_BUILD_DIR=$env:GITHUB_WORKSPACE/build/portable" >> $env:GITHUB_ENV
+          "QAQR_BUILD_DIR=$env:GITHUB_WORKSPACE/build/portable" >> $env:GITHUB_ENV
 
       - name: Reject an existing release or tag
         env:

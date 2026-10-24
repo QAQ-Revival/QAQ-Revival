@@ -94,6 +94,10 @@ function resolveModAppearanceSectionId({
     }
   }
   const tags = Array.isArray(resolvedMeta?.tags) ? resolvedMeta.tags.map(tag => typeof tag === "string" ? tag : tag?.name || "").filter(Boolean) : [];
+  if (gameId2 === "arknights" && modDir) {
+    const names = require("../games/arknights/files.cjs").walk(modDir).map(file => file.name);
+    return inferOfficialAppearanceSectionId(characterName, [modName, ...tags, ...names], gameId2);
+  }
   return inferOfficialAppearanceSectionId(characterName, [modName, ...tags], gameId2);
 }
 function writeModAppearanceSectionMetadata(modDir, characterName, sectionId, {

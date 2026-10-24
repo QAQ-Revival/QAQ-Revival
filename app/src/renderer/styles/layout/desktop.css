@@ -232,19 +232,119 @@ button.nav-item:focus-visible {
   color: #ececf0;
 }
 .launch-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  container: launch-controls / inline-size;
 }
 .launch-actions .btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  padding: 9px 6px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.launch-actions .launch-button-direct {
+  grid-column: 1 / -1;
+  gap: 8px;
   min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--color-accent-primary) 28%, transparent);
+  font-size: 14px;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--color-accent-primary) 16%, transparent);
+}
+.launch-actions .btn-secondary {
+  background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+  color: var(--color-text-secondary);
+  box-shadow: none;
+}
+.launch-actions .btn:hover {
+  transform: none;
+}
+.launch-actions .btn-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent-primary) 9%, transparent);
+  border-color: color-mix(in srgb, var(--color-accent-primary) 35%, transparent);
+  color: var(--color-accent-foreground);
+}
+@container launch-controls (max-width: 190px) {
+  .launch-actions:not(.launch-actions-collapsed) .btn-secondary {
+    flex-direction: column;
+    gap: 5px;
+    min-height: 56px;
+    padding: 8px 4px;
+  }
+}
+@container launch-controls (max-width: 150px) {
+  .launch-actions .btn-secondary {
+    font-size: 11px;
+  }
+}
+.launch-actions .btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring, var(--color-accent-primary));
+  outline-offset: 3px;
+}
+.launch-button-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.launch-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.launch-button-direct .launch-icon {
+  width: 18px;
+  height: 18px;
+}
+.launch-actions .game-settings-button,
+.launch-error,
+.launch-notice {
+  grid-column: 1 / -1;
+}
+.launch-actions .game-settings-button {
+  min-height: 30px;
+  padding: 8px 4px 0;
+  border-top-color: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+  font-size: 12px;
+  font-weight: 500;
+}
+.launch-actions .game-settings-button .launch-icon {
+  width: 14px;
+  height: 14px;
+}
+.launch-icon-loading {
+  animation: launch-icon-spin 0.8s linear infinite;
+}
+@keyframes launch-icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .launch-icon-loading {
+    animation: none;
+  }
 }
 .launch-actions-collapsed {
+  grid-template-columns: minmax(0, 1fr);
   margin-top: auto;
   padding: 8px 0;
 }
 .launch-actions-collapsed .btn {
+  min-height: 40px;
   padding: 10px 0;
 }
 .launch-error {

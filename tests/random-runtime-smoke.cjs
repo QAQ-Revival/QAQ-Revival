@@ -9,7 +9,18 @@ if (process.versions.electron) {
   const runtimeRequire = createRequire(path.join(process.resourcesPath, 'app/package.json'));
   const electron = runtimeRequire('electron');
   const { app, BrowserWindow } = electron;
-  const resultRoot = process.env.QAQM_RUNTIME_PROBE;
+  const resultRoot = process.env.QAQR_RUNTIME_PROBE;
+  let trayHost;
+  const childProcess = require('node:child_process');
+  const originalSpawn = childProcess.spawn;
+  childProcess.spawn = function (file, ...args) {
+    const child = originalSpawn.call(this, file, ...args);
+    if (path.basename(file) === 'QaqrTrayHost.exe') {
+      trayHost = { executable: file, pid: child.pid, ready: false };
+      child.stdout.on('data', data => { if (data.toString().includes('"ready"')) trayHost.ready = true; });
+    }
+    return child;
+  };
   app.disableHardwareAcceleration();
   BrowserWindow.prototype.show = function () {};
   BrowserWindow.prototype.focus = function () {};
@@ -21,16 +32,16 @@ if (process.versions.electron) {
     window.webContents.once('did-finish-load', () => setTimeout(() => {
       fs.writeFileSync(path.join(resultRoot, 'ready.json'), JSON.stringify({ pid: process.pid, executable: process.execPath,
         profile: app.getPath('userData'), title: window.getTitle(), windows: BrowserWindow.getAllWindows().length,
-        appName: app.getName(), processIds: app.getAppMetrics().map(item => item.pid) }));
+        appName: app.getName(), processIds: app.getAppMetrics().map(item => item.pid), trayHost }));
     }, 200));
   });
   const close = setInterval(() => {
-    if (fs.existsSync(path.join(resultRoot, 'stop'))) { clearInterval(close); app.exit(0); }
+    if (fs.existsSync(path.join(resultRoot, 'stop'))) { clearInterval(close); app.quit(); }
   }, 100);
   runtimeRequire('./out/main/runtime-probe-main.cjs');
 } else {
   const root = path.resolve(__dirname, '..');
-  const stage = path.resolve(process.env.QAQM_BUILD_DIR || path.join(root, 'build/random-launch-local'));
+  const stage = path.resolve(process.env.QAQR_BUILD_DIR || path.join(root, 'build/random-launch-local'));
   const executable = path.join(stage, 'QAQ-Revival.exe');
   const entry = path.join(stage, 'resources/app/out/main/index.js');
   const savedEntry = path.join(stage, 'resources/app/out/main/runtime-probe-main.cjs');
@@ -39,7 +50,7 @@ if (process.versions.electron) {
   fs.mkdirSync(profile, { recursive: true });
   const originalExe = fs.readFileSync(executable), originalEntry = fs.readFileSync(entry);
   const children = new Set(); let activePid;
-  const env = { ...process.env, QAQM_RUNTIME_PROBE: resultRoot, QAQM_USER_DATA: profile };
+  const env = { ...process.env, QAQR_RUNTIME_PROBE: resultRoot, QAQR_USER_DATA: profile };
   delete env.ELECTRON_RUN_AS_NODE;
   async function wait(check, label) {
     for (let i = 0; i < 300; i++) { if (await check()) return; await delay(100); }
@@ -85,12 +96,18 @@ if (process.versions.electron) {
       await wait(() => fs.existsSync(path.join(resultRoot, 'activated')), 'duplicate activated first instance');
       assert.equal(Number(fs.readFileSync(path.join(resultRoot, 'activated'), 'utf8')), first.pid);
       checks.push('Repeated stable-entry launches activate the existing random process without starting another manager');
+      assert.ok(first.trayHost?.pid && first.trayHost.ready, 'Native tray host is ready');
       await stop(); fs.unlinkSync(path.join(resultRoot, 'ready.json'));
+      await wait(() => !running(first.trayHost.pid), 'native tray stops with its manager');
       await launch();
       await wait(() => fs.existsSync(path.join(resultRoot, 'ready.json')), 'second session ready');
       const second = JSON.parse(fs.readFileSync(path.join(resultRoot, 'ready.json'))); activePid = second.pid;
       assert.notEqual(second.executable, first.executable); assert.equal(second.profile, first.profile);
+      assert.ok(second.trayHost?.ready);
+      assert.equal(second.trayHost.executable, first.trayHost.executable, 'Tray keeps the same executable across changing manager images');
+      checks.push('Random manager sessions share a fixed native tray identity, and their tray hosts stop with the manager');
       await stop();
+      await wait(() => !running(second.trayHost.pid), 'second native tray stops');
       // Renderer/GPU processes can briefly retain the image after the main process exits.
       const { cleanupExecutables } = require('../app/out/main/runtime/random-executable.cjs');
       await wait(() => { cleanupExecutables(executable); return !fs.existsSync(first.executable); }, 'old child-process image unlocked and cleaned');
@@ -104,7 +121,9 @@ if (process.versions.electron) {
       await wait(() => fs.existsSync(path.join(resultRoot, 'ready.json')), 'disabled random startup ready');
       const direct = JSON.parse(fs.readFileSync(path.join(resultRoot, 'ready.json'))); activePid = direct.pid;
       assert.equal(direct.executable, executable); assert.equal(direct.title, 'QAQ-Revival'); assert.equal(direct.profile, profile);
+      assert.equal(direct.trayHost?.executable, first.trayHost.executable, 'Disabling random names preserves the tray identity');
       await stop(); await directSession;
+      await wait(() => !running(direct.trayHost.pid), 'stable session tray stops');
       checks.push('Disabling the global manager option starts the original executable and title on the next session without changing its profile');
       fs.writeFileSync(path.join(resultRoot, 'report.json'), JSON.stringify({ success: true, checks }, null, 2));
       console.log(JSON.stringify({ success: true, checks, resultRoot }, null, 2));

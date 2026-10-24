@@ -7,7 +7,12 @@ node_modules/
 /test-results/
 /app/resources/mega-worker/
 /app/resources/steam-bridge/
+/app/resources/tray-host/
+# Keyboard helper executables are compiled from native/windows-helpers.
+/runtime-resources/QaqmKeyHelper.exe
+/runtime-resources/QaqrKeyHelper.exe
 coverage/
+__pycache__/
 .cache/
 *.tsbuildinfo
 
@@ -15,6 +20,7 @@ coverage/
 /baseline/
 /backups/
 user-data/
+QAQR_DownloadCache/
 QAQM_DownloadCache/
 *.log
 

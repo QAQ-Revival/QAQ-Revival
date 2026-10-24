@@ -270,6 +270,25 @@ function ModMarketView({
     () => Object.fromEntries(gameOptions.map((game) => [game.id, game.name])),
     [gameOptions],
   );
+  const visibleGameIds = React.useMemo(
+    () => new Set(games.map((game) => game.id)),
+    [games],
+  );
+  React.useEffect(() => {
+    if (selectedGameId !== "all" && !visibleGameIds.has(selectedGameId)) {
+      setSelectedGameId(activeGameId || games[0]?.id || "all");
+      setSelectedCharacter("all");
+      setSelectedGameVersion("all");
+      setSelectedModMode("all");
+    }
+    if (
+      detailMod &&
+      detailMod.gameId !== "all" &&
+      !visibleGameIds.has(getModGameId(detailMod))
+    ) {
+      setDetailMod(null);
+    }
+  }, [visibleGameIds, selectedGameId, activeGameId, detailMod]);
   const marketGameId = gameOptions.some((game) => game.id === selectedGameId)
     ? selectedGameId
     : activeGameId || "endfield";
@@ -332,6 +351,7 @@ function ModMarketView({
     adaptiveColumns,
   } = useMarketFiltering({
     mods,
+    visibleGameIds,
     selectedGameId,
     marketCharacterAliasIndex,
     searchQuery,

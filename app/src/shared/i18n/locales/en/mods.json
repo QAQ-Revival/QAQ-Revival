@@ -4,12 +4,14 @@
     "delete": "Delete Mod",
     "rename": "Rename Mod",
     "enableAll": "Enable all",
-    "disableAll": "Disable all"
+    "disableAll": "Disable all",
+    "copyPath": "Copy path"
   },
   "search": {
     "placeholder": "Search Mods"
   },
   "empty": "No Mods yet",
+  "pathCopied": "Path copied",
   "presets": {
     "title": "Presets",
     "create": "Create preset",

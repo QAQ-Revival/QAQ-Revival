@@ -6,7 +6,7 @@ $exe = Join-Path $runtime 'QAQ-Revival.exe'
 if (-not (Test-Path -LiteralPath $exe)) { throw 'Build first: node tools/build.cjs' }
 $profile = Join-Path $env:APPDATA 'QAQ-Revival'
 $env:ELECTRON_RUN_AS_NODE = $null
-$env:QAQM_USER_DATA = $profile
+$env:QAQR_USER_DATA = $profile
 $taskIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $taskPrincipal = New-Object Security.Principal.WindowsPrincipal($taskIdentity)
 if ($taskPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {

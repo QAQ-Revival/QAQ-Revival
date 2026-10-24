@@ -212,7 +212,7 @@ function GameSelector({ games = [], activeGame, collapsed, onSwitch }) {
                 {sorting.error}
               </div>
             )}
-            {!games.length && (
+            {!sorting.items.length && (
               <div className="game-selector-error">
                 {t("navigation.noGames")}
               </div>

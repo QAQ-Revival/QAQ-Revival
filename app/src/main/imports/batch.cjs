@@ -443,6 +443,12 @@ function registerIpc() {
         });
         characterName = installTarget.characterName || characterName;
         modName = charactersSkins.assertSafeAppearancePathSegment(modName || "Mod", i18n.t("backend.validation.modName"));
+        if (gameId2 === "arknights" && !item.installAsMultipleMods && !item.installAsIntegratedPackage && !item.expectedIntegratedPackage) {
+          const result = await importsLocal.importModFromLocalPath({ characterName, filePath: item.tempPath || filePath, modInfo: { ...item, name: modName }, gameIdOverride: gameId2 });
+          results.push({ modName, characterName, ...result });
+          completeBatchItem(idx, { modName, success: !!result.success });
+          continue;
+        }
         if (gamesNevernessLoader.isNevernessGame(gameId2)) {
           const pakDetection = await modsNevernessPaks.detectNevernessDx12PakSource(item.tempPath || filePath);
           if (pakDetection.isPak) {
@@ -563,6 +569,7 @@ function registerIpc() {
               source: modsAppearance.extractRequestedAppearanceTarget(item).sectionId || modsAppearance.extractRequestedAppearanceTarget(item).skinId ? "explicit-batch" : "name-match"
             });
             entry.appearanceSectionId = appearance2.sectionId;
+            if (gameId2 === "arknights") entry.targetPath = require("../games/arknights/service.cjs").prepareImportedMod(entry.targetPath);
             modsConflicts.clearConflictCache(characterName, gameId2);
             installedPaths.push(entry.targetPath);
           });
@@ -762,6 +769,7 @@ function registerIpc() {
     const successfulResults = results.filter(item => item?.success);
     if (successfulResults.length > 0) {
       desktopNotifications.notifyCharacterListChanged("__all__", {
+        gameId: gameId2,
         reason: "batch-import",
         changedCharacterNames: Array.from(new Set(successfulResults.map(item => item?.characterName).filter(Boolean)))
       });

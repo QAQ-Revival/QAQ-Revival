@@ -7,7 +7,7 @@
   },
   "categories": {
     "general": "General",
-    "generalDescription": "Window behavior and Mod state.",
+    "generalDescription": "Window behavior, game visibility, and Mod state.",
     "persist": "Mod state",
     "persistDescription": "Manage saved Mod state for each game.",
     "appearance": "Appearance",
@@ -20,6 +20,15 @@
     "maintenanceDescription": "Update loaders and troubleshoot Mods.",
     "about": "About and updates",
     "aboutDescription": "Version and updates."
+  },
+  "gameVisibility": {
+    "title": "Game visibility",
+    "manage": "Choose which games to show",
+    "description": "Turn off a game to hide it from the sidebar, Mod state, download filters, and other game lists. Settings, downloads, and Mods are retained. Turn it on to restore visibility.",
+    "toggle": "Show {{name}}",
+    "shown": "Visible",
+    "hidden": "Hidden",
+    "keepVisible": "Keep at least one game visible"
   },
   "window": {
     "title": "Window behavior"
@@ -64,6 +73,8 @@
     "modsFolder": "Mods folder",
     "executable": "Game executable",
     "xxmiLauncher": "XXMI launcher",
+    "officialLauncher": "Official launcher",
+    "officialLauncherHint": "Official launch opens this program without loading Mods. Select launcher.exe or NTELauncher.exe if automatic detection is incorrect.",
     "nemiLoader": "NEMI loader",
     "fixer": "Standalone fixer",
     "fixerExecutable": "Fixer executable"

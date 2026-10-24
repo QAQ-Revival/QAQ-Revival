@@ -284,6 +284,10 @@ function parseNteSkins(appearanceData, characterData, defaults, revision, base, 
   };
 }
 async function fetchSkinCatalog(gameId, base, config, fetchFn = fetch) {
+  if (gameId === 'arknights') {
+    const { SKIN_SOURCE, parseSkins } = require('../games/arknights/catalog.cjs');
+    return parseSkins(await fetchJson(SKIN_SOURCE, fetchFn), config);
+  }
   if (gameId === 'genshin-impact') {
     const {
       OUTFIT_SOURCES,

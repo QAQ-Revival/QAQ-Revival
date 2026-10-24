@@ -12,21 +12,21 @@ function releaseNames(version) {
 }
 async function main() {
   const names = releaseNames(version);
-  const stage = path.resolve(process.env.QAQM_BUILD_DIR || path.join(root, 'build/QAQ-Revival-local'));
-  const output = path.join(path.resolve(process.env.QAQM_RELEASE_DIR || path.join(root, 'release')), names.archive);
-  const rar = process.env.QAQM_RAR_EXE || path.join(root, '.cache/release-tools/winrar/Rar.exe');
+  const stage = path.resolve(process.env.QAQR_BUILD_DIR || path.join(root, 'build/QAQ-Revival-local'));
+  const output = path.join(path.resolve(process.env.QAQR_RELEASE_DIR || path.join(root, 'release')), names.archive);
+  const rar = process.env.QAQR_RAR_EXE || path.join(root, '.cache/release-tools/winrar/Rar.exe');
   if (fs.existsSync(output)) throw Error('Release archive already exists: ' + names.archive);
   const manifest = JSON.parse(fs.readFileSync(path.join(stage, 'resources/app/package.json')));
   if (manifest.version !== version || productName !== 'QAQ-Revival' || manifest.productName !== productName || manifest.main !== './out/main/index.js') throw Error('Unexpected application manifest');
   const elevationCheck = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.join(root, 'tools/stamp-manifest.ps1'), '-Executable', path.join(stage, 'QAQ-Revival.exe'), '-CheckOnly'], { encoding: 'utf8', windowsHide: true });
   if (elevationCheck.error) throw elevationCheck.error;
   if (elevationCheck.status !== 0) throw Error('Release EXE must request administrator privileges: ' + elevationCheck.stderr);
-  for (const name of ['LICENSE', 'LICENSE.electron.txt', 'QAQ-Revival.exe', 'Start.cmd', 'resources/app/out/renderer/overlay/index.html', 'resources/app/out/renderer/overlay/side-panel.html', 'resources/app/out/preload/overlay.js', 'resources/UnRAR.exe', 'resources/QaqmKeyHelper.exe', 'resources/app/resources/mega-worker/QAQMMegaWorker.exe', 'resources/app/resources/steam-bridge/steam-bridge.exe', 'resources/app/resources/steam-bridge/LICENSE']) {
+  for (const name of ['LICENSE', 'LICENSE.electron.txt', 'QAQ-Revival.exe', 'Start.cmd', 'resources/app/out/renderer/overlay/index.html', 'resources/app/out/renderer/overlay/side-panel.html', 'resources/app/out/preload/overlay.js', 'resources/UnRAR.exe', 'resources/QaqrKeyHelper.exe', 'resources/app/resources/mega-worker/QAQRMegaWorker.exe', 'resources/app/resources/steam-bridge/steam-bridge.exe', 'resources/app/resources/steam-bridge/LICENSE', 'resources/app/resources/tray-host/QaqrTrayHost.exe']) {
     if (!fs.existsSync(path.join(stage, name))) throw Error('Required portable file missing: ' + name);
   }
   const files = await inventory(stage);
   for (const name of Object.keys(files)) {
-    if (/(^|\/)(user-data|QAQM_DownloadCache|AppData|test-results|\.git|\.env)(\/|$)|(^|\/)smoke-entry\.cjs$|\.smoke\.exe$|\.log$/i.test(name)) {
+    if (/(^|\/)(user-data|QAQ[MR]_DownloadCache|AppData|test-results|\.git|\.env)(\/|$)|(^|\/)smoke-entry\.cjs$|\.smoke\.exe$|\.log$/i.test(name)) {
       throw Error('Release contains personal data or test files: ' + name);
     }
   }

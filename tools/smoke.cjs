@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
-const runtime = path.resolve(process.env.QAQM_BUILD_DIR || path.join(root, 'build/QAQ-Revival-local'));
+const runtime = path.resolve(process.env.QAQR_BUILD_DIR || path.join(root, 'build/QAQ-Revival-local'));
 const manifestPath = path.join(runtime, 'resources/app/package.json');
 const original = fs.readFileSync(manifestPath, 'utf8');
 const manifest = JSON.parse(original);
@@ -24,16 +24,16 @@ const testEntry = process.argv.includes('--window-state') ? 'window-state-smoke.
 fs.writeFileSync(entry, `require(${JSON.stringify(path.join(root, 'tests', testEntry))});`);
 manifest.main = './smoke-entry.cjs';
 fs.writeFileSync(manifestPath, JSON.stringify(manifest));
-const env = { ...process.env, QAQM_TEST_RESULTS: results, QAQM_USER_DATA: path.join(results, 'AppData/QAQ-Revival') };
+const env = { ...process.env, QAQR_TEST_RESULTS: results, QAQR_USER_DATA: path.join(results, 'AppData/QAQ-Revival') };
 const scopes = [
   'translation', 'genshin', 'genshin-check', 'genshin-anticrash', 'game-settings',
   'steam-bridge', 'hidden-characters', 'character-images', 'character-skins',
   'skin-cover-live', 'file-drop', 'persist', 'mod-sites', 'card-images',
   'overlay-activity', 'mod-layout', 'window-layout', 'post-links', 'market-scope',
-  'imports', 'sources', 'sorting', 'settings'
+  'imports', 'sources', 'sorting', 'settings', 'wuwa-gacha', 'arknights'
 ];
 const scope = scopes.find(name => process.argv.includes('--' + name));
-if (scope) env.QAQM_SMOKE_SCOPE = scope;
+if (scope) env.QAQR_SMOKE_SCOPE = scope;
 delete env.ELECTRON_RUN_AS_NODE;
 const log = fs.openSync(path.join(results, 'electron.log'), 'w');
 const child = spawn(testExecutable, [], { cwd: runtime, env, windowsHide: true, stdio: ['ignore', log, log] });

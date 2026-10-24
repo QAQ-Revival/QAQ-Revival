@@ -242,7 +242,7 @@ export function ModDetailsPanel({
                   </span>;
         })}
             </div>}
-          <ModPersistSummary gameId={activeGameId} characterName={characterName} modName={selectedMod.name} key={`${activeGameId}/${characterName}/${selectedMod.name}`} />
+          {activeGameId !== "arknights" && <ModPersistSummary gameId={activeGameId} characterName={characterName} modName={selectedMod.name} key={`${activeGameId}/${characterName}/${selectedMod.name}`} />}
           <div className="mod-detail-notes">
             <div className="text-caption mod-details-panel-text-caption-layout">
               <span>{t("mods.notes.title")}</span>

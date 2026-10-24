@@ -44,7 +44,7 @@ function createNativeClient({
     fs.writeFileSync(input, JSON.stringify(request));
     const env = {
       ...process.env,
-      QAQM_USER_DATA: userData
+      QAQR_USER_DATA: userData
     };
     delete env.ELECTRON_RUN_AS_NODE;
     try {

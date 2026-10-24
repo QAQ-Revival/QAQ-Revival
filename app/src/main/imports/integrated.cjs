@@ -328,7 +328,7 @@ async function buildIntegratedCopyPlan(sourceModsDir, targetModsDir, gameId2 = g
     for (const entry of childEntries) {
       if (entry.name.startsWith(".")) continue;
       const sourcePath = path.join(sourceCharacterDir, entry.name);
-      const targetName = entry.isDirectory() && charactersHidden.isCharacterHidden(canonicalCharacterName, gameId2) && !/^DISABLED_/i.test(entry.name) ? `DISABLED_${entry.name}` : entry.name;
+      const targetName = entry.isDirectory() && (gameId2 === "arknights" || charactersHidden.isCharacterHidden(canonicalCharacterName, gameId2)) && !/^DISABLED_/i.test(entry.name) ? `DISABLED_${entry.name.replace(/^DISABLE_/i, "")}` : entry.name;
       const targetPath = path.join(targetCharacterDir, targetName);
       const label = canonicalCharacterName === characterDir.name ? `${canonicalCharacterName} / ${entry.name}` : `${characterDir.name} -> ${canonicalCharacterName} / ${entry.name}`;
       if (entry.isDirectory()) {
@@ -593,9 +593,10 @@ async function installIntegratedModsPackageIfPresent(sourceRoot, {
   let restoredBakCount = 0;
   for (const modDir of moveResult.installedModDirs) {
     restoredBakCount += modsBackups.restorePersistBakFiles(modDir);
+    if (gameId2 === "arknights") require("../games/arknights/service.cjs").prepareImportedMod(modDir);
   }
   modsConflicts.clearConflictCache();
-  desktopNotifications.notifyAllModWindowsChanged("__all__");
+  desktopNotifications.notifyAllModWindowsChanged("__all__", { gameId: gameId2 });
   if (cleanupSource && sourceRoot && fs.existsSync(sourceRoot) && !systemPaths.isSameResolvedPath(sourceRoot, targetModsDir)) {
     try {
       fs.rmSync(sourceRoot, {
