@@ -14,6 +14,8 @@ module.exports = async function testSettings({ evaluate, waitFor, captureUI, win
   await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('明日方舟终末地')`, 'current game is Endfield');
   await evaluate(`sessionStorage.removeItem('qaqm.settings.game')`);
   await click('.sidebar-settings');
+  await waitFor(`!!document.querySelector('[data-category="general"]')`, 'settings navigation loaded');
+  await category('general');
   await waitFor(`!!document.querySelector('#settings-window .system-choice')`, 'global settings loaded');
   assert.equal((await evaluate('window.api.overlayGetSettings()')).settings.persistBridgeCacheSize, null);
   assert.equal(await evaluate(`!!document.querySelector('[aria-label="保留最近使用的 Mod 状态数值"]')`), false);
@@ -41,6 +43,13 @@ module.exports = async function testSettings({ evaluate, waitFor, captureUI, win
   await click('[aria-label="选择 游戏程序"]');
   await waitFor(`document.querySelector('[aria-label="游戏程序"]')?.value === ${JSON.stringify(editedExe)}`, 'current game path saved');
   assert.equal((await evaluate(`window.api.gameGetSettings('endfield')`)).game.gamePath, editedExe);
+  const officialLauncher = path.join(root, 'settings-official', 'launcher.exe');
+  fs.mkdirSync(path.dirname(officialLauncher), { recursive: true });
+  fs.writeFileSync(officialLauncher, 'Synthetic official launcher, never executed');
+  setSelection({ canceled: false, filePaths: [officialLauncher] });
+  await click('[aria-label="选择 官方启动器"]');
+  await waitFor(`document.querySelector('[aria-label="官方启动器"]')?.value === ${JSON.stringify(officialLauncher)}`, 'official launcher path saved');
+  assert.equal((await evaluate(`window.api.gameGetSettings('endfield')`)).game.officialLauncherPath, officialLauncher);
   setSelection({ canceled: true, filePaths: [] });
   await click('[aria-label="选择 游戏程序"]');
   await waitFor(`document.querySelector('.system-game-detail')?.getAttribute('aria-busy') === 'false'`, 'canceled picker');
@@ -56,6 +65,7 @@ module.exports = async function testSettings({ evaluate, waitFor, captureUI, win
   const after = await evaluate('window.api.getConfig()');
   assert.equal(after.config.games.find(g => g.id === 'wuthering-waves').modFolderPath, before.config.games.find(g => g.id === 'wuthering-waves').modFolderPath);
   assert.equal(after.config.games.find(g => g.id === 'wuthering-waves').modLoaderPath, before.config.games.find(g => g.id === 'wuthering-waves').modLoaderPath);
+  assert.equal(after.config.games.find(g => g.id === 'wuthering-waves').officialLauncherPath, before.config.games.find(g => g.id === 'wuthering-waves').officialLauncherPath);
   assert.ok((await evaluate(`window.api.selectGamePath('missing-game')`)).error);
   await captureUI('settings-game-paths.png');
   await click('.game-selector-trigger');

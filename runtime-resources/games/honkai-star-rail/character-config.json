@@ -1131,7 +1131,7 @@
   "characterNameMap": {
     "gameId": "honkai-star-rail",
     "updatedAt": "2026-05-15",
-    "scope": "HoYoLAB HoYoWiki Honkai: Star Rail character aggregate synced for QAQManager resources and review mapping",
+    "scope": "HoYoLAB HoYoWiki Honkai: Star Rail character aggregate synced for QAQR resources and review mapping",
     "note": "Source list is HoYoLAB HoYoWiki menu 104. Trailblazer path variants are folded into manager folders female protagonist and male protagonist. Chinese display names use hyphen separators instead of middle dots; Ruan Mei is displayed as ??, and Mortenax Blade is displayed as ?-??. Light cones are kept as ??, while ?? is not created as a display/default category. Existing jasmName values are retained only for backward-compatible local folder/image-stem lookup.",
     "sources": [
       "https://wiki.hoyolab.com/pc/hsr/aggregate/character?lang=en-us",

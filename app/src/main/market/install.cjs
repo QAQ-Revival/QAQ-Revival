@@ -8,6 +8,7 @@ const electron = require("electron");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const archivesNames = require("../archives/names.cjs");
 const configStore = require("../config/store.cjs");
 const marketAccess = require("./access.cjs");
 const marketDownloads = require("./downloads.cjs");
@@ -37,7 +38,7 @@ async function fetchDirectInstallUrlWithFallback(serverUrl, modId, options, auth
   for (let i = 0; i < candidates.length; i++) {
     const candidate = candidates[i];
     try {
-      console.log(`[QAQM Fallback][main] 尝试 install-url: ${candidate}${requestPath}`);
+      console.log(`[QAQR Fallback][main] 尝试 install-url: ${candidate}${requestPath}`);
       const candidateAuthToken = marketAccess.resolveMarketAuthToken({
         authToken: rawAuthToken,
         authServerUrl: authContext.authServerUrl,
@@ -54,10 +55,10 @@ async function fetchDirectInstallUrlWithFallback(serverUrl, modId, options, auth
         lastError = new Error(i18n.t("backend.market.install.serverResponseError", {
           status: response.status
         }));
-        console.warn(`[QAQM Fallback][main] ${candidate} 返回 ${response.status}，切换下一个候选`);
+        console.warn(`[QAQR Fallback][main] ${candidate} 返回 ${response.status}，切换下一个候选`);
         continue;
       }
-      console.log(`[QAQM Fallback][main] 命中 install-url 服务器: ${candidate}`);
+      console.log(`[QAQR Fallback][main] 命中 install-url 服务器: ${candidate}`);
       return {
         response,
         serverUrl: candidate
@@ -65,7 +66,7 @@ async function fetchDirectInstallUrlWithFallback(serverUrl, modId, options, auth
     } catch (error) {
       if (options.signal?.aborted) throw error;
       lastError = error?.name === "AbortError" ? new Error(i18n.t("backend.market.install.requestTimedOut")) : error;
-      console.warn(`[QAQM Fallback][main] ${candidate} 请求失败: ${error?.message || error}`);
+      console.warn(`[QAQR Fallback][main] ${candidate} 请求失败: ${error?.message || error}`);
     }
   }
   throw lastError || new Error(i18n.t("backend.market.install.allServersUnavailable"));
@@ -161,7 +162,7 @@ function registerIpc() {
       const installMod = {
         ...mod,
         ...(data.mod || {}),
-        name: mod.name || data.mod?.name || path.basename(tempPath, path.extname(tempPath)),
+        name: mod.name || data.mod?.name || archivesNames.getModArchiveName(tempPath),
         characterName: data.mod?.characterName || mod.characterName,
         gameId: data.mod?.gameId || mod.gameId || null
       };
@@ -277,7 +278,7 @@ function registerIpc() {
         percent: 100,
         archivePath,
         archiveFileName: archivePath ? path.basename(archivePath) : "",
-        name: mod.name || (archivePath ? path.basename(archivePath, path.extname(archivePath)) : i18n.t("backend.market.downloads.installTaskName")),
+        name: mod.name || (archivePath ? archivesNames.getModArchiveName(archivePath) : i18n.t("backend.market.downloads.installTaskName")),
         characterName: mod.characterName || null,
         gameId: mod.gameId || null,
         mod

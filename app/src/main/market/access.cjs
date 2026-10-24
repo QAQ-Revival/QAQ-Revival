@@ -65,7 +65,7 @@ function createLatestRequestTracker() {
   };
 }
 const RETIRED_DIRECT_FALLBACK_HOST = "direct.qaqm.top";
-const QAQM_HTTPS_HOSTS = new Set(["qaqm.top", "www.qaqm.top", RETIRED_DIRECT_FALLBACK_HOST]);
+const QAQR_HTTPS_HOSTS = new Set(["qaqm.top", "www.qaqm.top", RETIRED_DIRECT_FALLBACK_HOST]);
 function normalizeAuthUrl(value) {
   const raw = String(value || "").trim().replace(/\/+$/, "");
   if (!raw) return "";
@@ -97,7 +97,7 @@ function areSameMarketAuthService(leftValue, rightValue) {
   try {
     const leftUrl = new URL(left);
     const rightUrl = new URL(right);
-    return leftUrl.protocol === "https:" && rightUrl.protocol === "https:" && QAQM_HTTPS_HOSTS.has(leftUrl.hostname) && QAQM_HTTPS_HOSTS.has(rightUrl.hostname);
+    return leftUrl.protocol === "https:" && rightUrl.protocol === "https:" && QAQR_HTTPS_HOSTS.has(leftUrl.hostname) && QAQR_HTTPS_HOSTS.has(rightUrl.hostname);
   } catch {
     return false;
   }

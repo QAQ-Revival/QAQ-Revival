@@ -139,7 +139,7 @@ function createPersistManager(api) {
     return entries.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'));
   }
   function listGames() {
-    return api.getConfig().games.map(game => {
+    return api.getConfig().games.filter(game => game.hidden !== true).map(game => {
       const ctx = context(game.id);
       const count = files(ctx).length + legacyScopes(ctx).reduce((sum, scope) => sum + Object.keys(api.getLegacy().scopes?.[scope] || {}).length, 0);
       return {

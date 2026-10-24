@@ -17,7 +17,7 @@ module.exports = async function ({ evaluate, waitFor, captureUI, window, passed,
     await evaluate(`(() => { const button = [...document.querySelectorAll('${active} button')].find(item => item.textContent.trim() === ${JSON.stringify(text)}); if (!button || button.disabled) throw Error('Missing enabled button: ' + ${JSON.stringify(text)}); button.click(); })()`);
   }
   await openSources();
-  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option strong')].map(option => option.textContent)`), ['QAQM', 'Kemono', 'Pawchive', '香蕉网', '韩网 · Arca', 'LoversLab', '辉站', '可可站']);
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option strong')].map(option => option.textContent)`), ['QAQR', 'Kemono', 'Pawchive', '香蕉网', '韩网 · Arca', 'LoversLab', '辉站', '可可站']);
   await waitFor(`document.activeElement?.dataset.source === 'pawchive'`, 'selected source focused');
   await evaluate(`document.dispatchEvent(new Event('scroll'))`);
   assert.equal(await evaluate(`!!document.querySelector('.mod-download-source-menu')`), true, 'Content reflow must not dismiss the source menu');
@@ -107,8 +107,8 @@ module.exports = async function ({ evaluate, waitFor, captureUI, window, passed,
   assert.equal(await evaluate(`document.querySelector('.paw-eyebrow').textContent`), 'KEMONO / Mod 详情');
   await evaluate(`document.querySelector('[aria-label="关闭内容详情"]').click()`);
   await selectSource('qaqm');
-  await waitFor(`!!document.querySelector('${active} .mod-market-container')`, 'QAQM existing market');
-  assert.equal(await evaluate(`document.querySelector('${active} .mod-market-title').textContent`), 'QAQM');
+  await waitFor(`!!document.querySelector('${active} .mod-market-container')`, 'QAQR existing market');
+  assert.equal(await evaluate(`document.querySelector('${active} .mod-market-title').textContent`), 'QAQR');
   await captureUI('mod-download-qaqm.png');
   await selectSource('pawchive');
   assert.equal(await evaluate(`document.querySelector('${active} .paw-author-tab.active [role="tab"]').id`), pawTab);
@@ -123,5 +123,5 @@ module.exports = async function ({ evaluate, waitFor, captureUI, window, passed,
   const [surfaceWidth, surfaceHeight] = window.getSize();
   window.setSize(surfaceWidth + 1, surfaceHeight);
   window.setSize(surfaceWidth, surfaceHeight);
-  passed('Source dropdown routes Pawchive, Kemono and QAQM; separate favorites and updates, retained tabs, remembered choice and unique tab IDs');
+  passed('Source dropdown routes Pawchive, Kemono and QAQR; separate favorites and updates, retained tabs, remembered choice and unique tab IDs');
 };

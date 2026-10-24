@@ -8,8 +8,14 @@ const { wrap } = require('node:module');
 const entry = path.resolve(__dirname, '../app/src/main/index.js');
 const source = fs.readFileSync(entry, 'utf8');
 
-for (const override of [undefined, path.resolve('test-results/single-instance-profile')]) {
-  test(`duplicate launch exits before services, dialogs or windows (${override ? 'test' : 'shared'} profile)`, () => {
+const testProfile = path.resolve('test-results/single-instance-profile');
+for (const [name, env, override] of [
+  ['shared', {}, undefined],
+  ['QAQR', { QAQR_USER_DATA: testProfile }, testProfile],
+  ['legacy', { QAQM_USER_DATA: testProfile }, testProfile],
+  ['QAQR takes priority', { QAQR_USER_DATA: testProfile, QAQM_USER_DATA: testProfile + '-old' }, testProfile]
+]) {
+  test(`duplicate launch exits before services, dialogs or windows (${name} profile)`, () => {
     const paths = { appData: path.resolve('test-results/AppData') };
     const expected = override || path.join(paths.appData, 'QAQ-Revival');
     let locked = false;
@@ -32,7 +38,7 @@ for (const override of [undefined, path.resolve('test-results/single-instance-pr
       if (name === 'fs') return { mkdirSync: directory => assert.equal(directory, expected) };
       assert.fail(`Duplicate instance initialized a dependency: ${name}`);
     };
-    const run = vm.runInNewContext(wrap(source), { process: { env: { QAQM_USER_DATA: override } } }, { filename: entry });
+    const run = vm.runInNewContext(wrap(source), { process: { env } }, { filename: entry });
     run({}, load, { exports: {} }, entry, path.dirname(entry));
     assert.equal(locked, true);
     assert.equal(quit, true);

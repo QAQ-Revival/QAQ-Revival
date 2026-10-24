@@ -42,7 +42,7 @@ module.exports = async function testSortableOrder({ evaluate, waitFor, captureUI
   }
   async function reload() {
     await window.loadFile(require('node:path').join(process.resourcesPath, 'app/out/renderer/index.html'));
-    await waitFor(`document.querySelectorAll('.nav-item').length === 3 && document.querySelector('.game-selector-trigger')?.textContent.includes('鸣潮')`, 'reloaded UI');
+    await waitFor(`document.querySelectorAll('.nav-item').length === 4 && document.querySelector('.game-selector-trigger')?.textContent.includes('鸣潮')`, 'reloaded UI');
   }
 
   const defaults = await readOrder(nav);
@@ -141,4 +141,94 @@ module.exports = async function testSortableOrder({ evaluate, waitFor, captureUI
   await evaluate(`localStorage.setItem('qaqm.navigationOrder', JSON.stringify(${JSON.stringify(keyboardNav)})); localStorage.setItem('qaqm.gameOrder', JSON.stringify(${JSON.stringify(reorderedGames)}));`);
   await reload();
   passed('Both orders survive renderer reload; malformed preferences, removed IDs, duplicates and newly available items are handled safely');
+
+  const click = selector => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+  const persistOrder = () => evaluate(`[...document.querySelectorAll('[data-persist-game]')].map(item => item.dataset.persistGame)`);
+  async function openSettings(category) {
+    await click('.sidebar-settings');
+    await waitFor(`!!document.querySelector('[data-category="${category}"]')`, 'settings loaded');
+    await click(`[data-category="${category}"]`);
+  }
+  async function expectPersist(ids) {
+    await waitFor(`JSON.stringify([...document.querySelectorAll('[data-persist-game]')].map(item => item.dataset.persistGame)) === ${JSON.stringify(JSON.stringify(ids))}`, 'shared Mod state game order');
+    assert.deepEqual(await persistOrder(), ids);
+  }
+  await openSettings('persist');
+  await expectPersist(reorderedGames);
+  await openSettings('general');
+  await waitFor(`document.querySelectorAll('[data-game-visibility]').length === ${reorderedGames.length}`, 'game visibility settings');
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('[data-game-visibility]')].map(item => item.dataset.gameVisibility)`), reorderedGames);
+  await click(`[data-game-visibility="${selectedGame}"]`);
+  const visible = reorderedGames.filter(id => id !== selectedGame);
+  await waitFor(`document.querySelector('[data-game-visibility="${selectedGame}"]')?.checked === false`, 'active game hidden');
+  await openSettings('persist');
+  await expectPersist(visible);
+  assert.equal((await evaluate('window.api.getConfig()')).config.activeGameId, visible[0]);
+  assert.equal((await evaluate(`window.api.gameSwitch(${JSON.stringify(selectedGame)})`)).success, false);
+
+  // Reordering the remaining games keeps the hidden game's slot for restoration.
+  await openGames();
+  await expectOrder(game, visible);
+  assert.equal(await evaluate(`!!document.querySelector('.game-selector-hide')`), false);
+  await captureUI('game-visibility-menu.png');
+  await startDrag(game, visible.at(-1), visible[0]);
+  await endDrag();
+  const reorderedVisible = [visible.at(-1), ...visible.slice(0, -1)];
+  await expectOrder(game, reorderedVisible);
+  await expectPersist(reorderedVisible);
+  await closeGames();
+  const fullOrder = await evaluate(`JSON.parse(localStorage.getItem('qaqm.gameOrder'))`);
+  assert.equal(fullOrder.indexOf(selectedGame), reorderedGames.indexOf(selectedGame));
+  await openSettings('general');
+  await waitFor(`document.querySelector('[data-game-visibility="${selectedGame}"]')?.checked === false`, 'hidden game recovery');
+  await evaluate(`document.querySelector('#settings-game-visibility').scrollIntoView({ block: 'center' })`);
+  await captureUI('game-visibility-settings.png');
+  await evaluate(`localStorage.setItem('qaqm.downloadSource', 'qaqm')`);
+  await window.loadFile(require('node:path').join(process.resourcesPath, 'app/out/renderer/index.html'));
+  await waitFor(`!!document.querySelector('.game-selector-trigger')`, 'visibility reload');
+  await openGames();
+  await expectOrder(game, reorderedVisible);
+  await closeGames();
+  // The offline smoke suite uses a cache containing both visible and hidden games.
+  const fs = require('node:fs'), path = require('node:path');
+  const settings = require(path.join(process.resourcesPath, 'app/out/main/games/settings.cjs'));
+  const cachePath = settings.getModCachePath(visible[0]);
+  fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+  fs.writeFileSync(cachePath, JSON.stringify({ schemaVersion: settings.CACHE_SCHEMA_VERSION,
+    lastSyncTimestamp: new Date().toISOString(), mods: [
+      { id: 'visible-game-fixture', name: 'Visible game fixture', gameId: visible[0], characterName: 'Fixture' },
+      { id: 'hidden-game-fixture', name: 'Hidden game fixture', gameId: selectedGame, characterName: 'Fixture' }
+    ] }));
+  await click('.nav-item[data-sort-id="modmarket"]');
+  await waitFor(`!!document.querySelector('.mod-market-select option[value="all"]')`, 'download game selector');
+  const marketOrder = () => evaluate(`[...document.querySelector('.mod-market-select').options].map(item => item.value).filter(id => id !== 'all')`);
+  assert.deepEqual(await marketOrder(), reorderedVisible);
+  await evaluate(`(() => { const select = document.querySelector('.mod-market-select'); select.value = 'all'; select.dispatchEvent(new Event('change', { bubbles: true })); })()`);
+  await waitFor(`document.body.innerText.includes('Visible game fixture')`, 'cached visible game mods');
+  assert.equal(await evaluate(`document.body.innerText.includes('Hidden game fixture')`), false);
+
+  await openSettings('general');
+  await waitFor(`document.querySelector('[data-game-visibility="${selectedGame}"]')?.checked === false`, 'recovery survives reload');
+  await click(`[data-game-visibility="${selectedGame}"]`);
+  await waitFor(`document.querySelector('[data-game-visibility="${selectedGame}"]')?.checked === true`, 'game restored');
+  await openGames();
+  await expectOrder(game, fullOrder);
+  await closeGames();
+  await openSettings('persist');
+  await expectPersist(fullOrder);
+  await captureUI('persist-shared-game-order.png');
+  await click(`[data-persist-game="${selectedGame}"] .system-button`);
+  await waitFor(`!!document.querySelector('[data-persist-detail="${selectedGame}"]')`, 'saved state details');
+  await evaluate(`window.api.gameSetHidden(${JSON.stringify(selectedGame)}, true)`);
+  await expectPersist(reorderedVisible);
+  await evaluate(`window.api.gameSetHidden(${JSON.stringify(selectedGame)}, false)`);
+  await expectPersist(fullOrder);
+  await click('.nav-item[data-sort-id="modmarket"]');
+  await waitFor(`document.querySelector('.mod-market-select')?.options.length === ${fullOrder.length + 1}`, 'download options restored');
+  assert.deepEqual(await marketOrder(), fullOrder);
+  passed('Hiding the active game switches safely, removes open saved-state details and all game options, and survives reload; General restores the same shared order');
+
+  await evaluate(`window.api.gameSwitch(${JSON.stringify(selectedGame)})`);
+  await evaluate(`localStorage.setItem('qaqm.gameOrder', JSON.stringify(${JSON.stringify(reorderedGames)}))`);
+  await reload();
 };

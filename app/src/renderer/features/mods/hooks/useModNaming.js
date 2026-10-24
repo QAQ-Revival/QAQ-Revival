@@ -244,24 +244,27 @@ export function useModNaming({
     }
   }
   async function handleSaveModRename() {
-    if (!selectedMod) return;
-    const nextName = renameModDraft.trim();
+    return handleRenameMod(selectedMod, renameModDraft);
+  }
+  async function handleRenameMod(mod, draft) {
+    if (!mod || renameModSaving) return false;
+    const nextName = draft.trim();
     if (!nextName) {
       setToast({
         type: "error",
         message: t("common.errors.nameRequired"),
       });
-      return;
+      return false;
     }
-    if (nextName === selectedMod.name) {
+    if (nextName === mod.name) {
       setIsRenamingMod(false);
-      return;
+      return true;
     }
     setRenameModSaving(true);
     try {
       const result = await window.api.renameMod(
         characterName,
-        selectedMod.name,
+        mod.name,
         nextName,
       );
       if (result?.error) {
@@ -271,7 +274,7 @@ export function useModNaming({
             error: result.error,
           }),
         });
-        return;
+        return false;
       }
       pendingFocusRef.current = {
         characterName,
@@ -287,6 +290,7 @@ export function useModNaming({
       });
       setIsRenamingMod(false);
       await loadMods();
+      return true;
     } catch (e) {
       setToast({
         type: "error",
@@ -294,6 +298,7 @@ export function useModNaming({
           message: e?.message || String(e),
         }),
       });
+      return false;
     } finally {
       setRenameModSaving(false);
     }
@@ -376,6 +381,7 @@ export function useModNaming({
     closeAiNameTask,
     handleAiSuggestName,
     handleSaveModRename,
+    handleRenameMod,
     applyAiName,
   };
 }

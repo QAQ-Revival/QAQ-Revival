@@ -1,6 +1,7 @@
 import { t } from "../../shared/i18n/index.mjs";
 import React from "react";
 const ORDER_CHANGED = "qaqm:order-changed";
+const includeAll = () => true;
 function readSavedOrder(storageKey) {
   try {
     return JSON.parse(localStorage.getItem(storageKey) || "null");
@@ -20,7 +21,12 @@ function applySavedOrder(items, saved) {
   }
   return [...result, ...remaining.values()];
 }
-function useSortableOrder(items, storageKey, enabled = true) {
+function useSortableOrder(
+  items,
+  storageKey,
+  enabled = true,
+  isVisible = includeAll,
+) {
   const [order, setOrder] = React.useState(() => readSavedOrder(storageKey));
   const [dragged, setDragged] = React.useState(null);
   const [target, setTarget] = React.useState(null);
@@ -28,7 +34,14 @@ function useSortableOrder(items, storageKey, enabled = true) {
   const [error, setError] = React.useState("");
   const source = React.useRef(null);
   const suppressClickUntil = React.useRef(0);
-  const orderedItems = applySavedOrder(items, order);
+  const allItems = React.useMemo(
+    () => applySavedOrder(items, order),
+    [items, order],
+  );
+  const orderedItems = React.useMemo(
+    () => allItems.filter(isVisible),
+    [allItems, isVisible],
+  );
   function finish() {
     if (source.current !== null) suppressClickUntil.current = Date.now() + 250;
     source.current = null;
@@ -66,9 +79,14 @@ function useSortableOrder(items, storageKey, enabled = true) {
     if (index < 0) return;
     next.splice(index + (edge === "after" ? 1 : 0), 0, id);
     if (next.every((value, i) => value === orderedItems[i].id)) return;
-    setOrder(next);
+    // Reorder visible slots only, retaining hidden items for a later restore.
+    let visibleIndex = 0;
+    const saved = allItems.map((item) =>
+      isVisible(item) ? next[visibleIndex++] : item.id,
+    );
+    setOrder(saved);
     try {
-      localStorage.setItem(storageKey, JSON.stringify(next));
+      localStorage.setItem(storageKey, JSON.stringify(saved));
       setError("");
     } catch {
       setError(t("navigation.sortSaveFailed"));
@@ -77,7 +95,7 @@ function useSortableOrder(items, storageKey, enabled = true) {
       new CustomEvent(ORDER_CHANGED, {
         detail: {
           storageKey,
-          order: next,
+          order: saved,
         },
       }),
     );
@@ -175,6 +193,7 @@ function useSortableOrder(items, storageKey, enabled = true) {
   }
   return {
     items: orderedItems,
+    allItems,
     itemProps,
     announcement,
     error,

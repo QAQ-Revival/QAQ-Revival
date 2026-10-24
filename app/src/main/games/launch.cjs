@@ -17,6 +17,7 @@ const gamesGenshinServices = require("./genshin/service.cjs");
 const gamesNevernessLaunch = require("./neverness/paths.cjs");
 const gamesNevernessLoader = require("./neverness/loader.cjs");
 const gamesSettings = require("./settings.cjs");
+const { resolveOfficialLauncherPath } = require("./official-launcher.cjs");
 const gamesWuwaServices = require("./wuwa/service.cjs");
 const installAdvice = require("../install/advice.cjs");
 const installPaths = require("../install/paths.cjs");
@@ -45,6 +46,15 @@ function registerIpc() {
         success: false,
         error: i18n.t("backend.games.launch.gameChanged")
       };
+      if (launchMode === "OFFICIAL") {
+        const launcherPath = resolveOfficialLauncherPath(activeGame, { gamePath });
+        if (!launcherPath) return {
+          success: false,
+          error: i18n.t("backend.games.launch.officialLauncherMissing")
+        };
+        // Official launch never prepares injectors, hotkey bridges, random copies or Mod arguments.
+        return await systemWindows.windowsLauncher.launch(launcherPath, path.dirname(launcherPath), [], { requireElevation: false });
+      }
       const resolvedLaunchMode = launchMode === "DIRECT" || launchMode === void 0 && activeGame?.id === "wuthering-waves" && activeGame.wuwaDx12Enabled === true ? getDirectLaunchMode(activeGame) : launchMode === void 0 ? activeGame?.launchMode || "VANILLA" : launchMode || "VANILLA";
       if (!resolvedLaunchMode) return {
         success: false,
@@ -72,6 +82,10 @@ function registerIpc() {
         }
       }
       const customLaunchArgs = String(activeGame?.launchArgs || "").trim();
+      if (activeGame?.id === "arknights") {
+        if (resolvedLaunchMode !== "ARKNIGHTS") return { success: false, error: i18n.t("arknights.errors.launchMode") };
+        return await require("./arknights/service.cjs").launch();
+      }
       if (resolvedLaunchMode === "WWMI-DX12") {
         if (activeGame?.id !== "wuthering-waves") return {
           success: false,

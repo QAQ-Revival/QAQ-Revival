@@ -23,6 +23,7 @@ import {
 } from "../model/marketCollections.js";
 export function useMarketFiltering({
   mods,
+  visibleGameIds,
   selectedGameId,
   marketCharacterAliasIndex,
   searchQuery,
@@ -49,6 +50,8 @@ export function useMarketFiltering({
   const gameFilteredMods = React.useMemo(() => {
     return mods
       .filter((mod) => {
+        if (mod?.gameId !== "all" && !visibleGameIds.has(getModGameId(mod)))
+          return false;
         if (selectedGameId === "all") return true;
         if (mod?.gameId === "all") return true;
         return getModGameId(mod) === selectedGameId;
@@ -56,7 +59,7 @@ export function useMarketFiltering({
       .map((mod) =>
         normalizeMarketModCharacter(mod, marketCharacterAliasIndex),
       );
-  }, [mods, selectedGameId, marketCharacterAliasIndex]);
+  }, [mods, visibleGameIds, selectedGameId, marketCharacterAliasIndex]);
   const gameFilteredModsSignature = React.useMemo(
     () => getMarketSnapshotSignature(gameFilteredMods),
     [gameFilteredMods],
@@ -140,10 +143,17 @@ export function useMarketFiltering({
       }
     });
     serverGameVersions
+      .filter((v) => v.gameId === "all" || visibleGameIds.has(v.gameId))
       .filter((v) => selectedGameId === "all" || v.gameId === selectedGameId)
       .forEach((v) => versions.add(v.version));
     return Array.from(versions).sort((a, b) => b.localeCompare(a));
-  }, [gameFilteredMods, serverGameVersions, selectedGameId, marketIsWarmed]);
+  }, [
+    gameFilteredMods,
+    serverGameVersions,
+    selectedGameId,
+    marketIsWarmed,
+    visibleGameIds,
+  ]);
   const filteredMods = React.useMemo(() => {
     if (!marketIsWarmed && !hasActiveMarketFilters) {
       return quickGameDisplayedMods;

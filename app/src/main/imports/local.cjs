@@ -12,6 +12,7 @@ const path = require("path");
 const fs = require("fs");
 const archivesDisguised = require("../archives/disguised.cjs");
 const archivesExtract = require("../archives/extract.cjs");
+const archivesNames = require("../archives/names.cjs");
 const charactersDirectories = require("../characters/directories.cjs");
 const charactersOrganization = require("../characters/organization.cjs");
 const charactersSkins = require("../characters/skins.cjs");
@@ -133,7 +134,7 @@ async function importModFromLocalPath({
         error: i18n.t("backend.imports.local.characterFolderNotFound")
       };
     }
-    const cleanModName = charactersSkins.assertSafeAppearancePathSegment(String(modInfo.name || path.basename(filePath, path.extname(filePath))).trim().replace(/^DISABLED_/i, ""), i18n.t("backend.validation.modName"));
+    const cleanModName = charactersSkins.assertSafeAppearancePathSegment(String(modInfo.name || archivesNames.getModArchiveName(filePath)).trim().replace(gameId2 === "arknights" ? /^DISABLED?_/i : /^DISABLED_/i, ""), i18n.t("backend.validation.modName"));
     const availableTarget = getAvailableModFolderName(charPath, cleanModName);
     targetPath = availableTarget.path;
     const disabledPath = path.join(charPath, `DISABLED_${cleanModName}`);
@@ -241,16 +242,18 @@ async function importModFromLocalPath({
       gameId: gameId2,
       source: modsAppearance.extractRequestedAppearanceTarget(appearanceRequest).sectionId || modsAppearance.extractRequestedAppearanceTarget(appearanceRequest).skinId ? "explicit-install" : "name-match"
     });
+    if (gameId2 === "arknights") targetPath = require("../games/arknights/service.cjs").prepareImportedMod(targetPath);
     modsConflicts.clearConflictCache(canonicalCharacterName, gameId2);
     desktopNotifications.notifyCharacterListChanged(canonicalCharacterName, {
+      gameId: gameId2,
       modName: path.basename(targetPath),
       reason: "mod-import"
     });
     return {
       success: true,
-      modMode: "d3d",
+      modMode: gameId2 === "arknights" ? "m4a" : "d3d",
       characterName: canonicalCharacterName,
-      modName: path.basename(targetPath),
+      modName: path.basename(targetPath).replace(/^DISABLED_/, ""),
       targetPath,
       appearanceSectionId: appearance.sectionId,
       renamedDueToDuplicate: availableTarget.duplicate,

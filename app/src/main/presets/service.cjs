@@ -120,6 +120,15 @@ function snapshotEnabledPresetMods(gameId2 = gamesSettings.getActiveGameScopeId(
 }
 async function applyPresetModsForGame(preset, gameId2 = gamesSettings.getActiveGameScopeId()) {
   const enableSet = new Set(normalizePresetMods(preset.mods, gameId2).filter(mod => mod.enabled !== false && !charactersHidden.isCharacterHidden(mod.characterName, gameId2)).map(mod => `${mod.characterName}/${mod.modName}`));
+  if (gameId2 === "arknights") {
+    const entries = [...enableSet].map(key => {
+      const [characterName, modName] = key.split("/");
+      const found = charactersDirectories.resolveExistingStandardModDirectory(characterName, modName, gameId2);
+      return found ? { name: key, path: found.modPath } : null;
+    }).filter(Boolean);
+    try { require("../games/arknights/deployment.cjs").planDeployment(entries); }
+    catch (error) { return { success: false, error: error.message }; }
+  }
   const results = {
     enabled: 0,
     disabled: 0,
@@ -242,6 +251,7 @@ async function applyPresetModsForGame(preset, gameId2 = gamesSettings.getActiveG
   };
 }
 function notifyPresetApplicationChanged(gameId2 = gamesSettings.getActiveGameScopeId()) {
+  require("../desktop/notifications.cjs").notifyAllModWindowsChanged("__all__", { gameId: gameId2, reason: "preset-applied" });
   charactersDirectories.CHARACTER_DIRECTORY_STATS_CACHE.clear();
   electron.BrowserWindow.getAllWindows().forEach(w => {
     if (!w.isDestroyed()) {

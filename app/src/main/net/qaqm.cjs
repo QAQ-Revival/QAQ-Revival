@@ -7,7 +7,7 @@ const marketAccess = require("../market/access.cjs");
 const DEFAULT_SERVER_URL = "https://qaqm.top";
 const BARE_FALLBACK_SERVER_URL = "http://129.211.14.231:18080";
 const RETIRED_DIRECT_FALLBACK_HOST = "direct.qaqm.top";
-const QAQM_REQUEST_ATTEMPT_TIMEOUT_MS = 8e3;
+const QAQR_REQUEST_ATTEMPT_TIMEOUT_MS = 8e3;
 const LEGACY_DIRECT_SERVER_URL = "http://129.211.14.231:3000";
 const LEGACY_DIRECT_HOSTS = new Set(["129.211.14.231"]);
 const FALLBACK_SHARED_SECRET = "qaqm-fallback-129.211.14.231-18080-v1";
@@ -100,7 +100,7 @@ function isJsonLikeResponse(response) {
   const contentType = String(response?.headers?.get?.("content-type") || "").toLowerCase();
   return contentType.includes("application/json") || contentType.includes("+json");
 }
-function createTimedFetchOptions(options = {}, timeoutMs = QAQM_REQUEST_ATTEMPT_TIMEOUT_MS) {
+function createTimedFetchOptions(options = {}, timeoutMs = QAQR_REQUEST_ATTEMPT_TIMEOUT_MS) {
   const requestOptions = {
     ...(options || {})
   };
@@ -172,7 +172,7 @@ async function fetchQaqmWithFallback(serverUrl, requestPath, options = {}) {
     if (isCurrent && !(await isCurrent())) throw new Error(i18n.t("backend.net.qaqm.requestStopped"));
     const candidate = candidates[i];
     try {
-      console.log(`[QAQM Fallback][main] 尝试请求: ${candidate}${requestPath}`);
+      console.log(`[QAQR Fallback][main] 尝试请求: ${candidate}${requestPath}`);
       const requestOptions = {
         ...fetchOptions
       };
@@ -193,17 +193,17 @@ async function fetchQaqmWithFallback(serverUrl, requestPath, options = {}) {
         lastError = new Error(i18n.t("backend.market.install.serverResponseError", {
           status: response.status
         }));
-        console.warn(`[QAQM Fallback][main] ${candidate} 返回 ${response.status}，切换下一个候选`);
+        console.warn(`[QAQR Fallback][main] ${candidate} 返回 ${response.status}，切换下一个候选`);
         continue;
       }
       if (expectJson && !isJsonLikeResponse(response) && candidate !== BARE_FALLBACK_SERVER_URL) {
         lastError = new Error(i18n.t("backend.net.qaqm.nonJsonResponse", {
           status: response.status
         }));
-        console.warn(`[QAQM Fallback][main] ${candidate} 返回非 JSON 响应，切换下一个候选`);
+        console.warn(`[QAQR Fallback][main] ${candidate} 返回非 JSON 响应，切换下一个候选`);
         continue;
       }
-      console.log(`[QAQM Fallback][main] 命中请求服务器: ${candidate}`);
+      console.log(`[QAQR Fallback][main] 命中请求服务器: ${candidate}`);
       return {
         response,
         serverUrl: candidate,
@@ -212,7 +212,7 @@ async function fetchQaqmWithFallback(serverUrl, requestPath, options = {}) {
     } catch (error) {
       if (fetchOptions.signal?.aborted) throw error;
       lastError = error?.name === "AbortError" ? new Error(i18n.t("backend.market.install.requestTimedOut")) : error;
-      console.warn(`[QAQM Fallback][main] ${candidate} 请求失败: ${error?.message || error}`);
+      console.warn(`[QAQR Fallback][main] ${candidate} 请求失败: ${error?.message || error}`);
     }
   }
   throw lastError || new Error(i18n.t("backend.market.install.allServersUnavailable"));

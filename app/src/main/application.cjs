@@ -26,6 +26,7 @@ function startApplication(runtimeIdentity) {
   require("./characters/images.cjs").initialize();
   require("./characters/catalog.cjs").initialize();
   require("./characters/skins.cjs").initialize();
+  require("./games/arknights/service.cjs").initialize();
   require("./mods/hotkeys.cjs").initialize();
   require("./persist/service.cjs").initialize();
   require("./games/genshin/service.cjs").initialize();
@@ -39,8 +40,10 @@ function startApplication(runtimeIdentity) {
   require("./config/appearance.cjs").registerIpc();
   require("./ipc/settings.cjs").registerIpc();
   require("./ipc/games.cjs").registerIpc();
+  require("./games/arknights/service.cjs").registerIpc();
   require("./games/genshin/service.cjs").registerIpc();
   require("./games/wuwa/service.cjs").registerIpc();
+  require("./games/wuwa/gacha-service.cjs").registerIpc();
   require("./games/steam/service.cjs").registerIpc();
   require("./games/neverness/loader.cjs").registerIpc();
   require("./games/launch.cjs").registerIpc();

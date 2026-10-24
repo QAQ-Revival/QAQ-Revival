@@ -10,6 +10,28 @@
   color: #374151;
 }
 
+.mod-rename-dialog {
+  text-align: left;
+}
+
+.mod-rename-dialog h3 {
+  margin: 0 0 20px;
+  font-size: 18px;
+}
+
+.mod-rename-dialog .input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.mod-rename-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
 .mod-context-menu-action-emphasis {
   display: block;
   width: 100%;

@@ -279,6 +279,7 @@ function registerIpc() {
           error: i18n.t("backend.ipc.mods.modFolderNotFound")
         };
       }
+      if (enable && gameId2 === "arknights") require("../games/arknights/service.cjs").assertCanEnable(currentPath);
       if (!enable && persistTracking.isPersistBridgeEnabled(gameId2)) {
         if (persistService.usesManagedPersistBridge(characterName, modName, gameId2)) {
           persistTracking.syncPersistBridgeStateForModDir(currentPath, gameId2);
@@ -289,6 +290,10 @@ function registerIpc() {
         return {
           error: renameResult.error || i18n.t("backend.ipc.mods.renameFailedAfterRetries")
         };
+      }
+      if (gameId2 === "arknights") {
+        try { require("../games/arknights/service.cjs").sync(); }
+        catch (error) { fs.renameSync(newPath, currentPath); throw error; }
       }
       if (env?.root && persistTracking.isPersistBridgeEnabled(gameId2)) {
         const stateFiles = persistTracking.collectHostedPersistStateFilesForModDir(newPath);

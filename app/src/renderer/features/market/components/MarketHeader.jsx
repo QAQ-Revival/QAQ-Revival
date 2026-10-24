@@ -23,7 +23,7 @@ export function MarketHeader({
   return (
     <div className="mod-market-header">
       <div className="header-left">
-        <h2 className="mod-market-title">{"QAQM"}</h2>
+        <h2 className="mod-market-title">{"QAQR"}</h2>
         <button
           type="button"
           className="btn-market-web"

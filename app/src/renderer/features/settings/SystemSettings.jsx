@@ -31,6 +31,7 @@ function getCategories() {
       items: [
         ["window", t("settings.window.title")],
         ["random-launch", t("settings.randomLaunch.title")],
+        ["game-visibility", t("settings.gameVisibility.title")],
         ["persist", t("settings.persist.title")],
       ],
     },
@@ -89,7 +90,7 @@ function getCategories() {
     },
   ];
 }
-function SettingsView({ devMode = false }) {
+function SettingsView({ devMode = false, games = [], allGames = [] }) {
   const [categoryId, setCategoryId] = React.useState(() =>
     remembered("qaqm.settings.category", "general"),
   );
@@ -382,6 +383,57 @@ function SettingsView({ devMode = false }) {
             </Row>
           )),
         )}
+        <Section
+          id="game-visibility"
+          title={t("settings.gameVisibility.title")}
+        >
+          <Row
+            title={t("settings.gameVisibility.manage")}
+            description={t("settings.gameVisibility.description")}
+          />
+          {allGames.map((game) => {
+            const lastVisible = game.hidden !== true && games.length <= 1;
+            return (
+              <Row
+                key={game.id}
+                title={game.name}
+                description={
+                  lastVisible
+                    ? t("settings.gameVisibility.keepVisible")
+                    : t(
+                        game.hidden === true
+                          ? "settings.gameVisibility.hidden"
+                          : "settings.gameVisibility.shown",
+                      )
+                }
+              >
+                <input
+                  type="checkbox"
+                  role="switch"
+                  className="system-switch"
+                  checked={game.hidden !== true}
+                  disabled={busy || lastVisible}
+                  data-game-visibility={game.id}
+                  aria-label={t("settings.gameVisibility.toggle", {
+                    name: game.name,
+                  })}
+                  onChange={(event) => {
+                    const hidden = !event.target.checked;
+                    run(async () => {
+                      check(
+                        await window.api.gameSetHidden(
+                          game.id,
+                          hidden,
+                          games.find((item) => item.id !== game.id)?.id,
+                        ),
+                      );
+                    });
+                  }}
+                />
+              </Row>
+            );
+          })}
+        </Section>
         <Section id="persist" title={t("settings.persist.title")}>
           <Row
             title={t("settings.persist.perGame")}
@@ -394,7 +446,8 @@ function SettingsView({ devMode = false }) {
         </Section>
       </React.Fragment>
     );
-  else if (category.id === "persist") content = <PersistStateManager />;
+  else if (category.id === "persist")
+    content = <PersistStateManager games={games} />;
   else if (category.id === "appearance")
     content = (
       <React.Fragment>

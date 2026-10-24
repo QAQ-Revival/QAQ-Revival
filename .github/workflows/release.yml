@@ -22,7 +22,7 @@ jobs:
       run:
         shell: pwsh
     steps:
-      - name: Check out source and pinned MEGA submodule
+      - name: Check out source and component submodules
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
@@ -34,24 +34,33 @@ jobs:
           node-version: '24'
           package-manager-cache: false
 
+      - name: Set up Python for source-built resource tools
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Update components to their configured branches
+        run: node tools/update-components.cjs
+
       - name: Read version from app/package.json
         id: release
         run: |
           node -e 'const fs = require("fs"); const { releaseNames } = require("./tools/package-release.cjs"); const names = releaseNames(require("./app/package.json").version); fs.appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(names).map(([k,v]) => `${k}=${v}`).join("\n") + "\n");'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          "QAQM_BUILD_DIR=$env:GITHUB_WORKSPACE/build/portable" >> $env:GITHUB_ENV
+          "QAQR_BUILD_DIR=$env:GITHUB_WORKSPACE/build/portable" >> $env:GITHUB_ENV
 
-      - name: Reject an existing release or tag
+      # Allow CI reruns for an already published version.
+      - name: Check existing publication
+        id: publication
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           $tags = gh api --paginate "repos/$env:GITHUB_REPOSITORY/git/matching-refs/tags/$env:RELEASE_TAG" --jq '.[].ref'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if ($tags -contains "refs/tags/$env:RELEASE_TAG") { throw "Tag already exists: $env:RELEASE_TAG. Bump app/package.json before publishing again." }
           $releases = gh api --paginate "repos/$env:GITHUB_REPOSITORY/releases" --jq '.[].tag_name'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if ($releases -contains $env:RELEASE_TAG) { throw "Release already exists: $env:RELEASE_TAG" }
+          if ($releases -contains $env:RELEASE_TAG) { "exists=true" >> $env:GITHUB_OUTPUT } else { "exists=false" >> $env:GITHUB_OUTPUT }
 
       - name: Install locked build dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -75,6 +84,7 @@ jobs:
         run: node tools/package-release.cjs
 
       - name: Publish GitHub Release
+        if: steps.publication.outputs.exists != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}

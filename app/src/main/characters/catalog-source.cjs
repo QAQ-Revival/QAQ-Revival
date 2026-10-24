@@ -5,6 +5,7 @@ const {
   writeJsonFileSync
 } = require("../core/json-store.cjs");
 const SOURCES = {
+  arknights: ['https://raw.githubusercontent.com/Kengxxiao/ArknightsGameData/master/zh_CN/gamedata/excel/character_table.json'],
   'genshin-impact': require("../games/genshin/catalog.cjs").CHARACTER_SOURCES,
   'wuthering-waves': ['https://api.encore.moe/zh-Hans/character', 'https://api.encore.moe/en/character'],
   zzz: ['https://raw.githubusercontent.com/EnkaNetwork/API-docs/master/store/zzz/avatars.json', 'https://raw.githubusercontent.com/EnkaNetwork/API-docs/master/store/zzz/locs.json'],
@@ -13,6 +14,7 @@ const SOURCES = {
   'neverness-to-everness': ['https://wiki.mysqil.com/characters/']
 };
 const RESOURCE_DIRS = {
+  arknights: 'arknights',
   'genshin-impact': 'genshin-impact',
   'wuthering-waves': 'wuwa',
   zzz: 'zzz',
@@ -46,7 +48,14 @@ function normalizeRecords(records) {
 }
 function parseSource(gameId, texts) {
   let records;
-  if (gameId === 'genshin-impact') {
+  if (gameId === 'arknights') {
+    records = Object.entries(JSON.parse(texts[0])).filter(([id, item]) => /^char_\d+_[a-z0-9]+$/i.test(id) && item.isNotObtainable !== true).map(([id, item]) => ({
+      name: item.name,
+      en: id,
+      aliases: [id, item.appellation].filter(Boolean),
+      image: `https://raw.githubusercontent.com/ArknightsAssets/ArknightsAssets2/cn/assets/dyn/arts/charavatars/${id}.png`
+    }));
+  } else if (gameId === 'genshin-impact') {
     records = require("../games/genshin/catalog.cjs").parseCharacters(...texts.map(text => JSON.parse(text)));
   } else if (gameId === 'wuthering-waves') {
     const english = new Map(JSON.parse(texts[1]).roleList.map(item => [item.Id, item.Name]));
@@ -100,6 +109,7 @@ function parseSource(gameId, texts) {
 }
 async function fetchCharacters(gameId, fetchFn = fetch) {
   if (!Object.hasOwn(SOURCES, gameId)) throw Error(i18n.t("backend.characterCatalog.unsupportedGame"));
+  const maxBytes = gameId === 'arknights' ? 48 * 1024 * 1024 : 4 * 1024 * 1024;
   const texts = await Promise.all(SOURCES[gameId].map(async url => {
     const response = await fetchFn(url, {
       signal: AbortSignal.timeout(12000)
@@ -107,7 +117,7 @@ async function fetchCharacters(gameId, fetchFn = fetch) {
     if (!response.ok) throw Error(i18n.t("backend.characterCatalog.characterSourceReturnedHTTP", {
       status: response.status
     }));
-    if (Number(response.headers.get('content-length')) > 4 * 1024 * 1024) throw Error(i18n.t("backend.characterCatalog.characterSourceTooLarge"));
+    if (Number(response.headers.get('content-length')) > maxBytes) throw Error(i18n.t("backend.characterCatalog.characterSourceTooLarge"));
     const reader = response.body.getReader();
     const chunks = [];
     let size = 0;
@@ -119,7 +129,7 @@ async function fetchCharacters(gameId, fetchFn = fetch) {
         } = await reader.read();
         if (done) break;
         size += value.byteLength;
-        if (size > 4 * 1024 * 1024) throw Error(i18n.t("backend.characterCatalog.characterSourceTooLarge"));
+        if (size > maxBytes) throw Error(i18n.t("backend.characterCatalog.characterSourceTooLarge"));
         chunks.push(Buffer.from(value));
       }
     } finally {

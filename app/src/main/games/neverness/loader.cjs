@@ -51,7 +51,10 @@ function getNevernessDx12DisabledModsDir(gameId2 = NEVERNESS_GAME_ID) {
   if (configured) return configured;
   const gameRoot = getNevernessGameRoot(gameId2);
   const driveRoot = gameRoot ? path.parse(gameRoot).root : "";
-  return driveRoot ? path.join(driveRoot, "QAQManager_Neverness_Disabled_Pak_Mods") : "";
+  if (!driveRoot) return "";
+  const disabledDir = path.join(driveRoot, "QAQR_Neverness_Disabled_Pak_Mods");
+  const legacyDir = path.join(driveRoot, "QAQManager_Neverness_Disabled_Pak_Mods");
+  return !fs.existsSync(disabledDir) && fs.existsSync(legacyDir) ? legacyDir : disabledDir;
 }
 function setNevernessDx12DisabledModsDir(dirPath) {
   const game = (configStore.currentConfig.games || []).find(item => item.id === NEVERNESS_GAME_ID);

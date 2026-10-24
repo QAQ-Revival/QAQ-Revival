@@ -253,9 +253,10 @@ function registerIpc() {
         PYTHONIOENCODING: "utf-8",
         PYTHONUNBUFFERED: "1"
       };
+      // This variable is part of the external publisher's existing interface.
       if (gate.status.serverRootPath) childEnv.QAQM_SERVER_ROOT = gate.status.serverRootPath;
       console.log(`[DevPublish] Spawning: ${python} ${args.join(" ")}`);
-      if (gate.status.serverRootPath) console.log(`[DevPublish] QAQM_SERVER_ROOT=${gate.status.serverRootPath}`);
+      if (gate.status.serverRootPath) console.log(`[DevPublish] QAQR server root=${gate.status.serverRootPath}`);
       const proc = child_process.spawn(python, args, {
         cwd: scriptDir,
         env: childEnv
