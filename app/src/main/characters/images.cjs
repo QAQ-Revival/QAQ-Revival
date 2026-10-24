@@ -7,6 +7,7 @@ module.exports = {
   findImageFileInDir,
   findModPreviewImageFile,
   getImageMimeTypeFromExt,
+  getLocalImageUrl,
   readImageAsDataUrl,
   findCharacterCoverFilePath,
   getCharacterCoverUrl
@@ -14,8 +15,8 @@ module.exports = {
 const electron = require("electron");
 const path = require("path");
 const fs = require("fs");
+const { pathToFileURL } = require("node:url");
 const charactersCatalog = require("./catalog.cjs");
-const charactersDirectories = require("./directories.cjs");
 const charactersSkins = require("./skins.cjs");
 const gamesNevernessLoader = require("../games/neverness/loader.cjs");
 const gamesSettings = require("../games/settings.cjs");
@@ -67,6 +68,13 @@ function readImageAsDataUrl(imagePath) {
   const imageBuffer = fs.readFileSync(imagePath);
   return `data:${getImageMimeTypeFromExt(ext)};base64,${imageBuffer.toString("base64")}`;
 }
+function getLocalImageUrl(imagePath) {
+  if (!imagePath) return null;
+  const stat = fs.statSync(imagePath);
+  const url = pathToFileURL(imagePath);
+  url.searchParams.set("v", `${stat.mtimeMs}-${stat.size}`);
+  return url.href;
+}
 function findImageFileInChildDirs(dirPath) {
   if (!dirPath || !fs.existsSync(dirPath)) return null;
   const childDirs = fs.readdirSync(dirPath, {
@@ -79,8 +87,7 @@ function findImageFileInChildDirs(dirPath) {
   return null;
 }
 function findCharacterCoverFilePath(characterName, gameId2 = gamesSettings.getActiveGameScopeId(), modsPath = gamesSettings.getModsPath(gameId2), knownEntry = null) {
-  const resolvedEntry = knownEntry || charactersDirectories.resolveCharacterEntry(characterName, gameId2);
-  const aliases = charactersCatalog.getCharacterAliasCandidates(characterName, gameId2, resolvedEntry);
+  const aliases = charactersCatalog.getCharacterAliasCandidates(characterName, gameId2, knownEntry);
   const pathAliases = aliases.filter(charactersSkins.isSafeAppearancePathSegment);
   for (const alias of pathAliases) {
     const scopedCoverPath = findImageFileInDir(getScopedCharacterImagesDir(alias, gameId2), {
@@ -120,19 +127,10 @@ function findCharacterCoverFilePath(characterName, gameId2 = gamesSettings.getAc
 }
 function getCharacterCoverUrl(characterName, gameId2 = gamesSettings.getActiveGameScopeId(), knownEntry = null) {
   try {
-    const resolvedEntry = knownEntry || charactersDirectories.resolveCharacterEntry(characterName, gameId2);
-    const canonicalCharacterName = resolvedEntry?.displayName || charactersDirectories.getCanonicalCharacterConfigKey(characterName, gameId2);
-    const coverFilePath = findCharacterCoverFilePath(canonicalCharacterName, gameId2, gamesSettings.getModsPath(gameId2), resolvedEntry);
+    const canonicalCharacterName = knownEntry?.displayName || charactersCatalog.getCharacterMappingEntry(characterName, gameId2)?.displayName || characterName;
+    const coverFilePath = findCharacterCoverFilePath(canonicalCharacterName, gameId2, gamesSettings.getModsPath(gameId2), knownEntry);
     if (coverFilePath && fs.existsSync(coverFilePath)) {
-      const ext = path.extname(coverFilePath).toLowerCase();
-      const mime = {
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".png": "image/png",
-        ".gif": "image/gif",
-        ".webp": "image/webp"
-      }[ext] || "image/jpeg";
-      return `data:${mime};base64,${fs.readFileSync(coverFilePath).toString("base64")}`;
+      return getLocalImageUrl(coverFilePath);
     }
     return charactersCatalog.characterImageCache.coverUrl(charactersCatalog.getCharacterConfigForGame(gameId2).characterImages?.[canonicalCharacterName]);
   } catch (e) {}

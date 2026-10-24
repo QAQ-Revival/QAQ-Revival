@@ -162,7 +162,7 @@ function GameSettings({ gameId, notify }) {
           </div>
         )}
       </Section>
-      {game.id === "arknights" && <ArknightsSettings notify={notify} />}
+      {game.id === "arknights" && <ArknightsSettings notify={notify} gamePath={game.gamePath} />}
       {["endfield", "genshin-impact", "zzz", "wuthering-waves", "honkai-star-rail"].includes(game.id) && <XxmiSettings gameId={game.id} notify={notify} onPathsChanged={() => setRevision(value => value + 1)} />}
       {game.id === "genshin-impact" && <GenshinAntiErrorSettings />}
       {game.id === "genshin-impact" && (

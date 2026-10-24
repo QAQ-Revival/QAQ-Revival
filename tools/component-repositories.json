@@ -51,6 +51,16 @@
       }
     }
   },
+  "arknights-cursor": {
+    "source": "native/arknights-cursor",
+    "repository": "assfafa/arknights-system-cursor",
+    "branch": "main",
+    "build": "build-qaqr.cjs",
+    "exports": ["src/Core", "src/Cli", "tests", "tools", "qaqr", "build-qaqr.cjs", "SOURCES.json", "LICENSE", "Directory.Build.props", "NuGet.Config", ".gitignore"],
+    "targets": {
+      "arknights-cursor": { "output": "local-components/arknights-cursor" }
+    }
+  },
   "steam-bridge": {
     "source": "native/steam-bridge",
     "repository": "QAQ-Revival/Steam-Bridge",

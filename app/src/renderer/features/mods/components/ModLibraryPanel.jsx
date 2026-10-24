@@ -27,6 +27,7 @@ export function ModLibraryPanel({
   handleSaveCustomAppearanceSection,
   handleDeleteCustomAppearanceSection,
   modsLoadError,
+  modsLoading,
   loadMods,
   modSearchQuery,
   setModSearchQuery,
@@ -90,6 +91,7 @@ export function ModLibraryPanel({
   return (
     <div
       className={`${viewMode === "gallery" ? "mod-gallery-panel" : "mod-list-panel"} card mod-library-panel`}
+      aria-busy={modsLoading}
     >
       <div className="mod-view-titlebar">
         <button
@@ -221,7 +223,13 @@ export function ModLibraryPanel({
         onSaveCustomSection={handleSaveCustomAppearanceSection}
         onDeleteCustomSection={handleDeleteCustomAppearanceSection}
       />
-      {modsLoadError && (
+      {modsLoading && (
+        <div className="appearance-section-loading" role="status">
+          <span className="mod-import-spinner" aria-hidden="true">{"⟳"}</span>
+          {t("common.status.loading")}
+        </div>
+      )}
+      {!modsLoading && modsLoadError && (
         <div className="appearance-section-load-error" role="alert">
           <span>
             {t("mods.library.loadFailed", {
@@ -427,7 +435,7 @@ export function ModLibraryPanel({
             });
           }}
         >
-          {displayMods.length === 0 && !modsLoadError && (
+          {displayMods.length === 0 && !modsLoading && !modsLoadError && (
             <div className="appearance-section-empty-state">
               <SectionCover
                 section={activeAppearanceSection}
@@ -667,7 +675,7 @@ export function ModLibraryPanel({
               })}
             </span>
           </div>
-          {displayMods.length === 0 && !modsLoadError && (
+          {displayMods.length === 0 && !modsLoading && !modsLoadError && (
             <div className="appearance-section-empty-state compact">
               <SectionCover
                 section={activeAppearanceSection}

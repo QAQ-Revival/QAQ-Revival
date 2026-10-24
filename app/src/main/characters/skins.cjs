@@ -45,6 +45,7 @@ const gamesSettings = require("../games/settings.cjs");
 const systemPaths = require("../system/paths.cjs");
 const BASE_APPEARANCE_SECTION_ID = "base";
 const CHARACTER_SKIN_CATALOG_CACHE = new Map();
+const CHARACTER_SKIN_CATALOG_LOOKUPS = new WeakMap();
 let characterSkinCatalogService;
 function isSafeAppearancePathSegment(value) {
   const normalized = String(value || "").trim();
@@ -219,10 +220,23 @@ function getCharacterSkinCatalogEntry(characterName, gameId2 = gamesSettings.get
   const aliases = [...charactersCatalog.getCharacterAliasCandidates(characterName, gameId2), getPersistedCharacterSkinCatalogIdentity(characterName, gameId2)].filter(Boolean);
   const aliasKeys = new Set(aliases.map(alias => charactersCatalog.normalizeCharacterFolderKey(alias)).filter(Boolean));
   const catalog = getCharacterSkinCatalog(gameId2);
-  return catalog.characters.find(character => {
-    const candidates = [character.nameZh, character.nameEn, character.characterId, ...(Array.isArray(character.aliases) ? character.aliases : [])];
-    return candidates.some(candidate => aliasKeys.has(charactersCatalog.normalizeCharacterFolderKey(candidate)));
-  }) || null;
+  if (!CHARACTER_SKIN_CATALOG_LOOKUPS.has(catalog)) {
+    const lookup = new Map();
+    catalog.characters.forEach((character, index) => {
+      for (const candidate of [character.nameZh, character.nameEn, character.characterId, ...character.aliases]) {
+        const key = charactersCatalog.normalizeCharacterFolderKey(candidate);
+        if (key && !lookup.has(key)) lookup.set(key, { character, index });
+      }
+    });
+    CHARACTER_SKIN_CATALOG_LOOKUPS.set(catalog, lookup);
+  }
+  const lookup = CHARACTER_SKIN_CATALOG_LOOKUPS.get(catalog);
+  let match = null;
+  for (const alias of aliasKeys) {
+    const candidate = lookup.get(alias);
+    if (candidate && (!match || candidate.index < match.index)) match = candidate;
+  }
+  return match?.character || null;
 }
 function getOfficialAppearanceSections(characterName, gameId2 = gamesSettings.getActiveGameScopeId()) {
   const catalogEntry = getCharacterSkinCatalogEntry(characterName, gameId2);
@@ -231,7 +245,7 @@ function getOfficialAppearanceSections(characterName, gameId2 = gamesSettings.ge
   }));
 }
 function getCharacterOfficialSkinCount(characterName, gameId2 = gamesSettings.getActiveGameScopeId()) {
-  return getOfficialAppearanceSections(characterName, gameId2).length;
+  return getCharacterSkinCatalogEntry(characterName, gameId2)?.skins.length || 0;
 }
 function ensureCharacterSectionsByGameStore() {
   if (!configStore.currentConfig.characterSectionsByGame || typeof configStore.currentConfig.characterSectionsByGame !== "object" || Array.isArray(configStore.currentConfig.characterSectionsByGame)) {
@@ -396,7 +410,11 @@ function getMergedAppearanceSectionDefinitions(characterName, gameId2 = gamesSet
     ...section,
     coverUrl: getAppearanceSectionCoverUrl(characterName, section.sectionId, gameId2)
   }));
-  return [baseSection, ...officialSections, ...customSections];
+  const sharedSections = gameId2 === "arknights" ? [{
+    id: "arknights:shared", sectionId: "arknights:shared", kind: "shared", official: true,
+    nameZh: i18n.t("arknights.sharedSection"), nameEn: "Shared / Multiple outfits", aliases: []
+  }] : [];
+  return [baseSection, ...officialSections, ...sharedSections, ...customSections];
 }
 function getAppearanceSectionDefinition(characterName, sectionId, gameId2 = gamesSettings.getActiveGameScopeId()) {
   const normalized = normalizeAppearanceSectionId(sectionId) || BASE_APPEARANCE_SECTION_ID;
@@ -413,8 +431,7 @@ function resolveKnownAppearanceSectionId(characterName, sectionId, gameId2 = gam
   if (!normalized || normalized === BASE_APPEARANCE_SECTION_ID) return BASE_APPEARANCE_SECTION_ID;
   return getAppearanceSectionDefinition(characterName, normalized, gameId2) ? normalized : BASE_APPEARANCE_SECTION_ID;
 }
-function buildAppearanceSectionsWithStats(characterName, mods, gameId2 = gamesSettings.getActiveGameScopeId()) {
-  const definitions = getMergedAppearanceSectionDefinitions(characterName, gameId2);
+function buildAppearanceSectionsWithStats(characterName, mods, gameId2 = gamesSettings.getActiveGameScopeId(), definitions = getMergedAppearanceSectionDefinitions(characterName, gameId2)) {
   const stats = new Map(definitions.map(section => [section.sectionId, {
     modCount: 0,
     enabledCount: 0

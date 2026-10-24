@@ -144,7 +144,9 @@ function HiddenCharactersDialog({ gameId, gameName, onClose, onRestored }) {
           ) : filtered.length ? (
             filtered.map((item) => (
               <div key={item.name} className="hidden-character-row">
-                {item.coverUrl && <img src={item.coverUrl} alt="" />}
+                <span className="hidden-character-avatar" aria-hidden="true">
+                  {item.coverUrl && <img src={item.coverUrl} alt="" loading="lazy" decoding="async" />}
+                </span>
                 <span className="hidden-character-name">{item.name}</span>
                 <button
                   type="button"

@@ -435,6 +435,14 @@
   cursor: pointer;
 }
 
+.appearance-section-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  color: var(--color-text-secondary);
+}
+
 .appearance-section-load-error {
   display: flex;
   align-items: center;

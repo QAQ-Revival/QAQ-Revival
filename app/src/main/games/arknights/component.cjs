@@ -33,14 +33,14 @@ function state() {
     const loader = resolveFile("loader/ArkLoader.exe");
     resolveFile("loader/ArkRuntime.dll");
     resolveFile("ArknightsTools/ArknightsTools.exe");
-    return { loader, loaderReady: true, workerReady: true, source: SOURCE, dependencies: manifest.dependencies, experimental: manifest.gameRuntimeValidated !== true };
+    return { loader, loaderReady: true, workerReady: true, singleModReloadSupported: manifest.capabilities?.includes("single-mod-reload-v2") === true, source: SOURCE, dependencies: manifest.dependencies, experimental: manifest.gameRuntimeValidated !== true };
   } catch (error) { return { loader: "", loaderReady: false, workerReady: false, source: SOURCE, experimental: true, componentError: error.message }; }
 }
 function runNative(args) {
   const executable = resolveFile("loader/ArkLoader.exe");
   resolveFile("loader/ArkRuntime.dll");
   return new Promise((resolve, reject) => {
-    execFile(executable, args, { cwd: path.dirname(executable), windowsHide: true, timeout: 90000, maxBuffer: 1024 * 1024 }, (error, stdout) => {
+    execFile(executable, args, { cwd: path.dirname(executable), windowsHide: true, timeout: ["--check", "--launch"].includes(args[0]) ? 10 * 60 * 1000 : 90000, maxBuffer: 1024 * 1024 }, (error, stdout) => {
       try {
         const result = JSON.parse(stdout);
         if (error || !result.success) throw Error(result.error || i18n.t("arknights.errors.workerFailed"));

@@ -53,7 +53,10 @@ function registerIpc() {
       platform: process.platform,
       elevated: systemWindows.isProcessElevated(),
       isDev: utils.is.dev,
-      isPackaged: electron.app.isPackaged
+      isPackaged: electron.app.isPackaged,
+      userDataPath: electron.app.getPath("userData"),
+      configPath: configStore.configPath,
+      executable: process.execPath
     };
   });
   electron.ipcMain.handle("config:export", async () => {

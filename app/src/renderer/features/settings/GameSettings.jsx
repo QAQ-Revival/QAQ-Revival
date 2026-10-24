@@ -32,7 +32,7 @@ function GameSettingsView({ activeGame }) {
       ? [["pak", t("settings.game.pakMode")]]
       : []),
     ...(activeGame?.id === "arknights"
-      ? [["arknights-tools", t("arknights.settings.title")]]
+      ? [["arknights-cursor", t("arknights.cursor.title")], ["arknights-tools", t("arknights.settings.title")]]
       : [["fixer", t("settings.game.fixer")], ["game-persist", t("settings.categories.persist")]]),
   ];
   return (

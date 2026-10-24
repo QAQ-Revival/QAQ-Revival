@@ -75,7 +75,7 @@ function LaunchControls({
       <button
         type="button"
         className="btn btn-primary launch-button launch-button-direct"
-        aria-label={t(activeGame?.id === "arknights" ? "arknights.launchExperimental" : "games.launch.direct")}
+        aria-label={t("games.launch.direct")}
         title={
           wuwaDx12 ? t("games.launch.dx12Hint") : t("games.launch.directHint")
         }
@@ -89,7 +89,7 @@ function LaunchControls({
               ? t("games.launch.launching")
               : wuwaDx12
                 ? t("games.launch.directDx12")
-                : t(activeGame?.id === "arknights" ? "arknights.launchExperimental" : "games.launch.direct")}
+                : t("games.launch.direct")}
           </span>
         )}
       </button>

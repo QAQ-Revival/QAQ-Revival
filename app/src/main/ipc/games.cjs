@@ -19,6 +19,7 @@ function registerIpc() {
     try {
       const game = gamesSettings.getSettingsGame(gameId);
       const paths = gamesSettings.getResolvedGamePaths(game.id);
+      require("../runtime/path-report.cjs").writeRuntimePathReport(electron.app, configStore.currentConfig, configStore.configPath);
       return {
         success: true,
         game: {

@@ -233,9 +233,14 @@ button.nav-item:focus-visible {
 }
 .launch-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   container: launch-controls / inline-size;
+}
+.launch-actions:not(.launch-actions-collapsed):has(
+    > .btn-secondary ~ .btn-secondary
+  ) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .launch-actions .btn {
   display: flex;
@@ -259,13 +264,16 @@ button.nav-item:focus-visible {
   grid-column: 1 / -1;
   gap: 8px;
   min-height: 44px;
-  border: 1px solid color-mix(in srgb, var(--color-accent-primary) 28%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--color-accent-primary) 28%, transparent);
   font-size: 14px;
-  box-shadow: 0 3px 10px color-mix(in srgb, var(--color-accent-primary) 16%, transparent);
+  box-shadow: 0 3px 10px
+    color-mix(in srgb, var(--color-accent-primary) 16%, transparent);
 }
 .launch-actions .btn-secondary {
   background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--color-text-primary) 7%, transparent);
   color: var(--color-text-secondary);
   box-shadow: none;
 }
@@ -274,11 +282,18 @@ button.nav-item:focus-visible {
 }
 .launch-actions .btn-secondary:hover:not(:disabled) {
   background: color-mix(in srgb, var(--color-accent-primary) 9%, transparent);
-  border-color: color-mix(in srgb, var(--color-accent-primary) 35%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--color-accent-primary) 35%,
+    transparent
+  );
   color: var(--color-accent-foreground);
 }
 @container launch-controls (max-width: 190px) {
-  .launch-actions:not(.launch-actions-collapsed) .btn-secondary {
+  .launch-actions:not(.launch-actions-collapsed):has(
+      > .btn-secondary ~ .btn-secondary
+    )
+    .btn-secondary {
     flex-direction: column;
     gap: 5px;
     min-height: 56px;
@@ -317,7 +332,11 @@ button.nav-item:focus-visible {
 .launch-actions .game-settings-button {
   min-height: 30px;
   padding: 8px 4px 0;
-  border-top-color: color-mix(in srgb, var(--color-text-primary) 7%, transparent);
+  border-top-color: color-mix(
+    in srgb,
+    var(--color-text-primary) 7%,
+    transparent
+  );
   font-size: 12px;
   font-weight: 500;
 }
@@ -612,9 +631,15 @@ button.nav-item:focus-visible {
   padding: 12px 0;
   border-bottom: 1px solid rgba(128, 128, 128, 0.12);
 }
-.hidden-character-row img {
+.hidden-character-avatar {
+  flex-shrink: 0;
   width: 44px;
   height: 44px;
+}
+.hidden-character-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 12px;
   object-fit: cover;
 }

@@ -204,6 +204,7 @@ export function ModDetailsPanel({
                 </option>)}
             </select>
           </div>
+          {activeGameId === "arknights" && selectedMod.arknightsScope && <p className="arknights-scope-note">{t("arknights.affectedAppearances", { names: selectedMod.arknightsScope.sectionIds.map(id => getSectionName(appearanceSectionsWithStats.find(section => getSectionId(section) === id))).join("、") })}</p>}
           {selectedLocalCollection && <div className="local-collection-detail-panel">
               <div className="local-collection-detail-head">
                 <span className="local-collection-detail-title">

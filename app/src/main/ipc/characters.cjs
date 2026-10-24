@@ -166,7 +166,8 @@ function registerIpc() {
       modsConflicts.clearConflictCache(characterName, gameId);
       desktopNotifications.notifyCharacterListChanged(characterName, {
         gameId,
-        reason: hidden ? "character-hidden" : "character-restored"
+        reason: hidden ? "character-hidden" : "character-restored",
+        resourcesChanged: disabledCount > 0
       });
       if (hidden && gameId === gamesSettings.getActiveGameScopeId()) overlayWindow.hideSideWindow();
       return {
