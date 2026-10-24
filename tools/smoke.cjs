@@ -24,13 +24,13 @@ const testEntry = process.argv.includes('--window-state') ? 'window-state-smoke.
 fs.writeFileSync(entry, `require(${JSON.stringify(path.join(root, 'tests', testEntry))});`);
 manifest.main = './smoke-entry.cjs';
 fs.writeFileSync(manifestPath, JSON.stringify(manifest));
-const env = { ...process.env, QAQR_TEST_RESULTS: results, QAQR_USER_DATA: path.join(results, 'AppData/QAQ-Revival') };
+const env = { ...process.env, QAQR_TEST_RESULTS: results, QAQR_USER_DATA: path.join(results, 'AppData/QAQ-Revival'), QAQR_DATA_DIR: path.join(results, 'data') };
 const scopes = [
   'translation', 'genshin', 'genshin-check', 'genshin-anticrash', 'game-settings',
   'steam-bridge', 'hidden-characters', 'character-images', 'character-skins',
   'skin-cover-live', 'file-drop', 'persist', 'mod-sites', 'card-images',
   'overlay-activity', 'mod-layout', 'window-layout', 'post-links', 'market-scope',
-  'imports', 'sources', 'sorting', 'settings', 'wuwa-gacha', 'arknights'
+  'imports', 'sources', 'sorting', 'settings', 'wuwa-gacha', 'arknights', 'xxmi'
 ];
 const scope = scopes.find(name => process.argv.includes('--' + name));
 if (scope) env.QAQR_SMOKE_SCOPE = scope;

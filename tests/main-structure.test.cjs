@@ -80,6 +80,11 @@ test('application services share current settings and preserve ordinary RAR extr
     return originalLoad.call(this, name, parent, isMain);
   };
   try {
+    for (const [relative, text] of [['arknights/Mods/MigrationConflict/mod.txt', 'legacy'], ['data/Arknights/Mods/MigrationConflict/mod.txt', 'different destination']]) {
+      const file = path.join(profile, relative);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, text);
+    }
     require(path.join(main, 'application.cjs')).startApplication({ name: 'QAQ-Revival' });
     const bridgeSource = fs.readFileSync(path.resolve(main, '../preload/index.js'), 'utf8');
     for (const [, channel] of bridgeSource.matchAll(/\.invoke\(["']([^"']+)["']/g)) {
@@ -91,6 +96,14 @@ test('application services share current settings and preserve ordinary RAR extr
     };
     const initial = await invoke('get-config');
     assert.equal(initial.success, true);
+    const arknightsState = await invoke('arknights:status');
+    assert.equal(arknightsState.root, path.join(profile, 'arknights'));
+    assert.match(arknightsState.migrationError, /conflicts/);
+    const warning = require(path.join(main, 'games/path-warning.cjs'));
+    const installRoot = path.join(profile, 'installed');
+    for (const gameDirectory of ['XXMI/EFMI/Mods', 'Arknights/Mods', 'NEMI/Mods']) assert.equal(warning.isDangerousManagedPath(path.join(installRoot, 'data', gameDirectory), installRoot), false);
+    assert.equal(warning.isDangerousManagedPath(path.join(installRoot, 'resources/Mods'), installRoot), true);
+    assert.equal(warning.isDangerousManagedPath(path.join(installRoot, 'data-old/Mods'), installRoot), true);
     assert(initial.config.games.some(game => game.id === 'wuthering-waves'));
     // Visibility changes are atomic, retain game settings, and cannot strand selection.
     const configStore = require(path.join(main, 'config/store.cjs'));

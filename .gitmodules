@@ -14,3 +14,7 @@
 	path = native/arknights-tools
 	url = https://github.com/QAQ-Revival/Arknights-Mod-Tools.git
 	branch = main
+[submodule "native/xxmi-launcher"]
+	path = native/xxmi-launcher
+	url = https://github.com/SpectrumQT/XXMI-Launcher.git
+	branch = main

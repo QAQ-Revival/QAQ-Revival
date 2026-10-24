@@ -20,6 +20,7 @@ export function ArknightsSettings({ notify }) {
     finally { setBusy(false); }
   }
   return <Section id="arknights-tools" title={t("arknights.settings.title")}>
+    {state?.migrationError && <p className="system-notice" role="alert">{t("settings.mi.legacyMigrationDeferred", { error: state.migrationError })}</p>}
     <Row title={t("arknights.settings.loader")} description={t("arknights.settings.loaderHint")} stacked>
       <PathControl label={t("arknights.settings.loader")} value={state?.loader} disabled={busy}>
         <Button disabled={busy} onClick={() => act(() => window.api.arknightsPrepareLoader(), "arknights.settings.prepared")}>{t("arknights.settings.prepare")}</Button>

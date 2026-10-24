@@ -57,6 +57,7 @@ function startApplication(runtimeIdentity) {
   require("./imports/batch.cjs").registerIpc();
   require("./install/managed.cjs").registerIpc();
   require("./install/setup.cjs").registerIpc();
+  require("./install/xxmi.cjs").registerIpc();
   require("./fixes/service.cjs").registerIpc();
   require("./market/downloads.cjs").registerIpc();
   require("./market/install.cjs").registerIpc();

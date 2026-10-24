@@ -2,6 +2,7 @@
 
 const i18n = require("../../shared/i18n/core.cjs");
 const electron = require("electron");
+const path = require("node:path");
 const configStore = require("../config/store.cjs");
 const desktopWindows = require("../desktop/windows.cjs");
 const marketSettings = require("../market/settings.cjs");
@@ -36,11 +37,14 @@ function collectConfiguredManagedPaths() {
 }
 function getDangerousManagedPaths() {
   const installDir = marketSettings.getQaqInstallDir();
-  const dangerousPaths = collectConfiguredManagedPaths().filter(entry => systemPaths.isPathInsideDirectory(entry.path, installDir));
+  const dangerousPaths = collectConfiguredManagedPaths().filter(entry => isDangerousManagedPath(entry.path, installDir));
   return {
     installDir,
     dangerousPaths
   };
+}
+function isDangerousManagedPath(target, installDir) {
+  return systemPaths.isPathInsideDirectory(target, installDir) && !systemPaths.isPathInsideDirectory(target, path.join(installDir, "data"));
 }
 function formatDangerousManagedPathDetail(checkResult) {
   const dangerousPaths = checkResult?.dangerousPaths || [];
@@ -83,5 +87,6 @@ async function showDangerousManagedPathStartupWarning(ownerWindow = desktopWindo
   };
 }
 module.exports = {
+  isDangerousManagedPath,
   showDangerousManagedPathStartupWarning
 };

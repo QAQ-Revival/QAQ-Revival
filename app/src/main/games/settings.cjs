@@ -17,6 +17,8 @@ const installPaths = require("../install/paths.cjs");
 const marketAccess = require("../market/access.cjs");
 const marketSettings = require("../market/settings.cjs");
 const systemPaths = require("../system/paths.cjs");
+const dataPaths = require("../runtime/data-paths.cjs");
+let arknightsMigrationAttempted = false;
 function getBuiltInGameDefinition(gameId2) {
   return gamesDefinitions.BUILTIN_GAME_MAP.get(gameId2) || null;
 }
@@ -55,7 +57,7 @@ function createBuiltInGameConfig(definition, overrides = {}) {
     officialLauncherPath: "",
     modLoaderPath: "",
     dx12LauncherPath: "",
-    modFolderPath: definition.id === "arknights" ? path.join(electron.app.getPath("userData"), "arknights", "Mods") : "",
+    modFolderPath: definition.id === "arknights" && configStore.currentConfig.arknightsLegacyDataRoot ? path.join(configStore.currentConfig.arknightsLegacyDataRoot, "Mods") : dataPaths.getDefaultModsPath(definition.id),
     launchMode: definition.defaultLaunchMode,
     supportedLaunchModes: definition.supportedLaunchModes || ["XXMI"],
     launchArgs: definition.defaultLaunchArgs || "",
@@ -67,6 +69,29 @@ function createBuiltInGameConfig(definition, overrides = {}) {
 }
 function ensureBuiltInGamesConfigured() {
   let changed = false;
+  const legacyArknights = path.join(electron.app.getPath("userData"), "arknights");
+  const arknightsGame = Array.isArray(configStore.currentConfig.games) ? configStore.currentConfig.games.find(game => game.id === "arknights") : null;
+  if (!arknightsMigrationAttempted && fs.existsSync(legacyArknights) && (!arknightsGame || systemPaths.isSameResolvedPath(arknightsGame.modFolderPath, path.join(legacyArknights, "Mods")) || !fs.existsSync(path.join(dataPaths.getDataRoot(), "Arknights")))) {
+    arknightsMigrationAttempted = true;
+    try {
+      dataPaths.migrateLegacyArknights(legacyArknights);
+      if (configStore.currentConfig.arknightsLegacyDataRoot || configStore.currentConfig.arknightsMigrationError) {
+        delete configStore.currentConfig.arknightsLegacyDataRoot;
+        delete configStore.currentConfig.arknightsMigrationError;
+        changed = true;
+      }
+      if (arknightsGame && systemPaths.isSameResolvedPath(arknightsGame.modFolderPath, path.join(legacyArknights, "Mods"))) {
+        arknightsGame.modFolderPath = dataPaths.getDefaultModsPath("arknights");
+        changed = true;
+      }
+    } catch (error) {
+      configStore.currentConfig.arknightsLegacyDataRoot = legacyArknights;
+      configStore.currentConfig.arknightsMigrationError = error.message;
+      if (arknightsGame && systemPaths.isSameResolvedPath(arknightsGame.modFolderPath, dataPaths.getDefaultModsPath("arknights"))) arknightsGame.modFolderPath = path.join(legacyArknights, "Mods");
+      coreLogger.logger.warn("Arknights migration deferred; continuing with the legacy directory:", error.message);
+      changed = true;
+    }
+  }
   if (!Array.isArray(configStore.currentConfig.games)) {
     configStore.currentConfig.games = [];
     changed = true;
@@ -82,7 +107,6 @@ function ensureBuiltInGamesConfigured() {
       game = createBuiltInGameConfig(definition, definition.id === "endfield" ? legacyEndfieldOverrides : {});
       configStore.currentConfig.games.push(game);
       changed = true;
-      continue;
     }
     const normalizedGame = createBuiltInGameConfig(definition, game);
     const keys = Object.keys(normalizedGame);
@@ -128,6 +152,22 @@ function ensureBuiltInGamesConfigured() {
       }
       if (!game.modLoaderPath && legacyEndfieldOverrides.modLoaderPath) {
         game.modLoaderPath = legacyEndfieldOverrides.modLoaderPath;
+        changed = true;
+      }
+    }
+    if (!game.modFolderPath) {
+      const info = readXxmiImporterPathInfo(game.modLoaderPath, game.id);
+      game.modFolderPath = info.importerPath ? path.join(info.importerPath, "Mods") : dataPaths.getDefaultModsPath(game.id);
+      changed = true;
+    }
+    const defaultModsPath = dataPaths.getDefaultModsPath(game.id);
+    if (systemPaths.isSameResolvedPath(game.modFolderPath, defaultModsPath)) fs.mkdirSync(defaultModsPath, { recursive: true });
+    const importer = dataPaths.IMPORTERS[game.id];
+    const managedRoot = configStore.currentConfig.managedXxmiRoot || path.join(dataPaths.getDataRoot(), "XXMI");
+    if (importer && !game.modLoaderPath && systemPaths.isSameResolvedPath(game.modFolderPath, path.join(managedRoot, importer, "Mods"))) {
+      const launcher = path.join(managedRoot, "Resources/Bin/XXMI Launcher.exe");
+      if (fs.existsSync(launcher)) {
+        game.modLoaderPath = launcher;
         changed = true;
       }
     }

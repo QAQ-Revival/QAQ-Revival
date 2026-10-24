@@ -20,6 +20,7 @@ __pycache__/
 /baseline/
 /backups/
 user-data/
+data/
 QAQR_DownloadCache/
 QAQM_DownloadCache/
 *.log

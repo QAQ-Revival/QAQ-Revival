@@ -12,6 +12,7 @@ function GameSettingsView({ activeGame }) {
   }, [toast]);
   const sections = [
     ["game-paths", t("settings.game.pathAndLaunch")],
+    ...(["endfield", "genshin-impact", "zzz", "wuthering-waves", "honkai-star-rail"].includes(activeGame?.id) ? [["xxmi-installer", t("settings.mi.navigation")]] : []),
     ...(activeGame?.id === "genshin-impact"
       ? [
           ["genshin-anticrash", t("settings.game.antiError")],
