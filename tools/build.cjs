@@ -20,7 +20,7 @@ if (fs.existsSync(target)) {
   const resolvedBuild = fs.realpathSync(buildRoot);
   const resolvedRelative = path.relative(resolvedBuild, resolvedTarget);
   if (!resolvedRelative || resolvedRelative.startsWith('..') || path.isAbsolute(resolvedRelative)) throw Error('Build target resolves outside the build directory');
-  for (const name of ['user-data', 'QAQR_DownloadCache', 'QAQM_DownloadCache']) {
+  for (const name of ['data', 'user-data', 'QAQR_DownloadCache', 'QAQM_DownloadCache']) {
     if (fs.existsSync(path.join(target, name))) throw Error('Build directory contains user data; choose a fresh QAQR_BUILD_DIR');
   }
   fs.rmSync(target, { recursive: true, force: true });

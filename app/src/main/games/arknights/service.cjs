@@ -12,6 +12,8 @@ const settings = require("../settings.cjs");
 const directories = require("../../characters/directories.cjs");
 const hidden = require("../../characters/hidden.cjs");
 const sourceComponent = require("./component.cjs");
+const { getDataRoot } = require("../../runtime/data-paths.cjs");
+const configStore = require("../../config/store.cjs");
 
 const GAME = "arknights";
 let lastSync = null;
@@ -22,7 +24,7 @@ const initializedLibraries = new Set();
 
 function paths() {
   const game = settings.getGameById(GAME);
-  const root = path.join(electron.app.getPath("userData"), GAME);
+  const root = configStore.currentConfig.arknightsLegacyDataRoot || path.join(getDataRoot(), "Arknights");
   return { root, library: game?.modFolderPath || path.join(root, "Mods"), destination: path.join(root, "Resources"), bundleRoot: path.join(root, "PC-Bundles"), gamePath: game?.gamePath || "" };
 }
 function workerPath() { return sourceComponent.resolveFile("ArknightsTools/ArknightsTools.exe"); }
@@ -100,7 +102,7 @@ function prepareImportedMod(modPath) {
 }
 function status() {
   const p = paths();
-  return { success: true, ...p, ...sourceComponent.state(), sync: lastSync };
+  return { success: true, ...p, ...sourceComponent.state(), sync: lastSync, migrationError: configStore.currentConfig.arknightsMigrationError || "" };
 }
 async function prepareLoader() {
   const p = paths();

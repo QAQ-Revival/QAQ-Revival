@@ -26,7 +26,7 @@ async function main() {
   }
   const files = await inventory(stage);
   for (const name of Object.keys(files)) {
-    if (/(^|\/)(user-data|QAQ[MR]_DownloadCache|AppData|test-results|\.git|\.env)(\/|$)|(^|\/)smoke-entry\.cjs$|\.smoke\.exe$|\.log$/i.test(name)) {
+    if (/^data(?:\/|$)/i.test(name) || /(^|\/)(user-data|QAQ[MR]_DownloadCache|AppData|test-results|\.git|\.env)(\/|$)|(^|\/)smoke-entry\.cjs$|\.smoke\.exe$|\.log$/i.test(name)) {
       throw Error('Release contains personal data or test files: ' + name);
     }
   }

@@ -77,10 +77,10 @@ module.exports = async function testSortableOrder({ evaluate, waitFor, captureUI
 
   await openGames();
   const defaultGames = await readOrder(game);
-  assert.ok(defaultGames.length >= 3, 'Configured and unconfigured games are available');
+  assert.ok(defaultGames.length >= 3, 'Games with explicit and default Mods directories are available');
   const selectedGame = await activeGame();
   const movedGame = defaultGames.at(-1);
-  assert.ok(await evaluate(`document.querySelector('.game-selector-option:last-of-type').textContent.includes('独立游戏配置')`));
+  assert.ok(await evaluate(`document.querySelector('.game-selector-option:last-of-type').textContent.includes('已配置 Mod 目录')`));
   await startDrag(game, movedGame, defaultGames[0]);
   await waitFor(`!!document.querySelector('.game-selector-option[data-sort-edge="before"]')`, 'game drop indicator');
   await captureUI('game-reorder.png');

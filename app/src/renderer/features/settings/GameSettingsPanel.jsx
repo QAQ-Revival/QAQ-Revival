@@ -8,6 +8,7 @@ import { GenshinCompatibilitySettings } from "./GenshinCompatibilitySettings.jsx
 import { GenshinAntiErrorSettings } from "./GenshinAntiErrorSettings.jsx";
 import PersistStateManager from "./PersistStateBrowser.jsx";
 import { ArknightsSettings } from "../arknights/ArknightsTools.jsx";
+import { XxmiSettings } from "./XxmiSettings.jsx";
 import {
   check,
   Button,
@@ -162,6 +163,7 @@ function GameSettings({ gameId, notify }) {
         )}
       </Section>
       {game.id === "arknights" && <ArknightsSettings notify={notify} />}
+      {["endfield", "genshin-impact", "zzz", "wuthering-waves", "honkai-star-rail"].includes(game.id) && <XxmiSettings gameId={game.id} notify={notify} onPathsChanged={() => setRevision(value => value + 1)} />}
       {game.id === "genshin-impact" && <GenshinAntiErrorSettings />}
       {game.id === "genshin-impact" && (
         <GenshinCompatibilitySettings

@@ -448,6 +448,19 @@ const api = {
     return () => electron.ipcRenderer.removeListener("dev:batch-done", handler);
   },
   // Autoinstall (Setup Wizard)
+  xxmiStatus: (gameId) => electron.ipcRenderer.invoke("xxmi:status", gameId),
+  xxmiCheck: (gameId) => electron.ipcRenderer.invoke("xxmi:check", gameId),
+  xxmiInstall: (opts) => electron.ipcRenderer.invoke("xxmi:install", opts),
+  onXxmiProgress: (cb) => {
+    const handler = (_, data) => cb(data);
+    electron.ipcRenderer.on("xxmi:progress", handler);
+    return () => electron.ipcRenderer.removeListener("xxmi:progress", handler);
+  },
+  onXxmiChanged: (cb) => {
+    const handler = (_, data) => cb(data);
+    electron.ipcRenderer.on("xxmi:changed", handler);
+    return () => electron.ipcRenderer.removeListener("xxmi:changed", handler);
+  },
   autoinstallGetBundledPackages: () => electron.ipcRenderer.invoke("autoinstall:get-bundled-packages"),
   autoinstallSelectFolder: (title, options) => electron.ipcRenderer.invoke("autoinstall:select-folder", title, options || {}),
   autoinstallSelectZip: (title) => electron.ipcRenderer.invoke("autoinstall:select-zip", title),

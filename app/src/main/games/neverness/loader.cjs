@@ -24,6 +24,7 @@ const gamesSettings = require("../settings.cjs");
 const marketSettings = require("../../market/settings.cjs");
 const systemFiles = require("../../system/files.cjs");
 const systemWindows = require("../../system/windows.cjs");
+const { getDataRoot, resolveDisabledModsDirectory } = require("../../runtime/data-paths.cjs");
 const NEVERNESS_GAME_ID = "neverness-to-everness";
 const NEVERNESS_DX12_META_FILE = ".qaqm-dx12-pak.json";
 const NEVERNESS_DX12_PAK_EXTS = [".pak", ".ucas", ".utoc", ".sig"];
@@ -48,13 +49,13 @@ function getNevernessDx12PakDirName() {
 }
 function getNevernessDx12DisabledModsDir(gameId2 = NEVERNESS_GAME_ID) {
   const configured = String(gamesSettings.getGameById(gameId2)?.nevernessDx12DisabledModsDir || "").trim();
-  if (configured) return configured;
   const gameRoot = getNevernessGameRoot(gameId2);
   const driveRoot = gameRoot ? path.parse(gameRoot).root : "";
-  if (!driveRoot) return "";
-  const disabledDir = path.join(driveRoot, "QAQR_Neverness_Disabled_Pak_Mods");
-  const legacyDir = path.join(driveRoot, "QAQManager_Neverness_Disabled_Pak_Mods");
-  return !fs.existsSync(disabledDir) && fs.existsSync(legacyDir) ? legacyDir : disabledDir;
+  return resolveDisabledModsDirectory({
+    configured,
+    preferred: path.join(getDataRoot(), "NEMI", "Disabled-Pak-Mods"),
+    legacyDirectories: driveRoot ? ["QAQR_Neverness_Disabled_Pak_Mods", "QAQManager_Neverness_Disabled_Pak_Mods"].map(name => path.join(driveRoot, name)) : []
+  });
 }
 function setNevernessDx12DisabledModsDir(dirPath) {
   const game = (configStore.currentConfig.games || []).find(item => item.id === NEVERNESS_GAME_ID);
@@ -116,7 +117,7 @@ function getNevernessDx12WritableLoaderDir(paths = getNevernessDx12Paths()) {
         custom: true
       };
     }
-    const runtimeDir2 = path.join(electron.app.getPath("userData"), "dx12", "neverness-loader");
+    const runtimeDir2 = path.join(getDataRoot(), "NEMI", "DX12-Loader");
     systemFiles.copyDirectoryRecursive(configuredLoaderDir, runtimeDir2);
     return {
       loaderDir: runtimeDir2,
@@ -137,7 +138,7 @@ function getNevernessDx12WritableLoaderDir(paths = getNevernessDx12Paths()) {
       custom: false
     };
   }
-  const runtimeDir = path.join(electron.app.getPath("userData"), "dx12", "neverness-loader");
+  const runtimeDir = path.join(getDataRoot(), "NEMI", "DX12-Loader");
   systemFiles.copyDirectoryRecursive(bundledLoaderDir, runtimeDir);
   return {
     loaderDir: runtimeDir,

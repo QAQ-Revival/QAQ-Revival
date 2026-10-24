@@ -8,7 +8,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   const png = electron.nativeImage.createFromBitmap(Buffer.from([0x70, 0x90, 0xe0, 0xff]), { width: 1, height: 1 }).toPNG();
   const game = (await call('game:list')).games.find(item => item.id === 'arknights');
   assert.equal(game.launchMode, 'ARKNIGHTS');
-  assert(game.modFolderPath.startsWith(profile));
+  assert.equal(game.modFolderPath, path.join(root, 'data/Arknights/Mods'));
   const source = path.join(root, 'arknights-pc');
   fs.mkdirSync(source);
   fs.writeFileSync(path.join(source, 'illust_char_4215_buddy_mh_2.png'), png);

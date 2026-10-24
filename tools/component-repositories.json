@@ -1,4 +1,13 @@
 {
+  "xxmi-installer": {
+    "source": "native/xxmi-launcher",
+    "repository": "SpectrumQT/XXMI-Launcher",
+    "branch": "main",
+    "build": "../../tools/build-xxmi.cjs",
+    "targets": {
+      "xxmi-installer": { "output": "local-components/xxmi-installer" }
+    }
+  },
   "arknights-tools": {
     "source": "native/arknights-tools",
     "repository": "QAQ-Revival/Arknights-Mod-Tools",
