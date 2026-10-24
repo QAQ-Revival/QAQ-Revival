@@ -95,7 +95,7 @@ function PersistVariables({ entries }) {
     </div>
   );
 }
-function PersistStateBrowser({ gameId = null }) {
+function PersistStateBrowser({ gameId = null, games = [] }) {
   const [at, setAt] = React.useState(() => initialLocation(gameId));
   const [data, setData] = React.useState(null),
     [error, setError] = React.useState(""),
@@ -107,6 +107,15 @@ function PersistStateBrowser({ gameId = null }) {
     [confirm, setConfirm] = React.useState(null);
   const lock = React.useRef(false),
     isMod = !!at.modName;
+  const gameAvailable =
+    !at.gameId || !!gameId || games.some((game) => game.id === at.gameId);
+  const visibleGameKey = games
+    .map((game) => game.id)
+    .sort()
+    .join("\0");
+  React.useEffect(() => {
+    if (!gameAvailable) setAt({});
+  }, [gameAvailable]);
   React.useEffect(() => {
     let canceled = false;
     setData(null);
@@ -131,7 +140,7 @@ function PersistStateBrowser({ gameId = null }) {
     return () => {
       canceled = true;
     };
-  }, [at, revision]);
+  }, [at, revision, visibleGameKey]);
   function navigate(target) {
     if (!busy) {
       setData(null);
@@ -201,6 +210,7 @@ function PersistStateBrowser({ gameId = null }) {
       )}
     </React.Fragment>
   );
+  if (!gameAvailable) return null;
   if (!at.gameId)
     return (
       <div className="persist-manager" aria-busy={busy}>
@@ -208,39 +218,44 @@ function PersistStateBrowser({ gameId = null }) {
         {notices}
         {data?.games && (
           <div className="persist-game-grid">
-            {data.games.map((game) => (
-              <article
-                key={game.id}
-                className="system-card persist-game-card"
-                data-persist-game={game.id}
-              >
-                <div className="persist-game-heading">
-                  <h3>{game.name}</h3>
-                  {toggle(game)}
-                </div>
-                <p>
-                  {t("settings.persist.configurationSummary", {
-                    status: game.enabled
-                      ? t("common.status.enabled")
-                      : t("settings.persist.notEnabled"),
-                    count: game.count,
-                  })}
-                </p>
-                {!game.configured && (
-                  <small>{t("settings.persist.modsFolderUnset")}</small>
-                )}
-                {button(t("settings.persist.viewCharacter"), {
-                  disabled: busy,
-                  "aria-label": t("settings.persist.manageGame", {
-                    name: game.name,
-                  }),
-                  onClick: () =>
-                    navigate({
-                      gameId: game.id,
+            {games
+              .flatMap((game) => {
+                const saved = data.games.find((item) => item.id === game.id);
+                return saved ? [saved] : [];
+              })
+              .map((game) => (
+                <article
+                  key={game.id}
+                  className="system-card persist-game-card"
+                  data-persist-game={game.id}
+                >
+                  <div className="persist-game-heading">
+                    <h3>{game.name}</h3>
+                    {toggle(game)}
+                  </div>
+                  <p>
+                    {t("settings.persist.configurationSummary", {
+                      status: game.enabled
+                        ? t("common.status.enabled")
+                        : t("settings.persist.notEnabled"),
+                      count: game.count,
+                    })}
+                  </p>
+                  {!game.configured && (
+                    <small>{t("settings.persist.modsFolderUnset")}</small>
+                  )}
+                  {button(t("settings.persist.viewCharacter"), {
+                    disabled: busy,
+                    "aria-label": t("settings.persist.manageGame", {
+                      name: game.name,
                     }),
-                })}
-              </article>
-            ))}
+                    onClick: () =>
+                      navigate({
+                        gameId: game.id,
+                      }),
+                  })}
+                </article>
+              ))}
           </div>
         )}
       </div>

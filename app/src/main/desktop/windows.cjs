@@ -21,6 +21,7 @@ const {
   readWindowState,
   trackWindowState
 } = require("./window-state.cjs");
+const { createNativeTray } = require("./tray-host.cjs");
 const {
   enableNativeFileDrop
 } = require("./native-file-drop.cjs");
@@ -228,7 +229,12 @@ function createWindow() {
 }
 function createTray() {
   const iconPath = path.join(runtimePaths.mainDir, "../../resources/icon.ico");
-  tray = new electron.Tray(iconPath);
+  const quit = () => {
+    isQuitting = true;
+    if (overlayWindow.overlayWindow && !overlayWindow.overlayWindow.isDestroyed()) overlayWindow.overlayWindow.close();
+    if (overlayWindow.overlaySideWindow && !overlayWindow.overlaySideWindow.isDestroyed()) overlayWindow.overlaySideWindow.close();
+    electron.app.quit();
+  };
   const contextMenu = electron.Menu.buildFromTemplate([{
     label: i18n.t("backend.desktop.windows.showWindow"),
     click: activateMainWindow
@@ -236,16 +242,21 @@ function createTray() {
     type: "separator"
   }, {
     label: i18n.t("backend.desktop.windows.quitApplication"),
-    click: () => {
-      isQuitting = true;
-      if (overlayWindow.overlayWindow && !overlayWindow.overlayWindow.isDestroyed()) overlayWindow.overlayWindow.close();
-      if (overlayWindow.overlaySideWindow && !overlayWindow.overlaySideWindow.isDestroyed()) overlayWindow.overlaySideWindow.close();
-      electron.app.quit();
-    }
+    click: quit
   }]);
-  tray.setToolTip("QAQ-Revival");
-  tray.setContextMenu(contextMenu);
-  tray.on("double-click", activateMainWindow);
+  const fallback = () => {
+    tray = new electron.Tray(iconPath);
+    tray.setToolTip("QAQ-Revival");
+    tray.setContextMenu(contextMenu);
+    tray.on("double-click", activateMainWindow);
+  };
+  if (!createNativeTray({
+    app: electron.app, icon: iconPath,
+    showLabel: i18n.t("backend.desktop.windows.showWindow"),
+    quitLabel: i18n.t("backend.desktop.windows.quitApplication"),
+    onShow: activateMainWindow, onQuit: quit, onFallback: fallback,
+    onError: error => coreLogger.logger.warn("Native tray unavailable:", error.message)
+  })) fallback();
 }
 function configureRuntime(identity) {
   runtimeIdentity = identity;

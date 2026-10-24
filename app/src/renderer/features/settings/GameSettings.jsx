@@ -30,8 +30,9 @@ function GameSettingsView({ activeGame }) {
     ...(activeGame?.id === "neverness-to-everness"
       ? [["pak", t("settings.game.pakMode")]]
       : []),
-    ["fixer", t("settings.game.fixer")],
-    ["game-persist", t("settings.categories.persist")],
+    ...(activeGame?.id === "arknights"
+      ? [["arknights-tools", t("arknights.settings.title")]]
+      : [["fixer", t("settings.game.fixer")], ["game-persist", t("settings.categories.persist")]]),
   ];
   return (
     <div

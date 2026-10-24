@@ -78,8 +78,8 @@ function findImageFileInChildDirs(dirPath) {
   }
   return null;
 }
-function findCharacterCoverFilePath(characterName, gameId2 = gamesSettings.getActiveGameScopeId(), modsPath = gamesSettings.getModsPath(gameId2)) {
-  const resolvedEntry = charactersDirectories.resolveCharacterEntry(characterName, gameId2);
+function findCharacterCoverFilePath(characterName, gameId2 = gamesSettings.getActiveGameScopeId(), modsPath = gamesSettings.getModsPath(gameId2), knownEntry = null) {
+  const resolvedEntry = knownEntry || charactersDirectories.resolveCharacterEntry(characterName, gameId2);
   const aliases = charactersCatalog.getCharacterAliasCandidates(characterName, gameId2, resolvedEntry);
   const pathAliases = aliases.filter(charactersSkins.isSafeAppearancePathSegment);
   for (const alias of pathAliases) {
@@ -118,11 +118,11 @@ function findCharacterCoverFilePath(characterName, gameId2 = gamesSettings.getAc
   }
   return null;
 }
-function getCharacterCoverUrl(characterName, gameId2 = gamesSettings.getActiveGameScopeId()) {
+function getCharacterCoverUrl(characterName, gameId2 = gamesSettings.getActiveGameScopeId(), knownEntry = null) {
   try {
-    const resolvedEntry = charactersDirectories.resolveCharacterEntry(characterName, gameId2);
+    const resolvedEntry = knownEntry || charactersDirectories.resolveCharacterEntry(characterName, gameId2);
     const canonicalCharacterName = resolvedEntry?.displayName || charactersDirectories.getCanonicalCharacterConfigKey(characterName, gameId2);
-    const coverFilePath = findCharacterCoverFilePath(canonicalCharacterName, gameId2);
+    const coverFilePath = findCharacterCoverFilePath(canonicalCharacterName, gameId2, gamesSettings.getModsPath(gameId2), resolvedEntry);
     if (coverFilePath && fs.existsSync(coverFilePath)) {
       const ext = path.extname(coverFilePath).toLowerCase();
       const mime = {

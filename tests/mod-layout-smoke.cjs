@@ -3,6 +3,21 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 module.exports = async ({ electron, evaluate, waitFor, captureUI, window, mods, handlers, passed }) => {
+  async function openContextRename(selector) {
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: innerWidth - 20, clientY: innerHeight - 20 }))`);
+    await waitFor(`!!document.querySelector('.mod-context-menu')`, 'rename context menu');
+    assert.ok(await evaluate(`document.querySelector('.mod-context-menu').getBoundingClientRect().bottom <= innerHeight`), 'Context menu stays inside the window');
+    await evaluate(`[...document.querySelectorAll('.mod-context-menu button')].find(button => button.textContent.trim() === '重命名').click()`);
+    await waitFor(`!!document.querySelector('.mod-rename-dialog input')`, 'context rename dialog');
+  }
+  async function setRenameDraft(name) {
+    await evaluate(`(() => { const input = document.querySelector('.mod-rename-dialog input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, ${JSON.stringify(name)}); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  }
+  async function saveContextRename(name) {
+    await setRenameDraft(name);
+    await evaluate(`document.querySelector('.mod-rename-dialog').requestSubmit()`);
+    await waitFor(`!document.querySelector('.mod-rename-dialog')`, 'context rename saved');
+  }
   async function checkDetailControls(mode) {
     const selected = mode === 'list' ? '.mod-row.selected' : '.mod-gallery-card.selected';
     const name = await evaluate(`document.querySelector(${JSON.stringify(selected)}).dataset.modName`);
@@ -49,6 +64,22 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, mods, 
   assert.ok(await evaluate(`document.querySelector('.hotkey-section').getBoundingClientRect().bottom < innerHeight`), 'Hotkeys visible without scrolling past empty preview');
   await checkDetailControls('list');
 
+  await evaluate(`window.originalClipboardWriteText = navigator.clipboard.writeText; navigator.clipboard.writeText = async text => { window.copiedModPath = text; }; void 0;`);
+  try {
+    for (const [name, folder] of [['日常穿搭', '日常穿搭'], ['花火之夜', 'DISABLED_花火之夜']]) {
+      await evaluate(`document.querySelector('.mod-row[data-mod-name="${name}"]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: innerWidth - 20, clientY: innerHeight - 20 }))`);
+      await waitFor(`!!document.querySelector('.mod-context-menu')`, 'copy path context menu');
+      assert.ok(await evaluate(`document.querySelector('.mod-context-menu').getBoundingClientRect().bottom <= innerHeight`), 'Context menu with copy path stays inside the window');
+      if (name === '日常穿搭') await captureUI('mod-context-copy-path.png');
+      await evaluate(`[...document.querySelectorAll('.mod-context-menu button')].find(button => button.textContent.trim() === '复制路径').click()`);
+      await waitFor(`!document.querySelector('.mod-context-menu') && document.querySelector('.toast-success')?.textContent === '路径已复制'`, 'path copied and menu closed');
+      assert.equal(await evaluate('window.copiedModPath'), path.join(mods, '安可', folder), 'Copies the right-clicked Mod full path, including its disabled prefix');
+    }
+  } finally {
+    await evaluate(`navigator.clipboard.writeText = window.originalClipboardWriteText; delete window.originalClipboardWriteText; delete window.copiedModPath;`);
+  }
+  passed('Mod context menu copies the actual full path of enabled and disabled Mods and shows confirmation');
+
   const beforeSearch = await evaluate(`document.querySelector('.mod-search-input').getBoundingClientRect().width`);
   await evaluate(`(() => { const input = document.querySelector('.mod-search-input'); input.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'Exce'); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   await waitFor(`document.querySelectorAll('.mod-row').length === 1`, 'search narrows rows');
@@ -72,6 +103,33 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, mods, 
   await evaluate(`document.querySelector('.mod-detail-rename input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
   await waitFor(`!!document.querySelector('.mod-detail-heading')`, 'rename cancelled');
 
+  await evaluate(`document.querySelector('.mod-gallery-collapse-btn').click()`);
+  await waitFor(`document.querySelector('.mod-detail-panel').classList.contains('collapsed')`, 'rename with details collapsed');
+  await openContextRename('.mod-row[data-mod-name="花火之夜"]');
+  assert.equal(await evaluate(`document.querySelector('.mod-rename-dialog input').value`), '花火之夜');
+  assert.equal(await evaluate(`document.querySelector('.mod-row.selected').dataset.modName`), 'Exce - Chisa', 'Rename targets the right-clicked Mod rather than the selected Mod');
+  assert.equal(await evaluate(`document.activeElement === document.querySelector('.mod-rename-dialog input')`), true);
+  await captureUI('mod-context-rename.png');
+  await setRenameDraft('   ');
+  assert.equal(await evaluate(`document.querySelector('.mod-rename-dialog [type="submit"]').disabled`), true);
+  for (const [name, error] of [['测试模组', '目标名称已存在'], ['bad/name', '包含不支持的路径字符']]) {
+    await setRenameDraft(name);
+    await evaluate(`document.querySelector('.mod-rename-dialog').requestSubmit()`);
+    await waitFor(`document.querySelector('.toast-error')?.textContent.includes(${JSON.stringify(error)})`, 'rename validation');
+    assert.ok(fs.existsSync(path.join(mods, '安可', 'DISABLED_花火之夜')));
+    assert.ok(await evaluate(`!!document.querySelector('.mod-rename-dialog')`), 'Failed rename remains editable');
+  }
+  const originalIni = fs.readFileSync(path.join(mods, '安可', 'DISABLED_花火之夜', 'mod.ini'), 'utf8');
+  await saveContextRename(' 花火改名 ');
+  await waitFor(`!!document.querySelector('.mod-row[data-mod-name="花火改名"]')`, 'disabled Mod row renamed');
+  assert.equal(fs.existsSync(path.join(mods, '安可', 'DISABLED_花火之夜')), false);
+  assert.equal(fs.existsSync(path.join(mods, '安可', '花火改名')), false, 'Rename preserves the disabled state');
+  assert.equal(fs.readFileSync(path.join(mods, '安可', 'DISABLED_花火改名', 'mod.ini'), 'utf8'), originalIni);
+  await openContextRename('.mod-row[data-mod-name="花火改名"]');
+  await saveContextRename('花火之夜');
+  await evaluate(`${row}.click()`);
+  await waitFor(`document.querySelector('.mod-detail-heading')?.textContent.includes('Exce - Chisa')`, 'details restored after rename');
+
   window.setMinimumSize(900, 600);
   window.setSize(1000, 700);
   await waitFor(`innerWidth <= 1000`, 'compact window');
@@ -83,6 +141,20 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, mods, 
   assert.ok(await evaluate(`document.querySelector('.mod-detail-actions').getBoundingClientRect().bottom <= innerHeight`), 'Bottom actions are reachable');
   await evaluate(`document.querySelector('.view-mode-toggle').click()`);
   await waitFor(`!!document.querySelector('.view-mode-gallery .mod-gallery-card')`, 'gallery still works');
+  await openContextRename('.mod-gallery-card[data-mod-name="Exce - Chisa"]');
+  await setRenameDraft('取消的名称');
+  await evaluate(`document.querySelector('.mod-rename-dialog input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
+  await waitFor(`!document.querySelector('.mod-rename-dialog')`, 'context rename cancelled');
+  assert.ok(fs.existsSync(path.join(mods, '安可', 'Exce - Chisa')));
+  assert.equal(fs.existsSync(path.join(mods, '安可', '取消的名称')), false);
+  await openContextRename('.mod-gallery-card[data-mod-name="Exce - Chisa"]');
+  await saveContextRename('Exce - Chisa 改名');
+  assert.ok(fs.existsSync(path.join(mods, '安可', 'Exce - Chisa 改名')), 'Gallery rename preserves the enabled state');
+  await waitFor(`!!document.querySelector('.mod-gallery-card[data-mod-name="Exce - Chisa 改名"]')`, 'gallery Mod renamed');
+  await openContextRename('.mod-gallery-card[data-mod-name="Exce - Chisa 改名"]');
+  await saveContextRename('Exce - Chisa');
+  await evaluate(`document.querySelector('.mod-gallery-card[data-mod-name="Exce - Chisa"]').click()`);
+  await waitFor(`document.querySelector('.mod-detail-heading')?.textContent.includes('Exce - Chisa')`, 'gallery selection restored');
   await captureUI('mod-layout-gallery.png');
   window.setSize(1440, 960);
   await waitFor(`innerWidth === 1440`, 'desktop gallery');
@@ -101,5 +173,6 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, mods, 
   assert.ok(await evaluate(`document.querySelector('.mod-detail-preview').getBoundingClientRect().height <= innerHeight * .43`), 'Portrait preview height is bounded');
   assert.equal(await evaluate(`getComputedStyle(document.querySelector('.mod-detail-preview img')).objectFit`), 'contain');
   await captureUI('mod-layout-preview.png');
+  passed('Mod context rename works in list/gallery with collapsed details, targets the clicked Mod, preserves files and enabled state, rejects empty/duplicate/invalid names and supports cancellation');
   passed('Mod workspace: empty and portrait previews, readable rows, search/sort/toggle/filter/rename; both modes support drag/keyboard resizing, saved widths, reset, collapse without a gutter and click-to-reopen');
 };

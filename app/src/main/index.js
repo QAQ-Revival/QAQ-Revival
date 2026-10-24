@@ -5,7 +5,7 @@ const path = require("path");
 const fs = require("fs");
 
 // Resolve the shared profile before taking its lock, including direct launches.
-const localProfile = process.env.QAQM_USER_DATA || path.join(electron.app.getPath("appData"), "QAQ-Revival");
+const localProfile = process.env.QAQR_USER_DATA || process.env.QAQM_USER_DATA || path.join(electron.app.getPath("appData"), "QAQ-Revival");
 fs.mkdirSync(localProfile, {
   recursive: true
 });

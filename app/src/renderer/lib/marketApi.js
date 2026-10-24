@@ -2,7 +2,7 @@ import { t } from "../../shared/i18n/index.mjs";
 const PRIMARY_SERVER_URL = "https://qaqm.top";
 const BARE_FALLBACK_SERVER_URL = "http://129.211.14.231:18080";
 const RETIRED_DIRECT_FALLBACK_HOST = "direct.qaqm.top";
-const QAQM_HOSTS = new Set([
+const QAQR_HOSTS = new Set([
   "qaqm.top",
   "www.qaqm.top",
   RETIRED_DIRECT_FALLBACK_HOST,
@@ -30,7 +30,7 @@ function isQaqmServiceUrl(value) {
     const url = new URL(normalizeApiBaseUrl(value));
     return (
       (url.protocol === "https:" || url.protocol === "http:") &&
-      QAQM_HOSTS.has(url.hostname)
+      QAQR_HOSTS.has(url.hostname)
     );
   } catch {
     return false;
@@ -211,19 +211,19 @@ async function runSyncFallbackChain({ userUrl, syncOnce, secureOnly = false }) {
     const url = candidates[i];
     let result;
     try {
-      console.log(`[QAQM Fallback][renderer] 尝试同步服务器: ${url}`);
+      console.log(`[QAQR Fallback][renderer] 尝试同步服务器: ${url}`);
       result = await syncOnce(url);
     } catch (err) {
       result = {
         error: err?.message || String(err),
       };
       console.warn(
-        `[QAQM Fallback][renderer] ${url} 同步异常: ${result.error}`,
+        `[QAQR Fallback][renderer] ${url} 同步异常: ${result.error}`,
       );
     }
     if (i === 0) firstResult = result;
     if (!shouldEscalateToNextCandidate(result)) {
-      console.log(`[QAQM Fallback][renderer] 命中同步服务器: ${url}`);
+      console.log(`[QAQR Fallback][renderer] 命中同步服务器: ${url}`);
       return {
         ...result,
         usedUrl: url,
@@ -233,7 +233,7 @@ async function runSyncFallbackChain({ userUrl, syncOnce, secureOnly = false }) {
       };
     }
     console.warn(
-      `[QAQM Fallback][renderer] ${url} 同步失败，切换下一个候选: ${result?.syncError || result?.error || "unknown"}`,
+      `[QAQR Fallback][renderer] ${url} 同步失败，切换下一个候选: ${result?.syncError || result?.error || "unknown"}`,
     );
   }
   return {
@@ -283,7 +283,7 @@ async function fetchWithDirectFallback(baseUrl, path, options = {}) {
     let timeout = null;
     try {
       console.log(
-        `[QAQM Fallback][renderer] 尝试请求: ${candidate}${normalizedPath}`,
+        `[QAQR Fallback][renderer] 尝试请求: ${candidate}${normalizedPath}`,
       );
       const requestOptions = {
         ...fetchOptions,
@@ -316,7 +316,7 @@ async function fetchWithDirectFallback(baseUrl, path, options = {}) {
             }),
           );
         console.warn(
-          `[QAQM Fallback][renderer] ${candidate} 返回 ${response.status}，切换下一个候选`,
+          `[QAQR Fallback][renderer] ${candidate} 返回 ${response.status}，切换下一个候选`,
         );
         continue;
       }
@@ -333,11 +333,11 @@ async function fetchWithDirectFallback(baseUrl, path, options = {}) {
             }),
           );
         console.warn(
-          `[QAQM Fallback][renderer] ${candidate} 返回非 JSON 响应，切换下一个候选`,
+          `[QAQR Fallback][renderer] ${candidate} 返回非 JSON 响应，切换下一个候选`,
         );
         continue;
       }
-      console.log(`[QAQM Fallback][renderer] 命中请求服务器: ${candidate}`);
+      console.log(`[QAQR Fallback][renderer] 命中请求服务器: ${candidate}`);
       return {
         response,
         serverUrl: candidate,
@@ -347,7 +347,7 @@ async function fetchWithDirectFallback(baseUrl, path, options = {}) {
     } catch (error) {
       if (!firstError) firstError = error;
       console.warn(
-        `[QAQM Fallback][renderer] ${candidate} 请求失败: ${error?.message || error}`,
+        `[QAQR Fallback][renderer] ${candidate} 请求失败: ${error?.message || error}`,
       );
     } finally {
       if (timeout) clearTimeout(timeout);

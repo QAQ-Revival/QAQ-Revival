@@ -145,6 +145,7 @@ function sortCharacterEntries(entries, gameId2 = gamesSettings.getActiveGameScop
 function resolveCharacterEntryDirect(characterName, gameId2 = gamesSettings.getActiveGameScopeId()) {
   if (!charactersSkins.isSafeAppearancePathSegment(characterName)) return null;
   const modsPath = gamesSettings.getModsPath(gameId2);
+  if (gameId2 === "arknights") require("../games/arknights/service.cjs").validateLibrary(modsPath);
   const characterBasePath = modsNevernessPaks.getCharacterDirectoryBasePath(modsPath, gameId2);
   if (!characterBasePath || !fs.existsSync(characterBasePath)) return null;
   const mappingEntry = charactersCatalog.getCharacterMappingEntry(characterName, gameId2);
@@ -224,6 +225,7 @@ function resolveCanonicalCharacterInstallTarget(characterName, gameId2 = gamesSe
   const characterBasePath = modsNevernessPaks.getCharacterDirectoryBasePath(modsPath, gameId2, {
     ensure
   });
+  if (gameId2 === "arknights") require("../games/arknights/service.cjs").validateLibrary(modsPath);
   if (!characterBasePath) {
     return {
       characterName: canonicalCharacterName,
@@ -399,6 +401,7 @@ function shouldHideForeignDefaultCharacterFolder(modsPath, characterName, gameId
   }
 }
 function ensureDefaultCharacterFolders(modsPath, gameId2 = gamesSettings.getActiveGameScopeId()) {
+  if (gameId2 === "arknights") require("../games/arknights/service.cjs").validateLibrary(modsPath);
   const characterBasePath = modsNevernessPaks.getCharacterDirectoryBasePath(modsPath, gameId2, {
     ensure: true
   });
@@ -469,7 +472,7 @@ function getCharacterListResponse(modsPath, gameId2 = gamesSettings.getActiveGam
     modCount: entry.modCount,
     enabledCount: entry.enabledCount,
     skinCount: charactersSkins.getCharacterOfficialSkinCount(entry.displayName, gameId2),
-    coverUrl: charactersImages.getCharacterCoverUrl(entry.displayName),
+    coverUrl: charactersImages.getCharacterCoverUrl(entry.displayName, gameId2, entry),
     searchTerms: charactersCatalog.getCharacterAliasCandidates(entry.displayName, gameId2, entry)
   }));
   return {

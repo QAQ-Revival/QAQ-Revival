@@ -21,11 +21,12 @@ electron.Menu.prototype.popup = function (options) {
   }
   options.callback?.();
 };
-const root = process.env.QAQM_TEST_RESULTS;
-const profile = process.env.QAQM_USER_DATA;
-const mods = path.join(root, ...(process.env.QAQM_SMOKE_SCOPE === 'persist' ? ['WWMI', 'Mods'] : ['wuwa-mods']));
-const endfield = path.join(root, ...(process.env.QAQM_SMOKE_SCOPE === 'persist' ? ['EFMI', 'Mods'] : ['endfield-mods']));
+const root = process.env.QAQR_TEST_RESULTS;
+const profile = process.env.QAQR_USER_DATA;
+const mods = path.join(root, ...(process.env.QAQR_SMOKE_SCOPE === 'persist' ? ['WWMI', 'Mods'] : ['wuwa-mods']));
+const endfield = path.join(root, ...(process.env.QAQR_SMOKE_SCOPE === 'persist' ? ['EFMI', 'Mods'] : ['endfield-mods']));
 const loader = path.join(root, 'XXMI Launcher.exe');
+const officialLauncher = path.join(root, 'official', 'launcher.exe');
 const fixerExe = path.join(root, "独立修复器 & Tester's tool.exe");
 const replacementFixerExe = path.join(root, '另一个修复器.exe');
 const attachmentRequests = [], externalLinks = [];
@@ -40,6 +41,8 @@ const protectedData = Buffer.concat([Buffer.from([2, 0]), Buffer.from('AbcdEF12'
 const protectedLink = 'https://mega.nz/#P!' + Buffer.concat([protectedData, crypto.createHmac('sha256', protectedDerived.subarray(32)).update(protectedData).digest()]).toString('base64url');
 fs.mkdirSync(profile, { recursive: true });
 fs.writeFileSync(loader, 'Synthetic test fixture, never executed');
+fs.mkdirSync(path.dirname(officialLauncher), { recursive: true });
+fs.writeFileSync(officialLauncher, 'Synthetic official launcher, never executed');
 fs.writeFileSync(fixerExe, 'Synthetic fixer, never executed');
 fs.writeFileSync(replacementFixerExe, 'Synthetic replacement fixer, never executed');
 app.setPath('userData', profile);
@@ -60,16 +63,16 @@ fs.writeFileSync(path.join(profile, 'config.json'), JSON.stringify({
   persistBridgeEnabled: false, closeBehavior: 'exit', serverUrl: 'http://127.0.0.1:9',
   independentFixerPaths: { 'wuthering-waves': path.join(root, 'missing-fixer.exe'), endfield: path.join(root, 'missing-endfield-fixer.exe') },
   games: [
-    { id: 'wuthering-waves', name: '鸣潮', shortName: '鸣潮', modFolderPath: mods, modLoaderPath: loader, launchMode: 'WWMI', supportedLaunchModes: ['WWMI', 'XXMI'] },
-    { id: 'endfield', name: '明日方舟终末地', shortName: '终末地', modFolderPath: endfield, modLoaderPath: loader, launchMode: 'EFMI', supportedLaunchModes: ['EFMI', 'XXMI'] },
-    ...(process.env.QAQM_SMOKE_SCOPE === 'hidden-characters' ? [{ id: 'neverness-to-everness', name: '异环', shortName: '异环',
+    { id: 'wuthering-waves', name: '鸣潮', shortName: '鸣潮', modFolderPath: mods, modLoaderPath: loader, officialLauncherPath: path.join(root, 'missing-official', 'launcher.exe'), launchMode: 'WWMI', supportedLaunchModes: ['WWMI', 'XXMI'] },
+    { id: 'endfield', name: '明日方舟终末地', shortName: '终末地', modFolderPath: endfield, modLoaderPath: loader, officialLauncherPath: officialLauncher, launchMode: 'EFMI', supportedLaunchModes: ['EFMI', 'XXMI'] },
+    ...(process.env.QAQR_SMOKE_SCOPE === 'hidden-characters' ? [{ id: 'neverness-to-everness', name: '异环', shortName: '异环',
       gamePath: path.join(root, 'nte-game', 'NTELauncher.exe'), modFolderPath: path.join(root, 'nte-mods'), nevernessDx12DisabledModsDir: path.join(root, 'nte-disabled'),
       launchMode: 'NEMI', supportedLaunchModes: ['NEMI', 'XXMI'] }] : [])
   ]
 }));
 fs.writeFileSync(path.join(profile, 'skin-config.json'), JSON.stringify({ activeSkinId: 'supporter', activatedSkins: [{ skinId: 'supporter', skinName: '旧功能包', cssVariables: { '--color-accent-primary': '#000000' } }] }));
-if (process.env.QAQM_SMOKE_SCOPE === 'persist') require('./persist-smoke.cjs').prepare({ profile, mods, endfield });
-if (process.env.QAQM_SMOKE_SCOPE === 'translation') {
+if (process.env.QAQR_SMOKE_SCOPE === 'persist') require('./persist-smoke.cjs').prepare({ profile, mods, endfield });
+if (process.env.QAQR_SMOKE_SCOPE === 'translation') {
   fs.writeFileSync(path.join(profile, 'hotkeys.json'), JSON.stringify({
     '安可/GroupedMod': { version: 8, scanned: true, hotkeys: [{ description: 'old merged cache', keys: ['8'] }] }
   }));
@@ -225,6 +228,17 @@ runtimeRequire.cache[launchModulePath].exports = {
   } })
 };
 const antiCrashRequests = [];
+const arknightsComponentPath = runtimeRequire.resolve('./out/main/games/arknights/component.cjs');
+const arknightsComponent = runtimeRequire(arknightsComponentPath);
+runtimeRequire.cache[arknightsComponentPath].exports = { ...arknightsComponent,
+  runNative: async args => {
+    if (args[0] === '--launch') {
+      launchRequests.push({ arknights: true, args });
+      return { success: true, runtimePending: true };
+    }
+    return arknightsComponent.runNative(args);
+  }
+};
 const steamBridgeFixture = require('./steam-bridge-smoke.cjs').fixture(root);
 const steamBridgeModulePath = runtimeRequire.resolve('./out/main/games/steam/bridge.cjs');
 const steamBridgeModule = runtimeRequire(steamBridgeModulePath);
@@ -309,8 +323,9 @@ async function main() {
   const initial = snapshot(mods);
   // Exercise production's default AppData/QAQ-Revival resolution without using real data.
   app.setPath('appData', path.dirname(profile));
+  delete process.env.QAQR_USER_DATA;
   delete process.env.QAQM_USER_DATA;
-  if (process.env.QAQM_SMOKE_SCOPE === 'persist') require('./persist-smoke.cjs').watchStartup(mods);
+  if (process.env.QAQR_SMOKE_SCOPE === 'persist') require('./persist-smoke.cjs').watchStartup(mods);
   runtimeRequire('./out/main/index.js');
   assert.equal(app.getPath('userData'), profile);
   assert.equal(app.getPath('sessionData'), profile);
@@ -321,87 +336,87 @@ async function main() {
   await waitFor(`!!document.querySelector('.game-selector-trigger') && [...document.querySelectorAll('button')].some(b => b.textContent.trim() === '刷新')`, 'main UI');
   assert.equal(await evaluate(`!!document.querySelector('.disclaimer-overlay, .startup-notice-overlay')`), false);
   assert.equal(await evaluate(`localStorage.getItem('hideDisclaimer_v3')`), null);
-  if (process.env.QAQM_SMOKE_SCOPE === 'overlay-activity') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'overlay-activity') {
     await require('./overlay-activity-smoke.cjs')({ electron, root, mods, handlers, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'card-images') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'card-images') {
     await require('./card-images-smoke.cjs')({ evaluate, waitFor, captureUI, window, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'mod-sites') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'mod-sites') {
     await require('./mod-sites-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, handlers, passed, attachmentBytes });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'persist') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'persist') {
     await require('./persist-smoke.cjs')({ evaluate, waitFor, captureUI, window, profile, mods, endfield, handlers, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'genshin-check') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'genshin-check') {
     await require('./genshin-check-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, handlers, passed, launchRequests });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'genshin-anticrash') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'genshin-anticrash') {
     await require('./genshin-anticrash-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, handlers, passed, launchRequests, antiCrashRequests,
       setLaunchFailure: value => { launchFailure = value; } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'game-settings') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'game-settings') {
     await require('./game-settings-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, handlers, passed, launchRequests,
       setSelection: result => { nextFixerSelection = result; } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'steam-bridge') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'steam-bridge') {
     await require('./steam-bridge-smoke.cjs').run({ electron, evaluate, waitFor, captureUI, passed, fixture: steamBridgeFixture });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'genshin') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'genshin') {
     await require('./genshin-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, profile, mods, handlers, passed, launchRequests,
       setSelection: result => { nextFixerSelection = result; } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
   assert.ok(await evaluate(`!('getDisclaimerDismissed' in window.api) && !('setDisclaimerDismissed' in window.api)`));
-  if (process.env.QAQM_SMOKE_SCOPE === 'mod-layout') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'mod-layout') {
     await require('./mod-layout-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, mods, handlers, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'translation') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'translation') {
     await require('./hotkey-translation-smoke.cjs')({ electron, root, profile, mods, handlers, passed, manager: { evaluate, waitFor, captureUI, window } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'hidden-characters') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'hidden-characters') {
     await require('./hidden-characters-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, profile, mods, handlers, passed, nativeMenus, selectNativeAction: action => { nextNativeMenuAction = action; } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'character-images') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'character-images') {
     await require('./character-image-cache-smoke.cjs')({ electron, evaluate, waitFor, profile, handlers, passed,
       requests: characterImageRequests, imageBytes: characterImageBytes, setOffline: value => { characterImagesOffline = value; } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'character-skins') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'character-skins') {
     await require('./character-skins-smoke.cjs')({ electron, evaluate, waitFor, profile, mods, handlers, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'skin-cover-live') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'skin-cover-live') {
     await require('./skin-cover-live-smoke.cjs')({ electron, liveImageFetch, evaluate, waitFor, captureUI, mods, profile, handlers, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'file-drop') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'file-drop') {
     await require('./file-drop-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
@@ -413,55 +428,76 @@ async function main() {
   assert.equal(await evaluate(`'getTutorialUrl' in window.api || 'getAnnouncements' in window.api`), false);
   await require('./window-controls-smoke.cjs')({ evaluate, waitFor, window, handlers, passed });
   await require('./sidebar-width-smoke.cjs')({ evaluate, waitFor, window, passed });
-  if (process.env.QAQM_SMOKE_SCOPE === 'window-layout') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'window-layout') {
     await evaluate(`document.documentElement.classList.remove('qaqm-compat-level-3', 'qaqm-compat-level-2')`);
     await captureUI('window-layout.png');
     window.setSize(1000, 640);
     await evaluate(`document.documentElement.style.setProperty('--ui-scale', '1.4')`);
     await waitFor(`document.querySelector('.sidebar-resize-handle')?.getAttribute('aria-valuenow') === '280'`, 'scaled sidebar minimum');
+    assert.equal(await evaluate(`(() => {
+      const buttons = [...document.querySelectorAll('.launch-actions .btn')];
+      const [direct, xxmi, official] = buttons.map(button => button.getBoundingClientRect());
+      const card = document.querySelector('.launch-actions').getBoundingClientRect();
+      return Math.abs(xxmi.top - official.top) < 1 && xxmi.top >= direct.bottom && xxmi.right <= official.left
+        && buttons.every(button => {
+          const box = button.getBoundingClientRect(), label = button.querySelector('.launch-button-label');
+          return box.left >= card.left && box.right <= card.right && label.scrollWidth <= label.clientWidth + 1
+            && label.clientHeight <= Math.ceil(parseFloat(getComputedStyle(label).lineHeight)) + 1;
+        });
+    })()`), true, 'compact launch controls stay aligned and keep their labels visible');
     await captureUI('window-layout-compact.png');
     await evaluate(`document.querySelector('.sidebar-toggle').click()`);
     await captureUI('window-layout-collapsed.png');
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'post-links') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'post-links') {
     await require('./post-links-smoke.cjs')({ evaluate, waitFor, captureUI, window, root, passed, handlers, attachmentRequests, attachmentBytes, externalLinks, protectedLink, protectedNormal, revivalChildren, setSelection: result => { nextFixerSelection = result; } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'market-scope') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'market-scope') {
     await require('./market-request-scope-smoke.cjs')({ evaluate, waitFor, window, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0);
     return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'imports') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'imports') {
     await require('./import-group-smoke.cjs')({ evaluate, waitFor, captureUI, window, root, passed, setSelection: result => { nextFixerSelection = result; } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0);
     return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'sources') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'sources') {
     await require('./source-preferences-smoke.cjs')({ evaluate, waitFor, captureUI, window, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0);
     return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'sorting') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'sorting') {
     await require('./sortable-order-smoke.cjs')({ evaluate, waitFor, captureUI, window, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0);
     return;
   }
-  if (process.env.QAQM_SMOKE_SCOPE === 'settings') {
+  if (process.env.QAQR_SMOKE_SCOPE === 'settings') {
     await require('./settings-smoke.cjs')({ evaluate, waitFor, captureUI, window, passed, handlers, root, setSelection: result => { nextFixerSelection = result; } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0);
     return;
   }
+  if (process.env.QAQR_SMOKE_SCOPE === 'arknights') {
+    await require('./arknights-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, profile, handlers, passed, launchRequests });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQR_SMOKE_SCOPE === 'wuwa-gacha') {
+    await require('./wuwa-gacha-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, profile, handlers, passed, setSelection: result => { nextFixerSelection = result; } });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
   const navigation = await evaluate(`Array.from(document.querySelectorAll('.nav-item')).map(item => item.textContent)`);
-  assert.equal(navigation.length, 3, JSON.stringify(navigation));
+  assert.equal(navigation.length, 4, JSON.stringify(navigation));
   assert.match(navigation[1], /Mod 下载/);
   assert.ok(navigation.every(label => !/支持主包|个性化/.test(label)));
   for (const tab of ['support', 'personalization']) {
@@ -652,12 +688,13 @@ async function main() {
   await waitFor(`!document.querySelector('#sidebar-game-menu')`, 'escape closes menu');
   await evaluate(`document.querySelector('.sidebar-toggle').click()`);
   await delay(150);
+  assert.equal(await evaluate(`!!document.querySelector('.sidebar.collapsed [aria-label="官方启动"]:not(:disabled)')`), true);
   await evaluate(`document.querySelector('.game-selector-trigger').click()`);
   await waitFor(`!!document.querySelector('#sidebar-game-menu')`, 'collapsed selector');
   passed('Game dropdown supports Escape and remains usable with the sidebar collapsed');
   await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.querySelector('.sidebar-header').click()`);
   await waitFor(`!document.querySelector('.sidebar.collapsed')`, 'sidebar expanded');
-  assert.equal(await evaluate(`document.querySelectorAll('.launch-actions .btn').length`), 2);
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.launch-actions .btn')].map(button => button.getAttribute('aria-label'))`), ['直接启动', 'XXMI 启动', '官方启动']);
   assert.equal(await evaluate(`document.querySelectorAll('.launch-actions [aria-label="游戏设置"]').length`), 1);
   assert.equal(await evaluate(`document.querySelector('.sidebar').innerText.includes('观看使用教程')`), false);
   assert.equal(await evaluate(`document.querySelectorAll('.sidebar .mode-btn').length`), 0);
@@ -670,7 +707,14 @@ async function main() {
   await clickText('XXMI 启动');
   await waitFor(`!document.querySelector('[aria-label="XXMI 启动"]').disabled`, 'XXMI launch completed');
   assert.deepEqual(launchRequests.at(-1).args, []);
-  passed('Two launch buttons replace tutorial/mode selection: direct uses EFMI, XXMI opens GUI');
+  await clickText('官方启动');
+  await waitFor(`!document.querySelector('[aria-label="官方启动"]').disabled`, 'official launch completed');
+  assert.equal(launchRequests.at(-1).file, officialLauncher);
+  assert.equal(launchRequests.at(-1).cwd, path.dirname(officialLauncher));
+  assert.deepEqual(launchRequests.at(-1).args, []);
+  assert.deepEqual(launchRequests.at(-1).options, { requireElevation: false });
+  await captureUI('launch-controls.png');
+  passed('Three launch buttons: direct uses EFMI, XXMI opens its GUI, official opens only the official launcher');
   await handlers.get('game:switch')({}, 'wuthering-waves');
   await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('鸣潮')`, 'switched back to Wuwa');
   await clickText('直接启动');
@@ -680,13 +724,17 @@ async function main() {
   assert.equal((await handlers.get('launch-game')({}, { launchMode: 'DIRECT', gameId: 'endfield' })).success, false);
   assert.equal(launchRequests.length, requestCount);
   passed('Direct launch follows the active game; stale game launch requests are rejected');
+  await clickText('官方启动');
+  await waitFor(`document.querySelector('.launch-error')?.innerText.includes('未找到官方启动器')`, 'missing official launcher shown');
+  assert.equal(launchRequests.length, requestCount);
   launchFailure = true;
   await clickText('XXMI 启动');
   await waitFor(`document.querySelector('.launch-error')?.innerText.includes('用户取消管理员授权')`, 'launch failure shown');
   assert.equal(await evaluate(`document.querySelector('[aria-label="直接启动"]').disabled`), false);
-  passed('Launch errors are visible and both buttons become usable after cancellation');
+  assert.equal(await evaluate(`document.querySelector('[aria-label="官方启动"]').disabled`), false);
+  passed('Missing official paths never start a loader; launch errors release all three buttons');
   await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('Mod 下载')).click()`);
-  await waitFor(`document.querySelector('.mod-download-source-name')?.textContent === 'QAQM'`, 'default download source is QAQM');
+  await waitFor(`document.querySelector('.mod-download-source-name')?.textContent === 'QAQR'`, 'default download source is QAQR');
   await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
   await waitFor(`document.querySelectorAll('.mod-download-source-option').length === 8`, 'download source menu');
   assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option')].map(el => el.dataset.source)`), ['qaqm', 'kemono', 'pawchive', 'gamebanana', 'arca', 'loverslab', 'huiyue', 'keke']);
@@ -756,7 +804,7 @@ async function main() {
   assert.deepEqual(revivalRequests[0].args, []);
   assert.equal(revivalRequests[0].url, pawMegaFolder);
   assert.equal(revivalRequests[0].options.shell, false);
-  assert.ok(revivalRequests[0].file.endsWith('resources\\mega-worker\\QAQMMegaWorker.exe'));
+  assert.ok(revivalRequests[0].file.endsWith('resources\\mega-worker\\QAQRMegaWorker.exe'));
   await waitFor(`document.querySelector('.qaqm-download-item')?.textContent.includes('20%')`, 'MEGA progress in built-in manager');
   assert.equal(await evaluate(`Array.from(document.querySelectorAll('.qaqm-download-task-actions button')).some(button => button.textContent === '导入 Mod')`), false);
   assert.equal(await evaluate(`document.querySelectorAll('.qaqm-download-orb').length`), 0);

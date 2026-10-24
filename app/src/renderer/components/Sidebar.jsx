@@ -32,6 +32,9 @@ const Sidebar = React.memo(function Sidebar({
       label: t("navigation.presetSettings"),
       icon: "⚙️",
     },
+    ...(activeGame?.id === "wuthering-waves"
+      ? [{ id: "gacha", label: t("gacha.title"), icon: "✦" }]
+      : []),
   ];
   const sorting = useSortableOrder(menuItems, "qaqm.navigationOrder");
   function handleLogoClick(e) {

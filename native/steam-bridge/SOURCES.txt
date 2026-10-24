@@ -1,5 +1,0 @@
-Steam bridge core: https://github.com/QAQ-Revival/Steam-Bridge
-License: MIT (see LICENSE).
-Imported from the 0.3.0 core, including subsequent local QAQR process-management support.
-The QAQR host replaces the standalone WinForms manager with a JSON command interface.
-Core installation, backup, rollback, process tracking and original data paths are retained.

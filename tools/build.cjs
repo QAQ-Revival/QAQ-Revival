@@ -5,7 +5,7 @@ const root = path.resolve(__dirname, '..');
 const { electronVersion } = require('./release-config.json');
 const source = path.resolve(process.argv[2] || path.join(root, `.cache/electron-${electronVersion}-win32-x64`));
 const appManifest = require('../app/package.json');
-const target = path.resolve(process.env.QAQM_BUILD_DIR || path.join(root, 'build', 'QAQ-Revival-local'));
+const target = path.resolve(process.env.QAQR_BUILD_DIR || path.join(root, 'build', 'QAQ-Revival-local'));
 const buildRoot = path.join(root, 'build');
 const relativeTarget = path.relative(buildRoot, target);
 if (!relativeTarget || relativeTarget.startsWith('..') || path.isAbsolute(relativeTarget)) throw Error('Build target must be inside the workspace build directory');
@@ -13,17 +13,15 @@ const runtimeExe = 'electron.exe';
 if (source === target || !fs.existsSync(path.join(source, runtimeExe))) throw Error('Run node tools/prepare-release.cjs to download the official Electron runtime');
 const appBuild = require('node:child_process').spawnSync(process.execPath, [path.join(root, 'tools/build-app.cjs')], { stdio: 'inherit', windowsHide: true });
 if (appBuild.status !== 0) process.exit(appBuild.status || 1);
-const megaBuild = require('node:child_process').spawnSync(process.execPath, [path.join(root, 'tools/build-mega.cjs')], { stdio: 'inherit', windowsHide: true });
-if (megaBuild.status !== 0) process.exit(megaBuild.status || 1);
-const steamBuild = require('node:child_process').spawnSync(process.execPath, [path.join(root, 'tools/build-steam-bridge.cjs')], { stdio: 'inherit', windowsHide: true });
-if (steamBuild.status !== 0) process.exit(steamBuild.status || 1);
+const componentsBuild = require('node:child_process').spawnSync(process.execPath, [path.join(root, 'tools/build-components.cjs')], { stdio: 'inherit', windowsHide: true });
+if (componentsBuild.status !== 0) process.exit(componentsBuild.status || 1);
 if (fs.existsSync(target)) {
   const resolvedTarget = fs.realpathSync(target);
   const resolvedBuild = fs.realpathSync(buildRoot);
   const resolvedRelative = path.relative(resolvedBuild, resolvedTarget);
   if (!resolvedRelative || resolvedRelative.startsWith('..') || path.isAbsolute(resolvedRelative)) throw Error('Build target resolves outside the build directory');
-  for (const name of ['user-data', 'QAQM_DownloadCache']) {
-    if (fs.existsSync(path.join(target, name))) throw Error('Build directory contains user data; choose a fresh QAQM_BUILD_DIR');
+  for (const name of ['user-data', 'QAQR_DownloadCache', 'QAQM_DownloadCache']) {
+    if (fs.existsSync(path.join(target, name))) throw Error('Build directory contains user data; choose a fresh QAQR_BUILD_DIR');
   }
   fs.rmSync(target, { recursive: true, force: true });
 }
@@ -57,6 +55,7 @@ for (const [script, args] of [
 const resources = path.join(target, 'resources');
 fs.mkdirSync(resources, { recursive: true });
 fs.cpSync(path.join(root, 'runtime-resources'), resources, { recursive: true });
+fs.copyFileSync(path.join(root, 'build/native/key-helper/QaqrKeyHelper.exe'), path.join(resources, 'QaqrKeyHelper.exe'));
 // Replace generated application files so removed source modules do not survive a rebuild.
 // User data lives outside resources/app and is preserved.
 const appTarget = path.join(resources, 'app');

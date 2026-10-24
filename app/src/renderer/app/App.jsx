@@ -24,6 +24,7 @@ import {
 } from "../lib/authSession.js";
 import { ThemeProvider } from "./ThemeProvider.jsx";
 import { Sidebar } from "../components/Sidebar.jsx";
+import { useGameOrder } from "../hooks/useGameOrder.js";
 import { FloatingDownloadOrb } from "../features/downloads/FloatingDownloadOrb.jsx";
 import { PublishProgressFloat } from "../features/market/components/PublishProgressFloat.jsx";
 const CharacterView = lazyWithPreload(
@@ -41,6 +42,9 @@ const ModDownloadView = lazyWithPreload(
 );
 const PresetView = lazyWithPreload(
   () => import("../features/presets/PresetView.jsx"),
+);
+const GachaView = lazyWithPreload(
+  () => import("../features/gacha/GachaView.jsx"),
 );
 const MarketUpdateToast = React.lazy(
   () => import("../features/market/components/MarketUpdateToast.jsx"),
@@ -71,7 +75,14 @@ function App() {
   const [modViewKey, setModViewKey] = React.useState(0);
   const [pendingModMove, setPendingModMove] = React.useState(null);
   const [activeGame, setActiveGame] = React.useState(null);
-  const [games, setGames] = React.useState([]);
+  const activeGameIdRef = React.useRef(null);
+  const [allGames, setGames] = React.useState([]);
+  const gameOrder = useGameOrder(allGames);
+  const games = gameOrder.items;
+  React.useEffect(() => {
+    if (activeTab === "gacha" && activeGame?.id && activeGame.id !== "wuthering-waves")
+      setActiveTab("characters");
+  }, [activeTab, activeGame?.id]);
   const [runtimeInfo, setRuntimeInfo] = React.useState(null);
   const [devMode, setDevMode] = React.useState(false);
   const [showDevPasswordModal, setShowDevPasswordModal] = React.useState(false);
@@ -225,6 +236,7 @@ function App() {
         "presets",
         "settings",
         "game-settings",
+        "gacha",
       ].includes(tab)
     )
       return;
@@ -236,6 +248,7 @@ function App() {
       modmarket: [ModDownloadView.preload],
       presets: [PresetView.preload],
       settings: [SettingsView.preload],
+      gacha: [GachaView.preload],
     };
     (preloaders[tab] || []).forEach((fn) => {
       try {
@@ -278,6 +291,7 @@ function App() {
         window.api?.gameSwitch
       ) {
         const switchResult = await window.api.gameSwitch(targetGameId);
+        if (!switchResult?.success) return;
         if (switchResult?.success) {
           await refreshGameState();
           setGameKey((k2) => k2 + 1);
@@ -336,6 +350,17 @@ function App() {
     try {
       const result = await window.api.getConfig();
       if (result.success) {
+        const nextId = result.config.activeGame?.id || null;
+        if (activeGameIdRef.current && activeGameIdRef.current !== nextId) {
+          setSelectedCharacter(null);
+          setManagerTarget(null);
+          setPendingBatchItems(null);
+          setPendingBatchContext(null);
+          setPendingModMove(null);
+          setPendingMarketMod(null);
+          setMarketNewMods([]);
+        }
+        activeGameIdRef.current = nextId;
         setActiveGame(result.config.activeGame || null);
         setGames(result.config.games || []);
       }
@@ -907,7 +932,7 @@ function App() {
           setActiveTab={handleSetActiveTab}
           activeGame={activeGame}
           onGameSwitch={handleGameSwitch}
-          games={games}
+          games={allGames}
           collapsed={sidebarCollapsed}
           onToggleCollapse={handleToggleSidebar}
         />
@@ -986,8 +1011,16 @@ function App() {
                 key={activeGame?.id || "game-settings"}
               />
             )}
+            {activeTab === "gacha" && activeGame?.id === "wuthering-waves" && (
+              <GachaView />
+            )}
             {activeTab === "settings" && (
-              <SettingsView devMode={devMode} key={"system-settings"} />
+              <SettingsView
+                devMode={devMode}
+                games={games}
+                allGames={gameOrder.allItems}
+                key={"system-settings"}
+              />
             )}
           </React.Suspense>
         </div>

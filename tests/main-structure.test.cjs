@@ -13,10 +13,10 @@ test('a duplicate launch returns before loading application or translation servi
   const profile = fs.mkdtempSync(path.join(results, 'main-duplicate-'));
   const entry = path.join(main, 'index.js');
   const originalLoad = Module._load;
-  const previousProfile = process.env.QAQM_USER_DATA;
+  const previousProfile = process.env.QAQR_USER_DATA;
   const paths = {};
   let quit = false;
-  process.env.QAQM_USER_DATA = profile;
+  process.env.QAQR_USER_DATA = profile;
   Module._load = function (name, parent, isMain) {
     if (parent?.filename === entry) {
       if (name === 'electron') return { app: {
@@ -39,8 +39,8 @@ test('a duplicate launch returns before loading application or translation servi
   } finally {
     Module._load = originalLoad;
     delete require.cache[entry];
-    if (previousProfile === undefined) delete process.env.QAQM_USER_DATA;
-    else process.env.QAQM_USER_DATA = previousProfile;
+    if (previousProfile === undefined) delete process.env.QAQR_USER_DATA;
+    else process.env.QAQR_USER_DATA = previousProfile;
     fs.rmSync(profile, { recursive: true, force: true });
   }
 });
@@ -92,6 +92,34 @@ test('application services share current settings and preserve ordinary RAR extr
     const initial = await invoke('get-config');
     assert.equal(initial.success, true);
     assert(initial.config.games.some(game => game.id === 'wuthering-waves'));
+    // Visibility changes are atomic, retain game settings, and cannot strand selection.
+    const configStore = require(path.join(main, 'config/store.cjs'));
+    const originalConfig = configStore.currentConfig;
+    const saveConfig = configStore.saveConfig;
+    const hide = (gameId, hidden = true, nextGameId) => invoke('game:set-hidden', { gameId, hidden, nextGameId });
+    assert.equal((await hide('missing-game')).success, false);
+    assert.equal((await hide('endfield', 'true')).success, false);
+    configStore.saveConfig = () => false;
+    assert.equal((await hide('endfield')).success, false);
+    assert.equal(configStore.currentConfig, originalConfig);
+    configStore.saveConfig = saveConfig;
+    assert.equal((await hide('endfield', true, 'wuthering-waves')).activeGameId, 'wuthering-waves');
+    assert.equal((await invoke('game:switch', 'endfield')).success, false);
+    assert.equal((await invoke('game:list')).games.some(game => game.id === 'endfield'), false);
+    assert.equal((await invoke('persist-bridge-games')).games.some(game => game.id === 'endfield'), false);
+    const savedHidden = JSON.parse(fs.readFileSync(path.join(profile, 'config.json'), 'utf8'));
+    assert.deepEqual(savedHidden.games.find(game => game.id === 'endfield'), {
+      ...originalConfig.games.find(game => game.id === 'endfield'), hidden: true
+    });
+    for (const game of originalConfig.games.filter(game => !['endfield', 'wuthering-waves'].includes(game.id))) {
+      assert.equal((await hide(game.id)).success, true);
+    }
+    assert.equal((await hide('wuthering-waves')).success, false);
+    assert.equal(configStore.currentConfig.activeGameId, 'wuthering-waves');
+    assert.equal((await hide('endfield', false)).success, true);
+    assert.equal((await invoke('game:list')).games.some(game => game.id === 'endfield'), true);
+    configStore.currentConfig = originalConfig;
+    saveConfig(originalConfig);
     assert.equal((await invoke('settings:update-random-launch', { manager: false })).success, true);
     assert.equal((await invoke('get-config')).config.randomLaunch.manager, false);
     assert.equal((await invoke('game:get-settings', 'wuthering-waves')).game.id, 'wuthering-waves');
@@ -99,6 +127,36 @@ test('application services share current settings and preserve ordinary RAR extr
     assert.equal((await invoke('i18n:get-language')).language, 'zh-CN');
     assert.equal(JSON.parse(fs.readFileSync(path.join(profile, 'config.json'), 'utf8')).language, 'zh-CN');
     assert.equal((await invoke('dev:save-publish-config', {})).success, false);
+
+    const marketSettings = require(path.join(main, 'market/settings.cjs'));
+    assert.equal(marketSettings.getMarketDownloadCacheDir(), path.join(profile, 'QAQR_DownloadCache'));
+    const legacyCache = path.join(profile, 'QAQM_DownloadCache');
+    fs.mkdirSync(legacyCache);
+    fs.writeFileSync(path.join(legacyCache, 'saved.zip'), 'existing download');
+    assert.equal(marketSettings.getMarketDownloadCacheDir(), legacyCache);
+    fs.mkdirSync(path.join(profile, 'QAQR_DownloadCache'));
+    assert.equal(marketSettings.getMarketDownloadCacheDir(), path.join(profile, 'QAQR_DownloadCache'));
+    assert.equal(fs.readFileSync(path.join(legacyCache, 'saved.zip'), 'utf8'), 'existing download');
+
+    const batchScan = require(path.join(main, 'imports/batch-scan.cjs'));
+    const customCache = path.join(profile, 'custom-downloads');
+    marketSettings.saveMarketDownloadSettings({ cacheDir: customCache });
+    const cachePrefix = '12a84b2a1e56a294-';
+    for (const cache of [legacyCache, path.join(profile, 'QAQR_DownloadCache'), customCache]) {
+      assert.equal(batchScan.batchArchiveItem(path.join(cache, cachePrefix + '中文 Mod v1.2.7z')).name, '中文 Mod v1.2');
+      assert.equal(batchScan.batchArchiveItem(path.join(cache, cachePrefix + cachePrefix + 'Mod.7z')).name, cachePrefix + 'Mod');
+    }
+    assert.equal(batchScan.batchArchiveItem(path.join(profile, cachePrefix + 'Mod.7z')).name, cachePrefix + 'Mod');
+    assert.equal(batchScan.batchArchiveItem(path.join(customCache, '普通 Mod.7z')).name, '普通 Mod');
+
+    const helperPaths = require(path.join(main, 'overlay/helper-paths.cjs'));
+    const helper = path.join(profile, 'resources', 'QaqrKeyHelper.exe');
+    fs.mkdirSync(path.dirname(helper), { recursive: true });
+    fs.writeFileSync(helper, 'test helper');
+    assert.equal(helperPaths.getAutoOverlayCommandDefaults().overlayAutoReloadCommand, `"${helper}" f10`);
+    for (const name of ['QaqrKeyHelper.exe', 'QaqmKeyHelper.exe']) {
+      assert.equal(helperPaths.isManagedOverlayHelperCommand(`"D:\\fixture\\${name}" f10`, 'press_f10'), true);
+    }
 
     const unrar = path.join(profile, 'resources', 'UnRAR.exe');
     fs.mkdirSync(path.dirname(unrar), { recursive: true });

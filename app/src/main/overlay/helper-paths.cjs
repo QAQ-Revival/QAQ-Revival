@@ -19,13 +19,13 @@ function resolveBundledHelperPath(fileNames) {
 function isManagedOverlayHelperCommand(command, fileBaseName) {
   const normalized = String(command || "").trim().toLowerCase();
   if (!normalized) return true;
-  return normalized.includes(`${fileBaseName}.py`) || normalized.includes(`${fileBaseName}.ps1`) || normalized.includes("qaqmkeyhelper.exe");
+  return normalized.includes(`${fileBaseName}.py`) || normalized.includes(`${fileBaseName}.ps1`) || /qaq[mr]keyhelper\.exe/.test(normalized);
 }
 function getAutoOverlayCommandDefaults() {
-  const helperExePath = resolveBundledHelperPath("QaqmKeyHelper.exe");
+  const helperExePath = resolveBundledHelperPath("QaqrKeyHelper.exe");
   const f10ScriptPath = resolveBundledHelperPath("press_f10.ps1");
   const hotkeyScriptPath = resolveBundledHelperPath("press_hotkey.ps1");
-  if (helperExePath && /qaqmkeyhelper\.exe$/i.test(helperExePath)) {
+  if (helperExePath && /qaqrkeyhelper\.exe$/i.test(helperExePath)) {
     return {
       overlayAutoReloadCommand: `"${helperExePath}" f10`,
       overlayHotkeyCommandTemplate: `"${helperExePath}" hotkey "{hotkeyBase64}"`

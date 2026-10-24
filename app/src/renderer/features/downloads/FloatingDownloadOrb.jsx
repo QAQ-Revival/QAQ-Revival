@@ -37,7 +37,7 @@ function formatTaskError(message, code = "") {
   }
   if (
     /DIRECT_DOWNLOAD_REQUIRED|SPONSOR_REQUIRED/.test(code) ||
-    /全部档|最高档|高速下载|直链下载|赞助|QAQM Plus|DIRECT_DOWNLOAD_REQUIRED|SPONSOR_REQUIRED/i.test(
+    /全部档|最高档|高速下载|直链下载|赞助|QAQ[MR] Plus|DIRECT_DOWNLOAD_REQUIRED|SPONSOR_REQUIRED/i.test(
       raw,
     )
   ) {

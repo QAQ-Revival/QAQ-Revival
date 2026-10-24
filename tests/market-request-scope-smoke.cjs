@@ -53,7 +53,7 @@ module.exports = async ({ evaluate, waitFor, window, passed }) => {
     assert.deepEqual(requests, []);
     assert.deepEqual(await evaluate('window.__marketScope.requests'), []);
     await evaluate(`document.querySelector('.nav-item[aria-label="Mod 下载"]').click()`);
-    await waitFor(`document.querySelector('.mod-download-provider:not([hidden])')?.dataset.source === 'qaqm' && window.__marketScope.polls.size > 0`, 'active QAQM schedules polling');
+    await waitFor(`document.querySelector('.mod-download-provider:not([hidden])')?.dataset.source === 'qaqm' && window.__marketScope.polls.size > 0`, 'active QAQR schedules polling');
     await waitFor(`document.querySelectorAll('.mod-card').length > 0`, 'market mock response');
     await pause();
     assert.ok(requests.includes('/api/mods'));
@@ -61,18 +61,18 @@ module.exports = async ({ evaluate, waitFor, window, passed }) => {
     for (const pathname of ['/api/announcements', '/api/blocks']) assert.equal(rendererRequests.includes(pathname), false, pathname + ' must stay retired');
     for (const pathname of ['/api/mods/game-versions', '/api/mods/popular/today', '/api/mods/popular/week', '/api/mods/popular/month']) assert.ok(rendererRequests.includes(pathname), pathname + ' still supports market filters and sorting');
     assert.equal(await evaluate(`!!document.querySelector('.announcements-area, .dynamic-blocks-area') || document.body.textContent.includes('REMOTE_OPERATIONS_FIXTURE')`), false);
-    passed('QAQM market no longer requests or renders remote announcements and banners; game versions and popularity remain available');
+    passed('QAQR market no longer requests or renders remote announcements and banners; game versions and popularity remain available');
     await evaluate('window.__marketScope.runPoll().then(() => true)');
     assert.ok(requests.includes('/api/mods/sync-version'));
     await selectSource('kemono');
     await expectQuiet('Kemono selected');
     await evaluate(`window.api.gameSwitch('zzz')`);
-    await waitFor(`document.querySelector('.game-selector-trigger').textContent.includes('绝区零')`, 'game changed outside QAQM');
-    await expectQuiet('game change while QAQM hidden');
+    await waitFor(`document.querySelector('.game-selector-trigger').textContent.includes('绝区零')`, 'game changed outside QAQR');
+    await expectQuiet('game change while QAQR hidden');
     const before = requests.length;
     await selectSource('qaqm');
     await pause();
-    assert.ok(requests.length > before, 'returning to QAQM resumes sync');
+    assert.ok(requests.length > before, 'returning to QAQR resumes sync');
     // A probe that fails after leaving the page must not try fallback hosts.
     const respondingFetch = global.fetch;
     let rejectProbe;
@@ -89,11 +89,11 @@ module.exports = async ({ evaluate, waitFor, window, passed }) => {
     await evaluate(`document.querySelector('.sidebar-settings').click()`);
     await waitFor(`!!document.querySelector('.system-settings')`, 'leave downloads');
     const pendingCount = requests.length;
-    rejectProbe(new Error('Synthetic failed probe after leaving QAQM'));
+    rejectProbe(new Error('Synthetic failed probe after leaving QAQR'));
     await pendingPoll;
     assert.equal(requests.length, pendingCount, 'a retired poll must not try fallback hosts');
     await expectQuiet('settings page');
-    passed('QAQM request scope: no startup requests or poll; active QAQM syncs/polls, switching source, leaving page and changing game while hidden stop automatic requests');
+    passed('QAQR request scope: no startup requests or poll; active QAQR syncs/polls, switching source, leaving page and changing game while hidden stop automatic requests');
   } finally {
     global.fetch = originalFetch;
     await window.webContents.debugger.sendCommand('Page.removeScriptToEvaluateOnNewDocument', { identifier: script.identifier });

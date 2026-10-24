@@ -23,7 +23,7 @@ function createMegaTaskManager({
   openDirectory = async () => '',
   spawn = nativeSpawn,
   onPersistenceError = error => console.error('MEGA 下载记录保存失败：', error.code || error.name),
-  executable = path.resolve(mainDir, '../../resources/mega-worker/QAQMMegaWorker.exe')
+  executable = path.resolve(mainDir, '../../resources/mega-worker/QAQRMegaWorker.exe')
 }) {
   const statePath = path.join(userData, 'mega-downloads.json');
   const tasks = new Map();

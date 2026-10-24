@@ -7,7 +7,7 @@ import ModSiteView from "./ModSiteView.jsx";
 const h = React.createElement;
 function getSources() {
   return [
-    ["qaqm", "QAQM"],
+    ["qaqm", "QAQR"],
     ["kemono", "Kemono"],
     ["pawchive", "Pawchive"],
     ["gamebanana", t("downloads.sources.gamebanana")],

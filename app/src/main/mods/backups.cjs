@@ -14,8 +14,8 @@ const coreLogger = require("../core/logger.cjs");
 const { WUWA_FIX_GAME_ID } = require("../games/definitions.cjs");
 const gamesSettings = require("../games/settings.cjs");
 const systemPaths = require("../system/paths.cjs");
-const QAQM_INI_BACKUP_MARKER = ".qaqm-inibak-";
-const QAQM_INI_BACKUP_PATTERN = /\.qaqm-inibak-(\d{8}-\d{6}(?:-(?:\d{2}|\d{3}-[0-9a-f]{6}))?(?:-\d{2})?)$/i;
+const QAQR_INI_BACKUP_MARKER = ".qaqm-inibak-";
+const QAQR_INI_BACKUP_PATTERN = /\.qaqm-inibak-(\d{8}-\d{6}(?:-(?:\d{2}|\d{3}-[0-9a-f]{6}))?(?:-\d{2})?)$/i;
 const WUWA_INDEPENDENT_BACKUP_PATTERN = /^(.*)_(\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2}(?:\.\d{3})?)\.BAK$/i;
 const WUWA_INDEPENDENT_STAMP_PREFIX = "wuwa-independent:";
 function qaqmStampSortKey(stamp) {
@@ -38,7 +38,7 @@ function parseFixBackupFileName(fileName, {
   includeWuwaIndependent = false
 } = {}) {
   const name = String(fileName || "");
-  const qaqmMatch = name.match(QAQM_INI_BACKUP_PATTERN);
+  const qaqmMatch = name.match(QAQR_INI_BACKUP_PATTERN);
   if (qaqmMatch) {
     return {
       format: "qaqm",
@@ -46,7 +46,7 @@ function parseFixBackupFileName(fileName, {
       groupKey: qaqmMatch[1],
       timestamp: qaqmMatch[1],
       sortKey: qaqmStampSortKey(qaqmMatch[1]),
-      originalName: name.replace(QAQM_INI_BACKUP_PATTERN, "")
+      originalName: name.replace(QAQR_INI_BACKUP_PATTERN, "")
     };
   }
   if (!includeWuwaIndependent) return null;
@@ -143,13 +143,13 @@ function createIniBackupStamp() {
 }
 function isIniBackupLikeFile(fileName) {
   const name = String(fileName || "");
-  return name.includes(QAQM_INI_BACKUP_MARKER) || name.endsWith(".qaqm-persistbak") || name.startsWith("DISABLED_BACKUP_") || name.startsWith("DISABLED ");
+  return name.includes(QAQR_INI_BACKUP_MARKER) || name.endsWith(".qaqm-persistbak") || name.startsWith("DISABLED_BACKUP_") || name.startsWith("DISABLED ");
 }
 function copyIniBackupBesideFile(iniPath, stamp) {
-  let backupPath = `${iniPath}${QAQM_INI_BACKUP_MARKER}${stamp}`;
+  let backupPath = `${iniPath}${QAQR_INI_BACKUP_MARKER}${stamp}`;
   let suffix = 1;
   while (fs.existsSync(backupPath)) {
-    backupPath = `${iniPath}${QAQM_INI_BACKUP_MARKER}${stamp}-${String(suffix).padStart(2, "0")}`;
+    backupPath = `${iniPath}${QAQR_INI_BACKUP_MARKER}${stamp}-${String(suffix).padStart(2, "0")}`;
     suffix++;
   }
   fs.copyFileSync(iniPath, backupPath);

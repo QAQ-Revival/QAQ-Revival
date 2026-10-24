@@ -1,12 +1,15 @@
 import { useSortableOrder } from "./useSortableOrder.js";
+import React from "react";
+const isVisible = (game) => game.hidden !== true;
 function useGameOrder(games, sortable = false) {
-  return useSortableOrder(
-    [...games].sort(
-      (a, b) =>
-        Number(Boolean(b.modFolderPath)) - Number(Boolean(a.modFolderPath)),
-    ),
-    "qaqm.gameOrder",
-    sortable,
+  const defaults = React.useMemo(
+    () =>
+      [...games].sort(
+        (a, b) =>
+          Number(Boolean(b.modFolderPath)) - Number(Boolean(a.modFolderPath)),
+      ),
+    [games],
   );
+  return useSortableOrder(defaults, "qaqm.gameOrder", sortable, isVisible);
 }
 export { useGameOrder };

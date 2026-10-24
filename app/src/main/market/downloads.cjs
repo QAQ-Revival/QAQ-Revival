@@ -20,6 +20,7 @@ const {
   registerArchiveDownloads
 } = require("./archive-downloads.cjs");
 const crypto = require("crypto");
+const archivesNames = require("../archives/names.cjs");
 const desktopWindows = require("../desktop/windows.cjs");
 const developerMarkedMove = require("../developer/marked-move.cjs");
 const importsLocal = require("../imports/local.cjs");
@@ -331,7 +332,7 @@ function formatMarketDownloadError(code, message) {
   if (code === "LOGIN_REQUIRED" || code === "SESSION_EXPIRED") {
     return i18n.t("backend.market.downloads.externalLoginRequired");
   }
-  if (code === "DIRECT_DOWNLOAD_REQUIRED" || code === "SPONSOR_REQUIRED" || /全部档|最高档|高速下载|直链下载|赞助|QAQM Plus/.test(raw)) {
+  if (code === "DIRECT_DOWNLOAD_REQUIRED" || code === "SPONSOR_REQUIRED" || /全部档|最高档|高速下载|直链下载|赞助|QAQ[MR] Plus/.test(raw)) {
     return i18n.t("backend.market.downloads.externalSourceUnavailable");
   }
   return raw || i18n.t("backend.market.downloads.downloadUrlMissing");
@@ -395,7 +396,7 @@ async function installMarketArchiveFromPath({
     filePath: sourcePath,
     modInfo: {
       ...mod,
-      name: mod?.name || path.basename(sourcePath, path.extname(sourcePath))
+      name: mod?.name || archivesNames.getModArchiveName(sourcePath)
     },
     gameIdOverride: mod?.gameId || null,
     allowDuplicateRename: true,
@@ -411,7 +412,7 @@ async function installMarketArchiveFromPath({
       error: message,
       archivePath: sourcePath,
       archiveFileName: path.basename(sourcePath),
-      name: mod?.name || path.basename(sourcePath, path.extname(sourcePath)),
+      name: mod?.name || archivesNames.getModArchiveName(sourcePath),
       characterName: mod?.characterName || null,
       gameId: mod?.gameId || null,
       mod,
