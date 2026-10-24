@@ -7,6 +7,8 @@ export function useModContextActions({
   activeGameId,
 }) {
   const [fixRunning, setFixRunning] = React.useState(false);
+  const [reloadingMod, setReloadingMod] = React.useState("");
+  const reloadBusy = React.useRef(false);
   const [modContextMenu, setModContextMenu] = React.useState(null);
   const [iniRollbackBackups, setIniRollbackBackups] = React.useState({
     modName: "",
@@ -43,6 +45,18 @@ export function useModContextActions({
   }, [modContextMenu]);
   function isDx12PakMod(mod) {
     return mod?.modType === "dx12-pak";
+  }
+  async function handleReloadMod(mod) {
+    if (reloadBusy.current || activeGameId !== "arknights") return;
+    reloadBusy.current = true;
+    setReloadingMod(mod.name);
+    setModContextMenu(null);
+    try {
+      const result = await window.api.arknightsReloadMod({ characterName, modName: mod.name });
+      if (!result?.success) throw Error(result?.error || t("arknights.errors.reloadUnavailable"));
+      setToast({ type: "success", message: t("arknights.reloaded", result) });
+    } catch (error) { setToast({ type: "error", message: error.message }); }
+    finally { reloadBusy.current = false; setReloadingMod(""); }
   }
   async function openModSourceFolder(mod) {
     if (isDx12PakMod(mod)) {
@@ -222,6 +236,8 @@ export function useModContextActions({
     }
   }
   return {
+    reloadingMod,
+    handleReloadMod,
     fixRunning,
     modContextMenu,
     setModContextMenu,

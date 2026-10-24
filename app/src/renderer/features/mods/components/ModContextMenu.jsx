@@ -12,6 +12,8 @@ export function ModContextMenu({
   handleFixMod,
   fixRunning,
   isArknights = false,
+  handleReloadMod,
+  reloadingMod,
   loadModIniBackups,
   iniRollbackBackups,
   requestRollbackModIni,
@@ -34,6 +36,11 @@ export function ModContextMenu({
             e.stopPropagation();
           }}
         >
+          {isArknights && <button
+            className="mod-context-menu-action"
+            disabled={!!reloadingMod}
+            onClick={() => handleReloadMod(modContextMenu.mod)}
+          >{t(reloadingMod ? "arknights.reloading" : "arknights.reloadMod")}</button>}
           <button
             onClick={() => {
               setModContextMenu(null);

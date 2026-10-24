@@ -161,7 +161,11 @@ function registerIpc() {
         withFileTypes: true
       });
       const addedAtAccessor = gamesSettings.createModAddedAtAccessor();
-      let mods = files.filter(dirent => dirent.isDirectory()).map(dirent => {
+      const modDirectories = files.filter(dirent => dirent.isDirectory());
+      const definitions = charactersSkins.getMergedAppearanceSectionDefinitions(characterName, gameId2);
+      const pinnedState = modsMetadata.applyPinnedStateToMods(characterName, modDirectories.map(dirent => ({ name: dirent.name.replace(/^DISABLED_/, "") })));
+      const resourceScopes = gameId2 === "arknights" ? await require("../games/arknights/appearance.cjs").inspectAppearances(modDirectories.map(dirent => path.join(charPath, dirent.name)), definitions) : null;
+      let mods = modDirectories.map((dirent, index) => {
         const originalName = dirent.name;
         const isDisabled = originalName.startsWith("DISABLED_");
         const displayName = isDisabled ? originalName.replace("DISABLED_", "") : originalName;
@@ -193,7 +197,7 @@ function registerIpc() {
         let previewUrl = null;
         try {
           const previewImagePath = charactersImages.findModPreviewImageFile(modPath);
-          if (previewImagePath) previewUrl = "file:///" + previewImagePath.replace(/\\/g, "/");
+          if (previewImagePath) previewUrl = charactersImages.getLocalImageUrl(previewImagePath);
         } catch (_2) {}
         return {
           name: displayName,
@@ -206,12 +210,17 @@ function registerIpc() {
           tags,
           notes,
           hotkeyAliases,
+          pinned: pinnedState[index].pinned,
+          pinnedIndex: pinnedState[index].pinnedIndex,
+          ...(resourceScopes ? { arknightsScope: resourceScopes[index] } : {}),
           appearanceSectionId: modsAppearance.resolveModAppearanceSectionId({
             characterName,
             modName: displayName,
             modDir: modPath,
             meta: modMeta,
-            gameId: gameId2
+            gameId: gameId2,
+            definitions,
+            resourceScope: resourceScopes?.[index]
           })
         };
       });
@@ -233,8 +242,8 @@ function registerIpc() {
         unorderedMods.sort((a, b) => a.name.localeCompare(b.name, "zh"));
         mods = [...orderedMods, ...unorderedMods];
       }
-      mods = modsMetadata.movePinnedModsToTop(modsMetadata.applyPinnedStateToMods(characterName, mods));
-      const sections = charactersSkins.buildAppearanceSectionsWithStats(characterName, mods, gameId2);
+      mods = modsMetadata.movePinnedModsToTop(mods);
+      const sections = charactersSkins.buildAppearanceSectionsWithStats(characterName, mods, gameId2, definitions);
       addedAtAccessor.saveIfDirty();
       return {
         success: true,
@@ -259,6 +268,7 @@ function registerIpc() {
       characterName = charactersSkins.assertSafeAppearancePathSegment(characterName, i18n.t("backend.validation.characterName"));
       modName = charactersSkins.assertSafeAppearancePathSegment(modName, i18n.t("backend.validation.modName"));
       if (enable) charactersHidden.assertCharacterVisible(characterName, gameId2);
+      if (gameId2 === "arknights") return require("../games/arknights/service.cjs").toggleMod({ characterName, modName, enable });
       if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
         return modsNevernessPaks.toggleNevernessDx12PakMod(characterName, modName, enable);
       }
@@ -279,7 +289,6 @@ function registerIpc() {
           error: i18n.t("backend.ipc.mods.modFolderNotFound")
         };
       }
-      if (enable && gameId2 === "arknights") require("../games/arknights/service.cjs").assertCanEnable(currentPath);
       if (!enable && persistTracking.isPersistBridgeEnabled(gameId2)) {
         if (persistService.usesManagedPersistBridge(characterName, modName, gameId2)) {
           persistTracking.syncPersistBridgeStateForModDir(currentPath, gameId2);
@@ -290,10 +299,6 @@ function registerIpc() {
         return {
           error: renameResult.error || i18n.t("backend.ipc.mods.renameFailedAfterRetries")
         };
-      }
-      if (gameId2 === "arknights") {
-        try { require("../games/arknights/service.cjs").sync(); }
-        catch (error) { fs.renameSync(newPath, currentPath); throw error; }
       }
       if (env?.root && persistTracking.isPersistBridgeEnabled(gameId2)) {
         const stateFiles = persistTracking.collectHostedPersistStateFilesForModDir(newPath);
@@ -355,16 +360,7 @@ function registerIpc() {
         }
         let previewUrl2 = null;
         if (imagePath2 && fs.existsSync(imagePath2)) {
-          const ext = path.extname(imagePath2).toLowerCase();
-          const mimeType = {
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".png": "image/png",
-            ".gif": "image/gif",
-            ".webp": "image/webp"
-          }[ext] || "image/jpeg";
-          const imageBuffer = fs.readFileSync(imagePath2);
-          previewUrl2 = `data:${mimeType};base64,${imageBuffer.toString("base64")}`;
+          previewUrl2 = charactersImages.getLocalImageUrl(imagePath2);
         }
         return {
           success: true,
@@ -411,17 +407,7 @@ function registerIpc() {
       }
       let previewUrl = null;
       if (imagePath && fs.existsSync(imagePath)) {
-        const ext = path.extname(imagePath).toLowerCase();
-        const mimeType = {
-          ".jpg": "image/jpeg",
-          ".jpeg": "image/jpeg",
-          ".png": "image/png",
-          ".gif": "image/gif",
-          ".webp": "image/webp"
-        }[ext] || "image/jpeg";
-        const imageBuffer = fs.readFileSync(imagePath);
-        const base64 = imageBuffer.toString("base64");
-        previewUrl = `data:${mimeType};base64,${base64}`;
+        previewUrl = charactersImages.getLocalImageUrl(imagePath);
       }
       const cacheKey = modsHotkeys.getPrimaryHotkeysCacheKey(characterName, modName, gameId2);
       const iniFiles = fs.existsSync(modPath) ? modsIniFiles.getIniFiles(modPath) : [];

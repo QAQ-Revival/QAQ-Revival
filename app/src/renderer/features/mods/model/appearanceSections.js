@@ -25,6 +25,7 @@ function getSectionName(section) {
 }
 function getSectionSubtitle(section) {
   if (isBaseSection(section)) return section?.nameEn || "Default";
+  if (section?.kind === "shared") return t("arknights.sharedSubtitle");
   return (
     section?.nameEn ||
     (isCustomSection(section) ? t("mods.sections.custom") : "Official Outfit")

@@ -558,6 +558,7 @@ function registerIpc() {
   }) => {
     try {
       const gameId2 = gamesSettings.getActiveGameScopeId();
+      if (gameId2 === "arknights") return require("../games/arknights/service.cjs").toggleMod({ characterName, modName, enable: enabled, autoReload: !!configStore.currentConfig.overlayAutoReloadEnabled });
       if (enabled) charactersHidden.assertCharacterVisible(characterName, gameId2);
       if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
         const result = modsNevernessPaks.toggleNevernessDx12PakMod(characterName, modName, enabled);

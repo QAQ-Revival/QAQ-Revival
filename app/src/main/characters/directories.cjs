@@ -100,12 +100,13 @@ function listCharacterDirectories(modsPath, gameId2 = gamesSettings.getActiveGam
   const entries = fs.readdirSync(characterBasePath, {
     withFileTypes: true
   });
+  const foreignDefaults = getForeignDefaultCharacters(gameId2);
+  const nevernessDx12Paths = gamesNevernessLoader.isNevernessDx12Mode(gameId2) ? gamesNevernessLoader.getNevernessDx12Paths(gameId2) : null;
   const deduped = new Map();
-  entries.filter(entry => entry.isDirectory() && !entry.name.startsWith(".") && !charactersOrganization.isLegacyCharacterContainerName(entry.name) && !shouldHideForeignDefaultCharacterFolder(characterBasePath, entry.name, gameId2)).forEach(entry => {
+  entries.filter(entry => entry.isDirectory() && !entry.name.startsWith(".") && !charactersOrganization.isLegacyCharacterContainerName(entry.name) && !shouldHideForeignDefaultCharacterFolder(characterBasePath, entry.name, gameId2, foreignDefaults)).forEach(entry => {
     const mappingEntry = charactersCatalog.getCharacterMappingEntry(entry.name, gameId2);
     const characterRootPath = path.join(characterBasePath, entry.name);
-    const nevernessDx12Paths = gamesNevernessLoader.isNevernessDx12Mode(gameId2) ? gamesNevernessLoader.getNevernessDx12Paths(gameId2) : null;
-    const disabledCharacterPath = gamesNevernessLoader.isNevernessDx12Mode(gameId2) ? modsNevernessPaks.getNevernessDx12DisabledCharacterPath(mappingEntry?.displayName || entry.name, nevernessDx12Paths, {
+    const disabledCharacterPath = nevernessDx12Paths ? modsNevernessPaks.getNevernessDx12DisabledCharacterPath(mappingEntry?.displayName || entry.name, nevernessDx12Paths, {
       gameId: gameId2
     }) : "";
     const stats = disabledCharacterPath && fs.existsSync(disabledCharacterPath) ? mergeCharacterDirectoryStats(getCharacterDirectoryStats(characterRootPath), getCharacterDirectoryStats(disabledCharacterPath)) : getCharacterDirectoryStats(characterRootPath);
@@ -282,9 +283,11 @@ function resolveExistingStandardModDirectory(characterName, modName, gameId2 = g
   return null;
 }
 function getCanonicalCharacterConfigKey(characterName, gameId2 = gamesSettings.getActiveGameScopeId()) {
+  const mapping = charactersCatalog.getCharacterMappingEntry(characterName, gameId2);
+  if (mapping) return mapping.displayName;
   const resolvedEntry = resolveCharacterEntry(characterName, gameId2);
   if (resolvedEntry?.displayName) return resolvedEntry.displayName;
-  return charactersCatalog.getCharacterMappingEntry(characterName, gameId2)?.displayName || characterName;
+  return characterName;
 }
 function getCharacterStoreEntry(store, characterName, gameId2 = gamesSettings.getActiveGameScopeId()) {
   if (!store || typeof store !== "object") {
@@ -294,7 +297,7 @@ function getCharacterStoreEntry(store, characterName, gameId2 = gamesSettings.ge
     };
   }
   const resolvedEntry = resolveCharacterEntry(characterName, gameId2);
-  const canonicalKey = getCanonicalCharacterConfigKey(characterName, gameId2);
+  const canonicalKey = resolvedEntry?.displayName || charactersCatalog.getCharacterMappingEntry(characterName, gameId2)?.displayName || characterName;
   const aliases = charactersCatalog.getCharacterAliasCandidates(characterName, gameId2, resolvedEntry);
   for (const alias of aliases) {
     if (Object.prototype.hasOwnProperty.call(store, alias)) {
@@ -382,8 +385,7 @@ function getForeignDefaultCharacters(gameId2) {
   });
   return foreignDefaults;
 }
-function shouldHideForeignDefaultCharacterFolder(modsPath, characterName, gameId2 = gamesSettings.getActiveGameScopeId()) {
-  const foreignDefaults = getForeignDefaultCharacters(gameId2);
+function shouldHideForeignDefaultCharacterFolder(modsPath, characterName, gameId2 = gamesSettings.getActiveGameScopeId(), foreignDefaults = getForeignDefaultCharacters(gameId2)) {
   if (!foreignDefaults.has(characterName)) return false;
   const charDir = path.join(modsPath, characterName);
   if (!fs.existsSync(charDir)) return false;
@@ -467,7 +469,7 @@ function getCharacterListResponse(modsPath, gameId2 = gamesSettings.getActiveGam
   ensureDefaults = false
 } = {}) {
   if (ensureDefaults && gamesNevernessLoader.isNevernessDx12Mode(gameId2)) ensureDefaultCharacterFolders(modsPath, gameId2);
-  const characters = sortCharacterEntries(listCharacterDirectories(modsPath, gameId2), gameId2).map(entry => ({
+  const characters = sortCharacterEntries(listCharacterDirectories(modsPath, gameId2), gameId2).filter(entry => !charactersHidden.isCharacterHidden(entry.displayName, gameId2)).map(entry => ({
     name: entry.displayName,
     modCount: entry.modCount,
     enabledCount: entry.enabledCount,
@@ -476,7 +478,7 @@ function getCharacterListResponse(modsPath, gameId2 = gamesSettings.getActiveGam
     searchTerms: charactersCatalog.getCharacterAliasCandidates(entry.displayName, gameId2, entry)
   }));
   return {
-    characters: characters.filter(character => !charactersHidden.isCharacterHidden(character.name, gameId2)),
+    characters,
     hiddenCount: charactersHidden.hiddenCharacters.list(gameId2).length
   };
 }

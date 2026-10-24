@@ -1720,7 +1720,7 @@ function renderMods() {
           const persistLabel = result.persistRestored
             ? t("overlay.persist.restoredSuffix")
             : "";
-          showToast(`${modName} ${actionLabel}${reloadLabel}${persistLabel}`);
+          showToast(result.reloadError ? t("arknights.reloadToggleFailed", { error: result.reloadError }) : result.refreshRequired ? t("arknights.reloaded", result) : `${modName} ${actionLabel}${reloadLabel}${persistLabel}`);
         } else {
           pendingFocusState = null;
           showToast(result.error || t("overlay.mods.toggleFailed"));

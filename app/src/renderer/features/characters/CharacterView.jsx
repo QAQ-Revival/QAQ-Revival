@@ -1,6 +1,7 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import { getCharacterUsageStorageKey } from "../../lib/batchImportPlan.js";
 import { useCharacterTools } from "./hooks/useCharacterTools.js";
+import { useCoalescedRefresh } from "../../hooks/useCoalescedRefresh.js";
 import { ManagementModal } from "../../components/ManagementModal.jsx";
 import { useNevernessMode } from "./hooks/useNevernessMode.js";
 import { useCharacterOrganization } from "./hooks/useCharacterOrganization.js";
@@ -63,6 +64,7 @@ function CharacterView({
   const [hidingCharacter, setHidingCharacter] = React.useState(false);
   const [newCharName, setNewCharName] = React.useState("");
   const [toast, setToast] = React.useState(null);
+  const fetchCharacters = useCoalescedRefresh(readCharacters);
   const {
     fixRunning,
     handleResetCharacterIni,
@@ -361,13 +363,6 @@ function CharacterView({
     setHiddenCharacterCount(0);
   }, [activeGame?.id]);
   React.useEffect(() => {
-    if (initialCache?.needsRefresh) {
-      fetchCharacters({
-        keepVisible: true,
-      });
-    }
-  }, [initialCache?.needsRefresh, activeGame?.id]);
-  React.useEffect(() => {
     if (activeGame?.id !== "neverness-to-everness") {
       setNevernessDx12Status(null);
       setShowDx12RiskConfirm(false);
@@ -401,6 +396,7 @@ function CharacterView({
   React.useEffect(() => {
     let refreshTimer = null;
     const cleanup = window.api.onModsChanged?.((data = {}) => {
+      if (data.gameId && data.gameId !== activeGame?.id) return;
       if (refreshTimer) clearTimeout(refreshTimer);
       const delay =
         data?.fullRefresh || data?.reason === "preset-applied" ? 120 : 40;
@@ -536,7 +532,7 @@ function CharacterView({
       return () => clearTimeout(timer);
     }
   }, [toast]);
-  async function fetchCharacters(options = {}) {
+  async function readCharacters(options = {}, isCurrent) {
     const { keepVisible = false } = options;
     if (!keepVisible) {
       setLoading(true);
@@ -545,6 +541,7 @@ function CharacterView({
       const result = await (options.force
         ? window.api.refreshCharacters()
         : window.api.getCharacters());
+      if (!isCurrent()) return false;
       if (result.success) {
         const nextCharacters = Array.isArray(result.characters)
           ? result.characters
@@ -606,6 +603,7 @@ function CharacterView({
       }
       return !!result.success;
     } catch (err) {
+      if (!isCurrent()) return false;
       setCharacters([]);
       setCharacterCovers({});
       setLegacyImportPreview(null);
@@ -617,8 +615,10 @@ function CharacterView({
       setLoadError(err.message || t("characters.errors.loadList"));
       console.error(err);
     } finally {
-      setInitialized(true);
-      setLoading(false);
+      if (isCurrent()) {
+        setInitialized(true);
+        setLoading(false);
+      }
     }
   }
   async function handleRefreshCharacters() {
@@ -681,7 +681,6 @@ function CharacterView({
       if (result.success) {
         setShowAddModal(false);
         setNewCharName("");
-        setTimeout(fetchCharacters, 100);
         setToast({
           type: "success",
           message: t("characters.create.success"),
@@ -714,7 +713,6 @@ function CharacterView({
             charName,
           }),
         });
-        setTimeout(fetchCharacters, 100);
       } else {
         setToast({
           type: "error",
@@ -743,9 +741,8 @@ function CharacterView({
       );
       if (!result?.success)
         throw Error(result?.error || t("characters.errors.hide"));
-      await fetchCharacters({
-        keepVisible: true,
-      });
+      setCharacters((items) => items.filter((item) => item.name !== charName));
+      setHiddenCharacterCount((count) => count + 1);
       setToast({
         type: "success",
         message: t("characters.hide.success", {
@@ -1810,9 +1807,6 @@ function CharacterView({
           gameName={activeGame?.name}
           onClose={() => setShowHiddenCharacters(false)}
           onRestored={(name) => {
-            fetchCharacters({
-              keepVisible: true,
-            });
             setToast({
               type: "success",
               message: t("characters.hide.restored", {

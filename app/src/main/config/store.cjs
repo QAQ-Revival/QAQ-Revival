@@ -10,6 +10,8 @@ const {
 const crypto = require("crypto");
 const netQaqm = require("../net/qaqm.cjs");
 const overlayHelperPaths = require("../overlay/helper-paths.cjs");
+const managedPaths = require("../runtime/managed-paths.cjs");
+const { getDataRoot } = require("../runtime/data-paths.cjs");
 const CONFIG_PATH = path.join(electron.app.getPath("userData"), "config.json");
 const BASE_DEFAULT_CONFIG = {
   language: "zh-CN",
@@ -127,6 +129,7 @@ function loadConfig() {
 }
 function saveConfig(config) {
   try {
+    managedPaths.remapManagedPaths(config, managedPaths.readManagedPathMappings(getDataRoot()));
     const payload = JSON.stringify(config, null, 2);
     const fd = fs.openSync(CONFIG_TMP_PATH, "w");
     try {
@@ -140,8 +143,9 @@ function saveConfig(config) {
     if (fs.existsSync(CONFIG_PATH)) {
       try {
         const current = fs.readFileSync(CONFIG_PATH, "utf-8");
-        JSON.parse(current);
-        fs.copyFileSync(CONFIG_PATH, CONFIG_BAK_PATH);
+        const previous = JSON.parse(current);
+        managedPaths.remapManagedPaths(previous, managedPaths.readManagedPathMappings(getDataRoot()));
+        fs.writeFileSync(CONFIG_BAK_PATH, JSON.stringify(previous, null, 2));
       } catch (_) {}
     }
     try {
@@ -252,6 +256,11 @@ function isStrongCompatibilityModeEnabled() {
 function initialize() {
   migrateFromV3();
   currentConfig = loadConfig();
+  const dataRoot = getDataRoot();
+  const mappings = managedPaths.readManagedPathMappings(dataRoot);
+  if (managedPaths.remapManagedPaths(currentConfig, mappings).changes) saveConfig(currentConfig);
+  const repaired = managedPaths.repairManagedRuntimeFiles(electron.app.getPath("userData"), dataRoot, mappings);
+  for (const issue of repaired.errors) console.warn("Runtime path migration deferred:", issue.file, issue.error);
   if (currentConfig.persistBridgeSettingsVersion !== 1 && fs.existsSync(CONFIG_PATH)) {
     const migrationBackup = CONFIG_PATH + ".before-per-game-persist.bak";
     if (!fs.existsSync(migrationBackup)) fs.copyFileSync(CONFIG_PATH, migrationBackup);
@@ -262,6 +271,7 @@ function initialize() {
   }
 }
 module.exports = {
+  configPath: CONFIG_PATH,
   initialize,
   saveConfig,
   normalizeCompatibilityLevel,

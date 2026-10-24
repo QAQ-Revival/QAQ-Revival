@@ -11,7 +11,7 @@ const gamesSettings = require("../games/settings.cjs");
 const overlayActivity = require("../overlay/activity.cjs");
 function notifyAllModWindowsChanged(characterName = "__all__", meta = {}) {
   charactersDirectories.CHARACTER_DIRECTORY_STATS_CACHE.clear();
-  const arknightsSync = require("../games/arknights/service.cjs").onModsChanged(meta?.gameId || gamesSettings.getActiveGameScopeId());
+  const arknightsSync = meta?.resourcesChanged === false ? null : require("../games/arknights/service.cjs").onModsChanged(meta?.gameId || gamesSettings.getActiveGameScopeId());
   const payload = {
     characterName,
     ...(arknightsSync ? { arknightsSync } : {}),

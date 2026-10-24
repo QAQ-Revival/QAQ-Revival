@@ -29,7 +29,8 @@ module.exports = async ({ electron, evaluate, waitFor, profile, handlers, passed
   const localCover = path.join(localDir, '_cover.png');
   fs.writeFileSync(localCover, imageBytes);
   const local = (await details()).characterDetails.find(item => item.name === '安可');
-  assert.equal(local.coverUrl, 'data:image/png;base64,' + imageBytes.toString('base64'));
+  assert.match(local.coverUrl, /^file:/);
+  assert.equal(require('node:url').fileURLToPath(local.coverUrl), localCover);
   assert.equal(await load(local.coverUrl), 1);
   assert.equal(count(), 1);
   fs.unlinkSync(localCover);

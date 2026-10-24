@@ -336,7 +336,7 @@ function CharacterSectionNavigator({
     return result;
   }, [sections]);
   const officialSkinCount = normalizedSections.filter(
-    (section) => !isBaseSection(section) && !isCustomSection(section),
+    (section) => !isBaseSection(section) && !isCustomSection(section) && section.kind !== "shared",
   ).length;
   const otherEnabledSections = normalizedSections.filter(
     (section) =>

@@ -41,11 +41,12 @@ function isUsefulAppearanceAlias(value) {
   if (charactersCleanup.containsChineseCharacter(value)) return compact.length >= 2;
   return compact.length >= 4;
 }
-function inferOfficialAppearanceSectionId(characterName, candidateValues, gameId2 = gamesSettings.getActiveGameScopeId()) {
+function inferOfficialAppearanceSectionId(characterName, candidateValues, gameId2 = gamesSettings.getActiveGameScopeId(), definitions = null) {
   const haystacks = (Array.isArray(candidateValues) ? candidateValues : [candidateValues]).map(normalizeAppearanceMatchText).filter(Boolean);
   if (haystacks.length === 0) return charactersSkins.BASE_APPEARANCE_SECTION_ID;
   const matchedSectionIds = new Set();
-  for (const section of charactersSkins.getOfficialAppearanceSections(characterName, gameId2)) {
+  for (const section of definitions || charactersSkins.getOfficialAppearanceSections(characterName, gameId2)) {
+    if (section.kind !== "official-skin") continue;
     const aliases = [section.nameZh, section.nameEn, ...(section.aliases || [])].filter(isUsefulAppearanceAlias).map(normalizeAppearanceMatchText).filter(Boolean);
     if (aliases.some(alias => haystacks.some(candidate => candidate === alias || candidate.includes(alias)))) {
       matchedSectionIds.add(section.sectionId);
@@ -74,7 +75,9 @@ function resolveModAppearanceSectionId({
   meta = null,
   requested = null,
   gameId: gameId2 = gamesSettings.getActiveGameScopeId(),
-  ignoreStored = false
+  ignoreStored = false,
+  definitions = null,
+  resourceScope = null
 }) {
   const explicitSectionId = requested ? resolveRequestedAppearanceSectionId(characterName, requested, gameId2) : null;
   if (explicitSectionId) return explicitSectionId;
@@ -83,22 +86,21 @@ function resolveModAppearanceSectionId({
     const storedSectionId = getStoredModAppearanceSectionId(resolvedMeta);
     const classificationSource = String(resolvedMeta?.qaqm?.classificationSource || resolvedMeta?.classificationSource || "").trim();
     if (storedSectionId) {
-      const storedDefinition = charactersSkins.getAppearanceSectionDefinition(characterName, storedSectionId, gameId2);
-      const shouldReinferFallback = storedSectionId === charactersSkins.BASE_APPEARANCE_SECTION_ID && classificationSource === "base-fallback";
+      const storedDefinition = definitions ? definitions.find(section => section.sectionId === storedSectionId) : charactersSkins.getAppearanceSectionDefinition(characterName, storedSectionId, gameId2);
+      const shouldReinferFallback = (storedSectionId === charactersSkins.BASE_APPEARANCE_SECTION_ID && classificationSource === "base-fallback") || (gameId2 === "arknights" && ["auto", "arknights-resources"].includes(classificationSource));
       if (storedDefinition && !shouldReinferFallback) return storedDefinition.sectionId;
     }
     const storedSkinId = String(resolvedMeta?.qaqm?.characterSkinId || resolvedMeta?.characterSkinId || "").trim();
-    if (storedSkinId) {
-      const storedSkinSectionId = charactersSkins.getAppearanceSectionIdForSkinId(characterName, storedSkinId, gameId2);
+    if (storedSkinId && !(gameId2 === "arknights" && ["auto", "arknights-resources"].includes(classificationSource))) {
+      const storedSkinSectionId = definitions ? definitions.find(section => section.kind === "official-skin" && (section.skinId === storedSkinId || section.id === storedSkinId || section.sectionId === storedSkinId || section.sectionId === `skin:${storedSkinId}`))?.sectionId : charactersSkins.getAppearanceSectionIdForSkinId(characterName, storedSkinId, gameId2);
       if (storedSkinSectionId) return storedSkinSectionId;
     }
   }
   const tags = Array.isArray(resolvedMeta?.tags) ? resolvedMeta.tags.map(tag => typeof tag === "string" ? tag : tag?.name || "").filter(Boolean) : [];
   if (gameId2 === "arknights" && modDir) {
-    const names = require("../games/arknights/files.cjs").walk(modDir).map(file => file.name);
-    return inferOfficialAppearanceSectionId(characterName, [modName, ...tags, ...names], gameId2);
+    return (resourceScope || require("../games/arknights/appearance.cjs").inspectAppearance(modDir, charactersSkins.getOfficialAppearanceSections(characterName, gameId2))).sectionId;
   }
-  return inferOfficialAppearanceSectionId(characterName, [modName, ...tags], gameId2);
+  return inferOfficialAppearanceSectionId(characterName, [modName, ...tags], gameId2, definitions);
 }
 function writeModAppearanceSectionMetadata(modDir, characterName, sectionId, {
   gameId: gameId2 = gamesSettings.getActiveGameScopeId(),
@@ -115,6 +117,7 @@ function writeModAppearanceSectionMetadata(modDir, characterName, sectionId, {
   qaqm.appearanceSectionId = resolvedSectionId;
   qaqm.classificationSource = String(source || "user").slice(0, 40);
   qaqm.appearanceAssignedAt = new Date().toISOString();
+  if (gameId2 === "arknights") qaqm.arknightsScope = require("../games/arknights/appearance.cjs").inspectAppearance(modDir, charactersSkins.getOfficialAppearanceSections(characterName, gameId2));
   if (definition?.kind === "official-skin" && definition.skinId) {
     qaqm.characterSkinId = definition.skinId;
   } else {

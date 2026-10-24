@@ -65,3 +65,39 @@ test('Arknights appearances keep safe section IDs and exact legacy resource alia
   assert(skin.aliases.includes('illust_char_4215_buddy_mh_2'));
   assert.equal(skin.sectionId, 'skin:' + skin.id);
 });
+
+test('bundle-scoped resources keep distinct objects separate, share identical files and preserve bindings during deployment', t => {
+  const f = fixture(t), second = path.join(f.library, 'operator', 'second');
+  fs.mkdirSync(second);
+  const filename = 'illust_char_4215_buddy_mh#2.png';
+  const manifest = (root, bundle) => fs.writeFileSync(path.join(root, files.RESOURCE_MANIFEST), JSON.stringify({ schemaVersion: 1, resources: [{ file: filename, target: filename, bundle }] }));
+  manifest(f.mod, 'skinpack/char_4215_buddy.ab');
+  fs.writeFileSync(path.join(second, filename), 'other object');
+  manifest(second, 'arts/dynchars/char_4215_buddy_mh#2.ab');
+  const entries = [...f.entries, { path: second, name: 'second' }];
+  assert.equal(planDeployment(entries).length, 2);
+  assert.equal(deploy({ ...f, entries }).fileCount, 2);
+  assert.equal(files.readBindings(f.destination).bindings.size, 2);
+  manifest(second, 'skinpack/char_4215_buddy.ab');
+  assert.throws(() => planDeployment(entries));
+  fs.writeFileSync(path.join(second, filename), 'image');
+  assert.equal(planDeployment(entries).length, 2);
+  const before = files.fingerprint(f.mod);
+  manifest(f.mod, 'chararts/char_4215_buddy.ab');
+  assert.notEqual(files.fingerprint(f.mod), before);
+  fs.writeFileSync(path.join(f.mod, files.RESOURCE_MANIFEST), JSON.stringify({ schemaVersion: 1, resources: [{ file: '../outside.png', target: filename, bundle: 'skinpack/char_4215_buddy.ab' }] }));
+  assert.throws(() => files.inspect(f.mod));
+});
+
+test('Arknights appearance inference separates base, individual skins, shared files and multi-skin bundles', () => {
+  const { classifyResources, SHARED_SECTION } = require('../app/src/main/games/arknights/appearance.cjs');
+  const catalog = require('../runtime-resources/games/arknights/character-skins/catalog.json');
+  const sections = catalog.characters.find(item => item.characterId === 'char_2025_shu').skins;
+  const spring = sections.find(item => item.id.endsWith('.nian.11')).sectionId;
+  assert.equal(classifyResources(['dyn_illust_char_2025_shu.png'], sections).sectionId, 'base');
+  assert.equal(classifyResources([{ resource: 'char_2025_shu_2__texture_effect.png', bundle: 'arts/dynchars/char_2025_shu_2.ab' }], sections).sectionId, 'base');
+  assert.equal(classifyResources(['illust_char_2025_shu_nian#11.png', 'dyn_portrait_char_2025_shu_nian_11.skel'], sections).sectionId, spring);
+  assert.equal(classifyResources(['illust_char_2025_shu_nian#11.png', 'illust_char_2025_shu_nlc#1.png'], sections).sectionId, SHARED_SECTION);
+  assert.equal(classifyResources(['illust_char_2025_shu_nian#11.png', 'build_char_2025_shu.png'], sections).sectionId, SHARED_SECTION);
+  assert.equal(classifyResources(['char_2025_shu.ab'], sections).sectionId, SHARED_SECTION);
+});

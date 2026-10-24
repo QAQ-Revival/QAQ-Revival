@@ -22,6 +22,7 @@ function startApplication(runtimeIdentity) {
     }
   });
   require("./games/settings.cjs").initialize();
+  require("./runtime/path-report.cjs").writeRuntimePathReport(require("electron").app, config.currentConfig, config.configPath);
   require("./characters/hidden.cjs").initialize();
   require("./characters/images.cjs").initialize();
   require("./characters/catalog.cjs").initialize();
