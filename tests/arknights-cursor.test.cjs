@@ -6,6 +6,7 @@ const { createCursorService, resolveCursorCli } = require('../app/src/main/games
 
 test('cursor CLI is resolved and verified inside the shared Arknights tools package', t => {
   const base = path.resolve(__dirname, '../test-results');
+  fs.mkdirSync(base, { recursive: true });
   const root = fs.mkdtempSync(path.join(base, 'cursor-package-'));
   t.after(() => { assert.equal(path.dirname(fs.realpathSync(root)), fs.realpathSync(base)); fs.rmSync(root, { recursive: true, force: true }); });
   const packageRoot = path.join(root, 'local-components/arknights-tools');
