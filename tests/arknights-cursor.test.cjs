@@ -2,7 +2,30 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { createCursorService } = require('../app/src/main/games/arknights/cursor.cjs');
+const { createCursorService, resolveCursorCli } = require('../app/src/main/games/arknights/cursor.cjs');
+
+test('cursor CLI is resolved and verified inside the shared Arknights tools package', t => {
+  const base = path.resolve(__dirname, '../test-results');
+  const root = fs.mkdtempSync(path.join(base, 'cursor-package-'));
+  t.after(() => { assert.equal(path.dirname(fs.realpathSync(root)), fs.realpathSync(base)); fs.rmSync(root, { recursive: true, force: true }); });
+  const packageRoot = path.join(root, 'local-components/arknights-tools');
+  fs.mkdirSync(path.join(packageRoot, 'cursor'), { recursive: true });
+  const name = 'cursor/ArknightsSystemCursor.Cli.exe';
+  const manifest = { protocol: 1, source: 'https://github.com/QAQ-Revival/Arknights-Mod-Tools', files: {} };
+  for (const relative of [name, name + '.config']) {
+    const file = path.join(packageRoot, relative);
+    fs.writeFileSync(file, 'packaged cursor fixture');
+    manifest.files[relative] = require('node:crypto').createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  }
+  fs.writeFileSync(path.join(packageRoot, 'component.json'), JSON.stringify(manifest));
+  const Module = require('node:module'), original = Module._load;
+  Module._load = function(request, ...args) { return request === 'electron' ? { app: { getAppPath: () => path.join(root, 'resources/app') } } : original.call(this, request, ...args); };
+  try {
+    assert.equal(resolveCursorCli(), path.join(packageRoot, name));
+    fs.writeFileSync(path.join(packageRoot, name), 'changed executable');
+    assert.throws(() => resolveCursorCli(), /组件|component/);
+  } finally { Module._load = original; }
+});
 
 function fixture(t) {
   const base = path.resolve(__dirname, '../test-results');

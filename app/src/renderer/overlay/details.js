@@ -1,7 +1,11 @@
 import { t } from "../../shared/i18n/index.mjs";
 import { escapeHtml, encodeHotkeyPayload } from "./html.js";
-export function renderModDetails({ mod, character, hotkeysHtml }) {
+import { getCollectionVariantLabel } from "./collections.js";
+export function renderModDetails({ mod, character, hotkeysHtml, collection }) {
   let detailHtml = "";
+  if (collection?.variants.length > 1) {
+    detailHtml += `<div class="detail-versions"><div class="detail-versions-title">${t("mods.collections.versionHeading")}</div><div class="detail-version-options">${collection.variants.map(variant => `<button type="button" class="detail-version-option ${variant.name === mod.name ? "active" : ""}" data-version-collection="${escapeHtml(collection.identity)}" data-version-mod="${escapeHtml(variant.name)}" aria-pressed="${variant.name === mod.name}">${escapeHtml(getCollectionVariantLabel(variant))}</button>`).join("")}</div></div>`;
+  }
   if (mod.previewUrl) {
     detailHtml += `<img class="detail-preview-img" src="${mod.previewUrl}" alt="">`;
   }
@@ -14,12 +18,13 @@ export function renderModDetails({ mod, character, hotkeysHtml }) {
       character: escapeHtml(character),
     },
   )}</span><button type="button" class="detail-translate-btn" id="detailTranslateBtn" disabled aria-pressed="false" title="${t("overlay.translation.description")}">${t("overlay.translation.google")}</button></div><div class="detail-translate-status" id="detailTranslateStatus" role="status" aria-live="polite"></div>`;
-  if (mod.hasConflict && mod.enabled) {
+  if (mod.hasConflict && (mod.enabled || mod.pendingEnabled)) {
     detailHtml += `<div class="detail-conflict">${t("overlay.mods.conflictNotice")}</div>`;
   }
   detailHtml += `<button class="detail-toggle-btn detail-mark-button ${mod.marked ? "is-marked" : ""}" id="detailMarkBtn" data-marked="${mod.marked ? "true" : "false"}">${mod.marked ? t("overlay.mark.removeAction") : t("overlay.mark.addAction")}</button>`;
   detailHtml += `<div class="detail-hotkey-toolbar"><span>${t("overlay.hotkeys.heading")}</span><button type="button" class="detail-translate-btn" id="detailRefreshHotkeysBtn" title="${t("overlay.hotkeys.refreshHint")}">${t("overlay.hotkeys.refresh")}</button></div><div class="detail-hotkey-section">${hotkeysHtml}</div>`;
-  detailHtml += `<button class="detail-toggle-btn ${mod.enabled ? "disable" : "enable"}" id="detailToggleBtn">${mod.enabled ? t("overlay.mods.disableAction") : t("overlay.mods.enableAction")}</button>`;
+  detailHtml += `<button class="detail-toggle-btn ${mod.enabled ? "disable" : "enable"}" id="detailToggleBtn">${mod.pendingEnabled ? t("mods.conflicts.cancelPending") : mod.enabled ? t("overlay.mods.disableAction") : t("overlay.mods.enableAction")}</button>`;
+  if (mod.pendingEnabled) detailHtml += `<button type="button" class="detail-toggle-btn enable" id="detailConfirmBtn">${t("mods.conflicts.confirmTogether")}</button>`;
   return detailHtml;
 }
 export function renderHotkeys(details, { modName, clickable }) {

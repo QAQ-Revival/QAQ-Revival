@@ -8,28 +8,55 @@ const i18n = require("../../../shared/i18n/core.cjs");
 const MARKER = ".qaqr-m4a.json";
 const { modId } = require("./reload.cjs");
 
-function planDeployment(entries) {
+const digestCache = new Map();
+function digest(file) {
+  const stat = fs.statSync(file), signature = `${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
+  const cached = digestCache.get(file);
+  if (cached?.signature === signature) return cached.hash;
+  const hash = crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+  if (digestCache.size > 10000) digestCache.clear();
+  digestCache.set(file, { signature, hash });
+  return hash;
+}
+function inspectEntries(entries) {
   const keys = new Map();
-  return entries.map(entry => {
+  const conflicts = [];
+  const planned = entries.map(entry => {
     const report = files.assertLoadable(entry.path);
     for (const identity of report.identities) {
       const previous = keys.get(identity.key) || [];
       for (const other of previous) {
         if (identity.bundle && other.bundle && identity.bundle !== other.bundle) continue;
-        const hash = file => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
-        if (hash(identity.path) !== hash(other.path)) throw Error(i18n.t("arknights.errors.conflict", { name: identity.key, mods: `${other.name} / ${entry.name}` }));
+        if (other.name !== entry.name && digest(identity.path) !== digest(other.path)) {
+          const sources = [[other.name, other.bundle || "", digest(other.path)], [entry.name, identity.bundle || "", digest(identity.path)]].sort((a, b) => a[0].localeCompare(b[0]));
+          const id = crypto.createHash("sha256").update(JSON.stringify([identity.key, sources])).digest("hex");
+          conflicts.push({ id, hash: identity.key, mods: [other.name, entry.name], files: [{ path: other.path, modPath: other.modPath, sha256: digest(other.path) }, { path: identity.path, modPath: entry.path, sha256: digest(identity.path) }] });
+        }
       }
-      previous.push({ ...identity, name: entry.name });
+      previous.push({ ...identity, name: entry.name, modPath: entry.path });
       keys.set(identity.key, previous);
     }
     return { ...entry, resources: report.resources, manifests: report.manifests };
   });
+  return { planned, conflicts };
 }
-function deploy({ entries, library, destination, gamePath, changedModPath = "", copy = fs.copyFileSync, rename = fs.renameSync }) {
+function findConflicts(entries) { return inspectEntries(entries).conflicts; }
+function validatePlan({ planned, conflicts }, approvedConflictIds) {
+  const approved = new Set(approvedConflictIds);
+  const blocked = conflicts.find(conflict => !approved.has(conflict.id));
+  if (blocked) throw Error(i18n.t("arknights.errors.conflict", { name: blocked.hash, mods: blocked.mods.join(" / ") }));
+  return planned;
+}
+function planDeployment(entries, { approvedConflictIds = [] } = {}) {
+  return validatePlan(inspectEntries(entries), approvedConflictIds);
+}
+function deploy({ entries, library, destination, gamePath, changedModPath = "", approvedConflictIds = [], copy = fs.copyFileSync, rename = fs.renameSync }) {
   files.assertOutsideGame(destination, gamePath);
   files.assertOutsideGame(library, gamePath);
   if (files.inside(destination, library) || files.inside(library, destination)) throw Error(i18n.t("arknights.errors.overlap"));
-  const planned = planDeployment(entries);
+  const inspected = inspectEntries(entries);
+  const planned = validatePlan(inspected, approvedConflictIds);
+  const approvedResourcePairs = inspected.conflicts.map(conflict => conflict.files.map(file => ({ file: path.join(modId(file.modPath), path.relative(file.modPath, file.path)).split(path.sep).join("/"), sha256: file.sha256 })));
   const previous = path.join(path.dirname(destination), "DISABLE_QAQR_previous");
   function owned(dir) {
     files.assertNoLinks(dir);
@@ -68,7 +95,7 @@ function deploy({ entries, library, destination, gamePath, changedModPath = "", 
         stageFile(entry, file, id);
       }
     }
-    const summary = { owner: "qaqr-arknights-v1", modCount: planned.length, fileCount: count, updatedAt: new Date().toISOString(), sources };
+    const summary = { owner: "qaqr-arknights-v1", modCount: planned.length, fileCount: count, updatedAt: new Date().toISOString(), sources, approvedResourcePairs, modOrder: planned.map(entry => modId(entry.path)) };
     fs.writeFileSync(path.join(stage, MARKER), JSON.stringify(summary));
     if (fs.existsSync(previous)) fs.rmSync(previous, { recursive: true });
     if (fs.existsSync(destination)) { files.renameDirectory(destination, previous, rename); moved = true; }
@@ -82,4 +109,4 @@ function deploy({ entries, library, destination, gamePath, changedModPath = "", 
   }
 }
 
-module.exports = { planDeployment, deploy, MARKER };
+module.exports = { planDeployment, findConflicts, deploy, MARKER };

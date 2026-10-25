@@ -7,10 +7,14 @@ import {
 } from "./CharacterSectionNavigator.jsx";
 import {
   LocalCollectionGalleryDropdown,
-  LocalCollectionVariantStrip,
 } from "./LocalCollectionVariants.jsx";
-import { FittingTagRow } from "./FittingTagRow.jsx";
+import { collectModTags, getModTypeLabels } from "../../../lib/modPresentation.js";
+import "../../../lib/mod-selection.css";
 export function ModLibraryPanel({
+  mods,
+  collectionByPath,
+  confirmingConflicts,
+  confirmConflictSelection,
   viewMode,
   onBack,
   characterName,
@@ -88,6 +92,21 @@ export function ModLibraryPanel({
   showConflictDetail,
   confirmDelete,
 }) {
+  const availableTags = collectModTags(mods);
+  const pendingMods = mods.filter(mod => mod.pendingEnabled);
+  function renderVersionMenu(mod, inline = false) {
+    const collection = mod._localCollection || collectionByPath.get(mod.path);
+    if (!collection) return null;
+    return <LocalCollectionGalleryDropdown
+      collection={collection}
+      currentPath={mod.path}
+      inline={inline}
+      isOpen={openLocalCollectionGalleryMenu === mod.path}
+      onToggle={(_identity, forceOpen = false) => setOpenLocalCollectionGalleryMenu(current => forceOpen || current !== mod.path ? mod.path : null)}
+      onClose={() => setOpenLocalCollectionGalleryMenu(null)}
+      onSelect={selectLocalCollectionVariant}
+    />;
+  }
   return (
     <div
       className={`${viewMode === "gallery" ? "mod-gallery-panel" : "mod-list-panel"} card mod-library-panel`}
@@ -260,6 +279,14 @@ export function ModLibraryPanel({
               {"✕"}
             </button>
           )}
+          <details className="mod-tag-filter">
+            <summary aria-label={t("mods.library.selectTags")}>{t("mods.library.selectTags")}{selectedTagFilters.size > 0 ? " (" + selectedTagFilters.size + ")" : ""}</summary>
+            <div className="mod-tag-filter-menu">
+              {availableTags.length === 0 && <span>{t("mods.library.noTags")}</span>}
+              {availableTags.map(([key, name]) => <label key={key}><input type="checkbox" checked={selectedTagFilters.has(key)} onChange={() => toggleTagFilter(key)} /><span>{name}</span></label>)}
+              {selectedTagFilters.size > 0 && <button type="button" onClick={clearTagFilters}>{t("common.actions.clear")}</button>}
+            </div>
+          </details>
         </div>
         <div
           className="mod-sort-options"
@@ -362,6 +389,11 @@ export function ModLibraryPanel({
           </span>
         </div>
       )}
+      {pendingMods.length > 0 && <div className="mod-conflict-confirm" role="status">
+        <span>⚠️ {t("mods.conflicts.pendingCount", { count: pendingMods.length })}</span>
+        <span className="mod-conflict-confirm-hint">{t("mods.conflicts.pendingHint")}</span>
+        <button type="button" disabled={confirmingConflicts} onClick={confirmConflictSelection}>{confirmingConflicts ? t("common.status.loading") : t("mods.conflicts.confirmTogether")}</button>
+      </div>}
       {batchMode && (
         <div className="mod-library-panel-batch-toolbar">
           <span className="mod-library-panel-selection-summary">
@@ -474,7 +506,7 @@ export function ModLibraryPanel({
             {displayMods.map((mod) => (
               <div
                 data-mod-name={mod.name}
-                className={`mod-gallery-card ${mod._localCollection ? "local-collection-card" : ""} ${openLocalCollectionGalleryMenu === mod._localCollection?.identity ? "local-collection-menu-open" : ""} ${selectedMod?.path === mod.path && !detailCollapsed ? "selected" : ""} ${focusPulseModName === mod.name ? "mod-focus-pulse" : ""}`}
+                className={`mod-gallery-card ${mod._localCollection ? "local-collection-card" : ""} ${openLocalCollectionGalleryMenu === mod.path ? "local-collection-menu-open" : ""} ${selectedMod?.path === mod.path && !detailCollapsed ? "selected" : ""} ${focusPulseModName === mod.name ? "mod-focus-pulse" : ""}`}
                 onClick={(event) => {
                   if (
                     event.target.closest(".local-collection-gallery-dropdown")
@@ -517,27 +549,7 @@ export function ModLibraryPanel({
                       })}
                     </div>
                   )}
-                  {mod._localCollection && (
-                    <LocalCollectionGalleryDropdown
-                      collection={mod._localCollection}
-                      currentPath={mod.path}
-                      isOpen={
-                        openLocalCollectionGalleryMenu ===
-                        mod._localCollection.identity
-                      }
-                      onToggle={(identity, forceOpen = false) => {
-                        setOpenLocalCollectionGalleryMenu((current) =>
-                          forceOpen
-                            ? identity
-                            : current === identity
-                              ? null
-                              : identity,
-                        );
-                      }}
-                      onClose={() => setOpenLocalCollectionGalleryMenu(null)}
-                      onSelect={selectLocalCollectionVariant}
-                    />
-                  )}
+                  {renderVersionMenu(mod)}
                   {markModeUnlocked ? (
                     <button
                       className={`mod-gallery-card-mark ${isMarkedModEntry(markedMods, mod, characterName, activeGameId) ? "active" : ""}`}
@@ -581,10 +593,12 @@ export function ModLibraryPanel({
                         : mod.name
                     }
                   >
+                    {getModTypeLabels(mod).length > 0 && <span className="mod-type-badge">{getModTypeLabels(mod).join(" · ")}</span>}
                     {mod.name}
+                    {mod.hasConflict && (mod.enabled || mod.pendingEnabled) && <span className="mod-conflict-icon" title={t("mods.conflicts.confirmToast")}>⚠️</span>}
                   </div>
                   <div
-                    className={`toggle-switch-refined ${mod.enabled ? "active" : ""} mod-gallery-card-toggle`}
+                    className={`toggle-switch-refined ${mod.enabled || mod.pendingEnabled ? "active" : ""} ${mod.pendingEnabled ? "pending" : ""} mod-gallery-card-toggle`}
                     onClick={(e) => handleToggle(mod.name, mod.enabled, e)}
                     title={
                       mod.enabled
@@ -770,11 +784,11 @@ export function ModLibraryPanel({
                 </div>
               )}
               <button
-                className={`toggle-switch-refined ${mod.enabled ? "active" : ""} mod-toggle-wrap`}
+                className={`toggle-switch-refined ${mod.enabled || mod.pendingEnabled ? "active" : ""} ${mod.pendingEnabled ? "pending" : ""} mod-toggle-wrap`}
                 type="button"
                 role="switch"
-                aria-checked={mod.enabled}
-                aria-label={`${mod.enabled ? t("common.actions.disable") : t("common.actions.enable")} ${mod.name}`}
+                aria-checked={mod.enabled || mod.pendingEnabled}
+                aria-label={`${mod.pendingEnabled ? t("mods.conflicts.cancelPending") : mod.enabled ? t("common.actions.disable") : t("common.actions.enable")} ${mod.name}`}
                 onClick={(e) => handleToggle(mod.name, mod.enabled, e)}
               />
               <div
@@ -789,7 +803,9 @@ export function ModLibraryPanel({
                       })}
                     </span>
                   )}
+                  {getModTypeLabels(mod).length > 0 && <span className="mod-type-badge">{getModTypeLabels(mod).join(" · ")}</span>}
                   <span className="mod-row-name-text">{mod.name}</span>
+                  {renderVersionMenu(mod, true)}
                   {mod.pinned && (
                     <span
                       title={t("mods.status.pinned")}
@@ -811,7 +827,7 @@ export function ModLibraryPanel({
                       {"🔖"}
                     </span>
                   )}
-                  {conflictMap[mod.name] && mod.enabled && (
+                  {conflictMap[mod.name] && (mod.enabled || mod.pendingEnabled) && (
                     <span
                       title={t("mods.conflicts.hashConflictHint", {
                         map: conflictMap[mod.name]
@@ -855,20 +871,6 @@ export function ModLibraryPanel({
                   mod.originalName?.replace(/^DISABLED_/i, "") !== mod.name && (
                     <div className="mod-original-name">{mod.originalName}</div>
                   )
-                )}
-                {Array.isArray(mod.tags) && mod.tags.length > 0 && (
-                  <FittingTagRow
-                    tags={mod.tags}
-                    selectedTags={selectedTagFilters}
-                    onToggleTag={toggleTagFilter}
-                  />
-                )}
-                {mod._localCollection && (
-                  <LocalCollectionVariantStrip
-                    collection={mod._localCollection}
-                    currentPath={mod.path}
-                    onSelect={selectLocalCollectionVariant}
-                  />
                 )}
               </div>
               {markModeUnlocked && (

@@ -64,15 +64,17 @@ function getConflictCacheSignature(charPath) {
     return "";
   }
 }
-function detectConflictsForCharacter(charPath) {
+function detectConflictsForCharacter(charPath, { includeDisabledNames } = {}) {
+  const prospective = Array.isArray(includeDisabledNames);
+  const selected = new Set(includeDisabledNames || []);
   const signature = getConflictCacheSignature(charPath);
   const cached = conflictCache.get(charPath);
-  if (cached && cached.signature === signature) {
+  if (!prospective && cached && cached.signature === signature) {
     return cached.conflicts;
   }
   const modDirs = fs.readdirSync(charPath, {
     withFileTypes: true
-  }).filter(d => d.isDirectory() && !d.name.startsWith("DISABLED_"));
+  }).filter(d => d.isDirectory() && (!d.name.startsWith("DISABLED_") || selected.has(d.name.replace(/^DISABLED_/, ""))));
   const hashMap = new Map();
   for (const mod of modDirs) {
     const modPath = path.join(charPath, mod.name);
@@ -83,7 +85,7 @@ function detectConflictsForCharacter(charPath) {
         if (!hashMap.has(hash)) {
           hashMap.set(hash, new Set());
         }
-        hashMap.get(hash).add(mod.name);
+        hashMap.get(hash).add(mod.name.replace(/^DISABLED_/, ""));
       }
     }
   }
@@ -96,7 +98,7 @@ function detectConflictsForCharacter(charPath) {
       });
     }
   }
-  conflictCache.set(charPath, {
+  if (!prospective) conflictCache.set(charPath, {
     signature,
     conflicts
   });

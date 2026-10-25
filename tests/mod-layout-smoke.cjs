@@ -175,4 +175,5 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, mods, 
   await captureUI('mod-layout-preview.png');
   passed('Mod context rename works in list/gallery with collapsed details, targets the clicked Mod, preserves files and enabled state, rejects empty/duplicate/invalid names and supports cancellation');
   passed('Mod workspace: empty and portrait previews, readable rows, search/sort/toggle/filter/rename; both modes support drag/keyboard resizing, saved widths, reset, collapse without a gutter and click-to-reopen');
+  await require('./collection-versions-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, mods, passed });
 };

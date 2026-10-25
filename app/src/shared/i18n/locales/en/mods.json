@@ -18,5 +18,29 @@
     "apply": "Apply preset",
     "delete": "Delete preset",
     "empty": "No presets yet"
+  },
+  "conflicts": {
+    "confirmToast": "Mod conflict. Please confirm.",
+    "pendingCount": "{{count}} Mods awaiting confirmation",
+    "pendingHint": "Pending changes have not been applied. Overlapping resources follow a fixed priority.",
+    "confirmTogether": "Confirm and enable together",
+    "confirmed": "Confirmed and enabled together",
+    "cancelPending": "Cancel pending enable",
+    "awaitingConfirmation": "Awaiting confirmation; not applied"
+  },
+  "library": {
+    "selectTags": "Tags",
+    "noTags": "No tags for this character"
+  },
+  "types": {
+    "base": "Original",
+    "skin": "Skin",
+    "static": "Static",
+    "dynamic": "Animated",
+    "voice": "Voice"
+  },
+  "collections": {
+    "versionHeading": "Version",
+    "selectionFailed": "Could not save the version selection. Please retry."
   }
 }

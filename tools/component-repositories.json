@@ -5,7 +5,9 @@
     "branch": "main",
     "build": "../../tools/build-xxmi.cjs",
     "targets": {
-      "xxmi-installer": { "output": "local-components/xxmi-installer" }
+      "xxmi-installer": {
+        "output": "local-components/xxmi-installer"
+      }
     }
   },
   "arknights-tools": {
@@ -16,6 +18,7 @@
     "exports": [
       "native",
       "python",
+      "cursor",
       "tools",
       "tests",
       "patches",
@@ -49,16 +52,6 @@
       "arknights-tools": {
         "output": "local-components/arknights-tools"
       }
-    }
-  },
-  "arknights-cursor": {
-    "source": "native/arknights-cursor",
-    "repository": "assfafa/arknights-system-cursor",
-    "branch": "main",
-    "build": "build-qaqr.cjs",
-    "exports": ["src/Core", "src/Cli", "tests", "tools", "qaqr", "build-qaqr.cjs", "SOURCES.json", "LICENSE", "Directory.Build.props", "NuGet.Config", ".gitignore"],
-    "targets": {
-      "arknights-cursor": { "output": "local-components/arknights-cursor" }
     }
   },
   "steam-bridge": {

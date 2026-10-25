@@ -8,6 +8,7 @@ export function renderLayout() {
             <button class="side-close" id="sideZoomIn" title="${t("overlay.zoom.in")}">➕</button>
             <button class="side-close" id="sideClose" aria-label="${t("overlay.actions.close")}">✕</button>
         </div>
+        <div class="side-character-search" id="sideCharacterSearchRow" hidden><input type="search" id="sideCharacterSearch" placeholder="${t("overlay.characters.search")}" aria-label="${t("overlay.characters.search")}"></div>
         <div class="side-body" id="sideBody"></div>
         <div class="side-toast" id="sideToast"></div>
     </div>

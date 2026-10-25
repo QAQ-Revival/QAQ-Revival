@@ -50,6 +50,7 @@ function LocalCollectionGalleryDropdown({
   onToggle,
   onClose,
   onSelect,
+  inline = false,
 }) {
   const variants = Array.isArray(collection?.variants)
     ? collection.variants
@@ -104,7 +105,7 @@ function LocalCollectionGalleryDropdown({
   return (
     <div
       ref={rootRef}
-      className="local-collection-gallery-dropdown"
+      className={`local-collection-gallery-dropdown ${inline ? "inline" : ""}`}
       onClick={(event) => event.stopPropagation()}
       onMouseDown={(event) => event.stopPropagation()}
     >

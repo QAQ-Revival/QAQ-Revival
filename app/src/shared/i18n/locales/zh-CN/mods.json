@@ -245,7 +245,9 @@
   "collections": {
     "namedHeading": "合集：{{name}}",
     "variantCount": "{{variantsCount}} 个版本/变体",
-    "groupCount": "合集 {{variantsCount}}"
+    "groupCount": "合集 {{variantsCount}}",
+    "versionHeading": "版本",
+    "selectionFailed": "无法保存版本选择，请重试。"
   },
   "marked": {
     "toolbarLabel": "标记模式工具栏",
@@ -388,11 +390,20 @@
     "locatedProgress": "已定位 {{name}} ({{count}}/{{enabledModsCount}})",
     "located": "已定位 {{name}}",
     "notFound": "未找到 Mod：{{modName}}",
-    "orderSaved": "Mod 顺序已保存"
+    "orderSaved": "Mod 顺序已保存",
+    "selectTags": "标签",
+    "noTags": "当前角色暂无标签"
   },
   "conflicts": {
     "hashConflictHint": "与 {{map}} 存在 Hash 冲突",
-    "conflictPrefix": " 冲突: "
+    "conflictPrefix": " 冲突: ",
+    "confirmToast": "MOD冲突，请确认",
+    "pendingCount": "{{count}} 个 Mod 待确认",
+    "pendingHint": "待确认的修改尚未应用到游戏。重叠资源按固定顺序覆盖。",
+    "confirmTogether": "确认同时启用",
+    "confirmed": "已确认并同时启用",
+    "cancelPending": "取消待启用",
+    "awaitingConfirmation": "待确认，尚未应用"
   },
   "persist": {
     "readFailed": "无法读取持久化配置",
@@ -450,5 +461,12 @@
     "fixerUpdated": "独立修复器已更新：{{fileName}}",
     "xxmiUpdated": "XXMI 已更新，共覆盖 {{copiedFiles}} 个文件",
     "gamePackageUpdated": "游戏包已更新，共覆盖 {{copiedFiles}} 个文件（Mods 已保留）"
+  },
+  "types": {
+    "base": "原皮",
+    "skin": "皮肤",
+    "static": "静态",
+    "dynamic": "动态",
+    "voice": "语音"
   }
 }

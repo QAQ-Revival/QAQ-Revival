@@ -147,17 +147,20 @@ function readModViewPreferences(storageKey) {
     if (!raw)
       return {
         localCollectionsEnabled: false,
-        exclusiveMode: true,
+        exclusiveMode: false,
+        selectionModeVersion: 2,
       };
     const parsed = JSON.parse(raw);
     return {
       localCollectionsEnabled: parsed?.localCollectionsEnabled === true,
-      exclusiveMode: parsed?.exclusiveMode !== false,
+      exclusiveMode: parsed?.selectionModeVersion === 2 && parsed?.exclusiveMode === true,
+      selectionModeVersion: 2,
     };
   } catch {
     return {
       localCollectionsEnabled: false,
-      exclusiveMode: true,
+      exclusiveMode: false,
+      selectionModeVersion: 2,
     };
   }
 }

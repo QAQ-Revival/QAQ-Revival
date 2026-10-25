@@ -11,7 +11,9 @@
     "menu": "角色头像菜单",
     "withMods": "只显示有 Mod 的角色",
     "choose": "选择一个角色查看 Mod",
-    "actions": "角色操作"
+    "actions": "角色操作",
+    "search": "搜索角色名称或拼音…",
+    "noMatches": "没有匹配的角色"
   },
   "focus": {
     "enabledCount": "定位当前启用 Mod（{{count}} 个）",

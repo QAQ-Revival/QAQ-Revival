@@ -26,6 +26,12 @@ export function renderLayout() {
             <button class="char-bubble-btn" id="charFilterBtn" title="${t("overlay.characters.withMods")}">🎯</button>
         </div>
 
+        <div class="overlay-appearance-sections" id="appearanceSections" role="tablist" aria-label="${t("mods.sections.title")}"></div>
+        <div class="overlay-mod-filters">
+            <input type="search" id="overlayModSearch" placeholder="${t("mods.search.placeholder")}" aria-label="${t("mods.search.placeholder")}">
+            <details class="overlay-tag-filter"><summary id="overlayTagSummary">${t("mods.library.selectTags")}</summary><div class="overlay-tag-menu" id="overlayTagMenu"></div></details>
+        </div>
+        <div class="overlay-conflict-confirm" id="conflictConfirm" hidden></div>
         <div class="sort-bar">
             <span class="sort-bar-label">${t("overlay.sort.title")}</span>
             <button class="sort-btn active" data-sort="name">${t("overlay.sort.name")}</button>
@@ -35,7 +41,7 @@ export function renderLayout() {
             <div class="toolbar-spacer"></div>
             <button class="sort-btn" id="focusEnabledBtn" title="${t("overlay.focus.enabledHint")}">${t("overlay.focus.action")}</button>
             <button class="sort-btn active" id="overlayCollectionBtn" title="${t("overlay.collections.hide")}" aria-pressed="true">${t("overlay.collections.title")}</button>
-            <button class="sort-btn active" id="exclusiveBtn" data-sort="exclusive">${t("overlay.selection.single")}</button>
+            <button class="sort-btn" id="exclusiveBtn" data-sort="exclusive">${t("overlay.selection.single")}</button>
             <button class="view-mode-toggle-overlay" id="viewModeBtn" title="${t("overlay.view.toggle")}">
                 <span id="viewModeIcon"></span>
                 <span id="viewModeLabel">${t("overlay.view.gallery")}</span>

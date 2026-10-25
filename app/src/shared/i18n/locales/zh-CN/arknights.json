@@ -44,7 +44,11 @@
   "selectDifferences": "选择有差异或未验证的资源",
   "clearSelection": "清空选择",
   "comparisonTitle": "与当前 PC 资源比较",
-  "comparison": { "identical": "内容相同", "different": "内容不同", "unknown": "未验证" },
+  "comparison": {
+    "identical": "内容相同",
+    "different": "内容不同",
+    "unknown": "未验证"
+  },
   "settings": {
     "libraryHint": "保存按干员分类的全部 Mod。启用资源会用于构建外部 PC 资源副本。",
     "title": "加载器",
@@ -102,6 +106,9 @@
     "modMissing": "Mod 不存在或已移动，请刷新列表。",
     "changed": "Mod、游戏设置或诊断结果已变化，请重新诊断后生成副本。",
     "busy": "正在处理另一项明日方舟操作，请稍后重试。",
-    "launchMode": "明日方舟 PC 使用源码构建的 QAQR Arknights Loader。"
+    "launchMode": "明日方舟 PC 使用源码构建的 QAQR Arknights Loader。",
+    "approvalSave": "无法保存冲突确认，已恢复原有启用状态。",
+    "workerDependencyMissing": "离线分析器缺少组件 {{name}}，请重新部署完整的明日方舟工具。",
+    "workerExited": "离线分析器未能启动（退出码 {{code}}），请检查明日方舟工具是否完整。"
   }
 }

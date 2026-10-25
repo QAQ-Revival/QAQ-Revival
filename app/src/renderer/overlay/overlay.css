@@ -7,6 +7,27 @@
 :root {
   --overlay-ui-scale: 1;
 }
+.overlay-appearance-sections { display: flex; gap: 7px; padding: 8px 12px; overflow-x: auto; flex-shrink: 0; }
+.overlay-appearance-sections:empty { display: none; }
+.overlay-appearance-sections::-webkit-scrollbar { height: 4px; }
+.overlay-appearance-sections::-webkit-scrollbar-thumb { background: #cdb7d7; border-radius: 4px; }
+.overlay-appearance-tab { display: flex; align-items: center; gap: 7px; min-width: 112px; max-width: 180px; padding: 6px 8px; border: 1px solid rgba(128,128,128,.15); border-radius: 9px; background: rgba(255,255,255,.65); color: #555; text-align: left; cursor: pointer; }
+.overlay-appearance-tab.active { border-color: #ff8fa3; background: #fff4f7; }
+.overlay-appearance-tab img, .overlay-section-fallback { width: 28px; height: 36px; object-fit: cover; border-radius: 5px; flex-shrink: 0; }
+.overlay-appearance-tab > span { min-width: 0; }
+.overlay-appearance-tab strong { display: block; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.overlay-appearance-tab small { font-size: 10px; color: #888; }
+.overlay-mod-filters { display: flex; gap: 6px; padding: 0 12px 7px; flex-shrink: 0; }
+.overlay-mod-filters > input { min-width: 0; flex: 1; padding: 7px 9px; border: 1px solid #e4dfe8; border-radius: 7px; background: rgba(255,255,255,.8); font: inherit; font-size: 11px; }
+.overlay-tag-filter { position: relative; z-index: 20; font-size: 11px; }
+.overlay-tag-filter summary { padding: 7px 9px; border: 1px solid #e4dfe8; border-radius: 7px; background: #fff; cursor: pointer; list-style: none; white-space: nowrap; }
+.overlay-tag-filter summary::after { content: " ▾"; }
+.overlay-tag-menu { position: absolute; right: 0; top: calc(100% + 4px); width: 245px; max-height: 260px; overflow: auto; padding: 8px; border: 1px solid #e4dfe8; border-radius: 9px; background: #fff; box-shadow: 0 8px 24px #0002; }
+.overlay-tag-menu label { display: flex; align-items: center; gap: 6px; padding: 6px; cursor: pointer; overflow-wrap: anywhere; }
+.overlay-conflict-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px 12px; background: #fff2d8; font-size: 11px; flex-shrink: 0; }
+.overlay-conflict-confirm[hidden] { display: none; }
+.overlay-conflict-confirm button { margin-left: auto; padding: 5px 8px; border: 1px solid #d99c36; border-radius: 6px; background: #fff; font: inherit; cursor: pointer; }
+.overlay-conflict-confirm small { flex-basis: 100%; color: #886d3d; line-height: 1.5; }
 
 body {
   font-family:

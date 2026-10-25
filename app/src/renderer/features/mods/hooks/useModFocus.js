@@ -1,5 +1,6 @@
 import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
+import { saveCollectionSelection } from "../../../lib/collectionSelection.js";
 export function useModFocus({
   modsListRef,
   setFocusPulseModName,
@@ -15,6 +16,7 @@ export function useModFocus({
   setToast,
   pendingFocusRef,
   characterName,
+  activeGameId,
   modsLoadVersion,
   sortMethod,
   galleryAnchorRef,
@@ -83,13 +85,15 @@ export function useModFocus({
     setOpenLocalCollectionGalleryMenu(null);
     setSelectedLocalCollectionVariants((prev) => ({
       ...prev,
-      [identity]: variant.path,
+      [identity]: variant.name,
     }));
+    saveCollectionSelection(activeGameId, characterName, identity, variant.name);
     if (viewMode === "gallery" && selectedMod?.name) {
       captureGalleryAnchor(selectedMod.name);
     }
     setSelectedMod(variant);
     setDetailCollapsed(false);
+    scrollToMod(variant.name, "nearest");
   }
   function focusNextEnabledMod() {
     const enabledMods = displayMods.filter((mod) => mod.enabled);

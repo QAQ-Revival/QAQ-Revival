@@ -44,7 +44,11 @@
   "selectDifferences": "Select different or unverified resources",
   "clearSelection": "Clear selection",
   "comparisonTitle": "Compared with current PC resources",
-  "comparison": { "identical": "Identical content", "different": "Different content", "unknown": "Unverified" },
+  "comparison": {
+    "identical": "Identical content",
+    "different": "Different content",
+    "unknown": "Unverified"
+  },
   "settings": {
     "libraryHint": "Stores all Mods organized by operator. Enabled resources are used to build separate PC bundles.",
     "title": "Loader",
@@ -102,6 +106,9 @@
     "modMissing": "The Mod is missing or has moved. Refresh the list.",
     "changed": "The Mod, game settings or analysis has changed. Analyze again before creating a copy.",
     "busy": "Another Arknights operation is running. Try again shortly.",
-    "launchMode": "Arknights PC uses the source-built QAQR Arknights Loader."
+    "launchMode": "Arknights PC uses the source-built QAQR Arknights Loader.",
+    "approvalSave": "Could not save the conflict confirmation. The previous enabled state was restored.",
+    "workerDependencyMissing": "The offline analyzer is missing {{name}}. Redeploy the complete Arknights tools.",
+    "workerExited": "The offline analyzer could not start (exit code {{code}}). Check that the Arknights tools are complete."
   }
 }

@@ -44,6 +44,22 @@ test('resource keys detect cross-Mod aliases, preserve front/back identities and
   fs.writeFileSync(path.join(f.mod, 'char_4215_buddy.ab'), 'UnityFS');
   assert.throws(() => files.assertLoadable(f.mod));
 });
+test('resource overlaps require confirmation of the exact content and never reuse an approval after a file changes', t => {
+  const f = fixture(t), second = path.join(f.library, 'operator', 'second');
+  fs.mkdirSync(second);
+  fs.writeFileSync(path.join(second, 'char_4215_buddy_mh_2.png'), 'different image');
+  const entries = [...f.entries, { name: 'operator/second', path: second }];
+  const { findConflicts } = require('../app/src/main/games/arknights/deployment.cjs');
+  const approvedConflictIds = findConflicts(entries).map(conflict => conflict.id);
+  assert.equal(approvedConflictIds.length, 1);
+  assert.throws(() => deploy({ ...f, entries }));
+  assert.equal(deploy({ ...f, entries, approvedConflictIds }).fileCount, 2);
+  const marker = JSON.parse(fs.readFileSync(path.join(f.destination, MARKER), 'utf8'));
+  assert.equal(marker.approvedResourcePairs.length, 1);
+  assert.equal(marker.approvedResourcePairs[0].length, 2);
+  fs.writeFileSync(path.join(second, 'char_4215_buddy_mh_2.png'), 'updated conflicting content');
+  assert.throws(() => deploy({ ...f, entries, approvedConflictIds }));
+});
 test('deployment refuses game writes, overlapping libraries, junctions and unowned destinations', t => {
   const f = fixture(t);
   assert.throws(() => deploy({ ...f, gamePath: path.join(f.dir, 'Arknights.exe') }));
