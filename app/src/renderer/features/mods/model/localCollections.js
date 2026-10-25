@@ -186,9 +186,9 @@ function buildLocalCollectionView(
     }
     if (displayedIdentities.has(identity)) return;
     displayedIdentities.add(identity);
-    const selectedPath = selectedVariants[identity];
+    const selectedValue = selectedVariants[identity];
     const selectedVariant =
-      group.variants.find((variant) => variant.path === selectedPath) ||
+      group.variants.find((variant) => variant.name === selectedValue || variant.path === selectedValue) ||
       group.variants.find((variant) => variant.enabled) ||
       group.variants[0];
     displayMods.push({

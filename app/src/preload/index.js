@@ -108,6 +108,7 @@ const api = {
   moveMisplacedModFolders: (options) => electron.ipcRenderer.invoke("mods-root:move-misplaced-folders", options || {}),
   getMods: (characterName) => electron.ipcRenderer.invoke("get-mods", characterName),
   toggleMod: (characterName, modName, enable) => electron.ipcRenderer.invoke("toggle-mod", { characterName, modName, enable }),
+  confirmModConflicts: (characterName) => electron.ipcRenderer.invoke("confirm-mod-conflicts", { characterName }),
   addMod: (characterName, filePath, modInfo) => electron.ipcRenderer.invoke("add-mod", { characterName, filePath, modInfo }),
   addCharacter: (name, coverImagePath) => electron.ipcRenderer.invoke("add-character", { name, coverImagePath }),
   deleteCharacter: (characterName) => electron.ipcRenderer.invoke("delete-character", characterName),

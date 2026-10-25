@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld("overlayApi", {
   getHotkey: () => ipcRenderer.invoke("get-overlay-hotkey"),
   getMods: (characterName) =>
     ipcRenderer.invoke("overlay-get-mods", characterName),
+  confirmModConflicts: (characterName) => ipcRenderer.invoke("confirm-mod-conflicts", { characterName, overlay: true }),
   toggleMod: (characterName, modName, enabled) =>
     ipcRenderer.invoke("overlay-toggle-mod", {
       characterName,

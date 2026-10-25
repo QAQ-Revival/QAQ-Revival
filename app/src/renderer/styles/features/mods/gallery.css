@@ -404,6 +404,23 @@
   max-width: calc(100% - 20px);
   pointer-events: auto;
 }
+.local-collection-gallery-dropdown.inline {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  flex-shrink: 0;
+  margin-left: auto;
+  max-width: 120px;
+}
+.local-collection-gallery-dropdown.inline .local-collection-gallery-trigger {
+  background: var(--color-bg-secondary, #fff3f6);
+  color: var(--color-text-primary, #653c49);
+  border-color: rgba(255, 143, 163, 0.3);
+  text-shadow: none;
+}
+.local-collection-gallery-dropdown.inline::after {
+  border-color: var(--color-text-secondary, #795a65);
+}
 
 .local-collection-gallery-dropdown::after {
   content: "";

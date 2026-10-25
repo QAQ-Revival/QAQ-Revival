@@ -30,11 +30,7 @@ const desktopNotifications = require("../desktop/notifications.cjs");
 const desktopWindows = require("../desktop/windows.cjs");
 const developerMarked = require("../developer/marked.cjs");
 const gamesEnvironment = require("../games/environment.cjs");
-const gamesNevernessLoader = require("../games/neverness/loader.cjs");
 const gamesSettings = require("../games/settings.cjs");
-const modsConflicts = require("../mods/conflicts.cjs");
-const modsMetadata = require("../mods/metadata.cjs");
-const modsNevernessPaks = require("../games/neverness/paks.cjs");
 const overlayActivity = require("./activity.cjs");
 const overlayHelper = require("./helper.cjs");
 const overlayKeypress = require("./keypress.cjs");
@@ -42,7 +38,6 @@ const persistService = require("../persist/service.cjs");
 const persistTracking = require("../persist/tracking.cjs");
 const presetsService = require("../presets/service.cjs");
 const runtimePaths = require("../runtime/paths.cjs");
-const systemFiles = require("../system/files.cjs");
 const OVERLAY_WINDOW_WIDTH = 420;
 const OVERLAY_WINDOW_HEIGHT = 720;
 const OVERLAY_WINDOW_MIN_SCALE = 0.85;
@@ -400,6 +395,7 @@ function registerIpc() {
       await overlayActivity.prepareOverlayActivity();
       const characters = charactersDirectories.sortCharacterEntries(charactersDirectories.listCharacterDirectories(modsPath, gameId2), gameId2).map(entry => ({
         name: entry.displayName,
+        searchText: charactersCatalog.getCharacterAliasCandidates(entry.displayName, gameId2).join(" "),
         modCount: entry.modCount,
         enabledCount: entry.enabledCount,
         coverUrl: charactersImages.getCharacterCoverUrl(entry.displayName)
@@ -416,91 +412,7 @@ function registerIpc() {
       };
     }
   });
-  electron.ipcMain.handle("overlay-get-mods", async (_, characterName) => {
-    try {
-      const gameId2 = gamesSettings.getActiveGameScopeId();
-      charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
-      const charPath = charactersDirectories.resolveCharacterPath(characterName, gameId2);
-      if (!charPath || !fs.existsSync(charPath)) return {
-        success: false,
-        error: i18n.t("backend.overlay.window.characterFolderMissing")
-      };
-      const entries = fs.readdirSync(charPath, {
-        withFileTypes: true
-      });
-      const addedAtAccessor = gamesSettings.createModAddedAtAccessor();
-      let mods = entries.filter(e => e.isDirectory()).map(e => {
-        const isDisabled = e.name.startsWith("DISABLED_");
-        const displayName = isDisabled ? e.name.replace(/^DISABLED_/, "") : e.name;
-        const modDir = path.join(charPath, e.name);
-        const {
-          addedAt,
-          addedAtMs
-        } = addedAtAccessor.get(characterName, displayName, modDir);
-        let previewUrl = null;
-        const previewNames = ["preview.png", "preview.jpg", "preview.jpeg", "preview.webp"];
-        for (const pn of previewNames) {
-          const pp = path.join(modDir, pn);
-          if (fs.existsSync(pp)) {
-            previewUrl = "file:///" + pp.replace(/\\/g, "/");
-            break;
-          }
-        }
-        return {
-          name: displayName,
-          fullName: e.name,
-          enabled: !isDisabled,
-          previewUrl,
-          marked: developerMarked.isModMarked(gameId2, characterName, displayName),
-          addedAt,
-          addedAtMs
-        };
-      }).sort((a, b) => {
-        if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
-        return a.name.localeCompare(b.name);
-      });
-      const modOrders = configStore.currentConfig.modOrders || {};
-      const {
-        value: customOrder
-      } = charactersDirectories.getCharacterConfigStoreValue(modOrders, characterName, [], gameId2);
-      if (customOrder.length > 0) {
-        const orderedMods = [];
-        const unorderedMods = [];
-        for (const mod of mods) {
-          if (customOrder.includes(mod.name)) {
-            orderedMods.push(mod);
-          } else {
-            unorderedMods.push(mod);
-          }
-        }
-        orderedMods.sort((a, b) => customOrder.indexOf(a.name) - customOrder.indexOf(b.name));
-        unorderedMods.sort((a, b) => a.name.localeCompare(b.name, "zh"));
-        mods = [...orderedMods, ...unorderedMods];
-      }
-      mods = modsMetadata.movePinnedModsToTop(modsMetadata.applyPinnedStateToMods(characterName, mods));
-      addedAtAccessor.saveIfDirty();
-      let conflictModNames = new Set();
-      try {
-        const conflicts = modsConflicts.detectConflictsForCharacter(charPath);
-        for (const c of conflicts) {
-          for (const modName of c.mods) conflictModNames.add(modName);
-        }
-      } catch (e) {}
-      for (const mod of mods) {
-        mod.hasConflict = conflictModNames.has(mod.name);
-      }
-      return {
-        success: true,
-        mods,
-        characterAliases: charactersCatalog.getCharacterAliasCandidates(characterName, gameId2)
-      };
-    } catch (e) {
-      return {
-        success: false,
-        error: e.message
-      };
-    }
-  });
+  electron.ipcMain.handle("overlay-get-mods", (_, characterName) => require("../ipc/mods.cjs").listMods(characterName));
   electron.ipcMain.handle("overlay-set-mod-marked", async (_, {
     characterName,
     modName,
@@ -551,93 +463,7 @@ function registerIpc() {
       };
     }
   });
-  electron.ipcMain.handle("overlay-toggle-mod", async (_, {
-    characterName,
-    modName,
-    enabled
-  }) => {
-    try {
-      const gameId2 = gamesSettings.getActiveGameScopeId();
-      if (gameId2 === "arknights") return require("../games/arknights/service.cjs").toggleMod({ characterName, modName, enable: enabled, autoReload: !!configStore.currentConfig.overlayAutoReloadEnabled });
-      if (enabled) charactersHidden.assertCharacterVisible(characterName, gameId2);
-      if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
-        const result = modsNevernessPaks.toggleNevernessDx12PakMod(characterName, modName, enabled);
-        if (!result?.success) return {
-          success: false,
-          error: result?.error || i18n.t("backend.overlay.window.pakToggleFailed")
-        };
-        return result;
-      }
-      charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
-      const env = gamesEnvironment.resolveActiveGameEnvRoot(gameId2);
-      const charPath = charactersDirectories.resolveCharacterPath(characterName, gameId2);
-      if (!charPath) {
-        return {
-          success: false,
-          error: i18n.t("backend.overlay.window.characterFolderMissing")
-        };
-      }
-      const currentName = enabled ? `DISABLED_${modName}` : modName;
-      const newName = enabled ? modName : `DISABLED_${modName}`;
-      const oldPath = path.join(charPath, currentName);
-      const newPath = path.join(charPath, newName);
-      if (!fs.existsSync(oldPath)) {
-        const altOld = path.join(charPath, enabled ? modName : `DISABLED_${modName}`);
-        if (fs.existsSync(altOld)) {
-          return {
-            success: true
-          };
-        }
-        return {
-          success: false,
-          error: i18n.t("backend.overlay.window.modFolderMissing", {
-            currentName
-          })
-        };
-      }
-      if (!enabled && persistTracking.isPersistBridgeEnabled(gameId2)) {
-        if (persistService.usesManagedPersistBridge(characterName, modName, gameId2)) {
-          persistTracking.syncPersistBridgeStateForModDir(oldPath, gameId2);
-        }
-      }
-      const renameResult = await systemFiles.renameModDirectoryWithRetry(oldPath, newPath);
-      if (!renameResult.success) {
-        return {
-          success: false,
-          error: renameResult.error || i18n.t("backend.overlay.window.modToggleFailed")
-        };
-      }
-      if (env?.root && persistTracking.isPersistBridgeEnabled(gameId2)) {
-        const stateFiles = persistTracking.collectHostedPersistStateFilesForModDir(newPath);
-        persistTracking.updateActivePersistBridgeIncludesIncremental(env.root, enabled ? {
-          enableStateFiles: stateFiles
-        } : {
-          disableStateFiles: stateFiles
-        });
-      }
-      modsConflicts.clearConflictCache(characterName, gameId2);
-      let persistRestored = false;
-      if (enabled) {
-        if (configStore.currentConfig.overlayAutoReloadEnabled) {
-          await overlayHelper.triggerOverlayReload();
-        }
-      }
-      desktopNotifications.notifyCharacterListChanged(characterName, {
-        modName,
-        reason: "overlay-toggle"
-      });
-      return {
-        success: true,
-        autoReloaded: !!(enabled && configStore.currentConfig.overlayAutoReloadEnabled),
-        persistRestored
-      };
-    } catch (e) {
-      return {
-        success: false,
-        error: e.message
-      };
-    }
-  });
+  electron.ipcMain.handle("overlay-toggle-mod", (_, { characterName, modName, enabled }) => require("../ipc/mods.cjs").toggleMod(characterName, modName, enabled, true));
   electron.ipcMain.handle("overlay-trigger-reload", async () => {
     try {
       await overlayHelper.triggerOverlayReload();

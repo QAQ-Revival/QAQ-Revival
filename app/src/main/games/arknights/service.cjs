@@ -67,17 +67,23 @@ function enabledEntries(extra = null) {
     }
   }
   if (extra && !entries.some(entry => entry.path === extra.path)) entries.push(extra);
-  return entries;
+  return entries.sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
 }
-function sync({ force = false, changedModPath = "" } = {}) {
+function conflictApprovals(extra = []) {
+  const key = crypto.createHash("sha256").update(path.resolve(paths().library).toLowerCase()).digest("hex");
+  const stored = configStore.currentConfig.arknightsConflictApprovals?.[key];
+  return { key, ids: [...new Set([...(Array.isArray(stored) ? stored : []), ...extra])] };
+}
+function sync({ force = false, changedModPath = "", confirmedConflictIds = [] } = {}) {
   const p = paths();
   initialize();
   try {
     const entries = enabledEntries();
-    const planned = deployment.planDeployment(entries);
+    const approvedConflictIds = conflictApprovals(confirmedConflictIds).ids;
+    const planned = deployment.planDeployment(entries, { approvedConflictIds });
     const signature = JSON.stringify([p.library, p.destination, ...planned.map(entry => [entry.path, ...[...entry.resources, ...entry.manifests].map(file => [file.relative, file.size, file.mtimeMs])])]);
     if (!force && !changedModPath && lastSync?.success && signature === lastSignature && fs.existsSync(p.destination)) return lastSync;
-    const { sources: _sources, ...summary } = deployment.deploy({ ...p, entries, changedModPath });
+    const { sources: _sources, approvedResourcePairs: _pairs, modOrder: _order, ...summary } = deployment.deploy({ ...p, entries, changedModPath, approvedConflictIds });
     lastSync = { success: true, ...summary };
     lastSignature = signature;
   } catch (error) {
@@ -91,8 +97,9 @@ function onModsChanged(gameId) {
   if (processing) { pendingSync = true; return lastSync; }
   try { return sync(); } catch { return lastSync; }
 }
-function assertCanEnable(modPath) {
-  deployment.planDeployment(enabledEntries({ path: modPath, name: path.basename(modPath).replace(files.DISABLED, "") }));
+function assertCanEnable(modPath, { characterName = "", confirmedConflictIds = [] } = {}) {
+  characterName = directories.resolveCharacterEntry(characterName, GAME)?.displayName || characterName;
+  deployment.planDeployment(enabledEntries({ path: modPath, name: (characterName ? characterName + "/" : "") + path.basename(modPath).replace(files.DISABLED, "") }), { approvedConflictIds: conflictApprovals(confirmedConflictIds).ids });
 }
 function prepareImportedMod(modPath) {
   const p = paths();
@@ -177,19 +184,25 @@ function runWorker(payload) {
   return new Promise((resolve, reject) => {
     const child = spawn(executable, [], { windowsHide: true, shell: false, cwd: path.dirname(executable), stdio: ["pipe", "pipe", "pipe"] });
     const chunks = [];
+    let stderr = "";
     let size = 0;
     let failed = false;
     const fail = error => { if (!failed) { failed = true; clearTimeout(timeout); child.kill(); reject(error); } };
     const timeout = setTimeout(() => fail(Error(i18n.t("arknights.errors.timeout"))), payload.action === "build-bundles" ? 60 * 60 * 1000 : 180000);
     child.on("error", fail);
     child.stdin.on("error", fail);
-    child.stderr.on("data", () => {});
+    child.stderr.on("data", chunk => { stderr = (stderr + chunk.toString("utf8")).slice(-16384); });
     child.stdout.on("data", chunk => { size += chunk.length; if (size > 8 * 1024 * 1024) fail(Error(i18n.t("arknights.errors.tooLarge"))); else chunks.push(chunk); });
     child.on("close", code => {
       clearTimeout(timeout);
       if (failed) return;
       try {
-        const result = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        const output = Buffer.concat(chunks).toString("utf8");
+        if (!output.trim()) {
+          const missing = stderr.match(/ModuleNotFoundError: No module named ['"]([^'"]+)['"]/);
+          throw Error(missing ? i18n.t("arknights.errors.workerDependencyMissing", { name: missing[1] }) : i18n.t("arknights.errors.workerExited", { code: code ?? "?" }));
+        }
+        const result = JSON.parse(output);
         if (code || !result.success) throw Error(result.error || i18n.t("arknights.errors.workerFailed"));
         resolve(result);
       } catch (error) { reject(error); }
@@ -209,7 +222,7 @@ function resolveMod(characterName, modName) {
 }
 const reloadMod = require("./reload.cjs").createModReloader({ paths, resolveMod, characterIds, sync, runNative: args => sourceComponent.runNative(args), runWorker });
 const cursorService = require("./cursor.cjs").createCursorService({ getGamePath: () => paths().gamePath, getStateRoot: () => path.join(paths().root, "SystemCursor") });
-async function toggleMod({ characterName, modName, enable, autoReload = true }) {
+async function toggleMod({ characterName, modName, enable, autoReload = true, confirmedConflictIds = [] }) {
   if (processing) return { success: false, error: i18n.t("arknights.errors.busy") };
   processing = true;
   try {
@@ -218,11 +231,25 @@ async function toggleMod({ characterName, modName, enable, autoReload = true }) 
     if (enable) hidden.assertCharacterVisible(characterName, GAME);
     const cleanName = path.basename(current).replace(files.DISABLED, "");
     const target = path.join(path.dirname(current), enable ? cleanName : "DISABLED_" + cleanName);
-    if (current === target) return { success: true, autoReloaded: false };
+    if (current === target) return { success: true, autoReloaded: false, alreadyInState: true };
     if (fs.existsSync(target)) throw Error(i18n.t("arknights.errors.invalidPath"));
-    if (enable) assertCanEnable(current);
+    if (enable) assertCanEnable(current, { characterName, confirmedConflictIds });
     files.renameDirectory(current, target);
-    try { sync(); } catch (error) { files.renameDirectory(target, current); throw error; }
+    const previousApprovals = configStore.currentConfig.arknightsConflictApprovals;
+    try {
+      sync({ confirmedConflictIds });
+      if (enable && confirmedConflictIds.length) {
+        const approvals = conflictApprovals(confirmedConflictIds);
+        configStore.currentConfig.arknightsConflictApprovals = { ...previousApprovals, [approvals.key]: approvals.ids };
+        if (!configStore.saveConfig(configStore.currentConfig)) throw Error(i18n.t("arknights.errors.approvalSave"));
+      }
+    } catch (error) {
+      if (previousApprovals === undefined) delete configStore.currentConfig.arknightsConflictApprovals;
+      else configStore.currentConfig.arknightsConflictApprovals = previousApprovals;
+      files.renameDirectory(target, current);
+      try { sync(); } catch { /* Preserve the original error and the user's library state. */ }
+      throw error;
+    }
     let reload;
     try { reload = autoReload ? await reloadMod({ characterName, modName: cleanName, optional: true }) : { autoReloaded: false }; }
     catch (error) { reload = { autoReloaded: false, reloadError: error.message }; }
@@ -321,4 +348,4 @@ function registerIpc() {
   });
 }
 
-module.exports = { GAME, paths, generatedFingerprint, componentFingerprint, validateLibrary, initialize, status, sync, onModsChanged, assertCanEnable, prepareImportedMod, prepareLoader, launch, runWorker, toggleMod, registerIpc };
+module.exports = { GAME, paths, enabledEntries, generatedFingerprint, componentFingerprint, validateLibrary, initialize, status, sync, onModsChanged, assertCanEnable, prepareImportedMod, prepareLoader, launch, runWorker, toggleMod, registerIpc };

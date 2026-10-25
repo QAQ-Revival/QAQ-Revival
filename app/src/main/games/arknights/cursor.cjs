@@ -6,16 +6,16 @@ const crypto = require("node:crypto");
 const { execFile } = require("node:child_process");
 const files = require("./files.cjs");
 const i18n = require("../../../shared/i18n/core.cjs");
-const SOURCE = "https://github.com/assfafa/arknights-system-cursor";
+const SOURCE = "https://github.com/QAQ-Revival/Arknights-Mod-Tools";
 
 function resolveCursorCli() {
   const { app } = require("electron");
-  const candidates = [path.dirname(process.execPath), path.resolve(app.getAppPath(), "../.."), path.resolve(app.getAppPath(), "..")].map(root => path.join(root, "local-components/arknights-cursor"));
+  const candidates = [path.dirname(process.execPath), path.resolve(app.getAppPath(), "../.."), path.resolve(app.getAppPath(), "..")].map(root => path.join(root, "local-components/arknights-tools"));
   const root = candidates.find(directory => fs.existsSync(path.join(directory, "component.json")));
   if (!root) throw Error(i18n.t("arknights.cursor.componentMissing"));
   files.assertNoLinks(root);
   const component = JSON.parse(fs.readFileSync(path.join(root, "component.json"), "utf8"));
-  const name = "ArknightsSystemCursor.Cli.exe";
+  const name = "cursor/ArknightsSystemCursor.Cli.exe";
   const executable = path.join(root, name);
   if (component.protocol !== 1 || component.source !== SOURCE || !component.files?.[name] || !fs.existsSync(executable)) throw Error(i18n.t("arknights.cursor.componentInvalid"));
   for (const relative of [name, name + ".config"]) {

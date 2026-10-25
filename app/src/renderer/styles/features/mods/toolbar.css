@@ -1,4 +1,50 @@
 /* 4. Mod Sort Bar */
+.mod-tag-filter {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 12;
+  font-size: 12px;
+}
+.mod-tag-filter summary {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--color-bg-secondary, #f5f2f8);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  list-style: none;
+}
+.mod-tag-filter summary::after { content: " ▾"; }
+.mod-tag-filter-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(300px, 60vw);
+  max-height: 300px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 10px;
+  background: var(--color-bg-card, #fff);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.14);
+}
+.mod-tag-filter-menu label { display: flex; align-items: center; gap: 8px; padding: 6px; cursor: pointer; overflow-wrap: anywhere; }
+.mod-search-field:has(.mod-tag-filter) .mod-search-input { padding-right: 116px; }
+.mod-search-field > button { right: 86px; }
+.mod-conflict-confirm {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 20px;
+  background: rgba(217, 156, 54, 0.1);
+  color: var(--color-text-primary);
+  font-size: 12px;
+}
+.mod-conflict-confirm-hint { flex: 1; color: var(--color-text-secondary); }
+.mod-conflict-confirm button { padding: 6px 12px; border: 1px solid #d99c36; border-radius: 8px; background: var(--color-bg-card, #fff); color: inherit; cursor: pointer; }
+.mod-conflict-confirm button:disabled { opacity: 0.5; cursor: wait; }
 .mod-sort-bar {
   display: flex;
   align-items: center;

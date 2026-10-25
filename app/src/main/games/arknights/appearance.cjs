@@ -65,7 +65,18 @@ function inspectAppearance(modDir, sections) {
     const binding = bindings.get(file.path.toLowerCase());
     return binding ? { resource: binding.target, bundle: binding.bundle, appearanceAliases: binding.appearanceAliases } : file.name;
   }), ...entries.filter(file => files.BUNDLES.has(file.ext)).map(file => file.name)];
-  return classifyResources(names, sections);
+  // Battle/base chibis also contain animated Spine skeletons. Only portrait
+  // resources identify a dynamic illustration; a .skel extension does not.
+  const dynamic = entries.some(file => {
+    const binding = bindings.get(file.path.toLowerCase());
+    const target = path.posix.basename(String(binding?.target || file.name).replace(/\\/g, "/"));
+    return /^arts\/dynchars\//i.test(binding?.bundle || "") || /^(?:(?:sp_|entry_)?dyn_(?:illust|portrait|entrance)_)/i.test(target);
+  });
+  const contentTypes = [];
+  if (dynamic) contentTypes.push("dynamic");
+  else if (entries.some(file => file.ext === ".png")) contentTypes.push("static");
+  if (entries.some(file => file.ext === ".wav")) contentTypes.push("voice");
+  return { ...classifyResources(names, sections), contentTypes };
 }
 
 let appearanceWorker = null;
@@ -73,6 +84,13 @@ let nextRequestId = 0;
 const pending = new Map();
 function inspectAppearances(modDirs, sections) {
   if (!modDirs.length) return Promise.resolve([]);
+  return requestWorker({ modDirs, sections });
+}
+function inspectResourceConflicts(entries) {
+  if (entries.length < 2) return Promise.resolve([]);
+  return requestWorker({ action: "conflicts", entries });
+}
+function requestWorker(payload) {
   if (!appearanceWorker) {
     const { Worker } = require("node:worker_threads");
     const worker = new Worker(path.join(__dirname, "appearance-worker.cjs"));
@@ -100,7 +118,7 @@ function inspectAppearances(modDirs, sections) {
     const id = ++nextRequestId;
     pending.set(id, { resolve, reject });
     worker.ref();
-    try { worker.postMessage({ id, modDirs, sections }); }
+    try { worker.postMessage({ id, ...payload }); }
     catch (error) {
       pending.delete(id);
       if (!pending.size) worker.unref();
@@ -109,4 +127,4 @@ function inspectAppearances(modDirs, sections) {
   });
 }
 
-module.exports = { SHARED_SECTION, classifyResources, inspectAppearance, inspectAppearances };
+module.exports = { SHARED_SECTION, classifyResources, inspectAppearance, inspectAppearances, inspectResourceConflicts };

@@ -1,5 +1,9 @@
 import { renderModDetails, renderHotkeys } from "./details.js";
 import { renderModCards } from "./mod-cards.js";
+import { collectModTags } from "../lib/modPresentation.js";
+import { collectionSelectionKey, readCollectionSelections, saveCollectionSelection } from "../lib/collectionSelection.js";
+import { getAppearanceSectionStorageKey, getModViewPreferenceStorageKey, readModViewPreferences } from "../features/mods/model/modHelpers.js";
+import { getSectionName, getSectionId } from "../features/mods/model/appearanceSections.js";
 import { t } from "../../shared/i18n/index.mjs";
 import "./overlay.css";
 import "./controls.css";
@@ -20,6 +24,11 @@ let selectedChar = null;
 let selectedCharIndex = 0;
 let characters = [];
 let currentMods = [];
+let appearanceSections = [];
+let activeAppearanceSectionId = "base";
+let overlayModSearch = "";
+let selectedTags = new Set();
+let confirmingConflicts = false;
 let currentCharacterAliases = [];
 let presets = [];
 let toastTimer = null;
@@ -39,15 +48,7 @@ let activityRefreshPromise = null;
 let activityOpenRequest = 0;
 let activityEpoch = 0;
 let charactersGameId = null;
-let overlayExclusive = (() => {
-  try {
-    const v = localStorage.getItem("qaqm.overlay.exclusiveMode");
-    // First use defaults to single-select; an explicit false must survive every reopen.
-    return v === "false" ? false : true;
-  } catch {
-    return true;
-  }
-})();
+let overlayExclusive = false;
 // Keep display preferences across game sessions.
 let overlayViewMode = (() => {
   try {
@@ -171,6 +172,9 @@ function clearOverlaySelectionState() {
   selectedCharIndex = 0;
   selectedModName = null;
   currentMods = [];
+  appearanceSections = [];
+  document.getElementById("appearanceSections").innerHTML = "";
+  document.getElementById("conflictConfirm").hidden = true;
   openOverlayCollectionMenu = null;
   enabledFocusCursor = -1;
   bubbleSideOpen = false;
@@ -206,7 +210,7 @@ function findModRow(modName) {
   );
 }
 function findOverlayCollectionIdentityForMod(modName) {
-  if (!overlayCollectionsEnabled || !modName) return null;
+  if (!modName) return null;
   for (const [identity, group] of overlayCollectionGroupsByIdentity.entries()) {
     if (
       Array.isArray(group?.variants) &&
@@ -304,12 +308,12 @@ function focusModRow(modName, options = {}) {
   );
 }
 function getEnabledModsInCurrentOrder() {
-  return sortMods(currentMods).filter((mod) => mod.enabled);
+  return sortMods(getSectionMods()).filter((mod) => mod.enabled);
 }
 function syncFocusEnabledUI() {
   const btn = document.getElementById("focusEnabledBtn");
   if (!btn) return;
-  const enabledCount = currentMods.filter((mod) => mod.enabled).length;
+  const enabledCount = getSectionMods().filter((mod) => mod.enabled).length;
   btn.disabled = enabledCount === 0;
   btn.title =
     enabledCount > 0
@@ -377,9 +381,6 @@ function toggleOverlayCollectionsEnabled() {
       String(overlayCollectionsEnabled),
     );
   } catch {}
-  if (!overlayCollectionsEnabled) {
-    overlayCollectionSelections = {};
-  }
   closeOverlayCollectionMenus();
   syncOverlayCollectionsUI();
   if (focusName && selectedChar) {
@@ -451,14 +452,22 @@ function closeOverlayCollectionMenus() {
     });
 }
 function selectOverlayCollectionVariant(identity, modName) {
-  if (!identity || !modName) return;
+  if (!identity || !currentMods.some(mod => mod.name === modName)) return;
   prepareModFocusState(modName, {
     collectionIdentity: identity,
     scrollTop: document.getElementById("modList").scrollTop,
   });
   closeOverlayCollectionMenus();
+  saveCollectionSelection(charactersGameId, selectedChar, identity, modName);
   renderMods();
   requestAnimationFrame(() => focusModRow(modName));
+  if (detailSideOpen && !bubbleSideOpen) openDetail(modName, { force: true, updateOnly: true });
+}
+function getOverlayCollectionForMod(modName) {
+  const mod = currentMods.find(item => item.name === modName);
+  if (!mod) return null;
+  const sectionMods = currentMods.filter(item => (item.appearanceSectionId || "base") === (mod.appearanceSectionId || "base"));
+  return buildOverlayCollectionView(sortMods(sectionMods), selectedChar, currentCharacterAliases, overlayCollectionSelections).find(item => item._collection?.variants.some(variant => variant.name === modName))?._collection || null;
 }
 function positionOverlayCollectionFloatingMenu(trigger, menu) {
   if (!trigger || !menu) return;
@@ -484,14 +493,15 @@ function showOverlayCollectionFloatingMenu(trigger, identity) {
   const menu = document.getElementById("overlayCollectionFloatingMenu");
   const group = overlayCollectionGroupsByIdentity.get(identity);
   if (!menu || !group || !Array.isArray(group.variants)) return;
+  const currentName = trigger.closest("[data-mod]")?.dataset.mod || group.currentName;
   openOverlayCollectionMenu = identity;
   menu.dataset.collection = identity;
   menu.innerHTML = group.variants
     .map(
       (variant) => `
-            <button class="overlay-collection-option ${variant.name === group.currentName ? "active" : ""}" data-collection-option="1" data-collection="${escapeHtml(identity)}" data-mod="${escapeHtml(variant.name)}" title="${escapeHtml(variant.name)}">
+            <button class="overlay-collection-option ${variant.name === currentName ? "active" : ""}" data-collection-option="1" data-collection="${escapeHtml(identity)}" data-mod="${escapeHtml(variant.name)}" title="${escapeHtml(variant.name)}">
                 <span>${escapeHtml(getCollectionVariantLabel(variant))}</span>
-                <em>${variant.name === group.currentName ? "&#24403;&#21069;" : variant.enabled ? "&#21551;&#29992;" : ""}</em>
+                <em>${variant.name === currentName ? "&#24403;&#21069;" : variant.enabled ? "&#21551;&#29992;" : ""}</em>
             </button>
         `,
     )
@@ -1100,8 +1110,8 @@ document.querySelectorAll(".sort-btn[data-sort]").forEach((btn) => {
       overlayExclusive = !overlayExclusive;
       try {
         localStorage.setItem(
-          "qaqm.overlay.exclusiveMode",
-          String(overlayExclusive),
+          getModViewPreferenceStorageKey(charactersGameId, selectedChar),
+          JSON.stringify({ ...readModViewPreferences(getModViewPreferenceStorageKey(charactersGameId, selectedChar)), exclusiveMode: overlayExclusive, selectionModeVersion: 2 }),
         );
       } catch {}
       syncExclusiveUI();
@@ -1119,6 +1129,86 @@ document.querySelectorAll(".sort-btn[data-sort]").forEach((btn) => {
         .forEach((b) => b.classList.toggle("active", b === btn));
       if (selectedChar) renderMods();
     });
+  }
+});
+function getSectionMods() {
+  return currentMods.filter(mod => (mod.appearanceSectionId || "base") === activeAppearanceSectionId);
+}
+function getFilteredMods() {
+  const query = overlayModSearch.trim().toLowerCase();
+  return getSectionMods().filter(mod => {
+    if (query && ![mod.name, mod.notes, ...(mod.tags || [])].some(value => String(value || "").toLowerCase().includes(query))) return false;
+    const tags = new Set((mod.tags || []).map(tag => String(tag).toLowerCase()));
+    return [...selectedTags].every(tag => tags.has(tag));
+  });
+}
+function renderAppearanceSections() {
+  const container = document.getElementById("appearanceSections");
+  container.innerHTML = appearanceSections.map(section => {
+    const id = getSectionId(section), name = getSectionName(section), cover = section.coverUrl || section.imageUrl || section.image;
+    const mods = currentMods.filter(mod => (mod.appearanceSectionId || "base") === id);
+    return `<button type="button" class="overlay-appearance-tab ${id === activeAppearanceSectionId ? "active" : ""}" role="tab" aria-selected="${id === activeAppearanceSectionId}" data-section="${escapeHtml(id)}" title="${escapeHtml(name)}">${cover ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy">` : '<span class="overlay-section-fallback">👗</span>'}<span><strong>${escapeHtml(name)}</strong><small>${mods.filter(mod => mod.enabled).length}/${mods.length}</small></span></button>`;
+  }).join("");
+  container.querySelectorAll("[data-section]").forEach(button => button.addEventListener("click", () => {
+    activeAppearanceSectionId = button.dataset.section;
+    try { localStorage.setItem(getAppearanceSectionStorageKey(charactersGameId, selectedChar), activeAppearanceSectionId); } catch {}
+    selectedModName = null;
+    enabledFocusCursor = -1;
+    renderMods();
+    document.getElementById("modList").scrollTop = 0;
+  }));
+}
+function renderSelectionControls() {
+  renderAppearanceSections();
+  document.getElementById("overlayTagSummary").textContent = t("mods.library.selectTags") + (selectedTags.size ? ` (${selectedTags.size})` : "");
+  const tagMenu = document.getElementById("overlayTagMenu");
+  tagMenu.innerHTML = collectModTags(currentMods).map(([key, name]) => `<label><input type="checkbox" data-tag="${escapeHtml(key)}" ${selectedTags.has(key) ? "checked" : ""}><span>${escapeHtml(name)}</span></label>`).join("") || `<span>${t("mods.library.noTags")}</span>`;
+  tagMenu.querySelectorAll("[data-tag]").forEach(input => input.addEventListener("change", () => {
+    if (input.checked) selectedTags.add(input.dataset.tag); else selectedTags.delete(input.dataset.tag);
+    renderMods();
+  }));
+  const pending = currentMods.filter(mod => mod.pendingEnabled);
+  const confirm = document.getElementById("conflictConfirm");
+  confirm.hidden = pending.length === 0;
+  confirm.innerHTML = pending.length ? `<span>⚠️ ${t("mods.conflicts.pendingCount", { count: pending.length })}</span><button type="button" ${confirmingConflicts ? "disabled" : ""}>${t("mods.conflicts.confirmTogether")}</button><small>${t("mods.conflicts.pendingHint")}</small>` : "";
+  confirm.querySelector("button")?.addEventListener("click", async () => {
+    if (confirmingConflicts) return;
+    const character = selectedChar;
+    confirmingConflicts = true;
+    renderSelectionControls();
+    try {
+      const result = await window.overlayApi.confirmModConflicts(character);
+      showToast(result.reloadError ? t("arknights.reloadToggleFailed", { error: result.reloadError }) : result.success ? t("mods.conflicts.confirmed") : result.error || t("overlay.mods.toggleFailed"));
+      if (selectedChar === character) await loadMods(character, { silent: true });
+    } finally { confirmingConflicts = false; renderSelectionControls(); }
+  });
+}
+document.getElementById("overlayModSearch").addEventListener("input", event => {
+  overlayModSearch = event.target.value;
+  renderMods();
+});
+document.getElementById("appearanceSections").addEventListener("wheel", event => {
+  const strip = event.currentTarget;
+  if (strip.scrollWidth <= strip.clientWidth || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+  event.preventDefault();
+  strip.scrollLeft += event.deltaY;
+}, { passive: false });
+window.addEventListener("storage", event => {
+  if (!selectedChar) return;
+  if (event.key === getAppearanceSectionStorageKey(charactersGameId, selectedChar) && appearanceSections.some(section => getSectionId(section) === event.newValue)) {
+    activeAppearanceSectionId = event.newValue;
+    renderMods();
+  }
+  if (event.key === getModViewPreferenceStorageKey(charactersGameId, selectedChar)) {
+    overlayExclusive = readModViewPreferences(event.key).exclusiveMode;
+    syncExclusiveUI();
+  }
+  if (event.key === collectionSelectionKey(charactersGameId, selectedChar)) {
+    overlayCollectionSelections = readCollectionSelections(charactersGameId, selectedChar);
+    const group = getOverlayCollectionForMod(selectedModName);
+    const nextName = overlayCollectionSelections[group?.identity];
+    if (nextName && nextName !== selectedModName) selectOverlayCollectionVariant(group.identity, nextName);
+    else renderMods();
   }
 });
 function sortMods(mods) {
@@ -1178,7 +1268,7 @@ function showCharacterBubbleSide() {
       .map((c, i) => {
         const escapedName = escapeHtml(c.name);
         const initial = escapeHtml(c.name.substring(0, 1));
-        return `<div class="bubble-avatar ${selectedChar === c.name ? "active" : ""}" data-name="${escapedName}" data-idx="${i}" title="${escapedName}">
+        return `<div class="bubble-avatar ${selectedChar === c.name ? "active" : ""}" data-name="${escapedName}" data-search="${escapeHtml(c.searchText || c.name)}" data-idx="${i}" title="${escapedName}">
                 ${c.coverUrl ? `<img src="${c.coverUrl}" alt="">` : `<span>${initial}</span>`}
             </div>`;
       })
@@ -1485,7 +1575,16 @@ async function selectChar(name) {
     clearOverlaySelectionState();
     return;
   }
+  if (selectedChar !== name) {
+    overlayModSearch = "";
+    selectedTags.clear();
+    document.getElementById("overlayModSearch").value = "";
+    try { activeAppearanceSectionId = localStorage.getItem(getAppearanceSectionStorageKey(charactersGameId, name)) || "base"; } catch { activeAppearanceSectionId = "base"; }
+  }
   selectedChar = name;
+  overlayCollectionSelections = readCollectionSelections(charactersGameId, name);
+  overlayExclusive = readModViewPreferences(getModViewPreferenceStorageKey(charactersGameId, name)).exclusiveMode;
+  syncExclusiveUI();
   selectedCharIndex = characters.findIndex((c) => c.name === name);
   renderCharChips();
   const active = document.querySelector(".char-chip.active");
@@ -1540,6 +1639,8 @@ async function loadMods(characterName, options = {}) {
         ? result.characterAliases
         : [];
       currentMods = nextMods;
+      appearanceSections = Array.isArray(result.sections) ? result.sections : [];
+      if (!appearanceSections.some(section => getSectionId(section) === activeAppearanceSectionId)) activeAppearanceSectionId = getSectionId(appearanceSections[0]);
       currentCharacterAliases = nextAliases;
       const names = new Set(currentMods.map((mod) => mod.name));
       Object.entries(overlayCollectionSelections).forEach(
@@ -1578,25 +1679,25 @@ function renderMods() {
     "is-gallery",
     overlayViewMode === "gallery" && !overlaySettings.compatibilityMode,
   );
-  const sorted = sortMods(currentMods);
-  const displayMods = overlayCollectionsEnabled
-    ? buildOverlayCollectionView(sorted, selectedChar, currentCharacterAliases)
-    : sorted;
+  renderSelectionControls();
+  const sorted = sortMods(getFilteredMods());
+  const collections = buildOverlayCollectionView(sorted, selectedChar, currentCharacterAliases, overlayCollectionSelections);
   overlayCollectionGroupsByIdentity = new Map();
-  if (overlayCollectionsEnabled) {
-    displayMods.forEach((mod) => {
-      if (mod?._collection?.identity) {
-        overlayCollectionGroupsByIdentity.set(mod._collection.identity, {
-          ...mod._collection,
-          currentName: mod.name,
-        });
-      }
-    });
-  }
-  const enabledCount = currentMods.filter((m) => m.enabled).length;
+  const collectionByName = new Map();
+  collections.forEach((mod) => {
+    if (mod?._collection?.identity) {
+      overlayCollectionGroupsByIdentity.set(mod._collection.identity, {
+        ...mod._collection,
+        currentName: mod.name,
+      });
+      for (const variant of mod._collection.variants) collectionByName.set(variant.name, mod._collection);
+    }
+  });
+  const displayMods = overlayCollectionsEnabled ? collections : sorted.map(mod => collectionByName.has(mod.name) ? { ...mod, _collection: collectionByName.get(mod.name) } : mod);
+  const enabledCount = getSectionMods().filter((m) => m.enabled).length;
   document.getElementById("modCount").textContent =
-    `${enabledCount}/${currentMods.length}`;
-  if (currentMods.length === 0) {
+    `${enabledCount}/${getSectionMods().length}`;
+  if (displayMods.length === 0) {
     container.innerHTML = `<div class="empty-state">${t("overlay.mods.empty")}</div>`;
     syncFocusEnabledUI();
     return;
@@ -1663,7 +1764,7 @@ function renderMods() {
     toggle.addEventListener("click", async (e) => {
       e.stopPropagation();
       const modName = toggle.dataset.mod;
-      const currentlyEnabled = toggle.dataset.enabled === "true";
+      const currentlyEnabled = toggle.dataset.enabled === "true" || currentMods.find(mod => mod.name === modName)?.pendingEnabled;
       try {
         hideCuteContextMenu();
         prepareModFocusState(modName, {
@@ -1696,7 +1797,11 @@ function renderMods() {
           modName,
           !currentlyEnabled,
         );
-        if (result.success) {
+        if (result.pending) {
+          pendingFocusState = null;
+          showToast(t("mods.conflicts.confirmToast"));
+          await loadMods(selectedChar, { silent: true });
+        } else if (result.success) {
           trackInteraction(selectedChar, modName);
           overlayLastLocalChangeAt = Date.now();
           applyOptimisticModState(modName, {
@@ -1713,6 +1818,7 @@ function renderMods() {
             );
           }
           renderMods();
+          await loadMods(selectedChar, { silent: true, focusModName: modName });
           const actionLabel = !currentlyEnabled ? "✅" : "⬜";
           const reloadLabel = result.autoReloaded
             ? t("overlay.reload.completedSuffix")
@@ -1842,26 +1948,33 @@ async function openDetail(modName, { force = false, updateOnly = false } = {}) {
       mod,
       character: selectedChar,
       hotkeysHtml,
+      collection: getOverlayCollectionForMod(modName),
     });
   const loadingHotkeysHtml = `<div class="detail-loading">${t("overlay.hotkeys.loading")}</div>`;
+  const content = {
+    type: "detail",
+    requestKey,
+    title: mod.name,
+    html: buildDetailHtml(loadingHotkeysHtml),
+    charName: selectedChar,
+    modName,
+    modEnabled: mod.enabled,
+    modPending: !!mod.pendingEnabled,
+    modMarked: !!mod.marked,
+    clickableHotkeysEnabled: !!overlaySettings.clickableHotkeysEnabled,
+  };
   const sideResult = updateOnly
-    ? {
-        success: true,
-      }
-    : await window.overlayApi.showSide({
-        content: {
-          type: "detail",
-          requestKey,
-          title: mod.name,
-          html: buildDetailHtml(loadingHotkeysHtml),
-          charName: selectedChar,
-          modName,
-          modEnabled: mod.enabled,
-          modMarked: !!mod.marked,
-          clickableHotkeysEnabled: !!overlaySettings.clickableHotkeysEnabled,
-        },
-      });
-  if (!isCurrentDetail()) return;
+    ? await window.overlayApi.updateSide(content)
+    : await window.overlayApi.showSide({ content });
+  if (!isCurrentDetail()) {
+    // A version can be picked as soon as the side content appears, before the
+    // native show request finishes. Follow that choice once the panel is ready.
+    if (requestId === detailRequestId && selectedChar === detailCharacter && sideResult?.success && selectedModName) {
+      detailSideOpen = true;
+      return openDetail(selectedModName, { force: true, updateOnly: true });
+    }
+    return;
+  }
   if (!sideResult || !sideResult.success) {
     detailSideOpen = false;
     showToast(sideResult?.error || t("overlay.details.openFailed"));
@@ -1893,6 +2006,7 @@ async function openDetail(modName, { force = false, updateOnly = false } = {}) {
       charName: selectedChar,
       modName,
       modEnabled: mod.enabled,
+      modPending: !!mod.pendingEnabled,
       modMarked: !!mod.marked,
       clickableHotkeysEnabled: !!overlaySettings.clickableHotkeysEnabled,
     });
@@ -1909,6 +2023,7 @@ async function openDetail(modName, { force = false, updateOnly = false } = {}) {
       charName: selectedChar,
       modName,
       modEnabled: mod.enabled,
+      modPending: !!mod.pendingEnabled,
       modMarked: !!mod.marked,
       clickableHotkeysEnabled: !!overlaySettings.clickableHotkeysEnabled,
     });
@@ -2020,7 +2135,7 @@ window.overlayApi.onModsChanged(async (data) => {
     selectedChar &&
     (data.characterName === selectedChar || data.characterName === "__all__")
   ) {
-    if (Date.now() - overlayLastLocalChangeAt < 900) return;
+    if (data.reason !== "mod-selection" && Date.now() - overlayLastLocalChangeAt < 900) return;
     loadMods(selectedChar, {
       silent: true,
       focusModName: data?.modName || selectedModName,
@@ -2035,7 +2150,6 @@ window.overlayApi.onMarkedModsChanged((data) => {
       data.characterName === selectedChar ||
       data.characterName === "__all__")
   ) {
-    if (Date.now() - overlayLastLocalChangeAt < 900) return;
     loadMods(selectedChar, {
       silent: true,
       focusModName: data?.modName || selectedModName,

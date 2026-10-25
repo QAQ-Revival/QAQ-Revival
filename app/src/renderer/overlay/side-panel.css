@@ -86,6 +86,10 @@ body {
 }
 
 /* Bubble grid for character selection */
+.side-character-search { padding: 8px 12px; flex-shrink: 0; }
+.side-character-search[hidden], .bubble-avatar[hidden], .side-character-empty[hidden] { display: none; }
+.side-character-search input { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid #e2dce9; border-radius: 8px; background: rgba(255,255,255,.9); color: #444; font: inherit; font-size: 12px; }
+.side-character-empty { padding: 24px 8px; text-align: center; color: #888; font-size: 12px; }
 .bubble-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

@@ -36,9 +36,15 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   const second = await call('add-mod', { characterName: '艾露猫', filePath: conflictingSource, modInfo: { name: 'conflict' } });
   assert.equal(second.success, true);
   const conflict = await call('toggle-mod', { characterName: '艾露猫', modName: 'conflict', enable: true });
-  assert(conflict.error);
+  assert.equal(conflict.pending, true);
   assert.equal((await call('get-mods', '艾露猫')).mods.find(mod => mod.name === 'conflict').enabled, false);
-  passed('Arknights has an isolated catalog with 400+ operators; import starts disabled, preview works, enabled resources sync and conflicts cannot activate');
+  assert.equal((await call('overlay-get-mods', '艾露猫')).mods.find(mod => mod.name === 'conflict').pendingEnabled, true);
+  assert.equal((await call('arknights:status')).sync.modCount, 1);
+  const confirmed = await call('confirm-mod-conflicts', { characterName: '艾露猫', overlay: true });
+  assert.equal(confirmed.success, true, JSON.stringify(confirmed));
+  assert.equal((await call('arknights:status')).sync.modCount, 2);
+  assert.equal((await call('toggle-mod', { characterName: '艾露猫', modName: 'conflict', enable: false })).success, true);
+  passed('Arknights imports start disabled; main and overlay share pending conflicts, with no deployment until explicit confirmation');
 
   const bundleSource = path.join(root, 'arknights-bundle');
   fs.mkdirSync(bundleSource);
@@ -73,7 +79,53 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   assert.equal(await evaluate(`[...document.querySelectorAll('button')].some(button => button.textContent.includes('跨皮肤'))`), true);
   await evaluate(`[...document.querySelectorAll('button')].find(button => button.textContent.includes('露营时间喵'))?.click()`);
   await waitFor(`!!document.querySelector('[data-mod-name="PC sample"]')`, 'skin-specific Mod');
+  assert.equal(await evaluate(`document.querySelector('.mod-view-titlebar-actions button').classList.contains('active')`), false);
+  assert.equal(await evaluate(`document.querySelector('[data-mod-name="PC sample"] .mod-type-badge').textContent`), '皮肤 · 静态');
+  assert.equal(await evaluate(`document.querySelectorAll('[data-mod-name] .mod-row-tag-row').length`), 0);
+  assert.equal(await evaluate(`!!document.querySelector('.mod-search-field .mod-tag-filter')`), true);
   await captureUI('arknights-library.png');
+  const overlay = new electron.BrowserWindow({ show: false, webPreferences: { preload: path.join(process.resourcesPath, 'app/out/preload/overlay.js'), sandbox: false, contextIsolation: true, offscreen: true } });
+  const runOverlay = code => overlay.webContents.executeJavaScript(code, true);
+  async function overlayWait(code) {
+    for (let attempt = 0; attempt < 150; attempt++) { if (await runOverlay(code)) return; await new Promise(resolve => setTimeout(resolve, 40)); }
+    throw Error('Overlay timeout: ' + code);
+  }
+  try {
+    await overlay.loadFile(path.join(process.resourcesPath, 'app/out/renderer/overlay/index.html'));
+    await overlayWait(`!!document.querySelector('.char-chip[data-name="罗德岛隐秘队"]')`);
+    await runOverlay(`document.querySelector('.char-chip[data-name="罗德岛隐秘队"]').click()`);
+    await overlayWait(`document.querySelectorAll('#appearanceSections [role="tab"]').length > 1`);
+    assert.equal(await runOverlay(`document.querySelector('#exclusiveBtn').classList.contains('active')`), false);
+    await runOverlay(`[...document.querySelectorAll('#appearanceSections button')].find(button => button.textContent.includes('跨皮肤')).click()`);
+    await waitFor(`document.querySelector('.mod-view-active-section-label')?.textContent.includes('跨皮肤')`, 'skin tab synchronization from overlay');
+    await runOverlay(`[...document.querySelectorAll('#appearanceSections button')].find(button => button.textContent.includes('露营时间喵')).click()`);
+    await overlayWait(`!!document.querySelector('[data-toggle="1"][data-mod="PC sample"]')`);
+    assert.equal(await runOverlay(`document.querySelector('[data-mod="PC sample"] .mod-type-badge').textContent`), '皮肤 · 静态');
+    await runOverlay(`document.querySelector('[data-toggle="1"][data-mod="PC sample"]').click()`);
+    await overlayWait(`document.querySelector('[data-toggle="1"][data-mod="PC sample"]')?.dataset.enabled === 'true'`);
+    await runOverlay(`document.querySelector('[data-toggle="1"][data-mod="conflict"]').click()`);
+    await overlayWait(`!document.querySelector('#conflictConfirm').hidden`);
+    assert.equal((await call('get-mods', '艾露猫')).mods.find(mod => mod.name === 'conflict').enabled, false);
+    assert.equal(await runOverlay(`document.querySelector('#toast').textContent`), 'MOD冲突，请确认');
+    await waitFor(`!!document.querySelector('.mod-conflict-confirm')`, 'main sees overlay pending conflict');
+    await captureUI('arknights-pending-conflict.png');
+    await runOverlay(`document.querySelector('#conflictConfirm button').click()`);
+    await overlayWait(`document.querySelector('#conflictConfirm').hidden`);
+    assert.equal((await call('get-mods', '艾露猫')).mods.filter(mod => mod.enabled).length, 2);
+    fs.writeFileSync(path.join(root, 'arknights-overlay.png'), (await overlay.webContents.capturePage()).toPNG());
+    await runOverlay(`document.querySelector('#bubbleToggleBtn').click()`);
+    let side;
+    for (let attempt = 0; attempt < 150; attempt++) { side = electron.BrowserWindow.getAllWindows().find(win => win.webContents.getURL().endsWith('/side-panel.html')); if (side && await side.webContents.executeJavaScript(`!!document.querySelector('.bubble-avatar')`)) break; await new Promise(resolve => setTimeout(resolve, 40)); }
+    assert.ok(side);
+    const visible = await side.webContents.executeJavaScript(`(() => { const input = document.querySelector('#sideCharacterSearch'); input.value = 'luodedao'; input.dispatchEvent(new Event('input')); return [...document.querySelectorAll('.bubble-avatar:not([hidden])')].map(el => el.dataset.name); })()`);
+    assert.deepEqual(visible, ['罗德岛隐秘队']);
+    await new Promise(resolve => setTimeout(resolve, 250));
+    fs.writeFileSync(path.join(root, 'arknights-overlay-search.png'), (await side.webContents.capturePage()).toPNG());
+    side.hide();
+    await call('toggle-mod', { characterName: '艾露猫', modName: 'conflict', enable: false });
+    await call('toggle-mod', { characterName: '艾露猫', modName: 'PC sample', enable: false });
+    passed('Overlay skin tabs, type badges, pinyin character search and conflict confirmation work and synchronize with the main window');
+  } finally { overlay.destroy(); }
   await evaluate(`document.querySelector('[data-mod-name="PC sample"]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 480, clientY: 330 }))`);
   await waitFor(`[...document.querySelectorAll('.mod-context-menu button')].some(button => button.textContent.includes('诊断'))`, 'M4A context tools');
   assert.equal(await evaluate(`[...document.querySelectorAll('.mod-context-menu button')].some(button => button.textContent === '重载此 MOD')`), true);

@@ -28,6 +28,217 @@ const persistService = require("../persist/service.cjs");
 const persistTracking = require("../persist/tracking.cjs");
 const systemFiles = require("../system/files.cjs");
 const systemPaths = require("../system/paths.cjs");
+async function listMods(characterName) {
+    try {
+      const gameId2 = gamesSettings.getActiveGameScopeId();
+      if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
+        return modsNevernessPaks.getNevernessDx12Mods(characterName);
+      }
+      charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
+      const charPath = charactersDirectories.resolveCharacterPath(characterName, gameId2);
+      if (!charPath || !fs.existsSync(charPath)) {
+        return {
+          error: i18n.t("backend.ipc.characters.characterNotFound")
+        };
+      }
+      const files = fs.readdirSync(charPath, {
+        withFileTypes: true
+      });
+      const addedAtAccessor = gamesSettings.createModAddedAtAccessor();
+      const modDirectories = files.filter(dirent => dirent.isDirectory());
+      const definitions = charactersSkins.getMergedAppearanceSectionDefinitions(characterName, gameId2);
+      const pinnedState = modsMetadata.applyPinnedStateToMods(characterName, modDirectories.map(dirent => ({ name: dirent.name.replace(/^DISABLED_/, "") })));
+      const resourceScopes = gameId2 === "arknights" ? await require("../games/arknights/appearance.cjs").inspectAppearances(modDirectories.map(dirent => path.join(charPath, dirent.name)), definitions) : null;
+      let mods = modDirectories.map((dirent, index) => {
+        const originalName = dirent.name;
+        const isDisabled = originalName.startsWith("DISABLED_");
+        const displayName = isDisabled ? originalName.replace("DISABLED_", "") : originalName;
+        const modPath = path.join(charPath, originalName);
+        const {
+          addedAt,
+          addedAtMs
+        } = addedAtAccessor.get(characterName, displayName, modPath);
+        let tags = [];
+        let notes = "";
+        let hotkeyAliases = {};
+        let modMeta = {};
+        try {
+          const tagsFile = path.join(modPath, "tags.json");
+          if (fs.existsSync(tagsFile)) {
+            const meta = JSON.parse(fs.readFileSync(tagsFile, "utf-8"));
+            modMeta = meta && typeof meta === "object" ? meta : {};
+            if (Array.isArray(modMeta.tags)) {
+              tags = modMeta.tags.map(t => typeof t === "string" ? t : t && t.name ? String(t.name) : "").filter(Boolean);
+            }
+            if (typeof modMeta.notes === "string") notes = modMeta.notes;
+            if (modMeta.hotkeyAliases && typeof modMeta.hotkeyAliases === "object" && !Array.isArray(modMeta.hotkeyAliases)) {
+              for (const [section, alias] of Object.entries(modMeta.hotkeyAliases)) {
+                if (typeof alias === "string" && alias.trim()) hotkeyAliases[section] = alias;
+              }
+            }
+          }
+        } catch (_2) {}
+        let previewUrl = null;
+        try {
+          const previewImagePath = charactersImages.findModPreviewImageFile(modPath);
+          if (previewImagePath) previewUrl = charactersImages.getLocalImageUrl(previewImagePath);
+        } catch (_2) {}
+        return {
+          name: displayName,
+          originalName,
+          enabled: !isDisabled,
+          path: modPath,
+          previewUrl,
+          addedAt,
+          addedAtMs,
+          tags,
+          notes,
+          hotkeyAliases,
+          pinned: pinnedState[index].pinned,
+          pinnedIndex: pinnedState[index].pinnedIndex,
+          ...(resourceScopes ? { arknightsScope: resourceScopes[index] } : {}),
+          appearanceSectionId: modsAppearance.resolveModAppearanceSectionId({
+            characterName,
+            modName: displayName,
+            modDir: modPath,
+            meta: modMeta,
+            gameId: gameId2,
+            definitions,
+            resourceScope: resourceScopes?.[index]
+          })
+        };
+      });
+      const modOrders = configStore.currentConfig.modOrders || {};
+      const {
+        value: customOrder
+      } = charactersDirectories.getCharacterConfigStoreValue(modOrders, characterName, [], gameId2);
+      if (customOrder.length > 0) {
+        const orderedMods = [];
+        const unorderedMods = [];
+        for (const mod of mods) {
+          if (customOrder.includes(mod.name)) {
+            orderedMods.push(mod);
+          } else {
+            unorderedMods.push(mod);
+          }
+        }
+        orderedMods.sort((a, b) => customOrder.indexOf(a.name) - customOrder.indexOf(b.name));
+        unorderedMods.sort((a, b) => a.name.localeCompare(b.name, "zh"));
+        mods = [...orderedMods, ...unorderedMods];
+      }
+      mods = modsMetadata.movePinnedModsToTop(mods);
+      mods = await require("../mods/selection.cjs").snapshot({ characterName, gameId: gameId2 }, mods);
+      mods = mods.map(mod => ({ ...mod, fullName: mod.originalName, marked: require("../developer/marked.cjs").isModMarked(gameId2, characterName, mod.name) }));
+      const sections = charactersSkins.buildAppearanceSectionsWithStats(characterName, mods, gameId2, definitions);
+      addedAtAccessor.saveIfDirty();
+      return {
+        success: true,
+        mods,
+        sections,
+        enabledSectionIds: sections.filter(section => section.enabledCount > 0).map(section => section.sectionId),
+        characterAliases: charactersCatalog.getCharacterAliasCandidates(characterName, gameId2)
+      };
+    } catch (error) {
+      return {
+        error: error.message
+      };
+    }
+}
+
+async function applyModToggle({ characterName, modName, enable, gameId, autoReload = false, confirmedConflictIds = [] }) {
+    try {
+      const gameId2 = gameId || gamesSettings.getActiveGameScopeId();
+      characterName = charactersSkins.assertSafeAppearancePathSegment(characterName, i18n.t("backend.validation.characterName"));
+      modName = charactersSkins.assertSafeAppearancePathSegment(modName, i18n.t("backend.validation.modName"));
+      if (enable) charactersHidden.assertCharacterVisible(characterName, gameId2);
+      if (gameId2 === "arknights") return require("../games/arknights/service.cjs").toggleMod({ characterName, modName, enable, autoReload, confirmedConflictIds });
+      if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
+        return modsNevernessPaks.toggleNevernessDx12PakMod(characterName, modName, enable);
+      }
+      charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
+      const env = gamesEnvironment.resolveActiveGameEnvRoot(gameId2);
+      const charPath = charactersDirectories.resolveCharacterPath(characterName, gameId2);
+      if (!charPath) {
+        return {
+          error: i18n.t("backend.imports.local.characterFolderNotFound")
+        };
+      }
+      const currentName = enable ? `DISABLED_${modName}` : modName;
+      const newName = enable ? modName : `DISABLED_${modName}`;
+      const currentPath = path.join(charPath, currentName);
+      const newPath = path.join(charPath, newName);
+      if (!fs.existsSync(currentPath) && fs.existsSync(newPath)) return { success: true, alreadyInState: true };
+      if (!fs.existsSync(currentPath)) {
+        return {
+          error: i18n.t("backend.ipc.mods.modFolderNotFound")
+        };
+      }
+      if (!enable && persistTracking.isPersistBridgeEnabled(gameId2)) {
+        if (persistService.usesManagedPersistBridge(characterName, modName, gameId2)) {
+          persistTracking.syncPersistBridgeStateForModDir(currentPath, gameId2);
+        }
+      }
+      const renameResult = await systemFiles.renameModDirectoryWithRetry(currentPath, newPath);
+      if (!renameResult.success) {
+        return {
+          error: renameResult.error || i18n.t("backend.ipc.mods.renameFailedAfterRetries")
+        };
+      }
+      if (env?.root && persistTracking.isPersistBridgeEnabled(gameId2)) {
+        const stateFiles = persistTracking.collectHostedPersistStateFilesForModDir(newPath);
+        persistTracking.updateActivePersistBridgeIncludesIncremental(env.root, enable ? {
+          enableStateFiles: stateFiles
+        } : {
+          disableStateFiles: stateFiles
+        });
+      }
+      modsConflicts.clearConflictCache(characterName, gameId2);
+      if (enable && persistTracking.isPersistBridgeEnabled(gameId2)) {
+        persistService.restorePersistStateForMod(characterName, modName, newPath, gameId2);
+      }
+      desktopNotifications.notifyCharacterListChanged(characterName, {
+        modName,
+        reason: "manager-toggle"
+      });
+      let reloadError = "";
+      if (enable && autoReload) {
+        try { await require("../overlay/helper.cjs").triggerOverlayReload(); }
+        catch (error) { reloadError = error.message; }
+      }
+      return {
+        success: true,
+        persistRestored: false,
+        autoReloaded: !!(enable && autoReload && !reloadError),
+        ...(reloadError ? { reloadError } : {})
+      };
+    } catch (error) {
+      return {
+        error: error.message
+      };
+    }
+}
+
+
+function selectionContext(characterName, overlay = false) {
+  const gameId = gamesSettings.getActiveGameScopeId();
+  characterName = charactersSkins.assertSafeAppearancePathSegment(characterName, i18n.t("backend.validation.characterName"));
+  characterName = charactersDirectories.resolveCharacterEntry(characterName, gameId)?.displayName || characterName;
+  return { characterName, gameId, autoReload: overlay ? !!configStore.currentConfig.overlayAutoReloadEnabled : gameId === "arknights" };
+}
+async function toggleMod(characterName, modName, enable, overlay = false) {
+  try {
+    const context = selectionContext(characterName, overlay);
+    modName = charactersSkins.assertSafeAppearancePathSegment(modName, i18n.t("backend.validation.modName"));
+    if (typeof enable !== "boolean") throw Error("Invalid Mod state");
+    if (enable) charactersHidden.assertCharacterVisible(context.characterName, context.gameId);
+    return await require("../mods/selection.cjs").request({ ...context, modName, enable });
+  } catch (error) { return { success: false, error: error.message }; }
+}
+async function confirmModConflicts(characterName, overlay = false) {
+  try { return await require("../mods/selection.cjs").confirm(selectionContext(characterName, overlay)); }
+  catch (error) { return { success: false, error: error.message }; }
+}
+
 function registerIpc() {
   electron.ipcMain.handle("pin-mod", async (_, {
     characterName,
@@ -144,189 +355,9 @@ function registerIpc() {
       };
     }
   });
-  electron.ipcMain.handle("get-mods", async (_, characterName) => {
-    try {
-      const gameId2 = gamesSettings.getActiveGameScopeId();
-      if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
-        return modsNevernessPaks.getNevernessDx12Mods(characterName);
-      }
-      charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
-      const charPath = charactersDirectories.resolveCharacterPath(characterName, gameId2);
-      if (!charPath || !fs.existsSync(charPath)) {
-        return {
-          error: i18n.t("backend.ipc.characters.characterNotFound")
-        };
-      }
-      const files = fs.readdirSync(charPath, {
-        withFileTypes: true
-      });
-      const addedAtAccessor = gamesSettings.createModAddedAtAccessor();
-      const modDirectories = files.filter(dirent => dirent.isDirectory());
-      const definitions = charactersSkins.getMergedAppearanceSectionDefinitions(characterName, gameId2);
-      const pinnedState = modsMetadata.applyPinnedStateToMods(characterName, modDirectories.map(dirent => ({ name: dirent.name.replace(/^DISABLED_/, "") })));
-      const resourceScopes = gameId2 === "arknights" ? await require("../games/arknights/appearance.cjs").inspectAppearances(modDirectories.map(dirent => path.join(charPath, dirent.name)), definitions) : null;
-      let mods = modDirectories.map((dirent, index) => {
-        const originalName = dirent.name;
-        const isDisabled = originalName.startsWith("DISABLED_");
-        const displayName = isDisabled ? originalName.replace("DISABLED_", "") : originalName;
-        const modPath = path.join(charPath, originalName);
-        const {
-          addedAt,
-          addedAtMs
-        } = addedAtAccessor.get(characterName, displayName, modPath);
-        let tags = [];
-        let notes = "";
-        let hotkeyAliases = {};
-        let modMeta = {};
-        try {
-          const tagsFile = path.join(modPath, "tags.json");
-          if (fs.existsSync(tagsFile)) {
-            const meta = JSON.parse(fs.readFileSync(tagsFile, "utf-8"));
-            modMeta = meta && typeof meta === "object" ? meta : {};
-            if (Array.isArray(modMeta.tags)) {
-              tags = modMeta.tags.map(t => typeof t === "string" ? t : t && t.name ? String(t.name) : "").filter(Boolean);
-            }
-            if (typeof modMeta.notes === "string") notes = modMeta.notes;
-            if (modMeta.hotkeyAliases && typeof modMeta.hotkeyAliases === "object" && !Array.isArray(modMeta.hotkeyAliases)) {
-              for (const [section, alias] of Object.entries(modMeta.hotkeyAliases)) {
-                if (typeof alias === "string" && alias.trim()) hotkeyAliases[section] = alias;
-              }
-            }
-          }
-        } catch (_2) {}
-        let previewUrl = null;
-        try {
-          const previewImagePath = charactersImages.findModPreviewImageFile(modPath);
-          if (previewImagePath) previewUrl = charactersImages.getLocalImageUrl(previewImagePath);
-        } catch (_2) {}
-        return {
-          name: displayName,
-          originalName,
-          enabled: !isDisabled,
-          path: modPath,
-          previewUrl,
-          addedAt,
-          addedAtMs,
-          tags,
-          notes,
-          hotkeyAliases,
-          pinned: pinnedState[index].pinned,
-          pinnedIndex: pinnedState[index].pinnedIndex,
-          ...(resourceScopes ? { arknightsScope: resourceScopes[index] } : {}),
-          appearanceSectionId: modsAppearance.resolveModAppearanceSectionId({
-            characterName,
-            modName: displayName,
-            modDir: modPath,
-            meta: modMeta,
-            gameId: gameId2,
-            definitions,
-            resourceScope: resourceScopes?.[index]
-          })
-        };
-      });
-      const modOrders = configStore.currentConfig.modOrders || {};
-      const {
-        value: customOrder
-      } = charactersDirectories.getCharacterConfigStoreValue(modOrders, characterName, [], gameId2);
-      if (customOrder.length > 0) {
-        const orderedMods = [];
-        const unorderedMods = [];
-        for (const mod of mods) {
-          if (customOrder.includes(mod.name)) {
-            orderedMods.push(mod);
-          } else {
-            unorderedMods.push(mod);
-          }
-        }
-        orderedMods.sort((a, b) => customOrder.indexOf(a.name) - customOrder.indexOf(b.name));
-        unorderedMods.sort((a, b) => a.name.localeCompare(b.name, "zh"));
-        mods = [...orderedMods, ...unorderedMods];
-      }
-      mods = modsMetadata.movePinnedModsToTop(mods);
-      const sections = charactersSkins.buildAppearanceSectionsWithStats(characterName, mods, gameId2, definitions);
-      addedAtAccessor.saveIfDirty();
-      return {
-        success: true,
-        mods,
-        sections,
-        enabledSectionIds: sections.filter(section => section.enabledCount > 0).map(section => section.sectionId),
-        characterAliases: charactersCatalog.getCharacterAliasCandidates(characterName, gameId2)
-      };
-    } catch (error) {
-      return {
-        error: error.message
-      };
-    }
-  });
-  electron.ipcMain.handle("toggle-mod", async (_, {
-    characterName,
-    modName,
-    enable
-  }) => {
-    try {
-      const gameId2 = gamesSettings.getActiveGameScopeId();
-      characterName = charactersSkins.assertSafeAppearancePathSegment(characterName, i18n.t("backend.validation.characterName"));
-      modName = charactersSkins.assertSafeAppearancePathSegment(modName, i18n.t("backend.validation.modName"));
-      if (enable) charactersHidden.assertCharacterVisible(characterName, gameId2);
-      if (gameId2 === "arknights") return require("../games/arknights/service.cjs").toggleMod({ characterName, modName, enable });
-      if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
-        return modsNevernessPaks.toggleNevernessDx12PakMod(characterName, modName, enable);
-      }
-      charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
-      const env = gamesEnvironment.resolveActiveGameEnvRoot(gameId2);
-      const charPath = charactersDirectories.resolveCharacterPath(characterName, gameId2);
-      if (!charPath) {
-        return {
-          error: i18n.t("backend.imports.local.characterFolderNotFound")
-        };
-      }
-      const currentName = enable ? `DISABLED_${modName}` : modName;
-      const newName = enable ? modName : `DISABLED_${modName}`;
-      const currentPath = path.join(charPath, currentName);
-      const newPath = path.join(charPath, newName);
-      if (!fs.existsSync(currentPath)) {
-        return {
-          error: i18n.t("backend.ipc.mods.modFolderNotFound")
-        };
-      }
-      if (!enable && persistTracking.isPersistBridgeEnabled(gameId2)) {
-        if (persistService.usesManagedPersistBridge(characterName, modName, gameId2)) {
-          persistTracking.syncPersistBridgeStateForModDir(currentPath, gameId2);
-        }
-      }
-      const renameResult = await systemFiles.renameModDirectoryWithRetry(currentPath, newPath);
-      if (!renameResult.success) {
-        return {
-          error: renameResult.error || i18n.t("backend.ipc.mods.renameFailedAfterRetries")
-        };
-      }
-      if (env?.root && persistTracking.isPersistBridgeEnabled(gameId2)) {
-        const stateFiles = persistTracking.collectHostedPersistStateFilesForModDir(newPath);
-        persistTracking.updateActivePersistBridgeIncludesIncremental(env.root, enable ? {
-          enableStateFiles: stateFiles
-        } : {
-          disableStateFiles: stateFiles
-        });
-      }
-      modsConflicts.clearConflictCache(characterName, gameId2);
-      if (enable && persistTracking.isPersistBridgeEnabled(gameId2)) {
-        persistService.restorePersistStateForMod(characterName, modName, newPath, gameId2);
-      }
-      desktopNotifications.notifyCharacterListChanged(characterName, {
-        modName,
-        reason: "manager-toggle"
-      });
-      return {
-        success: true,
-        persistRestored: false,
-        autoReloaded: false
-      };
-    } catch (error) {
-      return {
-        error: error.message
-      };
-    }
-  });
+  electron.ipcMain.handle("get-mods", (_, characterName) => listMods(characterName));
+  electron.ipcMain.handle("toggle-mod", (_, { characterName, modName, enable }) => toggleMod(characterName, modName, enable));
+  electron.ipcMain.handle("confirm-mod-conflicts", (_, { characterName, overlay = false }) => confirmModConflicts(characterName, overlay));
   electron.ipcMain.on("notify-overlay-mods-changed", (_, {
     characterName
   }) => {
@@ -861,5 +892,5 @@ function registerIpc() {
   });
 }
 module.exports = {
-  registerIpc
+  registerIpc, listMods, toggleMod, applyModToggle, confirmModConflicts
 };

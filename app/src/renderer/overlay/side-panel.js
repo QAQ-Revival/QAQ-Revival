@@ -1,4 +1,6 @@
 import { t } from "../../shared/i18n/index.mjs";
+import { pinyin } from "pinyin-pro";
+import { saveCollectionSelection } from "../lib/collectionSelection.js";
 import "./side-panel.css";
 import "./controls.css";
 import "./details.css";
@@ -31,6 +33,19 @@ function showSideToast(message) {
   sideToastTimer = setTimeout(() => {
     el.classList.remove("show");
   }, 1800);
+}
+function bindDetailConflictConfirmation(sideBody, data) {
+  const button = sideBody.querySelector("#detailConfirmBtn");
+  if (!button || button.dataset.bound) return;
+  button.dataset.bound = "true";
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    try {
+      const result = await window.overlayApi.confirmModConflicts(data.charName);
+      showSideToast(result.reloadError ? t("arknights.reloadToggleFailed", { error: result.reloadError }) : result.success ? t("mods.conflicts.confirmed") : result.error || t("overlay.mods.toggleFailed"));
+      if (result.success) window.overlayApi.hideSide();
+    } finally { button.disabled = false; }
+  });
 }
 function parseHotkeyPayload(value) {
   if (!value) return null;
@@ -176,6 +191,19 @@ document.getElementById("sideZoomOut").addEventListener("click", async () => {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") window.overlayApi.hideSide();
 });
+const characterSearch = document.getElementById("sideCharacterSearch");
+const normalizeSearch = value => String(value || "").toLowerCase().replace(/[\s\p{P}\p{S}]/gu, "");
+function filterCharacterBubbles() {
+  const query = normalizeSearch(characterSearch.value);
+  let count = 0;
+  document.querySelectorAll(".bubble-avatar").forEach(element => {
+    element.hidden = !!query && !element.dataset.searchNormalized?.includes(query);
+    if (!element.hidden) count++;
+  });
+  const empty = document.getElementById("sideCharacterEmpty");
+  if (empty) empty.hidden = count !== 0;
+}
+characterSearch.addEventListener("input", filterCharacterBubbles);
 
 // Listen for content updates from main process
 window.overlayApi.onSideContent((data) => {
@@ -186,6 +214,7 @@ window.overlayApi.onSideContent((data) => {
   if (data.title) document.getElementById("sideTitle").textContent = data.title;
   const sideBody = document.getElementById("sideBody");
   sideBody.classList.toggle("character-browser", data.type === "characters");
+  document.getElementById("sideCharacterSearchRow").hidden = data.type !== "characters";
   if (data.html) {
     sideBody.innerHTML = data.html;
     sideBody.scrollTop = 0;
@@ -194,14 +223,21 @@ window.overlayApi.onSideContent((data) => {
   // Bind click events for character bubbles
   if (data.type === "characters") {
     document.querySelectorAll(".bubble-avatar").forEach((el) => {
+      const text = el.dataset.search || el.dataset.name;
+      el.dataset.searchNormalized = [text, pinyin(text, { toneType: "none", type: "array" }).join(""), pinyin(text, { pattern: "first", toneType: "none", type: "array" }).join("")].map(normalizeSearch).join(" ");
       el.addEventListener("click", () => {
         window.overlayApi.selectCharFromSide(el.dataset.name);
       });
     });
+    sideBody.insertAdjacentHTML("beforeend", `<div class="side-character-empty" id="sideCharacterEmpty" hidden>${t("overlay.characters.noMatches")}</div>`);
+    filterCharacterBubbles();
   }
 
   // Bind toggle button for detail view
   if (data.type === "detail") {
+    sideBody.querySelectorAll("[data-version-mod]").forEach(button => button.addEventListener("click", () => {
+      if (!saveCollectionSelection(data.gameId, data.charName, button.dataset.versionCollection, button.dataset.versionMod)) showSideToast(t("mods.collections.selectionFailed"));
+    }));
     bindDetailTranslation(sideBody, data);
     const refreshBtn = document.getElementById("detailRefreshHotkeysBtn");
     if (refreshBtn)
@@ -240,9 +276,17 @@ window.overlayApi.onSideContent((data) => {
           const result = await window.overlayApi.toggleMod(
             data.charName,
             data.modName,
-            !data.modEnabled,
+            !(data.modEnabled || data.modPending),
           );
-          if (result.success) {
+          if (result.pending) {
+            data.modPending = true;
+            showSideToast(t("mods.conflicts.confirmToast"));
+            toggleBtn.textContent = t("mods.conflicts.cancelPending");
+            if (!document.getElementById("detailConfirmBtn")) {
+              toggleBtn.insertAdjacentHTML("afterend", `<button type="button" class="detail-toggle-btn enable" id="detailConfirmBtn">${t("mods.conflicts.confirmTogether")}</button>`);
+              bindDetailConflictConfirmation(sideBody, data);
+            }
+          } else if (result.success) {
             showSideToast(
               !data.modEnabled
                 ? t("overlay.mods.enabled")
@@ -256,10 +300,11 @@ window.overlayApi.onSideContent((data) => {
           showSideToast(t("overlay.mods.toggleFailed"));
         } finally {
           toggleBtn.disabled = false;
-          toggleBtn.textContent = originalText;
+          toggleBtn.textContent = data.modPending ? t("mods.conflicts.cancelPending") : originalText;
         }
       });
     }
+    bindDetailConflictConfirmation(sideBody, data);
     const markBtn = document.getElementById("detailMarkBtn");
     if (markBtn) {
       markBtn.addEventListener("click", async () => {

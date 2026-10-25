@@ -23,8 +23,14 @@ test('optional private components are copied beside the executable and included 
   fs.writeFileSync(path.join(source, 'extra', 'support.bin'), 'support fixture');
   fs.mkdirSync(path.join(source, 'arknights', 'M4A'), { recursive: true });
   fs.writeFileSync(path.join(source, 'arknights', 'M4A', 'M4ALauncher.exe'), 'legacy opaque fixture');
+  fs.mkdirSync(path.join(source, 'arknights-cursor'), { recursive: true });
+  fs.writeFileSync(path.join(source, 'arknights-cursor', 'old-cursor.exe'), 'obsolete standalone cursor');
+  fs.mkdirSync(path.join(source, 'arknights-tools', 'cursor'), { recursive: true });
+  fs.writeFileSync(path.join(source, 'arknights-tools', 'cursor', 'ArknightsSystemCursor.Cli.exe'), 'integrated cursor');
   assert.equal(copyLocalComponents(root, stage), true);
   assert.equal(fs.existsSync(path.join(stage, 'local-components', 'arknights')), false);
+  assert.equal(fs.existsSync(path.join(stage, 'local-components', 'arknights-cursor')), false);
+  assert.equal(fs.existsSync(path.join(stage, 'local-components', 'arknights-tools', 'cursor', 'ArknightsSystemCursor.Cli.exe')), true);
   const files = await inventory(stage);
   for (const name of components) assert.equal(files['local-components/' + name].sha256, await hash(path.join(source, name)));
   assert.equal(files['local-components/extra/support.bin'].sha256, await hash(path.join(source, 'extra', 'support.bin')));

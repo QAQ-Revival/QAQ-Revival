@@ -44,3 +44,20 @@ test('validated PC prefab reference aliases survive manifest loading and classif
   write();
   assert.throws(() => files.readBindings(fixture));
 });
+
+test('static illustrations with battle/base skeletons stay static while real dynamic portraits keep their type', t => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'qaqr-content-types-'));
+  t.after(() => fs.rmSync(fixture, { recursive: true, force: true }));
+  const check = (name, resources, expected, binding) => {
+    const root = path.join(fixture, name);
+    fs.mkdirSync(root);
+    for (const resource of resources) fs.writeFileSync(path.join(root, resource), 'type fixture');
+    if (binding) fs.writeFileSync(path.join(root, files.RESOURCE_MANIFEST), JSON.stringify({ schemaVersion: 1, resources: [binding] }));
+    assert.deepEqual(inspectAppearance(root, []).contentTypes, expected, name);
+  };
+  check('static-with-chibis', ['illust_char_103_angel_1.png', 'front_char_103_angel.skel', 'back_char_103_angel.skel', 'build_char_103_angel.skel'], ['static']);
+  check('named-dynamic', ['dyn_illust_char_1041_angel2.skel', 'dyn_illust_char_1041_angel2.png'], ['dynamic']);
+  check('bound-dynamic-texture', ['effect.png'], ['dynamic'], { file: 'effect.png', target: 'effect.png', bundle: 'arts/dynchars/char_1041_angel2_2.ab' });
+  check('renamed-bound-portrait', ['texture.png'], ['dynamic'], { file: 'texture.png', target: 'sp_dyn_illust_char_1041_angel2.png', bundle: 'skinpack/char_1041_angel2.ab' });
+  check('voice-with-chibi', ['voice.wav', 'build_char_103_angel.skel'], ['voice']);
+});

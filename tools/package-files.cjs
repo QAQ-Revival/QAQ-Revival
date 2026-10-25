@@ -9,7 +9,7 @@ function copyLocalComponents(sourceRoot, stage) {
     recursive: true,
     filter: file => {
       const relative = path.relative(source, file).split(path.sep).join('/');
-      if (/^arknights(?:\/|$)/i.test(relative)) return false;
+      if (/^(?:arknights|arknights-cursor)(?:\/|$)/i.test(relative)) return false;
       if (/^arknights-tools\//i.test(relative) && /(?:M4ALauncher|Bootstrapper\.dll|fmod.*\.dll)/i.test(relative)) throw Error('Legacy opaque Arknights binary must not be packaged');
       if (fs.lstatSync(file).isSymbolicLink()) throw Error('Refusing to package a link in local-components');
       return true;

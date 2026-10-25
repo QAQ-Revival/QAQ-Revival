@@ -27,7 +27,7 @@ test('large appearance manifests are read once and ancestor checks scale with fi
   fs.readFileSync = function(file, ...args) { if (file === f.manifest) reads++; return originalRead.call(this, file, ...args); };
   fs.lstatSync = function(...args) { stats++; return originalStat.apply(this, args); };
   try {
-    assert.deepEqual(inspectAppearance(f.root, []), { sectionId: 'base', sectionIds: ['base'], uncertain: false });
+    assert.deepEqual(inspectAppearance(f.root, []), { sectionId: 'base', sectionIds: ['base'], uncertain: false, contentTypes: ['dynamic'] });
     assert.equal(reads, 1);
     assert.ok(stats < f.resources.length + 50, `${stats} link checks for ${f.resources.length} files`);
   } finally { fs.readFileSync = originalRead; fs.lstatSync = originalStat; }
