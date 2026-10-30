@@ -33,6 +33,6 @@ module.exports = async ({ electron, liveImageFetch, evaluate, waitFor, captureUI
   await captureUI('peach-parfait-live.png');
   passed('Real Peach Parfait artwork renders in the section tab and empty state, and is readable from disk offline: ' + JSON.stringify(requests));
   await evaluate(`document.querySelector('.appearance-section-empty-cover img').dispatchEvent(new Event('error'))`);
-  await waitFor(`!document.querySelector('.appearance-section-empty-cover img') && document.querySelector('.appearance-section-empty-cover').textContent.includes('👗')`, 'failed image shows placeholder instead of broken image');
+  await waitFor(`!document.querySelector('.appearance-section-empty-cover img') && !!document.querySelector('.appearance-section-empty-cover svg')`, 'failed image shows placeholder instead of broken image');
   passed('The empty-state cover uses a clean placeholder when image decoding fails');
 };

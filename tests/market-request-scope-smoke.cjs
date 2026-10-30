@@ -16,7 +16,7 @@ module.exports = async ({ evaluate, waitFor, window, passed }) => {
     const polls = new Map(); const requests = []; let timerId = -100;
     const originalSetTimeout = window.setTimeout.bind(window), originalClearTimeout = window.clearTimeout.bind(window);
     window.setTimeout = (callback, delay, ...args) => {
-      if (callback?.name === 'pollMarket') { const id = timerId--; polls.set(id, callback); return id; }
+      if (String(callback).includes('marketPoll')) { const id = timerId--; polls.set(id, callback); return id; }
       return originalSetTimeout(callback, delay, ...args);
     };
     window.clearTimeout = id => { polls.delete(id); originalClearTimeout(id); };
@@ -33,7 +33,6 @@ module.exports = async ({ evaluate, waitFor, window, passed }) => {
   ` });
   const pause = () => new Promise(resolve => setTimeout(resolve, 1200));
   async function selectSource(source) {
-    await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
     await waitFor(`!!document.querySelector('.mod-download-source-option[data-source="${source}"]')`, 'source menu');
     await evaluate(`document.querySelector('.mod-download-source-option[data-source="${source}"]').click()`);
     await waitFor(`document.querySelector('.mod-download-provider:not([hidden])')?.dataset.source === '${source}'`, 'source ' + source);
@@ -86,8 +85,8 @@ module.exports = async ({ evaluate, waitFor, window, passed }) => {
     const pendingPoll = evaluate('window.__marketScope.runPoll().then(() => true)');
     for (let i = 0; i < 40 && !rejectProbe; i++) await new Promise(resolve => setTimeout(resolve, 50));
     assert.ok(rejectProbe, 'probe is in flight');
-    await evaluate(`document.querySelector('.sidebar-settings').click()`);
-    await waitFor(`!!document.querySelector('.system-settings')`, 'leave downloads');
+    await evaluate(`document.querySelector('.topbar-settings').click()`);
+    await waitFor(`!!document.querySelector('.settings-view')`, 'leave downloads');
     const pendingCount = requests.length;
     rejectProbe(new Error('Synthetic failed probe after leaving QAQR'));
     await pendingPoll;

@@ -66,7 +66,7 @@ function build({ output = path.join(root, 'local-components/xxmi-installer'), te
     const file = path.join(entry.parentPath, entry.name);
     files[path.relative(output, file).split(path.sep).join('/')] = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
   }
-  fs.writeFileSync(path.join(output, 'component.json'), JSON.stringify({ protocol: 1, source: 'https://github.com/SpectrumQT/XXMI-Launcher', sourceCommit: revision, files }, null, 2));
+  fs.writeFileSync(path.join(output, 'component.json'), JSON.stringify({ protocol: 1, source: 'https://github.com/QAQ-Revival/XXMI-Launcher', sourceCommit: revision, files }, null, 2));
   console.log('Built embedded XXMI installer from pinned upstream submodule ' + revision);
   return output;
 }

@@ -109,9 +109,9 @@ function mergeMarketMods(cacheMods, updatedMods = [], deletedIds = []) {
   }
   return sortMarketMods(normalizeMarketModsForDisplay(Array.from(localMap.values())));
 }
-function preserveBlockedMarketCache(cache, gameId2, marketAccess, authToken) {
+function preserveBlockedMarketCache(cache, gameId2, access, authToken) {
   const preserved = marketAccess.preserveBlockedMarketSnapshot(cache, {
-    marketAccess,
+    marketAccess: access,
     authScope: marketAccess.createMarketAuthScope(authToken)
   });
   saveModCache(preserved, gameId2);
@@ -222,18 +222,18 @@ function registerIpc() {
         headers: marketRequestHeaders(authToken, authServerUrl, baseUrl)
       });
       const data = await response.json().catch(() => ({}));
-      const marketAccess = resolveMarketAccessDecision(data, response.status);
+      const responseAccess = resolveMarketAccessDecision(data, response.status);
       if (!(await isCurrentMarketRequestAfterIpcTurn(requestTicket))) {
         return buildMarketCacheResult(loadModCache(gameId2), gameId2, {
           stale: true
         });
       }
-      if (marketAccess.isMarketRefreshBlocked(marketAccess)) {
-        const preserved = preserveBlockedMarketCache(cache, gameId2, marketAccess, requestAuthToken);
+      if (marketAccess.isMarketRefreshBlocked(responseAccess)) {
+        const preserved = preserveBlockedMarketCache(cache, gameId2, responseAccess, requestAuthToken);
         return buildMarketCacheResult(preserved, gameId2, {
           refreshBlocked: true,
           hideCachedMods: true,
-          marketAccess
+          marketAccess: responseAccess
         });
       }
       if (!response.ok) {
@@ -250,11 +250,11 @@ function registerIpc() {
         success: true,
         mods: rawUpdatedMods,
         wasIncremental: data.isIncremental === true,
-        marketAccess
+        marketAccess: responseAccess
       }, cache.mods)) {
         return buildMarketCacheResult(cache, gameId2, {
           ignoredEmpty: true,
-          marketAccess
+          marketAccess: responseAccess
         });
       }
       const updatedMods = rawUpdatedMods || [];
@@ -267,7 +267,7 @@ function registerIpc() {
         finalMods = sortMarketMods(normalizeMarketModsForDisplay(updatedMods, gameId2));
         console.log(`[ModCache:${marketGameId}] Full sync: ${finalMods.length} mods`);
       }
-      const normalizedAccess = marketAccess.normalizeMarketAccessPayload(marketAccess);
+      const normalizedAccess = marketAccess.normalizeMarketAccessPayload(responseAccess);
       const newCache = {
         mods: finalMods,
         lastSyncTimestamp: data.syncTimestamp,
@@ -389,7 +389,7 @@ function registerIpc() {
       });
       const response = syncResult.response;
       const data = await response.json().catch(() => ({}));
-      const marketAccess = resolveMarketAccessDecision(data, response.status);
+      const responseAccess = resolveMarketAccessDecision(data, response.status);
       if (!(await isCurrentMarketRequestAfterIpcTurn(requestTicket))) {
         return buildMarketCacheResult(loadModCache(gameId2), gameId2, {
           stale: true
@@ -400,12 +400,12 @@ function registerIpc() {
         authServerUrl,
         targetServerUrl: syncResult.serverUrl
       });
-      if (marketAccess.isMarketRefreshBlocked(marketAccess)) {
-        const preserved = preserveBlockedMarketCache(cache, gameId2, marketAccess, responseAuthToken);
+      if (marketAccess.isMarketRefreshBlocked(responseAccess)) {
+        const preserved = preserveBlockedMarketCache(cache, gameId2, responseAccess, responseAuthToken);
         return buildMarketCacheResult(preserved, gameId2, {
           refreshBlocked: true,
           hideCachedMods: true,
-          marketAccess
+          marketAccess: responseAccess
         });
       }
       if (!response.ok) {
@@ -420,17 +420,17 @@ function registerIpc() {
         success: true,
         mods: rawUpdatedMods,
         wasIncremental: data.isIncremental === true,
-        marketAccess
+        marketAccess: responseAccess
       }, cache.mods)) {
         return buildMarketCacheResult(cache, gameId2, {
           ignoredEmpty: true,
-          marketAccess
+          marketAccess: responseAccess
         });
       }
       const updatedMods = rawUpdatedMods || [];
       const deletedIds = Array.isArray(data.deletedIds) ? data.deletedIds : [];
       const finalMods = data.isIncremental ? mergeMarketMods(cache.mods, updatedMods, deletedIds) : sortMarketMods(normalizeMarketModsForDisplay(updatedMods, gameId2));
-      const normalizedAccess = marketAccess.normalizeMarketAccessPayload(marketAccess);
+      const normalizedAccess = marketAccess.normalizeMarketAccessPayload(responseAccess);
       saveModCache({
         mods: finalMods,
         lastSyncTimestamp: data.syncTimestamp,

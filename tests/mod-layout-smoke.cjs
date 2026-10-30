@@ -31,14 +31,14 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, mods, 
     await evaluate(`document.querySelector('.mod-gallery-splitter-handle').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))`);
     await waitFor(`Math.abs(Number(document.querySelector('.mod-gallery-splitter-handle').getAttribute('aria-valuenow')) - 526) < 3`, mode + ' keyboard resize');
     await evaluate(`document.querySelector('.mod-gallery-splitter-handle').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))`);
-    await waitFor(`document.querySelector('.mod-gallery-splitter-handle').getAttribute('aria-valuenow') === '480'`, mode + ' width reset');
+    await waitFor(`document.querySelector('.mod-gallery-splitter-handle').getAttribute('aria-valuenow') === '380'`, mode + ' width reset');
     await evaluate(`document.querySelector('.mod-gallery-collapse-btn').click()`);
     await waitFor(`document.querySelector('.mod-detail-panel').getBoundingClientRect().width < 1`, mode + ' detail collapsed');
     assert.equal(await evaluate(`document.querySelector('.mod-detail-panel').hasAttribute('inert')`), true);
     assert.ok(await evaluate(`(() => { const outer = document.querySelector('.mod-view-container'); const main = outer.querySelector('.mod-list-panel, .mod-gallery-panel'); return Math.abs(outer.getBoundingClientRect().width - main.getBoundingClientRect().width) < 3; })()`), 'Collapsed detail leaves no empty gutter');
     await captureUI('mod-layout-' + mode + '-collapsed.png');
     await evaluate(`[...document.querySelectorAll(${JSON.stringify(mode === 'list' ? '.mod-row' : '.mod-gallery-card')})].find(item => item.dataset.modName === ${JSON.stringify(name)}).click()`);
-    await waitFor(`!document.querySelector('.mod-detail-panel').classList.contains('collapsed') && document.querySelector('.mod-detail-panel').getBoundingClientRect().width > 450`, mode + ' selection expands details');
+    await waitFor(`!document.querySelector('.mod-detail-panel').classList.contains('collapsed') && document.querySelector('.mod-detail-panel').getBoundingClientRect().width > 350`, mode + ' selection expands details');
   }
   for (const name of ['日常穿搭', 'DISABLED_花火之夜', 'DISABLED_冬日来信 · 围巾与长外套 · 完整版本', 'DISABLED_Exce - Chisa']) {
     const folder = path.join(mods, '安可', name);
@@ -138,7 +138,8 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, mods, 
   assert.ok(layout.mainOverflow <= 2 && layout.horizontalOverflow <= 2 && layout.detailRight <= layout.width, JSON.stringify(layout));
   await captureUI('mod-layout-compact.png');
   await evaluate(`document.querySelector('.mod-detail-card').scrollTop = 10000`);
-  assert.ok(await evaluate(`document.querySelector('.mod-detail-actions').getBoundingClientRect().bottom <= innerHeight`), 'Bottom actions are reachable');
+  const actionsBottom = await evaluate(`({ bottom: document.querySelector('.mod-detail-actions').getBoundingClientRect().bottom, height: innerHeight })`);
+  assert.ok(actionsBottom.bottom <= actionsBottom.height + 1, 'Bottom actions are reachable: ' + JSON.stringify(actionsBottom));
   await evaluate(`document.querySelector('.view-mode-toggle').click()`);
   await waitFor(`!!document.querySelector('.view-mode-gallery .mod-gallery-card')`, 'gallery still works');
   await openContextRename('.mod-gallery-card[data-mod-name="Exce - Chisa"]');

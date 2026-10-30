@@ -60,7 +60,7 @@ function createWindow() {
     height: windowState.height,
     frame: false,
     show: false,
-    backgroundColor: "#f6f1ea",
+    backgroundColor: "#111015",
     autoHideMenuBar: true,
     title: runtimeIdentity.name || "QAQ-Revival",
     icon: path.join(runtimePaths.mainDir, "../../resources/icon.ico"),
@@ -133,6 +133,7 @@ function createWindow() {
   });
   mainWindow.webContents.on("did-finish-load", () => {
     pageDidLoad = true;
+    mainWindow.webContents.setZoomFactor(configStore.currentConfig.uiZoom || 1);
     clearTimeout(mainWindowShowFallback);
     showMainWindow("did-finish-load");
     gamesGenshinServices.genshinAntiCrash.recoverOrphan().catch(e => coreLogger.logger.warn("[Genshin] Anti-error session recovery failed:", e?.message || e));

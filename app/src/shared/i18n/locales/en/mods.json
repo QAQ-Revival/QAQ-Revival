@@ -1,10 +1,6 @@
 {
   "actions": {
-    "add": "Add Mod",
-    "delete": "Delete Mod",
     "rename": "Rename Mod",
-    "enableAll": "Enable all",
-    "disableAll": "Disable all",
     "copyPath": "Copy path"
   },
   "search": {
@@ -13,9 +9,7 @@
   "empty": "No Mods yet",
   "pathCopied": "Path copied",
   "presets": {
-    "title": "Presets",
     "create": "Create preset",
-    "apply": "Apply preset",
     "delete": "Delete preset",
     "empty": "No presets yet"
   },

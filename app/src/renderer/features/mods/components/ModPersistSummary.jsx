@@ -25,6 +25,8 @@ function ModPersistSummary({ gameId, characterName, modName }) {
       canceled = true;
     };
   }, [gameId, characterName, modName]);
+  // Nothing to say when the game does not save state and this Mod has no saved values.
+  if (!error && (!data || (!data.game.enabled && !data.entries.length))) return null;
   return (
     <section
       className="mod-persist-summary"
@@ -34,7 +36,7 @@ function ModPersistSummary({ gameId, characterName, modName }) {
         <strong>{t("mods.persist.title")}</strong>
         <button
           type="button"
-          className="system-button"
+          className="link-btn"
           onClick={() => openPersistManager(gameId, characterName, modName)}
         >
           {t("mods.persist.openManager")}
@@ -42,8 +44,6 @@ function ModPersistSummary({ gameId, characterName, modName }) {
       </div>
       {error ? (
         <p role="alert">{error}</p>
-      ) : !data ? (
-        <p role="status">{t("common.status.reading")}</p>
       ) : (
         <React.Fragment>
           <p>
@@ -54,13 +54,11 @@ function ModPersistSummary({ gameId, characterName, modName }) {
               entriesCount: data.entries.length,
             })}
           </p>
-          {data.entries.length ? (
+          {data.entries.length > 0 && (
             <details>
               <summary>{t("mods.persist.viewVariables")}</summary>
               <PersistVariables entries={data.entries} />
             </details>
-          ) : (
-            <p>{t("mods.persist.noSavedConfiguration")}</p>
           )}
         </React.Fragment>
       )}

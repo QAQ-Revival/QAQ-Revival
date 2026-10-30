@@ -9,16 +9,14 @@ module.exports = async ({ evaluate, waitFor, window, handlers, passed }) => {
   assert.equal(await evaluate(`getComputedStyle(document.querySelector('.window-controls')).webkitAppRegion`), 'no-drag');
   const layout = await evaluate(`(() => {
     const rect = selector => document.querySelector(selector).getBoundingClientRect();
-    const sidebar = rect('.sidebar'), header = rect('.sidebar-header'), titlebar = rect('.window-titlebar');
-    const download = rect('.sidebar-download-button'), toggle = rect('.sidebar-toggle');
-    return { top: sidebar.top, bottom: sidebar.bottom, height: innerHeight, headerTop: header.top,
-      titlebarBottom: titlebar.bottom, mainTop: rect('.main-content').top,
-      buttonsAligned: Math.abs(download.top - toggle.top) < 1 && Math.abs(download.height - toggle.height) < 1 };
+    const bar = rect('.app-topbar'), main = rect('.main-content'), controls = rect('.window-controls');
+    return { top: bar.top, barBottom: bar.bottom, mainTop: main.top, mainBottom: main.bottom, height: innerHeight,
+      controlsRight: controls.right, width: innerWidth, controlsTop: controls.top };
   })()`);
-  assert.equal(layout.top, 0, 'sidebar background reaches the top edge without a separate strip');
-  assert.ok(Math.abs(layout.bottom - layout.height) < 1, 'sidebar fills the window height');
-  assert.ok(layout.headerTop >= layout.titlebarBottom && layout.mainTop >= layout.titlebarBottom, 'titlebar does not cover content controls');
-  assert.ok(layout.buttonsAligned, 'sidebar header actions share the same size and alignment');
+  assert.equal(layout.top, 0, 'top bar reaches the window edge');
+  assert.ok(layout.mainTop >= layout.barBottom, 'top bar does not cover the page');
+  assert.ok(Math.abs(layout.mainBottom - layout.height) < 1, 'page fills the remaining height');
+  assert.ok(Math.abs(layout.controlsRight - layout.width) < 1 && layout.controlsTop === 0, 'window buttons sit in the corner');
   assert.equal((await handlers.get('window:control')({ sender: {} }, 'close')).success, false);
   assert.equal((await evaluate(`window.api.controlWindow('invalid')`)).success, false);
   const originals = Object.fromEntries(['isMaximized', 'maximize', 'unmaximize', 'minimize', 'close'].map(key => [key, window[key]]));

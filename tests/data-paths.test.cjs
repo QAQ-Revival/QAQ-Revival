@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { resolveDataRoot, getDefaultModsPath, migrateLegacyArknights, resolveDisabledModsDirectory } = require('../app/src/main/runtime/data-paths.cjs');
+const { resolveDataRoot, getDefaultModsPath, isUnusedDefaultModsPath, migrateLegacyArknights, resolveDisabledModsDirectory } = require('../app/src/main/runtime/data-paths.cjs');
 
 test('installed default Mods directories follow the executable, including randomized manager names', () => {
   const install = path.resolve('test-results/portable-install');
@@ -11,6 +11,24 @@ test('installed default Mods directories follow the executable, including random
   for (const [game, importer] of [['endfield', 'EFMI'], ['wuthering-waves', 'WWMI'], ['genshin-impact', 'GIMI'], ['zzz', 'ZZMI'], ['honkai-star-rail', 'SRMI']]) assert.equal(getDefaultModsPath(game, data), path.join(data, 'XXMI', importer, 'Mods'));
   assert.equal(getDefaultModsPath('arknights', data), path.join(data, 'Arknights/Mods'));
   assert.equal(getDefaultModsPath('neverness-to-everness', data), path.join(data, 'NEMI/Mods'));
+});
+
+test('only the default Mods folder without files counts as unused, so detection never hides existing Mods', t => {
+  const base = path.resolve('test-results');
+  fs.mkdirSync(base, { recursive: true });
+  const root = fs.mkdtempSync(path.join(base, 'default-mods-'));
+  t.after(() => { assert.equal(path.dirname(root), base); fs.rmSync(root, { recursive: true, force: true }); });
+  const data = path.join(root, 'data'), mods = getDefaultModsPath('genshin-impact', data);
+  assert.equal(isUnusedDefaultModsPath(mods, 'genshin-impact', data), false, 'a missing folder is left to the existence check');
+  fs.mkdirSync(path.join(mods, '神里绫华'), { recursive: true });
+  assert.equal(isUnusedDefaultModsPath(mods, 'genshin-impact', data), true, 'empty character folders are created automatically');
+  assert.equal(isUnusedDefaultModsPath(mods.toUpperCase(), 'genshin-impact', data), true);
+  const custom = path.join(root, 'custom/Mods');
+  fs.mkdirSync(custom, { recursive: true });
+  assert.equal(isUnusedDefaultModsPath(custom, 'genshin-impact', data), false, 'a chosen folder is never replaced, even when empty');
+  assert.equal(isUnusedDefaultModsPath('', 'genshin-impact', data), false);
+  fs.writeFileSync(path.join(mods, '神里绫华/mod.ini'), '[Constants]');
+  assert.equal(isUnusedDefaultModsPath(mods, 'genshin-impact', data), false);
 });
 
 test('legacy Arknights library and enabled resources migrate together, retaining originals and refusing conflicting data', t => {

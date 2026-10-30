@@ -14,7 +14,7 @@ export function AddCharacterDialog({
     showAddModal &&
     renderManagementModal(
       <React.Fragment>
-        <div className="text-h2 add-character-dialog-content">
+        <div className="dialog-title">
           {t("characters.actions.add")}
         </div>
         <input
@@ -24,23 +24,20 @@ export function AddCharacterDialog({
           value={newCharName}
           onChange={(e) => setNewCharName(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="input add-character-dialog-input-layout"
+          className="input dialog-body"
         />
-        <div className="add-character-dialog-row">
-          <button
-            onClick={handleAddCharacter}
-            className="btn btn-primary add-character-dialog-btn-layout"
-          >
-            {t("characters.create.confirm")}
-          </button>
+        <div className="dialog-actions">
           <button
             onClick={() => {
               setShowAddModal(false);
               setNewCharName("");
             }}
-            className="btn btn-secondary add-character-dialog-btn-layout"
+            className="btn"
           >
             {t("common.actions.cancel")}
+          </button>
+          <button onClick={handleAddCharacter} className="btn btn-primary">
+            {t("characters.create.confirm")}
           </button>
         </div>
       </React.Fragment>,

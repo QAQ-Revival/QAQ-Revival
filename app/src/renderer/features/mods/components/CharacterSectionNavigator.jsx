@@ -1,6 +1,7 @@
 import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
 import ReactDOM from "react-dom";
+import { Icon } from "../../../components/Icon.jsx";
 import {
   isBaseSection,
   isCustomSection,
@@ -17,10 +18,10 @@ function SectionCover({
   const coverUrl = section?.coverUrl || section?.imageUrl || section?.image;
   const [failedUrl, setFailedUrl] = React.useState(null);
   const fallback = isBaseSection(section)
-    ? "🎭"
+    ? "user"
     : isCustomSection(section)
-      ? "✨"
-      : "👗";
+      ? "sparkles"
+      : "shirt";
   return (
     <span className={className} aria-hidden={decorative || void 0}>
       {coverUrl && failedUrl !== coverUrl ? (
@@ -32,7 +33,7 @@ function SectionCover({
           onError={() => setFailedUrl(coverUrl)}
         />
       ) : (
-        <span>{fallback}</span>
+        <Icon name={fallback} size={13} />
       )}
     </span>
   );
@@ -144,12 +145,14 @@ function SectionEditorModal({ section, busy, onClose, onSave, onDelete }) {
             disabled={busy}
             aria-label={t("common.actions.close")}
           >
-            {"×"}
+            <Icon name="x" size={16} />
           </button>
         </div>
         {confirmingDelete ? (
           <div className="appearance-section-delete-confirm">
-            <div className="appearance-section-delete-icon">{"🗂️"}</div>
+            <div className="appearance-section-delete-icon">
+              <Icon name="alert" size={20} />
+            </div>
             <div className="appearance-section-delete-title">
               {t("mods.sections.confirmDelete", {
                 sectionName: getSectionName(section),
@@ -176,7 +179,7 @@ function SectionEditorModal({ section, busy, onClose, onSave, onDelete }) {
               </button>
               <button
                 type="button"
-                className="btn appearance-section-danger-btn"
+                className="btn btn-danger appearance-section-danger-btn"
                 onClick={handleDelete}
                 disabled={busy}
               >
@@ -250,7 +253,7 @@ function SectionEditorModal({ section, busy, onClose, onSave, onDelete }) {
               {editing && (
                 <button
                   type="button"
-                  className="btn appearance-section-delete-link"
+                  className="btn btn-ghost appearance-section-delete-link"
                   onClick={() => setConfirmingDelete(true)}
                   disabled={busy}
                 >
@@ -387,33 +390,6 @@ function CharacterSectionNavigator({
         characterName,
       })}
     >
-      <div className="appearance-section-summary-row">
-        <div>
-          <span className="appearance-section-summary-title">
-            {t("mods.sections.title")}
-          </span>
-          <span className="appearance-section-summary-meta">
-            {t("mods.sections.countSummary", {
-              normalizedSectionsCount: normalizedSections.length,
-              status:
-                officialSkinCount > 0
-                  ? t("mods.sections.officialSkinsSuffix", {
-                      officialSkinCount,
-                    })
-                  : "",
-            })}
-          </span>
-        </div>
-        <button
-          type="button"
-          className="appearance-section-add-tab"
-          onClick={() => setEditorSection(null)}
-          disabled={busy}
-          aria-label={t("mods.sections.createCustom")}
-        >
-          {t("mods.sections.add")}
-        </button>
-      </div>
       <div
         className={`appearance-section-rail-shell ${railOverflow ? "has-overflow" : ""}`}
       >
@@ -424,7 +400,7 @@ function CharacterSectionNavigator({
             onClick={() => scrollRail(-1)}
             aria-label={t("mods.sections.scrollLeft")}
           >
-            {"‹"}
+            <Icon name="chevron-left" size={14} />
           </button>
         )}
         <div
@@ -432,6 +408,7 @@ function CharacterSectionNavigator({
           className="appearance-section-rail"
           role="tablist"
           aria-label={t("mods.sections.choose")}
+          title={t("mods.sections.filterOnlyHint")}
         >
           {normalizedSections.map((section, index) => {
             const sectionId = getSectionId(section);
@@ -463,20 +440,15 @@ function CharacterSectionNavigator({
                   title={label}
                 >
                   <SectionCover section={section} decorative={true} />
-                  <span className="appearance-section-tab-copy">
-                    <strong>{getSectionName(section)}</strong>
-                    <em>{getSectionSubtitle(section)}</em>
-                    <span className="appearance-section-tab-stats">
-                      <b className={enabledCount > 0 ? "has-enabled" : ""}>
-                        {t("mods.sections.enabledCount", {
-                          enabledCount,
-                        })}
-                      </b>
-                      <span>
-                        {modCount}
-                        {" Mod"}
-                      </span>
-                    </span>
+                  <span className="appearance-section-tab-name">
+                    {getSectionName(section)}
+                  </span>
+                  <span className="appearance-section-tab-stats">
+                    <b className={enabledCount > 0 ? "has-enabled" : ""}>
+                      {enabledCount}
+                    </b>
+                    {"/"}
+                    {modCount}
                   </span>
                 </button>
                 {custom && (
@@ -489,13 +461,23 @@ function CharacterSectionNavigator({
                     })}
                     title={t("mods.sections.editHint")}
                   >
-                    {"⋯"}
+                    <Icon name="more" size={14} strokeWidth={2.4} />
                   </button>
                 )}
               </div>
             );
           })}
         </div>
+        <button
+          type="button"
+          className="icon-btn icon-btn-sm appearance-section-add-tab"
+          onClick={() => setEditorSection(null)}
+          disabled={busy}
+          aria-label={t("mods.sections.createCustom")}
+          title={t("mods.sections.createCustom")}
+        >
+          <Icon name="plus" size={15} />
+        </button>
         {railOverflow && (
           <button
             type="button"
@@ -503,16 +485,13 @@ function CharacterSectionNavigator({
             onClick={() => scrollRail(1)}
             aria-label={t("mods.sections.scrollRight")}
           >
-            {"›"}
+            <Icon name="chevron-right" size={14} />
           </button>
         )}
       </div>
-      <div className="appearance-section-summary-note">
-        {t("mods.sections.filterOnlyHint")}
-      </div>
       {otherEnabledCount > 0 && (
-        <div className="appearance-section-enabled-notice" role="status">
-          <span aria-hidden="true">{"💡"}</span>
+        <div className="notice notice-info appearance-section-enabled-notice" role="status">
+          <Icon name="info" size={14} />
           <span>
             {t("mods.sections.otherEnabledPrefix")}
             <strong>{otherEnabledCount}</strong>
@@ -525,6 +504,7 @@ function CharacterSectionNavigator({
           </span>
           <button
             type="button"
+            className="link-btn"
             onClick={() => onSelect?.(getSectionId(otherEnabledSections[0]))}
           >
             {t("common.actions.view")}

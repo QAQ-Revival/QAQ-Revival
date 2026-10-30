@@ -176,11 +176,15 @@ function registerIpc() {
       };
     }
   });
-  electron.ipcMain.handle("set-ui-zoom", async (_, zoom) => {
+  electron.ipcMain.handle("set-native-theme", (_, mode) => {
+    if (["dark", "light", "system"].includes(mode)) electron.nativeTheme.themeSource = mode;
+  });
+  electron.ipcMain.handle("set-ui-zoom", async (event, zoom) => {
     try {
       const clamped = Math.min(1.5, Math.max(0.7, Number(zoom) || 1));
       configStore.currentConfig.uiZoom = clamped;
       configStore.saveConfig(configStore.currentConfig);
+      event.sender.setZoomFactor(clamped);
       return {
         success: true,
         uiZoom: clamped

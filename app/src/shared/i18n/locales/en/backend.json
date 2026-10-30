@@ -234,13 +234,6 @@
     "resetAllModIni": "Reset all Mod INI files",
     "changeFixer": "Change fixer"
   },
-  "config": {
-    "appearance": {
-      "auroraName": "Aurora Mint",
-      "auroraDescription": "Light gradients, glass surfaces, and mint highlights",
-      "themeUnavailable": "This theme is unavailable. Select a built-in theme."
-    }
-  },
   "common": {
     "none": "None",
     "notConfigured": "Not configured"

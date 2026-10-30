@@ -1,7 +1,7 @@
 {
   "xxmi-installer": {
     "source": "native/xxmi-launcher",
-    "repository": "SpectrumQT/XXMI-Launcher",
+    "repository": "QAQ-Revival/XXMI-Launcher",
     "branch": "main",
     "build": "../../tools/build-xxmi.cjs",
     "targets": {
@@ -21,7 +21,6 @@
       "cursor",
       "tools",
       "tests",
-      "patches",
       "licenses",
       "build-qaqr.cjs",
       "BUILDING.md",
@@ -34,17 +33,17 @@
     "dependencies": [
       {
         "path": "vendor/minhook",
-        "url": "https://github.com/TsudaKageyu/minhook.git",
+        "url": "https://github.com/QAQ-Revival/minhook.git",
         "branch": "master"
       },
       {
         "path": "vendor/UnityPy",
-        "url": "https://github.com/K0lb3/UnityPy.git",
+        "url": "https://github.com/QAQ-Revival/UnityPy.git",
         "branch": "master"
       },
       {
         "path": "vendor/Ark-Unpacker",
-        "url": "https://github.com/isHarryh/Ark-Unpacker.git",
+        "url": "https://github.com/QAQ-Revival/Ark-Unpacker.git",
         "branch": "v5.x"
       }
     ],
@@ -120,7 +119,7 @@
     "dependencies": [
       {
         "path": "vendor/MegaDownloader-Revival",
-        "url": "https://github.com/a1175815821/MegaDownloader-Revival.git",
+        "url": "https://github.com/QAQ-Revival/MegaDownloader-Revival.git",
         "branch": "main"
       }
     ],
@@ -129,6 +128,30 @@
         "output": "app/resources/mega-worker",
         "testOutput": "build/mega-worker-test",
         "work": "build/mega-worker"
+      }
+    }
+  },
+  "efmi-core": {
+    "source": "native/efmi-package",
+    "repository": "QAQ-Revival/EFMI-Package",
+    "branch": "main",
+    "build": "qaqr/build.cjs",
+    "targets": {
+      "efmi-core": {
+        "output": "local-components/efmi-core"
+      }
+    }
+  },
+  "xxmi-runtime": {
+    "source": "native/xxmi-runtime",
+    "repository": "QAQ-Revival/XXMI-Libs-Package",
+    "branch": "master",
+    "build": "qaqr/build.cjs",
+    "targets": {
+      "xxmi-runtime": {
+        "output": "local-components/xxmi-runtime",
+        "work": "build/xxmi-runtime",
+        "shader": "native/efmi-package/EFMI/Core/EFMI/Shaders/MergedSkeleton_InstanceConfigOverrider_ConstantBuffer.hlsl"
       }
     }
   }

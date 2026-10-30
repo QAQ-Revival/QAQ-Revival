@@ -1,5 +1,4 @@
 import { t } from "../../shared/i18n/index.mjs";
-import { WindowControls } from "../components/WindowControls.jsx";
 import { SoftwareUpdateNotice } from "../features/settings/SoftwareUpdates.jsx";
 import React from "react";
 import { lazyWithPreload } from "../lib/lazyWithPreload.js";
@@ -23,7 +22,8 @@ import {
   subscribeAuthSession,
 } from "../lib/authSession.js";
 import { ThemeProvider } from "./ThemeProvider.jsx";
-import { Sidebar } from "../components/Sidebar.jsx";
+import { TopBar } from "../components/TopBar.jsx";
+import { CharacterRail } from "../features/characters/components/CharacterRail.jsx";
 import { useGameOrder } from "../hooks/useGameOrder.js";
 import { FloatingDownloadOrb } from "../features/downloads/FloatingDownloadOrb.jsx";
 import { PublishProgressFloat } from "../features/market/components/PublishProgressFloat.jsx";
@@ -93,9 +93,6 @@ function App() {
   const [batchAiImageOnly, setBatchAiImageOnly] = React.useState(false);
   const [showLinkChecker, setShowLinkChecker] = React.useState(false);
   const [characterViewCache, setCharacterViewCache] = React.useState({});
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(() => {
-    return localStorage.getItem("sidebarCollapsed") === "true";
-  });
   const [customBg, setCustomBg] = React.useState(null);
   const [bgOpacity, setBgOpacity] = React.useState(DEFAULT_BG_OPACITY);
   const [bgBlur, setBgBlur] = React.useState(DEFAULT_BG_BLUR);
@@ -177,14 +174,10 @@ function App() {
     setPublishTasks((prev) => prev.filter((task) => task.id !== taskId));
   }, []);
   React.useEffect(() => {
-    document.documentElement.setAttribute("data-theme", "light");
-  }, []);
-  React.useEffect(() => {
     async function applyUiPreferences() {
       try {
         const result = await window.api.getConfig();
         if (result.success) {
-          const zoom = result.config.uiZoom;
           const ratio = ["4:3", "16:9", "16:10", "1:1", "3:4"].includes(
             result.config.modDownloadImageRatio,
           )
@@ -194,12 +187,6 @@ function App() {
             "--mod-download-image-ratio",
             ratio.replace(":", " / "),
           );
-          if (zoom && zoom !== 1) {
-            document.documentElement.style.setProperty(
-              "--ui-scale",
-              String(zoom),
-            );
-          }
           const level = getCompatibilityLevel(result.config);
           setCompatibilityLevel(level);
           applyCompatibilityModeClass(level);
@@ -273,13 +260,35 @@ function App() {
       } catch {}
     };
   }, []);
-  const handleToggleSidebar = React.useCallback(() => {
-    setSidebarCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem("sidebarCollapsed", String(next));
-      return next;
-    });
+  // Choosing the section you are already in returns to its root.
+  const handleNavigate = React.useCallback(
+    (tab) => {
+      if (tab === "characters" && activeTab === "characters")
+        setSelectedCharacter(null);
+      handleSetActiveTab(tab);
+    },
+    [activeTab, handleSetActiveTab],
+  );
+  React.useEffect(() => {
+    // Ctrl+F jumps to the search box of whichever page is showing.
+    function focusSearch(event) {
+      if (!event.ctrlKey || event.shiftKey || event.altKey) return;
+      if (String(event.key).toLowerCase() !== "f") return;
+      const input =
+        document.querySelector(".mod-search-input") ||
+        document.querySelector(".main-content .search-field input");
+      if (!input) return;
+      event.preventDefault();
+      input.focus();
+      input.select();
+    }
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
   }, []);
+  const handleGoHome = React.useCallback(() => {
+    setSelectedCharacter(null);
+    handleSetActiveTab("characters");
+  }, [handleSetActiveTab]);
   const openManagerTarget = React.useCallback(
     async (payload) => {
       if (!payload?.characterName) return;
@@ -915,7 +924,6 @@ function App() {
         {effectiveCustomBg && (
           <div className="app-custom-bg-layer" aria-hidden="true" />
         )}
-        <WindowControls />
         {effectiveCustomBg && bgNeedsBlur && (
           <div
             className="app-custom-bg-layer app-custom-bg-blur-layer"
@@ -927,14 +935,13 @@ function App() {
             {dropError}
           </div>
         )}
-        <Sidebar
+        <TopBar
           activeTab={activeTab}
-          setActiveTab={handleSetActiveTab}
+          setActiveTab={handleNavigate}
           activeGame={activeGame}
           onGameSwitch={handleGameSwitch}
           games={allGames}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={handleToggleSidebar}
+          onHome={handleGoHome}
         />
         <div className="main-content">
           <React.Suspense
@@ -966,19 +973,31 @@ function App() {
               />
             )}
             {activeTab === "characters" && selectedCharacter && (
-              <ModView
-                characterName={selectedCharacter}
-                activeGameId={activeGame?.id}
-                managerTarget={managerTarget}
-                onBack={() => setSelectedCharacter(null)}
-                devMode={devMode}
-                onOpenPublishMod={handleOpenPublishMod}
-                onRequestMoveMod={handleRequestMoveMod}
-                onRequestBatchImportReview={handleRequestBatchImportReview}
-                runtimeInfo={runtimeInfo}
-                onCharacterModsChanged={handleCharacterModsChanged}
-                key={`modview-${gameScopeKey}-${selectedCharacter}-${modViewKey}`}
-              />
+              <div className="library-workspace">
+                <CharacterRail
+                  gameId={activeGame?.id}
+                  cache={currentCharacterViewCache}
+                  onCacheChange={handleCharacterCacheChange}
+                  selected={selectedCharacter}
+                  onSelect={(name) => {
+                    setManagerTarget(null);
+                    setSelectedCharacter(name);
+                  }}
+                  onBack={() => setSelectedCharacter(null)}
+                />
+                <ModView
+                  characterName={selectedCharacter}
+                  activeGameId={activeGame?.id}
+                  managerTarget={managerTarget}
+                  devMode={devMode}
+                  onOpenPublishMod={handleOpenPublishMod}
+                  onRequestMoveMod={handleRequestMoveMod}
+                  onRequestBatchImportReview={handleRequestBatchImportReview}
+                  runtimeInfo={runtimeInfo}
+                  onCharacterModsChanged={handleCharacterModsChanged}
+                  key={`modview-${gameScopeKey}-${selectedCharacter}-${modViewKey}`}
+                />
+              </div>
             )}
             {activeTab === "presets" && (
               <PresetView
@@ -1035,7 +1054,8 @@ function App() {
         )}
         {devMode && (
           <div className="app-dev-toolbar">
-            <div
+            <button
+              type="button"
               onClick={() => {
                 setBatchAiImageOnly(false);
                 setShowBatchAiPanel(true);
@@ -1044,8 +1064,9 @@ function App() {
               className="app-dev-ai-action"
             >
               {"AI"}
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 setBatchAiImageOnly(true);
                 setShowBatchAiPanel(true);
@@ -1054,28 +1075,31 @@ function App() {
               className="app-dev-image-only-action"
             >
               {"AI+IMG"}
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               onClick={() => setShowLinkChecker(true)}
               title={t("market.links.checkInvalid")}
               className="app-dev-link-action"
             >
               {t("market.links.shortLabel")}
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               onClick={() => setShowBatchCloudPanel(true)}
               title={t("market.cloud.batchTitle")}
               className="app-dev-cloud-action"
             >
               {t("market.cloud.shortLabel")}
-            </div>
-            <div
+            </button>
+            <button
+              type="button"
               onClick={handleExitDevMode}
               title={t("settings.developer.exitHint")}
               className="app-dev-mode-action"
             >
               {"DEV"}
-            </div>
+            </button>
           </div>
         )}
         {showBatchCloudPanel && (
@@ -1131,13 +1155,15 @@ function App() {
         {showDevPasswordModal && (
           <div
             onClick={() => setShowDevPasswordModal(false)}
-            className="app-dev-dialog-overlay"
+            className="modal-backdrop app-dev-dialog-overlay"
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className="app-dev-dialog"
+              className="modal-content app-dev-dialog"
+              role="dialog"
+              aria-modal="true"
             >
-              <div className="app-dev-dialog-title">
+              <div className="dialog-title app-dev-dialog-title">
                 {t("settings.developer.title")}
               </div>
               <input
@@ -1152,25 +1178,23 @@ function App() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleDevPasswordSubmit();
                 }}
-                style={{
-                  borderRadius: "6px",
-                  border: `1px solid ${devPasswordError ? "#ef4444" : "var(--color-border)"}`,
-                }}
-                className="app-dev-password"
+                className="input dialog-body app-dev-password"
               />
               {devPasswordError && (
-                <div className="app-dev-password-error">{devPasswordError}</div>
+                <div className="app-dev-password-error" role="alert">
+                  {devPasswordError}
+                </div>
               )}
-              <div className="app-dev-dialog-actions">
+              <div className="dialog-actions app-dev-dialog-actions">
                 <button
                   onClick={() => setShowDevPasswordModal(false)}
-                  className="app-dev-dialog-cancel"
+                  className="btn app-dev-dialog-cancel"
                 >
                   {t("common.actions.cancel")}
                 </button>
                 <button
                   onClick={handleDevPasswordSubmit}
-                  className="app-dev-dialog-confirm"
+                  className="btn btn-primary app-dev-dialog-confirm"
                 >
                   {t("common.actions.confirm")}
                 </button>

@@ -26,6 +26,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Node.js
@@ -39,7 +40,10 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Update components to their configured branches
+      - name: Merge upstream into organization forks and update components
+        env:
+          QAQR_GITHUB_APP_ID: ${{ secrets.QAQR_GITHUB_APP_ID }}
+          QAQR_GITHUB_APP_PRIVATE_KEY: ${{ secrets.QAQR_GITHUB_APP_PRIVATE_KEY }}
         run: node tools/update-components.cjs
 
       - name: Read version from app/package.json

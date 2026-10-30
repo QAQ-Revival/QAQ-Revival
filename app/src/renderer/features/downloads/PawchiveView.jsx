@@ -1,7 +1,9 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
+import ReactDOM from "react-dom";
 import PostDialog, { Image } from "./ModPostDialog.jsx";
-const h = React.createElement;
+import { Icon } from "../../components/Icon.jsx";
+import { SkeletonGrid, SourceError } from "./SourceStates.jsx";
 const authorKey = (author) => `${author.service}:${author.id}`;
 const date = (value) =>
   value
@@ -12,6 +14,10 @@ const date = (value) =>
         hour: "2-digit",
         minute: "2-digit",
       })
+    : t("common.status.noDate");
+const shortDate = (value) =>
+  value
+    ? new Date(value).toLocaleDateString("zh-CN")
     : t("common.status.noDate");
 const number = (value) =>
   new Intl.NumberFormat("zh-CN", {
@@ -65,14 +71,10 @@ function RevivalDownload({ links, name }) {
   }
   return (
     <div className="paw-mega-download">
-      {expanded &&
-        h(
-          "div",
-          {
-            className: "paw-mega-selection",
-          },
-          <h3>{t("downloads.archive.chooseMegaLinks")}</h3>,
-          ...links.map((link, index) => (
+      {expanded && (
+        <div className="paw-mega-selection">
+          <h3>{t("downloads.archive.chooseMegaLinks")}</h3>
+          {links.map((link, index) => (
             <div className="paw-mega-link" key={link.url}>
               <label>
                 <input
@@ -92,6 +94,7 @@ function RevivalDownload({ links, name }) {
               </label>
               {link.needsPassword && (
                 <input
+                  className="input"
                   type="password"
                   placeholder={t("downloads.archive.passwordPlaceholder")}
                   autoComplete="off"
@@ -111,6 +114,7 @@ function RevivalDownload({ links, name }) {
               )}
               {link.needsKey && (
                 <input
+                  className="input"
                   type="text"
                   placeholder={t("downloads.archive.keyPlaceholder")}
                   value={keys[link.url] || ""}
@@ -128,23 +132,27 @@ function RevivalDownload({ links, name }) {
                 />
               )}
             </div>
-          )),
-          <p className="paw-muted">
+          ))}
+          <p className="text-caption">
             {t("downloads.archive.saveLocationHint")}
-          </p>,
-        )}
+          </p>
+        </div>
+      )}
       {error && (
-        <p className="paw-alert" role="alert">
-          {error}
+        <p className="notice notice-danger paw-alert" role="alert">
+          <Icon name="alert" size={14} />
+          <span>{error}</span>
         </p>
       )}
       {message && (
-        <p className="paw-notice" role="status">
-          {message}
+        <p className="notice notice-success paw-notice" role="status">
+          <Icon name="check" size={14} />
+          <span>{message}</span>
         </p>
       )}
       <button
-        className="paw-button paw-primary paw-download-button"
+        type="button"
+        className="btn btn-primary paw-download-button"
         disabled={busy || (expanded && !selected.length)}
         onClick={() => {
           if (
@@ -156,6 +164,7 @@ function RevivalDownload({ links, name }) {
           else send();
         }}
       >
+        <Icon name="download" size={15} />
         {busy
           ? t("common.status.opening")
           : expanded
@@ -167,7 +176,7 @@ function RevivalDownload({ links, name }) {
     </div>
   );
 }
-function PawchiveView({ isActive = true, source = "pawchive" }) {
+function PawchiveView({ isActive = true, source = "pawchive", sourceTabs }) {
   const label = source === "kemono" ? "Kemono" : "Pawchive";
   const site =
     source === "kemono" ? "https://kemono.cr" : "https://pawchive.pw";
@@ -572,30 +581,51 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
     if (next === query) setRefresh((value) => value + 1);
   }
   const closeDialog = React.useCallback(() => setSelected(null), []);
-  function favoriteButton(author) {
+  function favoriteButton(author, variant = "button") {
     const key = authorKey(author),
       favorite = favorites.has(key);
+    const shared = {
+      type: "button",
+      disabled: !stateReady || !!busy[key],
+      onClick: () => toggleFavorite(author),
+      "aria-pressed": favorite,
+      title: favorite
+        ? t("downloads.archive.unfavoriteAuthor", {
+            name: author.name,
+          })
+        : t("downloads.archive.favoriteAuthor", {
+            name: author.name,
+          }),
+    };
+    const label = busy[key]
+      ? t("common.status.saving")
+      : favorite
+        ? t("downloads.archive.favoritedBadge")
+        : t("downloads.archive.favoriteAction");
+    const heart = (
+      <Icon
+        name="heart"
+        size={variant === "image" ? 14 : 16}
+        fill={favorite ? "currentColor" : "none"}
+      />
+    );
+    if (variant === "button")
+      return (
+        <button
+          {...shared}
+          className={`btn paw-favorite ${favorite ? "is-favorite" : ""}`}
+        >
+          {heart}
+          {label}
+        </button>
+      );
     return (
       <button
-        className={`paw-button paw-favorite ${favorite ? "is-favorite" : ""}`}
-        disabled={!stateReady || !!busy[key]}
-        onClick={() => toggleFavorite(author)}
-        aria-pressed={favorite}
-        title={
-          favorite
-            ? t("downloads.archive.unfavoriteAuthor", {
-                name: author.name,
-              })
-            : t("downloads.archive.favoriteAuthor", {
-                name: author.name,
-              })
-        }
+        {...shared}
+        className={`${variant === "image" ? "image-btn" : "icon-btn"} paw-favorite ${favorite ? "is-active" : ""}`}
       >
-        {busy[key]
-          ? t("common.status.saving")
-          : favorite
-            ? t("downloads.archive.favoritedBadge")
-            : t("downloads.archive.favoriteAction")}
+        {heart}
+        <span className="sr-only">{label}</span>
       </button>
     );
   }
@@ -615,63 +645,64 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
           }),
         )}
       >
-        <div className="paw-creator-top">
-          <div className="paw-avatar">
-            <Image src={author.avatar} avatar={true} />
+        <div className="paw-avatar">
+          <Image src={author.avatar} avatar={true} />
+        </div>
+        <div className="paw-creator-copy">
+          <div className="paw-creator-title">
+            <button
+              type="button"
+              className="paw-creator-name"
+              onClick={() => openAuthor(author)}
+              title={`${author.name} · ${author.id}`}
+            >
+              {author.name}
+            </button>
+            {favorite?.unread && (
+              <span className="badge badge-accent paw-update-badge">
+                {t("downloads.archive.updateCount", {
+                  changesCount: favorite.changesCount,
+                })}
+              </span>
+            )}
           </div>
-          <span className="paw-service">{author.service}</span>
-          {favorite?.unread && (
-            <span className="paw-update-badge">
-              {t("downloads.archive.updateCount", {
-                changesCount: favorite.changesCount,
+          <div className="paw-creator-stats">
+            <span className="paw-service">{author.service}</span>
+            <span>
+              {t("downloads.archive.favoriteCount", {
+                number: number(author.favorited),
               })}
             </span>
+            <span>
+              {t("downloads.archive.updatedDate", {
+                date: shortDate(author.updated),
+              })}
+            </span>
+          </div>
+          {author.missing && (
+            <div className="paw-creator-stats">
+              {t("downloads.archive.missingAuthor")}
+            </div>
           )}
-        </div>
-        <button
-          className="paw-creator-name"
-          onClick={() => openAuthor(author)}
-          title={author.name}
-        >
-          {author.name}
-        </button>
-        <div className="paw-muted paw-author-id">{`ID: ${author.id}`}</div>
-        <div className="paw-creator-stats">
-          <span>
-            {t("downloads.archive.favoriteCount", {
-              number: number(author.favorited),
-            })}
-          </span>
-          <span>
-            {t("downloads.archive.updatedDate", {
-              date: date(author.updated),
-            })}
-          </span>
-        </div>
-        {author.missing && (
-          <p className="paw-notice">{t("downloads.archive.missingAuthor")}</p>
-        )}
-        <div className="paw-card-actions">
-          <button className="paw-button" onClick={() => openAuthor(author)}>
-            {t("downloads.archive.viewContent")}
-          </button>
-          {favoriteButton(author)}
         </div>
         {favorite?.unread && (
           <button
-            className="paw-text-button paw-read-button"
+            type="button"
+            className="link-btn paw-read-button"
             onClick={() => markRead(favorite)}
           >
             {t("downloads.archive.markRead")}
           </button>
         )}
+        {favoriteButton(author, "icon")}
       </article>
     );
   }
   function postCard(post) {
+    const attachments = (post.attachments?.length || 0) + (post.file ? 1 : 0);
     return (
       <article
-        className="paw-post-card"
+        className="media-card paw-post-card"
         key={`${post.service}:${post.user}:${post.id}`}
         {...cardAction(
           () => setSelected(post),
@@ -680,98 +711,103 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
           }),
         )}
       >
-        <button
-          className="paw-card-image"
-          onClick={() => setSelected(post)}
-          aria-label={t("downloads.archive.viewPost", {
-            title: post.title,
-          })}
-        >
+        <div className="media-card-image paw-card-image">
           <Image src={post.thumbnail} alt={post.title} />
-          <span className="paw-image-service">{post.service}</span>
-          {post.previewOnly && (
-            <span className="paw-preview-badge">
-              {t("common.actions.preview")}
-            </span>
-          )}
-        </button>
-        <div className="paw-card-body">
-          {post.changeKind && (
-            <span className={`paw-change-kind ${post.changeKind}`}>
-              {post.changeKind === "new"
-                ? t("downloads.archive.newContent")
-                : t("downloads.archive.editedContent")}
-            </span>
-          )}
-          <button
-            className="paw-post-title"
-            onClick={() => setSelected(post)}
-            title={post.title}
-          >
-            {post.title}
-          </button>
-          <button
-            className="paw-card-author"
-            onClick={() => openAuthor(post.creator)}
-            title={t("downloads.archive.viewAuthorContent")}
-          >
-            {"🐾 "}
-            {post.creator.name}
-          </button>
-          <div className="paw-post-stats">
-            <time>
-              {t("downloads.archive.publishedDate", {
-                date: date(post.published),
-              })}
-            </time>
-            {!post.changeKind && (
-              <span>
-                {t("downloads.archive.attachmentCount", {
-                  count: post.attachments.length + (post.file ? 1 : 0),
-                })}
+          <div className="media-card-badges">
+            {post.changeKind && (
+              <span className={`image-badge paw-change-kind ${post.changeKind}`}>
+                {post.changeKind === "new"
+                  ? t("downloads.archive.newContent")
+                  : t("downloads.archive.editedContent")}
+              </span>
+            )}
+            {post.previewOnly && (
+              <span className="image-badge paw-preview-badge">
+                {t("common.actions.preview")}
               </span>
             )}
           </div>
-          {post.edited > 0 && (
-            <div className="paw-post-stats">
-              <time>
-                {t("downloads.archive.editedDate", {
-                  date: date(post.edited),
-                })}
-              </time>
-            </div>
-          )}
-          <div className="paw-card-actions">
-            {favoriteButton(post.creator)}
-            <button className="paw-button" onClick={() => setSelected(post)}>
-              {t("downloads.site.detailsLink")}
-            </button>
+          <div className="media-card-actions">
+            {favoriteButton(post.creator, "image")}
           </div>
-          {post.changeKind && (
-            <button
-              className="paw-text-button paw-read-button"
-              onClick={() => markPostRead(post)}
+          {attachments > 0 && (
+            <span
+              className="image-badge media-card-corner"
+              title={t("downloads.archive.attachmentCount", {
+                count: attachments,
+              })}
             >
-              {t("downloads.archive.markRead")}
-            </button>
+              <Icon name="file" size={12} />
+              {attachments}
+            </span>
           )}
+        </div>
+        <div className="media-card-body">
+          <h3 className="media-card-title paw-post-title" title={post.title}>
+            {post.title}
+          </h3>
+          <div className="media-card-meta">
+            <button
+              type="button"
+              className="meta-link paw-card-author"
+              onClick={() => openAuthor(post.creator)}
+              title={t("downloads.archive.viewAuthorContent")}
+            >
+              {post.creator.name}
+            </button>
+            <time
+              className="paw-post-stats"
+              title={[
+                t("downloads.archive.publishedDate", {
+                  date: date(post.published),
+                }),
+                post.edited > 0
+                  ? t("downloads.archive.editedDate", {
+                      date: date(post.edited),
+                    })
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            >
+              {shortDate(post.published)}
+            </time>
+            {post.changeKind && (
+              <button
+                type="button"
+                className="link-btn paw-read-button"
+                onClick={() => markPostRead(post)}
+              >
+                {t("downloads.archive.markRead")}
+              </button>
+            )}
+          </div>
         </div>
       </article>
     );
   }
   const activeAuthor =
     creator && (favorites.get(authorKey(creator)) || creator);
+  function clearSearch() {
+    setInput("");
+    setQuery("");
+    setOffset(0);
+    setActionError("");
+  }
   const searchField = (
     <form
       className={creator ? "paw-author-search" : "paw-search-form"}
       onSubmit={search}
     >
-      <div className="paw-search">
-        <span aria-hidden={true}>{"⌕"}</span>
+      <div className="search-field paw-search">
+        <Icon name="search" size={15} />
         <input
           type="search"
           value={input}
           onChange={(event) => setInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" && input) clearSearch();
+          }}
           aria-label={
             contentMode
               ? t("downloads.archive.searchContent")
@@ -791,44 +827,68 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
         {input && (
           <button
             type="button"
-            className="paw-search-clear"
+            className="icon-btn search-clear paw-search-clear"
             aria-label={t("common.actions.clearSearch")}
-            onClick={() => {
-              setInput("");
-              setQuery("");
-              setOffset(0);
-              setActionError("");
-            }}
+            onClick={clearSearch}
           >
-            {"✕"}
+            <Icon name="x" size={14} />
           </button>
         )}
       </div>
-      <button className="paw-button" type="submit">
-        {t("common.actions.search")}
-      </button>
     </form>
   );
+  const lastCheck = saved.lastCheckedAt
+    ? t("downloads.archive.lastCheck", {
+        date: date(saved.lastCheckedAt),
+      })
+    : t("downloads.archive.notChecked");
+  const dismiss = (onDismiss) => (
+    <button
+      type="button"
+      className="icon-btn icon-btn-sm notice-close"
+      aria-label={t("common.actions.dismissNotice")}
+      onClick={onDismiss}
+    >
+      <Icon name="x" size={14} />
+    </button>
+  );
   return (
-    <section className="pawchive-view" ref={section} aria-label={label}>
-      <header className="paw-header">
-        <div>
-          <h2>{label}</h2>
-        </div>
-        <div className="paw-header-actions">
-          <button className="paw-button" onClick={() => openExternal(site)}>
+    <section className="page pawchive-view" ref={section} aria-label={label}>
+      <header className="page-header paw-header">
+        <h2 className="sr-only">{label}</h2>
+        {sourceTabs}
+        <div className="page-actions paw-header-actions">
+          <span className="paw-summary sr-only">
+            {`${t("downloads.archive.favoritedAuthorsCount", {
+              favoritesCount: saved.favorites.length,
+            })} · ${t("downloads.archive.unreadUpdatesCount", {
+              postUpdateCount: saved.postUpdateCount,
+            })} · ${lastCheck}`}
+          </span>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => openExternal(site)}
+          >
+            <Icon name="external" size={14} />
             {t("downloads.archive.openWebsite")}
           </button>
-          <button className="paw-button" onClick={reload} disabled={loading}>
+          <button
+            type="button"
+            className="btn"
+            onClick={reload}
+            disabled={loading}
+          >
             {loading ? t("common.status.loading") : t("common.actions.refresh")}
           </button>
           <button
-            className="paw-button paw-primary"
+            type="button"
+            className="btn btn-primary"
             onClick={checkUpdates}
             disabled={isChecking || !stateReady || !saved.favorites.length}
             title={
               saved.favorites.length
-                ? t("downloads.archive.checkHint")
+                ? `${t("downloads.archive.checkHint")} · ${lastCheck}`
                 : t("downloads.archive.favoriteBeforeCheck")
             }
           >
@@ -838,39 +898,16 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
           </button>
         </div>
       </header>
-      <div className="paw-summary">
-        <span>
-          {t("downloads.archive.favoritedAuthorsCount", {
-            favoritesCount: saved.favorites.length,
-          })}
-        </span>
-        <span className={saved.postUpdateCount ? "paw-unread-count" : ""}>
-          {t("downloads.archive.unreadUpdatesCount", {
-            postUpdateCount: saved.postUpdateCount,
-          })}
-        </span>
-        <span className="paw-last-check">
-          {saved.lastCheckedAt
-            ? t("downloads.archive.lastCheck", {
-                date: date(saved.lastCheckedAt),
-              })
-            : t("downloads.archive.notChecked")}
-        </span>
-      </div>
       <nav
-        className="paw-tabs"
+        className="source-toolbar paw-tabs"
         role="tablist"
         aria-label={t("downloads.archive.tabLabel", {
           label,
         })}
         onKeyDown={tabKeyboard}
       >
-        {h(
-          "div",
-          {
-            className: "paw-fixed-tabs",
-          },
-          ...[
+        <div className="paw-fixed-tabs">
+          {[
             [
               "updates",
               t("downloads.archive.updatesTab", {
@@ -887,9 +924,10 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
             ["posts", t("downloads.archive.latestContent")],
           ].map(([id, title]) => (
             <button
+              type="button"
               key={id}
               id={tabId(id)}
-              className={activeTab === id ? "active" : ""}
+              className={`source-subtab ${activeTab === id ? "active" : ""}`}
               role="tab"
               aria-selected={activeTab === id}
               aria-controls={panelId}
@@ -898,26 +936,24 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
             >
               {title}
             </button>
-          )),
-        )}
+          ))}
+        </div>
         {!!authorTabs.length && (
           <div className="paw-tab-divider" aria-hidden={true} />
         )}
-        {!!authorTabs.length &&
-          h(
-            "div",
-            {
-              className: "paw-author-tabs",
-              onWheel: (event) => {
-                if (
-                  !event.deltaX &&
-                  event.currentTarget.scrollWidth >
-                    event.currentTarget.clientWidth
-                )
-                  event.currentTarget.scrollLeft += event.deltaY;
-              },
-            },
-            ...authorTabs.map((author) => {
+        {!!authorTabs.length && (
+          <div
+            className="paw-author-tabs"
+            onWheel={(event) => {
+              if (
+                !event.deltaX &&
+                event.currentTarget.scrollWidth >
+                  event.currentTarget.clientWidth
+              )
+                event.currentTarget.scrollLeft += event.deltaY;
+            }}
+          >
+            {authorTabs.map((author) => {
               const key = "author:" + authorKey(author),
                 selected = activeTab === key;
               const title = `[${author.service}] ${author.name}`;
@@ -927,6 +963,7 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
                   className={`paw-author-tab ${selected ? "active" : ""}`}
                 >
                   <button
+                    type="button"
                     id={tabId(key)}
                     role="tab"
                     aria-label={title}
@@ -940,6 +977,7 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
                     <span className="paw-tab-name">{author.name}</span>
                   </button>
                   <button
+                    type="button"
                     className="paw-tab-close"
                     onClick={() => closeAuthor(author)}
                     title={t("downloads.archive.closeTab")}
@@ -948,30 +986,43 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
                     })}
                     tabIndex={selected ? 0 : -1}
                   >
-                    {"✕"}
+                    <Icon name="x" size={12} />
                   </button>
                 </div>
               );
-            }),
-          )}
+            })}
+          </div>
+        )}
       </nav>
-      <div id={panelId} role="tabpanel" aria-labelledby={tabId(activeTab)}>
+      <div
+        className="page-body source-panel"
+        id={panelId}
+        role="tabpanel"
+        aria-labelledby={tabId(activeTab)}
+      >
         {creator && (
           <div className="paw-author-banner">
-            <button className="paw-button" onClick={back}>
-              {t("common.actions.back")}
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={back}
+              title={t("common.actions.back")}
+              aria-label={t("common.actions.back")}
+            >
+              <Icon name="arrow-left" size={16} />
             </button>
             <div className="paw-avatar">
               <Image src={creator.avatar} avatar={true} />
             </div>
             <div className="paw-author-heading">
               <h2>{activeAuthor.name}</h2>
-              <span className="paw-muted">{`${creator.service} · ${creator.id}`}</span>
+              <span className="toolbar-label">{`${creator.service} · ${creator.id}`}</span>
             </div>
             {searchField}
             {activeAuthor.unread && (
               <button
-                className="paw-button"
+                type="button"
+                className="btn"
                 onClick={() => markRead(activeAuthor)}
               >
                 {t("downloads.archive.markRead")}
@@ -979,9 +1030,11 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
             )}
             {favoriteButton(creator)}
             <button
-              className="paw-button"
+              type="button"
+              className="btn btn-ghost"
               onClick={() => openExternal(creator.url)}
             >
+              <Icon name="external" size={14} />
               {t("downloads.archive.authorHomepage")}
             </button>
           </div>
@@ -989,28 +1042,29 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
         {!creator && (
           <div className="paw-toolbar">
             {searchField}
-            {!postsMode &&
-              h(
-                "select",
-                {
-                  value: service,
-                  onChange: (event) => {
-                    setService(event.target.value);
-                    setOffset(0);
-                  },
-                  "aria-label": t("downloads.archive.platformFilter"),
-                },
-                <option value="">{t("downloads.archive.allPlatforms")}</option>,
-                ...(result?.services || (service ? [service] : [])).map(
+            {!postsMode && (
+              <select
+                className="select"
+                value={service}
+                onChange={(event) => {
+                  setService(event.target.value);
+                  setOffset(0);
+                }}
+                aria-label={t("downloads.archive.platformFilter")}
+              >
+                <option value="">{t("downloads.archive.allPlatforms")}</option>
+                {(result?.services || (service ? [service] : [])).map(
                   (item) => (
                     <option value={item} key={item}>
                       {item}
                     </option>
                   ),
-                ),
-              )}
+                )}
+              </select>
+            )}
             {!contentMode && (
               <select
+                className="select"
                 value={sort}
                 onChange={(event) => {
                   setSort(event.target.value);
@@ -1027,110 +1081,90 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
                 <option value="name">{t("downloads.archive.sortName")}</option>
               </select>
             )}
-            <span className="paw-result-count">
-              {loading
-                ? t("downloads.archive.fetching")
-                : result
-                  ? contentMode
-                    ? t("downloads.archive.pageContentCount", {
-                        itemsCount: result.items.length,
-                      })
-                    : t("downloads.archive.authorsCount", {
-                        number: number(result.total),
-                      })
-                  : ""}
+            <span className="toolbar-label paw-result-count">
+              {result?.items.length
+                ? contentMode
+                  ? t("downloads.archive.pageContentCount", {
+                      itemsCount: result.items.length,
+                    })
+                  : t("downloads.archive.authorsCount", {
+                      number: number(result.total),
+                    })
+                : ""}
             </span>
           </div>
         )}
         {progress && (
-          <div className="paw-notice" role="status">
-            {t("downloads.archive.checkProgress", {
-              status:
-                progress.operation === "favorite"
-                  ? t("downloads.archive.creatingBaselines")
-                  : t("downloads.archive.progressLabel"),
-              completedAuthors: progress.completedAuthors,
-              totalAuthors: progress.totalAuthors,
-              author: progress.author,
-              otherStatus: progress.done
-                ? t("downloads.archive.completedSuffix")
-                : t("downloads.archive.pageProgress", {
-                    pages: progress.pages,
-                    posts: progress.posts,
-                  }),
-            })}
+          <div className="notice notice-info paw-notice" role="status">
+            <span className="spinner" aria-hidden={true} />
+            <span>
+              {t("downloads.archive.checkProgress", {
+                status:
+                  progress.operation === "favorite"
+                    ? t("downloads.archive.creatingBaselines")
+                    : t("downloads.archive.progressLabel"),
+                completedAuthors: progress.completedAuthors,
+                totalAuthors: progress.totalAuthors,
+                author: progress.author,
+                otherStatus: progress.done
+                  ? t("downloads.archive.completedSuffix")
+                  : t("downloads.archive.pageProgress", {
+                      pages: progress.pages,
+                      posts: progress.posts,
+                    }),
+              })}
+            </span>
           </div>
         )}
         {actionError && (
-          <div className="paw-alert" role="alert">
+          <div className="notice notice-danger paw-alert" role="alert">
+            <Icon name="alert" size={14} />
             <span>{actionError}</span>
-            <button
-              className="paw-icon-button"
-              aria-label={t("common.actions.dismissNotice")}
-              onClick={() => setActionError("")}
-            >
-              {"✕"}
-            </button>
+            {dismiss(() => setActionError(""))}
           </div>
         )}
         {notice && (
-          <div className="paw-notice" role="status">
-            {notice}
+          <div className="notice notice-success paw-notice" role="status">
+            <Icon name="check" size={14} />
+            <span>{notice}</span>
+            {dismiss(() => setNotice(""))}
           </div>
         )}
         {saved.autoCheckError && (
-          <div className="paw-alert" role="alert">
-            {saved.autoCheckError}
+          <div className="notice notice-danger paw-alert" role="alert">
+            <Icon name="alert" size={14} />
+            <span>{saved.autoCheckError}</span>
           </div>
         )}
         {result?.warning && (
-          <div className="paw-notice" role="status">
-            {result.warning}
-            {result.cachedAt
-              ? t("downloads.archive.cachedAt", {
-                  date: date(result.cachedAt),
-                })
-              : ""}
+          <div className="notice notice-warning paw-notice" role="status">
+            <Icon name="alert" size={14} />
+            <span>
+              {result.warning}
+              {result.cachedAt
+                ? t("downloads.archive.cachedAt", {
+                    date: date(result.cachedAt),
+                  })
+                : ""}
+            </span>
           </div>
         )}
         {error ? (
-          <div className="paw-empty" role="alert">
-            <div className="paw-empty-icon">{"☁"}</div>
-            <h2>{t("downloads.archive.temporarilyUnavailable")}</h2>
-            <p>{error}</p>
-            <button className="paw-button paw-primary" onClick={reload}>
-              {t("common.actions.reload")}
-            </button>
-          </div>
+          <SourceError
+            title={t("downloads.archive.temporarilyUnavailable")}
+            message={error}
+            onRetry={reload}
+          />
         ) : loading ? (
-          h(
-            "div",
-            {
-              className: "paw-grid",
-              "aria-busy": true,
-              "aria-label": t("downloads.archive.loadingNamedContent", {
-                label,
-              }),
-            },
-            ...Array.from(
-              {
-                length: 8,
-              },
-              (_, index) => (
-                <div className="paw-skeleton" key={index}>
-                  <div />
-                  <span />
-                  <span />
-                </div>
-              ),
-            ),
-          )
+          <SkeletonGrid
+            label={t("downloads.archive.loadingNamedContent", {
+              label,
+            })}
+          />
         ) : !result?.items.length ? (
-          <div className="paw-empty">
-            <div className="paw-empty-icon">
-              {view === "updates" ? "✓" : "🐾"}
-            </div>
-            <h2>
+          <div className="empty-state">
+            <div className="empty-face">{"QAQ"}</div>
+            <div className="empty-title">
               {query || service
                 ? t("downloads.archive.noMatchingContent")
                 : updatesMode
@@ -1138,8 +1172,8 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
                   : !creator && view === "favorites"
                     ? t("downloads.archive.noFavoriteAuthors")
                     : t("downloads.archive.empty")}
-            </h2>
-            <p>
+            </div>
+            <div className="empty-text">
               {query || service
                 ? t("downloads.archive.noMatchesHint")
                 : updatesMode
@@ -1147,10 +1181,11 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
                   : !creator && view === "favorites"
                     ? t("downloads.archive.noFavoritesHint")
                     : t("downloads.archive.emptyHint")}
-            </p>
+            </div>
             {!creator && view === "favorites" && !query && (
               <button
-                className="paw-button paw-primary"
+                type="button"
+                className="btn btn-primary"
                 onClick={() => navigate("creators")}
               >
                 {t("downloads.archive.discoverAuthors")}
@@ -1158,18 +1193,17 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
             )}
           </div>
         ) : (
-          h(
-            "div",
-            {
-              className: `paw-grid ${contentMode ? "" : "paw-creators-grid"}`,
-            },
-            ...result.items.map(contentMode ? postCard : creatorCard),
-          )
+          <div
+            className={contentMode ? "media-grid paw-grid" : "paw-creators-grid"}
+          >
+            {result.items.map(contentMode ? postCard : creatorCard)}
+          </div>
         )}
         {result && !loading && (offset > 0 || result.hasMore) && (
           <div className="paw-pagination">
             <button
-              className="paw-button"
+              type="button"
+              className="btn btn-sm"
               disabled={offset === 0}
               onClick={() => {
                 setOffset(Math.max(0, offset - result.pageSize));
@@ -1180,7 +1214,7 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
             >
               {t("common.actions.previousPage")}
             </button>
-            <span>
+            <span className="toolbar-label">
               {t("downloads.archive.pageNumber", {
                 count: Math.floor(offset / result.pageSize) + 1,
                 status:
@@ -1190,7 +1224,8 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
               })}
             </span>
             <button
-              className="paw-button"
+              type="button"
+              className="btn btn-sm"
               disabled={!result.hasMore}
               onClick={() => {
                 setOffset(offset + result.pageSize);
@@ -1203,8 +1238,16 @@ function PawchiveView({ isActive = true, source = "pawchive" }) {
             </button>
           </div>
         )}
-        <p className="paw-footnote">{t("downloads.archive.scheduleHint")}</p>
       </div>
+      {selected &&
+        isActive &&
+        actionError &&
+        ReactDOM.createPortal(
+          <div className="toast toast-error" role="alert">
+            {actionError}
+          </div>,
+          document.body,
+        )}
       {selected && isActive && (
         <PostDialog
           selected={selected}

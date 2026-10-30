@@ -1,6 +1,7 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
 import { ThemeContext } from "../../app/ThemeContext.js";
+import { Icon } from "../../components/Icon.jsx";
 import { SoftwareUpdateSettings } from "./SoftwareUpdates.jsx";
 import PersistStateManager from "./PersistStateBrowser.jsx";
 import {
@@ -16,9 +17,10 @@ import {
   Choices,
   Range,
   PathControl,
-  Icon,
+  Switch,
+  Notice,
+  SettingsFrame,
 } from "./SettingsControls.jsx";
-const h = React.createElement;
 const DEFAULT_SERVER = "https://qaqm.top";
 const CARD_IMAGE_RATIOS = ["4:3", "16:9", "16:10", "1:1", "3:4"];
 function getCategories() {
@@ -26,67 +28,37 @@ function getCategories() {
     {
       id: "general",
       icon: "sliders",
-      label: t("settings.categories.general"),
-      desc: t("settings.categories.generalDescription"),
-      items: [
-        ["window", t("settings.window.title")],
-        ["random-launch", t("settings.randomLaunch.title")],
-        ["game-visibility", t("settings.gameVisibility.title")],
-        ["persist", t("settings.persist.title")],
-      ],
+      label: t("settings.categories.basics"),
     },
     {
       id: "persist",
-      icon: "game",
+      icon: "database",
       label: t("settings.categories.persist"),
-      desc: t("settings.categories.persistDescription"),
-      items: [],
     },
     {
       id: "appearance",
       icon: "palette",
       label: t("settings.categories.appearance"),
-      desc: t("settings.categories.appearanceDescription"),
-      items: [
-        ["theme", t("settings.theme.title")],
-        ["scale", t("settings.scale.title")],
-        ["mod-cards", t("settings.cards.title")],
-        ["compatibility", t("settings.compatibility.title")],
-      ],
     },
     {
       id: "downloads",
       icon: "download",
       label: t("settings.categories.downloads"),
-      desc: t("settings.categories.downloadsDescription"),
-      items: [
-        ["cache", t("settings.downloadStorage.title")],
-        ["server", t("settings.server.title")],
-      ],
     },
     {
       id: "shortcuts",
       icon: "keyboard",
       label: t("settings.categories.shortcuts"),
-      desc: t("settings.categories.shortcutsDescription"),
-      items: [["overlay", t("settings.overlay.title")]],
     },
     {
       id: "maintenance",
-      icon: "tool",
+      icon: "wrench",
       label: t("settings.categories.maintenance"),
-      desc: t("settings.categories.maintenanceDescription"),
-      items: [
-        ["updates", t("settings.maintenance.loaderUpdates")],
-        ["help", t("settings.maintenance.troubleshooting")],
-      ],
     },
     {
       id: "about",
       icon: "info",
       label: t("settings.categories.about"),
-      desc: t("settings.categories.aboutDescription"),
-      items: [],
     },
   ];
 }
@@ -261,7 +233,6 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
       );
     });
   }
-  const subitems = category.items;
   const levelValue = Number(config?.compatibilityLevel);
   const level = Number.isFinite(levelValue)
     ? Math.max(0, Math.min(3, levelValue))
@@ -279,7 +250,7 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
   let content;
   if (loadError)
     content = (
-      <div className="system-state" role="alert">
+      <div className="settings-state" role="alert">
         {t("settings.errors.readConfiguration", {
           loadError,
         })}
@@ -290,7 +261,8 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
     );
   else if (!config)
     content = (
-      <div className="system-state" role="status">
+      <div className="settings-state" role="status">
+        <span className="spinner" />
         {t("settings.status.loading")}
       </div>
     );
@@ -298,11 +270,7 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
     content = (
       <React.Fragment>
         <Section id="window" title={t("settings.window.title")}>
-          <Row
-            title={t("settings.window.closeBehavior")}
-            description={t("settings.window.closeBehaviorHint")}
-            stacked={true}
-          >
+          <Row title={t("settings.window.closeBehavior")}>
             <Choices
               label={t("settings.window.closeBehavior")}
               value={closeBehavior}
@@ -317,7 +285,6 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
                 {
                   value: "ask",
                   label: t("settings.window.askEveryTime"),
-                  desc: t("settings.window.askDescription"),
                 },
                 {
                   value: "minimize",
@@ -327,19 +294,13 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
                 {
                   value: "quit",
                   label: t("settings.window.exit"),
-                  desc: t("settings.window.exitDescription"),
                 },
               ]}
             />
           </Row>
         </Section>
-        {h(
-          Section,
-          {
-            id: "random-launch",
-            title: t("settings.randomLaunch.title"),
-          },
-          ...[
+        <Section id="random-launch" title={t("settings.randomLaunch.title")}>
+          {[
             [
               "manager",
               t("settings.randomLaunch.manager"),
@@ -352,15 +313,11 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
             ],
           ].map(([key, title, description]) => (
             <Row key={key} title={title} description={description}>
-              <input
-                type="checkbox"
-                role="switch"
-                className="system-switch"
-                aria-label={title}
+              <Switch
+                label={title}
                 checked={config.randomLaunch?.[key] !== false}
                 disabled={busy}
-                onChange={(e) => {
-                  const enabled = e.target.checked;
+                onChange={(enabled) =>
                   run(async () => {
                     const result = check(
                       await window.api.updateRandomLaunchSettings({
@@ -377,115 +334,116 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
                         ? t("settings.randomLaunch.managerRestart")
                         : t("settings.randomLaunch.xxmiRestart"),
                     );
-                  });
-                }}
+                  })
+                }
               />
             </Row>
-          )),
-        )}
+          ))}
+        </Section>
         <Section
           id="game-visibility"
           title={t("settings.gameVisibility.title")}
         >
-          <Row
-            title={t("settings.gameVisibility.manage")}
-            description={t("settings.gameVisibility.description")}
-          />
           {allGames.map((game) => {
             const lastVisible = game.hidden !== true && games.length <= 1;
             return (
               <Row
                 key={game.id}
                 title={game.name}
+                hint={t("settings.gameVisibility.description")}
                 description={
-                  lastVisible
-                    ? t("settings.gameVisibility.keepVisible")
-                    : t(
-                        game.hidden === true
-                          ? "settings.gameVisibility.hidden"
-                          : "settings.gameVisibility.shown",
-                      )
+                  lastVisible ? t("settings.gameVisibility.keepVisible") : ""
                 }
               >
-                <input
-                  type="checkbox"
-                  role="switch"
-                  className="system-switch"
+                <Switch
                   checked={game.hidden !== true}
                   disabled={busy || lastVisible}
                   data-game-visibility={game.id}
-                  aria-label={t("settings.gameVisibility.toggle", {
+                  label={t("settings.gameVisibility.toggle", {
                     name: game.name,
                   })}
-                  onChange={(event) => {
-                    const hidden = !event.target.checked;
+                  onChange={(visible) =>
                     run(async () => {
                       check(
                         await window.api.gameSetHidden(
                           game.id,
-                          hidden,
+                          !visible,
                           games.find((item) => item.id !== game.id)?.id,
                         ),
                       );
-                    });
-                  }}
+                    })
+                  }
                 />
               </Row>
             );
           })}
         </Section>
-        <Section id="persist" title={t("settings.persist.title")}>
-          <Row
-            title={t("settings.persist.perGame")}
-            description={t("settings.persist.perGameHint")}
-          >
-            <Button onClick={() => chooseCategory("persist")}>
-              {t("settings.persist.manageGames")}
-            </Button>
-          </Row>
-        </Section>
       </React.Fragment>
     );
   else if (category.id === "persist")
-    content = <PersistStateManager games={games} />;
+    content = (
+      <Section id="persist" title={t("settings.categories.persist")}>
+        <PersistStateManager games={games} />
+      </Section>
+    );
   else if (category.id === "appearance")
     content = (
       <React.Fragment>
         <Section id="theme" title={t("settings.theme.title")}>
-          <Row
-            title={t("settings.theme.colorTheme")}
-            description={t("settings.theme.description")}
-            stacked={true}
-          >
+          <Row title={t("settings.theme.mode")}>
             <Choices
-              label={t("settings.theme.colorTheme")}
-              disabled={busy || theme?.loadingSkins}
-              value={theme?.activeSkinId || ""}
-              onChange={(value) =>
-                run(async () => {
-                  check(await theme.setActiveTheme(value || null));
-                })
-              }
+              label={t("settings.theme.mode")}
+              value={theme?.mode}
+              onChange={(value) => theme?.setMode(value)}
               options={[
                 {
-                  value: "",
-                  label: t("settings.theme.default"),
-                  desc: t("settings.theme.softLight"),
+                  value: "dark",
+                  label: t("settings.theme.dark"),
                 },
-                ...(theme?.skins || []).map((skin) => ({
-                  value: skin.id,
-                  label: skin.name || skin.id,
-                  desc: skin.description,
-                })),
+                {
+                  value: "light",
+                  label: t("settings.theme.light"),
+                },
+                {
+                  value: "system",
+                  label: t("settings.theme.system"),
+                },
               ]}
             />
           </Row>
         </Section>
-        <Section id="scale" title={t("settings.scale.title")}>
-          <Row
-            title={t("settings.scale.sidebar")}
-            description={t("settings.scale.sidebarHint")}
-          >
+        <Section
+          id="scale"
+          title={t("settings.scale.title")}
+          actions={
+            <Button
+              small={true}
+              ghost={true}
+              disabled={busy}
+              onClick={() =>
+                run(async () => {
+                  check(await window.api.setUiZoom(1));
+                  check(await window.api.setModMarketCardSize(100));
+                  setConfig((c) => ({
+                    ...c,
+                    uiZoom: 1,
+                    modMarketCardSize: 100,
+                  }));
+                  window.dispatchEvent(
+                    new CustomEvent("qaqm:mod-market-card-size-changed", {
+                      detail: {
+                        size: 100,
+                      },
+                    }),
+                  );
+                })
+              }
+            >
+              {t("settings.scale.restoreFull")}
+            </Button>
+          }
+        >
+          <Row title={t("settings.scale.sidebar")}>
             <Range
               label={t("settings.scale.sidebar")}
               value={Math.round((config.uiZoom || 1) * 100)}
@@ -494,16 +452,11 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
               step={5}
               disabled={busy}
               onChange={(value) =>
-                updateConfig("uiZoom", value / 100, window.api.setUiZoom, (v) =>
-                  document.documentElement.style.setProperty("--ui-scale", v),
-                )
+                updateConfig("uiZoom", value / 100, window.api.setUiZoom)
               }
             />
           </Row>
-          <Row
-            title={t("settings.scale.marketCards")}
-            description={t("settings.scale.marketCardsHint")}
-          >
+          <Row title={t("settings.scale.marketCards")}>
             <Range
               label={t("settings.scale.marketCards")}
               value={marketScale}
@@ -527,38 +480,9 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
               }
             />
           </Row>
-          <Row title={t("settings.scale.restoreDefault")}>
-            <Button
-              disabled={busy}
-              onClick={() =>
-                run(async () => {
-                  check(await window.api.setUiZoom(1));
-                  check(await window.api.setModMarketCardSize(100));
-                  setConfig((c) => ({
-                    ...c,
-                    uiZoom: 1,
-                    modMarketCardSize: 100,
-                  }));
-                  document.documentElement.style.setProperty("--ui-scale", "1");
-                  window.dispatchEvent(
-                    new CustomEvent("qaqm:mod-market-card-size-changed", {
-                      detail: {
-                        size: 100,
-                      },
-                    }),
-                  );
-                })
-              }
-            >
-              {t("settings.scale.restoreFull")}
-            </Button>
-          </Row>
-        </Section>
-        <Section id="mod-cards" title={t("settings.cards.downloadCards")}>
           <Row
             title={t("settings.cards.coverRatio")}
-            description={t("settings.cards.coverRatioHint")}
-            stacked={true}
+            hint={t("settings.cards.coverRatioHint")}
           >
             <Choices
               label={t("settings.cards.coverRatioLabel")}
@@ -571,11 +495,6 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
               options={CARD_IMAGE_RATIOS.map((value) => ({
                 value,
                 label: value,
-                ...(value === "4:3"
-                  ? {
-                      desc: t("settings.theme.default"),
-                    }
-                  : {}),
               }))}
               onChange={(value) =>
                 updateConfig(
@@ -596,7 +515,6 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
           <Row
             title={t("settings.compatibility.mode")}
             description={t("settings.compatibility.description")}
-            stacked={true}
           >
             <Choices
               label={t("settings.compatibility.mode")}
@@ -614,7 +532,6 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
                 {
                   value: 0,
                   label: t("common.actions.close"),
-                  desc: t("settings.compatibility.full"),
                 },
                 {
                   value: 1,
@@ -643,8 +560,8 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
         <Section id="cache" title={t("settings.downloadStorage.title")}>
           <Row
             title={t("settings.downloadStorage.directory")}
-            description={t("settings.downloadStorage.description")}
-            stacked={true}
+            hint={t("settings.downloadStorage.description")}
+            path={true}
           >
             <PathControl
               label={t("settings.downloadStorage.directory")}
@@ -678,13 +595,13 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
         <Section id="server" title={t("settings.server.title")}>
           <Row
             title={t("settings.server.address")}
-            description={t("settings.server.defaultHint", {
+            hint={t("settings.server.defaultHint", {
               dEFAULT_SERVER: DEFAULT_SERVER,
             })}
-            stacked={true}
+            path={true}
           >
             <form
-              className="system-path-control"
+              className="path-control"
               onSubmit={(event) => {
                 event.preventDefault();
                 run(async () => {
@@ -701,7 +618,7 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
               }}
             >
               <input
-                className="system-text-input"
+                className="input settings-mono-input"
                 type="url"
                 aria-label={t("settings.server.address")}
                 value={server}
@@ -720,132 +637,126 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
       </React.Fragment>
     );
   else if (category.id === "shortcuts")
-    content = h(
-      Section,
-      {
-        id: "overlay",
-        title: t("settings.overlay.title"),
-      },
-      <Row
-        title={t("settings.overlay.toggle")}
-        description={t("settings.overlay.toggleHint")}
-      >
-        <kbd>{hotkey}</kbd>
-        <Button
-          disabled={busy}
-          onClick={() => {
-            setRecording(true);
-            setDraftHotkey("");
-          }}
-        >
-          {t("settings.overlay.changeHotkey")}
-        </Button>
-      </Row>,
-      recording && (
+    content = (
+      <Section id="overlay" title={t("settings.overlay.title")}>
         <Row
-          title={t("settings.overlay.recordHotkey")}
-          description={t("settings.overlay.recordHint")}
-          stacked={true}
+          title={t("settings.overlay.toggle")}
+          hint={t("settings.overlay.toggleHint")}
         >
-          <div className="system-path-control">
-            <input
-              autoFocus={true}
-              readOnly={true}
-              className="system-text-input"
-              aria-label={t("settings.overlay.recordHotkey")}
-              value={draftHotkey}
-              placeholder={t("settings.overlay.pressHotkey")}
-              onKeyDown={(event) => {
-                if (event.key === "Tab") return;
-                event.preventDefault();
-                event.stopPropagation();
-                if (event.key === "Escape") {
-                  setRecording(false);
-                  return;
-                }
-                if (["Control", "Alt", "Shift", "Meta"].includes(event.key))
-                  return;
-                setDraftHotkey(
-                  [
-                    event.ctrlKey && "Ctrl",
-                    event.altKey && "Alt",
-                    event.shiftKey && "Shift",
-                    event.metaKey && "Super",
-                    event.key === " "
-                      ? "Space"
-                      : event.key.length === 1
-                        ? event.key.toUpperCase()
-                        : event.key,
-                  ]
-                    .filter(Boolean)
-                    .join("+"),
-                );
-              }}
-            />
-            <Button
-              primary={true}
-              disabled={busy || !draftHotkey}
-              onClick={() =>
-                run(async () => {
-                  const r = check(
-                    await window.api.setOverlayHotkey(draftHotkey),
-                  );
-                  setHotkey(r.hotkey);
-                  setRecording(false);
-                }, t("settings.overlay.hotkeySaved"))
-              }
-            >
-              {t("common.actions.save")}
-            </Button>
-            <Button onClick={() => setRecording(false)}>
-              {t("common.actions.cancel")}
-            </Button>
-          </div>
-        </Row>
-      ),
-      ...[
-        [
-          "autoReloadEnabled",
-          t("settings.overlay.reloadAfterToggle"),
-          t("settings.overlay.reloadAfterToggleHint"),
-        ],
-        [
-          "presetAutoReloadEnabled",
-          t("settings.overlay.reloadAfterPreset"),
-          t("settings.overlay.reloadAfterPresetHint"),
-        ],
-        [
-          "clickableHotkeysEnabled",
-          t("settings.overlay.clickModHotkeys"),
-          t("settings.overlay.clickModHotkeysHint"),
-        ],
-      ].map(([key, title, description]) => (
-        <Row key={key} title={title} description={description}>
-          <input
-            type="checkbox"
-            role="switch"
-            className="system-switch"
-            aria-label={title}
-            checked={!!overlay[key]}
+          <kbd className="kbd-key">{hotkey}</kbd>
+          <Button
             disabled={busy}
-            onChange={(e) => updateOverlay(key, e.target.checked)}
-          />
+            onClick={() => {
+              setRecording(true);
+              setDraftHotkey("");
+            }}
+          >
+            {t("settings.overlay.changeHotkey")}
+          </Button>
         </Row>
-      )),
-      <Row
-        title={t("settings.overlay.preview")}
-        description={t("settings.overlay.previewHint")}
-      >
-        <Button
-          onClick={() =>
-            run(async () => {
-              check(await window.api.toggleOverlayFromUI());
-            })
-          }
+        {recording && (
+          <Row
+            title={t("settings.overlay.recordHotkey")}
+            description={t("settings.overlay.recordHint")}
+            path={true}
+          >
+            <div className="path-control">
+              <input
+                autoFocus={true}
+                readOnly={true}
+                className="input settings-mono-input"
+                aria-label={t("settings.overlay.recordHotkey")}
+                value={draftHotkey}
+                placeholder={t("settings.overlay.pressHotkey")}
+                onKeyDown={(event) => {
+                  if (event.key === "Tab") return;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  if (event.key === "Escape") {
+                    setRecording(false);
+                    return;
+                  }
+                  if (["Control", "Alt", "Shift", "Meta"].includes(event.key))
+                    return;
+                  setDraftHotkey(
+                    [
+                      event.ctrlKey && "Ctrl",
+                      event.altKey && "Alt",
+                      event.shiftKey && "Shift",
+                      event.metaKey && "Super",
+                      event.key === " "
+                        ? "Space"
+                        : event.key.length === 1
+                          ? event.key.toUpperCase()
+                          : event.key,
+                    ]
+                      .filter(Boolean)
+                      .join("+"),
+                  );
+                }}
+              />
+              <Button onClick={() => setRecording(false)}>
+                {t("common.actions.cancel")}
+              </Button>
+              <Button
+                primary={true}
+                disabled={busy || !draftHotkey}
+                onClick={() =>
+                  run(async () => {
+                    const r = check(
+                      await window.api.setOverlayHotkey(draftHotkey),
+                    );
+                    setHotkey(r.hotkey);
+                    setRecording(false);
+                  }, t("settings.overlay.hotkeySaved"))
+                }
+              >
+                {t("common.actions.save")}
+              </Button>
+            </div>
+          </Row>
+        )}
+        {[
+          [
+            "autoReloadEnabled",
+            t("settings.overlay.reloadAfterToggle"),
+            t("settings.overlay.reloadAfterToggleHint"),
+          ],
+          [
+            "presetAutoReloadEnabled",
+            t("settings.overlay.reloadAfterPreset"),
+            t("settings.overlay.reloadAfterPresetHint"),
+          ],
+          [
+            "clickableHotkeysEnabled",
+            t("settings.overlay.clickModHotkeys"),
+            t("settings.overlay.clickModHotkeysHint"),
+          ],
+        ].map(([key, title, hint]) => (
+          <Row key={key} title={title} hint={hint}>
+            <Switch
+              label={title}
+              checked={!!overlay[key]}
+              disabled={busy}
+              onChange={(value) => updateOverlay(key, value)}
+            />
+          </Row>
+        ))}
+        <Row
+          title={t("settings.overlay.preview")}
+          hint={t("settings.overlay.previewHint")}
         >
-          {t("settings.overlay.showOrHide")}
-        </Button>
-      </Row>,
+          <Button
+            onClick={() =>
+              run(async () => {
+                check(await window.api.toggleOverlayFromUI());
+              })
+            }
+          >
+            {t("settings.overlay.showOrHide")}
+          </Button>
+        </Row>
+      </Section>
     );
   else if (category.id === "maintenance")
     content = (
@@ -872,15 +783,15 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
             </Button>
           </Row>
           {updateResult && (
-            <div className="system-notice" role="status">
+            <Notice kind="success" role="status">
               {updateResult}
-            </div>
+            </Notice>
           )}
         </Section>
         <Section id="help" title={t("settings.maintenance.troubleshooting")}>
           <Row
             title={t("settings.maintenance.modTroubleshooting")}
-            description={t("settings.maintenance.helpHint")}
+            hint={t("settings.maintenance.helpHint")}
           >
             <Button
               onClick={() =>
@@ -908,84 +819,34 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
       </React.Fragment>
     );
   return (
-    <div className="settings-view system-settings">
-      <aside className="system-settings-nav">
-        <div className="system-settings-title">
-          <h1>{t("navigation.systemSettings")}</h1>
-          <p>{t("settings.about.preferences")}</p>
-        </div>
-        <nav aria-label={t("settings.about.categoryNavigation")}>
+    <SettingsFrame
+      scope="general"
+      paneRef={pane}
+      toast={toast}
+      nav={
+        <nav
+          className="settings-categories"
+          aria-label={t("settings.about.categoryNavigation")}
+        >
           {getCategories().map((item) => (
-            <React.Fragment key={item.id}>
-              <button
-                type="button"
-                className="system-category"
-                data-category={item.id}
-                aria-current={category.id === item.id ? "page" : undefined}
-                disabled={busy}
-                onClick={() => chooseCategory(item.id)}
-              >
-                <Icon name={item.icon} />
-                <span>{item.label}</span>
-              </button>
-              {category.id === item.id && subitems.length > 0 && (
-                <div className="system-subnav">
-                  {subitems.map(([id, label]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      data-subsection={id}
-                      disabled={busy}
-                      onClick={() =>
-                        document
-                          .getElementById(`settings-${id}`)
-                          ?.scrollIntoView({
-                            block: "start",
-                            behavior: "smooth",
-                          })
-                      }
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </React.Fragment>
+            <button
+              key={item.id}
+              type="button"
+              className="settings-category"
+              data-category={item.id}
+              aria-current={category.id === item.id ? "page" : undefined}
+              disabled={busy}
+              onClick={() => chooseCategory(item.id)}
+            >
+              <Icon name={item.icon} size={15} />
+              <span>{item.label}</span>
+            </button>
           ))}
         </nav>
-        <p className="system-nav-footnote">
-          {t("settings.about.autoSave")}
-          <span>{t("settings.about.explicitSaveHint")}</span>
-        </p>
-      </aside>
-      <div className="system-settings-pane" ref={pane}>
-        <header className="system-settings-header">
-          <div>
-            <div className="system-breadcrumb">
-              {t("settings.about.heading", {
-                label: category.label,
-              })}
-            </div>
-            <h2>{category.label}</h2>
-            <p>{category.desc}</p>
-          </div>
-          <span className="system-scope">
-            {category.id === "persist"
-              ? t("settings.about.perGame")
-              : t("settings.about.global")}
-          </span>
-        </header>
-        <div className="system-settings-body">{content}</div>
-      </div>
-      {toast && (
-        <div
-          className={`system-toast ${toast.type}`}
-          role={toast.type === "error" ? "alert" : "status"}
-        >
-          {toast.message}
-        </div>
-      )}
-    </div>
+      }
+    >
+      {content}
+    </SettingsFrame>
   );
 }
 export { SettingsView as default };

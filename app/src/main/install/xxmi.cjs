@@ -11,6 +11,18 @@ const settings = require("../games/settings.cjs");
 const { getDataRoot, IMPORTERS } = require("../runtime/data-paths.cjs");
 const installPaths = require("./paths.cjs");
 const { isPathInsideDirectory } = require("../system/paths.cjs");
+const { createMiForksService } = require("./mi-forks.cjs");
+const componentRoots = () => [path.dirname(process.execPath), path.resolve(electron.app.getAppPath(), "../.."), path.resolve(electron.app.getAppPath(), "..")];
+const maintained = createMiForksService({
+  bundleRoots: componentRoots,
+  backupRoot: () => process.env.QAQR_REPAIR_DIR || (fs.existsSync("D:/") ? "D:/ModRepair/QAQR-MI" : path.join(electron.app.getPath("userData"), "RepairBackups")),
+  resolveInstallation: gameId => {
+    const game = settings.getGameById(gameId);
+    const launcher = game && (game.modLoaderPath || path.join(paths(gameId).root, "Resources/Bin/XXMI Launcher.exe"));
+    const info = launcher && settings.readXxmiImporterPathInfo(launcher, gameId);
+    return info?.status === "configured" ? { launcherRoot: info.xxmiRootDir, miRoot: info.importerPath } : null;
+  }
+});
 const cache = new Map();
 let operation = null;
 function plain(file) {
@@ -24,7 +36,7 @@ function component() {
   if (!root) throw Error(i18n.t("settings.mi.componentMissing"));
   plain(root);
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "component.json"), "utf8"));
-  if (manifest.protocol !== 1 || manifest.source !== "https://github.com/SpectrumQT/XXMI-Launcher" || !manifest.files) throw Error(i18n.t("settings.mi.invalidComponent"));
+  if (manifest.protocol !== 1 || !["https://github.com/SpectrumQT/XXMI-Launcher", "https://github.com/QAQ-Revival/XXMI-Launcher"].includes(manifest.source) || !manifest.files) throw Error(i18n.t("settings.mi.invalidComponent"));
   for (const [relative, hash] of Object.entries(manifest.files)) {
     const file = path.resolve(root, relative);
     if (!isPathInsideDirectory(file, root) || file === root) throw Error(i18n.t("settings.mi.invalidComponent"));
@@ -87,7 +99,7 @@ function runWorker(payload, onProgress = () => {}) {
 async function status(gameId, action = "status") {
   const resolved = paths(gameId);
   if (operation) return { success: true, ...resolved, ...cache.get(gameId), busy: true };
-  const result = await runWorker({ ...resolved, action });
+  const result = { ...await runWorker({ ...resolved, action }), fork: maintained.status(gameId) };
   cache.set(gameId, result);
   return { ...result, ...resolved, busy: false };
 }
@@ -114,8 +126,18 @@ async function install({ gameId } = {}) {
     for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId, root: resolved.root });
   }
 }
+async function changeFork(action, { gameId } = {}) {
+  if (operation) throw Error(i18n.t("settings.mi.busy"));
+  operation = { gameId };
+  try { return maintained[action](gameId); }
+  finally {
+    operation = null;
+    cache.clear();
+    for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId });
+  }
+}
 function registerIpc() {
-  for (const [channel, action] of [["xxmi:status", gameId => status(gameId)], ["xxmi:check", gameId => status(gameId, "check")], ["xxmi:install", install]]) {
+  for (const [channel, action] of [["xxmi:status", gameId => status(gameId)], ["xxmi:check", gameId => status(gameId, "check")], ["xxmi:install", install], ["xxmi:fork-apply", opts => changeFork("apply", opts)], ["xxmi:fork-restore", opts => changeFork("restore", opts)]]) {
     electron.ipcMain.handle(channel, async (_, payload) => {
       try { return await action(payload); }
       catch (error) { return { success: false, error: error.message }; }

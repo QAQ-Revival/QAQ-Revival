@@ -5,10 +5,11 @@ import { collectionSelectionKey, readCollectionSelections, saveCollectionSelecti
 import { getAppearanceSectionStorageKey, getModViewPreferenceStorageKey, readModViewPreferences } from "../features/mods/model/modHelpers.js";
 import { getSectionName, getSectionId } from "../features/mods/model/appearanceSections.js";
 import { t } from "../../shared/i18n/index.mjs";
-import "./overlay.css";
 import "./controls.css";
+import "./overlay.css";
 import { renderLayout } from "./overlay-layout.js";
 import { escapeHtml, encodeHotkeyPayload } from "./html.js";
+import { icon } from "./icons.js";
 import {
   cleanCollectionText,
   normalizeCollectionKey,
@@ -130,10 +131,10 @@ async function requestOverlayScale(nextScale) {
     if (result?.success) {
       applyOverlayScale(result.scale);
     } else {
-      showToast(result?.error || "Zoom failed");
+      showToast(result?.error || t("overlay.zoom.failed"));
     }
   } catch {
-    showToast("Zoom failed");
+    showToast(t("overlay.zoom.failed"));
   }
 }
 function syncSettingsUI() {
@@ -397,9 +398,7 @@ function toggleOverlayCollectionsEnabled() {
   );
 }
 
-// Renders the small SVG icon + label inside the view-mode pill so the
-// button always reflects the CURRENT mode (and its label hints at where
-// a click will take you). Mirrors the manager's behaviour.
+// The icon and hidden label name where a click will take you.
 function syncViewModeUI() {
   const btn = document.getElementById("viewModeBtn");
   const iconSpan = document.getElementById("viewModeIcon");
@@ -407,12 +406,10 @@ function syncViewModeUI() {
   if (!btn || !iconSpan || !labelSpan) return;
   if (overlayViewMode === "gallery") {
     // currently gallery → clicking goes back to list
-    iconSpan.innerHTML =
-      '<svg width="10" height="10" viewBox="0 0 14 14"><rect x="1" y="2" width="12" height="2" rx="1" fill="currentColor"/><rect x="1" y="6" width="12" height="2" rx="1" fill="currentColor"/><rect x="1" y="10" width="12" height="2" rx="1" fill="currentColor"/></svg>';
+    iconSpan.innerHTML = icon("list");
     labelSpan.textContent = t("overlay.view.list");
   } else {
-    iconSpan.innerHTML =
-      '<svg width="10" height="10" viewBox="0 0 14 14"><rect x="1" y="1" width="5" height="5" rx="1" fill="currentColor"/><rect x="8" y="1" width="5" height="5" rx="1" fill="currentColor"/><rect x="1" y="8" width="5" height="5" rx="1" fill="currentColor"/><rect x="8" y="8" width="5" height="5" rx="1" fill="currentColor"/></svg>';
+    iconSpan.innerHTML = icon("grid");
     labelSpan.textContent = t("overlay.view.gallery");
   }
 }
@@ -501,7 +498,7 @@ function showOverlayCollectionFloatingMenu(trigger, identity) {
       (variant) => `
             <button class="overlay-collection-option ${variant.name === currentName ? "active" : ""}" data-collection-option="1" data-collection="${escapeHtml(identity)}" data-mod="${escapeHtml(variant.name)}" title="${escapeHtml(variant.name)}">
                 <span>${escapeHtml(getCollectionVariantLabel(variant))}</span>
-                <em>${variant.name === currentName ? "&#24403;&#21069;" : variant.enabled ? "&#21551;&#29992;" : ""}</em>
+                <em>${variant.name === currentName ? icon("check", 14) : variant.enabled ? t("overlay.mods.enabled") : ""}</em>
             </button>
         `,
     )
@@ -557,33 +554,17 @@ function showCuteContextMenu(event, modName) {
   const menu = document.getElementById("cuteContextMenu");
   const panel = document.getElementById("overlayPanel");
   const title = document.getElementById("cuteMenuTitle");
-  const pinIcon = document.getElementById("cuteMenuPinIcon");
   const pinLabel = document.getElementById("cuteMenuPinLabel");
-  const pinHint = document.getElementById("cuteMenuPinHint");
-  const markIcon = document.getElementById("cuteMenuMarkIcon");
   const markLabel = document.getElementById("cuteMenuMarkLabel");
-  const markHint = document.getElementById("cuteMenuMarkHint");
   const mod = currentMods.find((item) => item.name === modName);
   contextMenuModName = modName;
   title.textContent = modName;
-  if (mod?.pinned) {
-    pinIcon.textContent = "📍";
-    pinLabel.textContent = t("overlay.pin.remove");
-    pinHint.textContent = t("overlay.pin.removeHint");
-  } else {
-    pinIcon.textContent = "📌";
-    pinLabel.textContent = t("overlay.pin.add");
-    pinHint.textContent = t("overlay.pin.addHint");
-  }
-  if (mod?.marked) {
-    markIcon.textContent = "🏷️";
-    markLabel.textContent = t("overlay.mark.remove");
-    markHint.textContent = t("overlay.mark.removeHint");
-  } else {
-    markIcon.textContent = "🔖";
-    markLabel.textContent = t("overlay.mark.add");
-    markHint.textContent = t("overlay.mark.addHint");
-  }
+  pinLabel.textContent = mod?.pinned
+    ? t("overlay.pin.remove")
+    : t("overlay.pin.add");
+  markLabel.textContent = mod?.marked
+    ? t("overlay.mark.remove")
+    : t("overlay.mark.add");
   menu.style.left = "12px";
   menu.style.top = "12px";
   menu.classList.add("show");
@@ -1147,7 +1128,7 @@ function renderAppearanceSections() {
   container.innerHTML = appearanceSections.map(section => {
     const id = getSectionId(section), name = getSectionName(section), cover = section.coverUrl || section.imageUrl || section.image;
     const mods = currentMods.filter(mod => (mod.appearanceSectionId || "base") === id);
-    return `<button type="button" class="overlay-appearance-tab ${id === activeAppearanceSectionId ? "active" : ""}" role="tab" aria-selected="${id === activeAppearanceSectionId}" data-section="${escapeHtml(id)}" title="${escapeHtml(name)}">${cover ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy">` : '<span class="overlay-section-fallback">👗</span>'}<span><strong>${escapeHtml(name)}</strong><small>${mods.filter(mod => mod.enabled).length}/${mods.length}</small></span></button>`;
+    return `<button type="button" class="overlay-appearance-tab ${id === activeAppearanceSectionId ? "active" : ""}" role="tab" aria-selected="${id === activeAppearanceSectionId}" data-section="${escapeHtml(id)}" title="${escapeHtml(name)}">${cover ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : `<span class="overlay-section-fallback">${icon("shirt")}</span>`}<span><strong>${escapeHtml(name)}</strong><small>${mods.filter(mod => mod.enabled).length}/${mods.length}</small></span></button>`;
   }).join("");
   container.querySelectorAll("[data-section]").forEach(button => button.addEventListener("click", () => {
     activeAppearanceSectionId = button.dataset.section;
@@ -1170,7 +1151,7 @@ function renderSelectionControls() {
   const pending = currentMods.filter(mod => mod.pendingEnabled);
   const confirm = document.getElementById("conflictConfirm");
   confirm.hidden = pending.length === 0;
-  confirm.innerHTML = pending.length ? `<span>⚠️ ${t("mods.conflicts.pendingCount", { count: pending.length })}</span><button type="button" ${confirmingConflicts ? "disabled" : ""}>${t("mods.conflicts.confirmTogether")}</button><small>${t("mods.conflicts.pendingHint")}</small>` : "";
+  confirm.innerHTML = pending.length ? `${icon("alert", 14)}<span>${t("mods.conflicts.pendingCount", { count: pending.length })}</span><button type="button" class="btn btn-primary btn-sm" ${confirmingConflicts ? "disabled" : ""}>${t("mods.conflicts.confirmTogether")}</button><small>${t("mods.conflicts.pendingHint")}</small>` : "";
   confirm.querySelector("button")?.addEventListener("click", async () => {
     if (confirmingConflicts) return;
     const character = selectedChar;
@@ -1268,9 +1249,10 @@ function showCharacterBubbleSide() {
       .map((c, i) => {
         const escapedName = escapeHtml(c.name);
         const initial = escapeHtml(c.name.substring(0, 1));
-        return `<div class="bubble-avatar ${selectedChar === c.name ? "active" : ""}" data-name="${escapedName}" data-search="${escapeHtml(c.searchText || c.name)}" data-idx="${i}" title="${escapedName}">
-                ${c.coverUrl ? `<img src="${c.coverUrl}" alt="">` : `<span>${initial}</span>`}
-            </div>`;
+        return `<button type="button" class="bubble-avatar ${selectedChar === c.name ? "active" : ""}" data-name="${escapedName}" data-search="${escapeHtml(c.searchText || c.name)}" data-idx="${i}" title="${escapedName}">
+                <span class="bubble-avatar-image">${c.coverUrl ? `<img src="${c.coverUrl}" alt="">` : initial}</span>
+                <span class="bubble-avatar-name">${escapedName}</span>
+            </button>`;
       })
       .join("") +
     "</div>";
@@ -1499,7 +1481,6 @@ function syncCharFilterUI() {
   const btn = document.getElementById("charFilterBtn");
   if (!btn) return;
   btn.classList.toggle("active", !!overlayCharFilterModOnly);
-  btn.textContent = overlayCharFilterModOnly ? "🎯" : "🌐";
   btn.title = overlayCharFilterModOnly
     ? t("overlay.characters.withModsToggle")
     : t("overlay.characters.allToggle");
@@ -1555,7 +1536,7 @@ function renderCharChips() {
   container.innerHTML = visible
     .map(
       (c, i) =>
-        `<div class="char-chip ${selectedChar === c.name ? "active" : ""}" data-name="${escapeHtml(c.name)}" data-idx="${i}">${escapeHtml(c.name)}${isActiveCharacter(c.name) ? `<span class="char-chip-live">${t("overlay.activity.detected")}</span>` : ""}${(c.modCount || 0) > 0 ? `<span class="char-chip-count">${c.enabledCount || 0}/${c.modCount}</span>` : ""}</div>`,
+        `<button type="button" class="char-chip ${selectedChar === c.name ? "active" : ""}" data-name="${escapeHtml(c.name)}" data-idx="${i}">${escapeHtml(c.name)}${isActiveCharacter(c.name) ? `<span class="char-chip-live" title="${t("overlay.activity.detected")}"></span>` : ""}${(c.modCount || 0) > 0 ? `<span class="char-chip-count ${c.enabledCount > 0 ? "is-lit" : ""}">${c.enabledCount || 0}/${c.modCount}</span>` : ""}</button>`,
     )
     .join("");
   container.querySelectorAll(".char-chip").forEach((chip) => {
@@ -1819,7 +1800,9 @@ function renderMods() {
           }
           renderMods();
           await loadMods(selectedChar, { silent: true, focusModName: modName });
-          const actionLabel = !currentlyEnabled ? "✅" : "⬜";
+          const actionLabel = !currentlyEnabled
+            ? t("overlay.mods.enabled")
+            : t("overlay.mods.disabled");
           const reloadLabel = result.autoReloaded
             ? t("overlay.reload.completedSuffix")
             : "";

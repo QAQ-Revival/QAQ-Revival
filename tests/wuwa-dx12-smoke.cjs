@@ -17,8 +17,8 @@ module.exports = async ({ call, click, evaluate, waitFor, captureUI, root, launc
   assert.equal((await call('get-config')).config.games.find(game => game.id === 'wuthering-waves').wuwaDx12Enabled, true);
   const configFile = path.join(root, 'AppData/QAQ-Revival/config.json');
   assert.equal(JSON.parse(fs.readFileSync(configFile)).games.find(game => game.id === 'wuthering-waves').wuwaDx12Enabled, true, 'DX12 switch is saved on disk');
-  await waitFor(`document.querySelector('[aria-label="直接启动"]').textContent.includes('DX12')`, 'DX12 launch label');
-  await evaluate(`[...document.querySelectorAll('#settings-wuwa-dx12 button')].find(b => b.textContent === '检查组件更新').click()`);
+  await waitFor(`document.querySelector('[aria-label="启动游戏"]').textContent.includes('DX12')`, 'DX12 launch label');
+  await evaluate(`[...document.querySelectorAll('#settings-wuwa-dx12 button')].find(b => b.textContent === '检查更新').click()`);
   await waitFor(`!document.querySelector('[aria-label="wwmi-dx12 更新内置组件"]').disabled`, 'new component release available');
   assert.equal(await evaluate(`document.querySelector('[aria-label="ReShade 更新内置组件"]').disabled`), true);
   await click('[aria-label="wwmi-dx12 更新内置组件"]');
@@ -28,8 +28,8 @@ module.exports = async ({ call, click, evaluate, waitFor, captureUI, root, launc
   await evaluate(`(() => { const pane = document.querySelector('.game-settings-view .system-settings-pane'), section = document.querySelector('#settings-wuwa-dx12'); pane.style.scrollBehavior = 'auto'; pane.scrollTop += section.getBoundingClientRect().top - pane.getBoundingClientRect().top; })()`);
   await captureUI('wuwa-dx12-managed.png');
   const requestCount = launchRequests.length;
-  await click('[aria-label="直接启动"]');
-  await waitFor(`!document.querySelector('[aria-label="直接启动"]').disabled`, 'DX12 launch request');
+  await click('[aria-label="启动游戏"]');
+  await waitFor(`!document.querySelector('[aria-label="启动游戏"]').disabled`, 'DX12 launch request');
   assert.equal(launchRequests.length, requestCount + 1);
   assert.match(launchRequests.at(-1).file, /powershell.exe$/i);
   assert.ok(launchRequests.at(-1).args.some(arg => arg.endsWith('wuwa-dx12-launch.ps1')));
@@ -63,8 +63,8 @@ module.exports = async ({ call, click, evaluate, waitFor, captureUI, root, launc
   assert.match(await evaluate(`document.querySelector('[data-dx12-component="reshade"]').textContent`), /用户安装/);
   assert.match(await evaluate(`document.querySelector('[data-dx12-component="addon"]').textContent`), /已禁用/);
   await captureUI('wuwa-dx12-mixed.png');
-  await click('[aria-label="直接启动"]');
-  await waitFor(`!document.querySelector('[aria-label="直接启动"]').disabled`, 'WWMI route restored');
+  await click('[aria-label="启动游戏"]');
+  await waitFor(`!document.querySelector('[aria-label="启动游戏"]').disabled`, 'WWMI route restored');
   assert.deepEqual(launchRequests.at(-1).args, ['--nogui', '--xxmi', 'WWMI']);
   passed('DX12 installs verified real packages, updates a simulated new release, labels ownership, routes direct launch, and preserves user replacements when disabled');
 };

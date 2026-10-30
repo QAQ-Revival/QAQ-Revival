@@ -42,7 +42,6 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, handle
   const active = '.mod-download-provider:not([hidden])';
   const countWindows = BrowserWindow.getAllWindows().length;
   async function select(source) {
-    await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
     await waitFor(`!!document.querySelector('.mod-download-source-option[data-source="${source}"]')`, 'source option');
     await evaluate(`document.querySelector('.mod-download-source-option[data-source="${source}"]').click()`);
     await waitFor(`document.querySelector('${active}')?.dataset.source === '${source}'`, 'source active');
@@ -51,7 +50,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, handle
     await evaluate(`(() => { const button = [...document.querySelectorAll('${active} button')].find(b => b.textContent.trim() === ${JSON.stringify(label)}); if (!button || button.disabled) throw Error('Missing button '+${JSON.stringify(label)}); button.click(); })()`);
   }
   await evaluate(`document.querySelector('.nav-item[aria-label="Mod 下载"]').click()`);
-  await waitFor(`!!document.querySelector('.mod-download-source-trigger')`, 'downloads');
+  await waitFor(`!!document.querySelector('.mod-download-source-option')`, 'downloads');
   await select('keke');
   await waitFor(`!!document.querySelector('${active} .mod-site-verification-viewport')`, '403 embeds verification');
   for(let i=0;i<50&&!window.getBrowserViews().length;i++)await new Promise(resolve=>setTimeout(resolve,100));
@@ -98,7 +97,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, handle
   let downloaded;
   for(let i=0;i<50;i++){downloaded=(await handlers.get('attachment:list')({})).tasks.find(t=>t.source==='gamebanana'&&t.status==='completed');if(downloaded)break;await new Promise(resolve=>setTimeout(resolve,100));}
   assert.ok(downloaded);assert.equal(downloaded.gameId,'wuthering-waves');assert.deepEqual(fs.readFileSync(downloaded.archivePath),attachmentBytes);
-  await evaluate(`document.querySelector('[aria-label="关闭内容详情"]').click(); [...document.querySelectorAll('.qaqm-download-panel button')].find(b=>b.textContent.trim()==='×')?.click(); document.querySelector('.game-selector-trigger').click()`);
+  await evaluate(`document.querySelector('[aria-label="关闭内容详情"]').click(); document.querySelector('.qaqm-download-panel-head [aria-label="关闭"]')?.click(); document.querySelector('.game-selector-trigger').click()`);
   await waitFor(`[...document.querySelectorAll('.game-selector-option')].some(item=>item.textContent.includes('明日方舟终末地'))`,'game menu');
   await evaluate(`[...document.querySelectorAll('.game-selector-option')].find(item=>item.textContent.includes('明日方舟终末地')).click()`);
   await waitFor(`document.querySelector('${active} .paw-post-card')?.textContent.includes('Endfield')`,'game-scoped card list');

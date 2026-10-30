@@ -24,8 +24,6 @@
   "analyzeAgain": "Analyze again",
   "source": "Source",
   "target": "Output resource",
-  "matched": "Matched current resource",
-  "unverified": "Unverified",
   "summary": "{{count}} resources, {{matched}} matched to the current game, {{renamed}} names can be repaired.",
   "convert": "Create PC copy",
   "repair": "Create repaired copy",
@@ -63,7 +61,6 @@
     "viewSource": "View source",
     "sync": "Sync enabled Mods",
     "synced": "Synced {{modCount}} Mods and {{fileCount}} files.",
-    "workerReady": "Resource diagnostics and conversion are available",
     "workerMissing": "Source-built resource component is missing. Operator and Mod library management remain available.",
     "readOnly": "Diagnostics, conversion and preparation only read game files. Generated PC bundles stay in the QAQR data directory."
   },

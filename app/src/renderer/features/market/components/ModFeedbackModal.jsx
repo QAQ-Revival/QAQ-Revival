@@ -37,6 +37,14 @@ function ModFeedbackModal({
       loadHistory();
     }
   }, [open, mod?.id]);
+  React.useEffect(() => {
+    if (!open) return void 0;
+    function handleKey(event) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [open, onClose]);
   async function loadHistory() {
     if (!clientId || !serverUrl) return;
     setLoadingHistory(true);
@@ -128,23 +136,19 @@ function ModFeedbackModal({
   const statusMap = {
     pending: {
       label: t("market.feedback.pending"),
-      emoji: "⏳",
-      color: "#f59e0b",
+      badge: "badge-warning",
     },
     replied: {
       label: t("market.feedback.replied"),
-      emoji: "💬",
-      color: "#10b981",
+      badge: "badge-info",
     },
     resolved: {
       label: t("market.feedback.resolved"),
-      emoji: "✅",
-      color: "#059669",
+      badge: "badge-success",
     },
     dismissed: {
       label: t("market.feedback.ignored"),
-      emoji: "🔕",
-      color: "#9ca3af",
+      badge: "",
     },
   };
   const feedbackTypeMap = {
@@ -155,56 +159,23 @@ function ModFeedbackModal({
   const submitting = !!submittingType;
   if (!open || !mod) return null;
   return ReactDOM.createPortal(
-    /* Keep feedback above the market detail overlay. The detail overlay
-  sits above the market header, so this secondary modal must sit
-  higher still. Without this override
-  the shared .modal-backdrop class at z-index: 100 would cause the
-  feedback panel to render behind the detail view when invoked from
-  inside a mod's detail page, forcing the user to close the detail
-  before the feedback form became visible. */
-    <div
-      className="modal-backdrop mod-feedback-modal-modal-backdrop-layout"
-      onClick={onClose}
-    >
+    // Stacked above the market detail overlay, which it can be opened from.
+    <div className="modal-backdrop market-stacked-backdrop" onClick={onClose}>
       <div
         className="modal-content mod-feedback-modal"
+        role="dialog"
+        aria-modal={true}
+        aria-label={t("market.feedback.brokenLink")}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="feedback-head">
-          <div>
-            <div className="feedback-kicker">
-              {t("market.feedback.brokenLink")}
-            </div>
-            <h3>{mod.name}</h3>
-            <p>{t("market.feedback.description")}</p>
-          </div>
-          <button type="button" className="feedback-close" onClick={onClose}>
-            {"✕"}
-          </button>
-        </div>
-        <div className="feedback-quick-grid">
-          {getFeedbackTypes().map((item) => (
-            <button
-              type="button"
-              className="feedback-quick-card"
-              onClick={() => handleSubmit(item.key)}
-              disabled={submitting}
-              key={item.key}
-            >
-              <span className="feedback-quick-title">
-                {submittingType === item.key
-                  ? t("common.status.submitting")
-                  : item.label}
-              </span>
-              <span className="feedback-quick-desc">{item.description}</span>
-            </button>
-          ))}
-        </div>
-        <div className="feedback-form">
+        <h3 className="dialog-title">{t("market.feedback.brokenLink")}</h3>
+        <p className="dialog-desc">{mod.name}</p>
+        <div className="dialog-body feedback-form">
           <label className="feedback-field">
             <span>{t("market.feedback.details")}</span>
             <textarea
-              rows={4}
+              className="textarea"
+              rows={3}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder={t("market.feedback.detailsPlaceholder")}
@@ -214,58 +185,65 @@ function ModFeedbackModal({
           <label className="feedback-field">
             <span>{t("market.feedback.contact")}</span>
             <input
+              className="input"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
               placeholder={t("market.feedback.contactPlaceholder")}
               disabled={submitting}
             />
           </label>
-          <div className="feedback-actions">
+        </div>
+        <div className="dialog-actions">
+          <button
+            type="button"
+            className="btn btn-ghost feedback-cancel"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            {t("common.actions.cancel")}
+          </button>
+          {[...getFeedbackTypes()].reverse().map((item) => (
             <button
               type="button"
-              className="btn"
-              onClick={onClose}
+              className={`btn ${item.key === "cloud_invalid" ? "btn-primary" : ""}`}
+              title={item.description}
+              onClick={() => handleSubmit(item.key)}
               disabled={submitting}
+              key={item.key}
             >
-              {t("common.actions.cancel")}
+              {submittingType === item.key
+                ? t("common.status.submitting")
+                : item.label}
             </button>
-          </div>
+          ))}
         </div>
         {history.length > 0 && (
           <div className="feedback-history">
-            <div className="feedback-history-title">
-              {t("market.feedback.myRecords")}
-            </div>
+            <h4>{t("market.feedback.myRecords")}</h4>
             {history.map((item) => {
               const st = statusMap[item.status] || statusMap.pending;
               return (
                 <div className="feedback-history-card" key={item.id}>
-                  <div className="fh-header">
-                    <span className="fh-time">
-                      {formatTime(item.createdAt)}
-                    </span>
-                    <span
-                      className="fh-status"
-                      style={{
-                        color: st.color,
-                      }}
-                    >
+                  <div className="feedback-history-head">
+                    <span>
                       {feedbackTypeMap[item.feedbackType || "general"] ||
                         t("market.feedback.title")}
-                      {" · "}
-                      {st.emoji} {st.label}
                     </span>
+                    <span className={`badge ${st.badge}`}>{st.label}</span>
+                    <time>{formatTime(item.createdAt)}</time>
                   </div>
-                  <div className="fh-content">{item.content}</div>
+                  <div className="feedback-history-text selectable">
+                    {item.content}
+                  </div>
                   {item.adminReply && (
-                    <div className="fh-reply">
-                      <div className="fh-reply-header">
-                        {t("market.feedback.adminReply")}
-                        <span className="fh-reply-time">
-                          {formatTime(item.repliedAt)}
-                        </span>
+                    <div className="feedback-reply">
+                      <div className="feedback-history-head">
+                        <span>{t("market.feedback.adminReply")}</span>
+                        <time>{formatTime(item.repliedAt)}</time>
                       </div>
-                      <div className="fh-reply-body">{item.adminReply}</div>
+                      <div className="feedback-history-text selectable">
+                        {item.adminReply}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -274,11 +252,11 @@ function ModFeedbackModal({
           </div>
         )}
         {loadingHistory && history.length === 0 && (
-          <div className="mod-feedback-modal-hint">
+          <div className="feedback-loading" role="status">
+            <span className="spinner" aria-hidden="true" />
             {t("market.feedback.loadingRecords")}
           </div>
         )}
-        {null}
       </div>
     </div>,
     document.body,

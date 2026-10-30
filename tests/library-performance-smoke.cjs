@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root, passed }) => {
+module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root, passed, selectNativeAction }) => {
   const call = (name, ...args) => handlers.get(name)({}, ...args);
   const library = path.join(root, 'data/Arknights/Mods');
   const png = electron.nativeImage.createFromBitmap(Buffer.from([0x70, 0x90, 0xe0, 0xff]), { width: 1, height: 1 }).toPNG();
@@ -38,7 +38,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   await evaluate(`window.dispatchEvent(new CustomEvent('qaqm-navigate', { detail: { tab: 'characters' } }))`);
   await waitFor(`!!document.querySelector('.mod-view-back-btn')`, 'return to Mod view');
   await evaluate(`document.querySelector('.mod-view-back-btn').click()`);
-  await waitFor(`!!document.querySelector('[aria-label="隐藏角色 Perf000"]')`, 'large character list');
+  await waitFor(`!!document.querySelector('.character-card[aria-label^="Perf000，"]')`, 'large character list');
   assert.equal(await evaluate(`new Promise(resolve => { const image = new Image(); image.onload = () => resolve(image.naturalWidth); image.onerror = () => resolve(0); image.src = ${JSON.stringify(row.coverUrl)}; })`), 1);
   let reads = 0;
   const original = handlers.get('get-characters');
@@ -48,19 +48,20 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
     await new Promise(resolve => setTimeout(resolve, 120));
     return original(...args);
   });
-  await evaluate(`document.querySelector('[aria-label="隐藏角色 Perf000"]').click()`);
-  await waitFor(`!document.querySelector('[aria-label="隐藏角色 Perf000"]')`, 'hide responds in a large list');
+  selectNativeAction('hide');
+  await evaluate(`document.querySelector('.character-card[aria-label^="Perf000，"] .character-more-btn').click()`);
+  await waitFor(`!document.querySelector('.character-card[aria-label^="Perf000，"]')`, 'hide responds in a large list');
   await new Promise(resolve => setTimeout(resolve, 500));
   assert(reads <= 2, `${reads} list reads for one hide`);
   await evaluate(`[...document.querySelectorAll('button')].find(b => b.textContent.includes('隐藏角色 (')).click()`);
   await waitFor(`!!document.querySelector('[aria-label="恢复显示 Perf000"]')`, 'hidden dialog');
   await evaluate(`document.querySelector('[aria-label="恢复显示 Perf000"]').click()`);
-  await waitFor(`!!document.querySelector('[aria-label="隐藏角色 Perf000"]')`, 'restored in large list');
+  await waitFor(`!!document.querySelector('.character-card[aria-label^="Perf000，"]')`, 'restored in large list');
   await evaluate(`document.querySelector('[aria-label="关闭隐藏角色"]').click()`);
   await captureUI('library-performance.png');
   electron.ipcMain.removeHandler('get-characters');
   electron.ipcMain.handle('get-characters', original);
-  await evaluate(`document.querySelector('[aria-label="隐藏角色 Perf000"]').closest('.character-card').click()`);
+  await evaluate(`document.querySelector('.character-card[aria-label^="Perf000，"]').click()`);
   await waitFor(`!!document.querySelector('[data-mod-name="fixture"]')`, 'large Mod detail rendered');
   let modReads = 0;
   const originalMods = handlers.get('get-mods');
@@ -89,7 +90,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   }
   await call('character:refresh');
   await evaluate(`document.querySelector('.mod-view-back-btn').click()`);
-  await waitFor(`!!document.querySelector('[aria-label="隐藏角色 NPC"]')`, 'NPC card');
+  await waitFor(`!!document.querySelector('.character-card[aria-label^="NPC，"]')`, 'NPC card');
   let releaseRead, refreshStarted, npcReads = 0;
   const pendingRead = new Promise(resolve => { releaseRead = resolve; });
   const nextRefresh = new Promise(resolve => { refreshStarted = resolve; });
@@ -99,7 +100,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
     return originalMods(event, name);
   });
   try {
-    await evaluate(`document.querySelector('[aria-label="隐藏角色 NPC"]').closest('.character-card').click()`);
+    await evaluate(`document.querySelector('.character-card[aria-label^="NPC，"]').click()`);
     await waitFor(`!!document.querySelector('.appearance-section-loading')`, 'pending Mod read shows loading');
     assert.equal(await evaluate(`!!document.querySelector('.appearance-section-empty-state')`), false);
     await evaluate(`document.querySelector('.view-mode-toggle').click()`);

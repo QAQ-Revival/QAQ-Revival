@@ -1,2 +1,0 @@
-const GAME_MENU_WIDTH = 320;
-export { GAME_MENU_WIDTH };

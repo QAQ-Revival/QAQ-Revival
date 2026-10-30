@@ -1,7 +1,15 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
-import { Button, Section, Row, check } from "./SettingsControls.jsx";
-const h = React.createElement;
+import { Icon } from "../../components/Icon.jsx";
+import { Menu, MenuItem } from "../../components/Menu.jsx";
+import {
+  Button,
+  Notice,
+  Section,
+  Row,
+  Switch,
+  check,
+} from "./SettingsControls.jsx";
 const sourceLabel = (item) =>
   item?.source === "user"
     ? t("settings.wuwaDx12.userSource")
@@ -12,6 +20,12 @@ const sourceLabel = (item) =>
             : t("common.status.disabled"),
         })
       : t("settings.wuwaDx12.missingSource");
+const sourceBadge = (item) =>
+  item?.source === "user"
+    ? "badge-info"
+    : item?.source === "managed" && item.active
+      ? "badge-success"
+      : "";
 function WuwaDx12Settings() {
   const [data, setData] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
@@ -73,72 +87,67 @@ function WuwaDx12Settings() {
   }
   const open = (url) => window.api.openExternalUrl(url);
   return (
-    <Section id="wuwa-dx12" title={t("settings.wuwaDx12.title")}>
+    <Section id="wuwa-dx12" title="DX12 Mod">
       <Row
         title={t("settings.wuwaDx12.toggle")}
         description={t("settings.wuwaDx12.description")}
       >
-        <input
-          type="checkbox"
-          role="switch"
-          className="system-switch"
-          aria-label={t("settings.wuwaDx12.toggleLabel")}
+        <Switch
+          label={t("settings.wuwaDx12.toggleLabel")}
           checked={!!data?.enabled}
           disabled={busy || !data}
-          onChange={(e) => toggle(e.target.checked)}
+          onChange={toggle}
         />
       </Row>
-      {h(
-        Row,
-        {
-          title: t("settings.wuwaDx12.componentSource"),
-          description: t("settings.wuwaDx12.componentSourceHint"),
-          stacked: true,
-        },
-        ...[
-          ["reshade", "ReShade"],
-          ["addon", "wwmi-dx12"],
-        ].map(([key, name]) => (
-          <div
-            key={key}
-            className="wuwa-dx12-component"
-            data-dx12-component={key}
-          >
-            <div>
-              <strong>{name}</strong>
-              <span
-                className={`wuwa-dx12-source ${data?.sources[key]?.source || "missing"}`}
-              >
-                {sourceLabel(data?.sources[key])}
-              </span>
-            </div>
-            <p>
-              {data?.sources[key]?.source === "user"
-                ? t("settings.wuwaDx12.userComponentHint")
-                : t("settings.wuwaDx12.bundledVersionHint", {
-                    version:
-                      data?.sources[key]?.version ||
-                      (key === "reshade" ? "6.8.0" : "2026.10.3"),
+      {[
+        ["reshade", "ReShade"],
+        ["addon", "wwmi-dx12"],
+      ].map(([key, name]) => {
+        const source = data?.sources[key];
+        const update = data?.updates?.components[key];
+        return (
+          <div key={key} data-dx12-component={key}>
+            <Row
+              title={
+                <React.Fragment>
+                  {name}
+                  <span className={`badge ${sourceBadge(source)}`.trim()}>
+                    {sourceLabel(source)}
+                  </span>
+                </React.Fragment>
+              }
+              description={
+                <React.Fragment>
+                  {source?.source === "user"
+                    ? t("settings.wuwaDx12.userComponentHint")
+                    : t("settings.wuwaDx12.bundledVersionHint", {
+                        version:
+                          source?.version ||
+                          (key === "reshade" ? "6.8.0" : "2026.10.3"),
+                      })}
+                  {" · "}
+                  {t("settings.wuwaDx12.componentVersion", {
+                    bundledVersion:
+                      update?.bundledVersion ||
+                      t("settings.wuwaDx12.awaitingCheck"),
+                    status: update?.availableVersion
+                      ? t("settings.wuwaDx12.officialVersionSuffix", {
+                          availableVersion: update.availableVersion,
+                        })
+                      : t("settings.wuwaDx12.uncheckedSuffix"),
                   })}
-            </p>
-            <div className="wuwa-dx12-update">
-              <span>
-                {t("settings.wuwaDx12.componentVersion", {
-                  bundledVersion:
-                    data?.updates?.components[key]?.bundledVersion ||
-                    t("settings.wuwaDx12.awaitingCheck"),
-                  status: data?.updates?.components[key]?.availableVersion
-                    ? t("settings.wuwaDx12.officialVersionSuffix", {
-                        availableVersion:
-                          data.updates.components[key].availableVersion,
-                      })
-                    : t("settings.wuwaDx12.uncheckedSuffix"),
-                })}
-              </span>
+                </React.Fragment>
+              }
+              details={
+                data?.updates?.errors[key] && (
+                  <p className="settings-error" role="status">
+                    {data.updates.errors[key]}
+                  </p>
+                )
+              }
+            >
               <Button
-                disabled={
-                  busy || !data?.updates?.components[key]?.updateAvailable
-                }
+                disabled={busy || !update?.updateAvailable}
                 aria-label={t("settings.wuwaDx12.updateNamedComponent", {
                   name,
                 })}
@@ -148,31 +157,33 @@ function WuwaDx12Settings() {
               >
                 {t("settings.wuwaDx12.updateComponent")}
               </Button>
-            </div>
-            {data?.updates?.errors[key] && (
-              <p role="status">{data.updates.errors[key]}</p>
-            )}
+            </Row>
           </div>
-        )),
-      )}
+        );
+      })}
       {data && (
-        <div className="wuwa-dx12-checks" role="status">
-          <strong>
+        <div className="settings-checks" role="status">
+          <div className="settings-checks-title">
             {!data.enabled
               ? t("settings.wuwaDx12.disabledHint")
               : data.ready
                 ? t("settings.wuwaDx12.ready")
                 : t("settings.wuwaDx12.needsCheck")}
-          </strong>
+          </div>
           {data.checks.map((item) => (
-            <div key={item.id} className={item.ok ? "ready" : "missing"}>
-              <span aria-hidden={true}>{item.ok ? "✓ " : "· "}</span>
-              {`${item.title}：${item.ok && ["wwmi", "addon"].includes(item.id) ? t("settings.steam.detected") : item.message}`}
+            <div
+              key={item.id}
+              className={`settings-check ${item.ok ? "ready" : "missing"}`}
+            >
+              <Icon name={item.ok ? "check" : "minus"} size={13} />
+              <span>
+                {`${item.title}：${item.ok && ["wwmi", "addon"].includes(item.id) ? t("settings.steam.detected") : item.message}`}
+              </span>
             </div>
           ))}
         </div>
       )}
-      <div className="wuwa-tuning-actions">
+      <div className="settings-actions">
         <Button disabled={busy || !data?.enabled} onClick={() => toggle(true)}>
           {t("settings.wuwaDx12.installMissing")}
         </Button>
@@ -182,41 +193,58 @@ function WuwaDx12Settings() {
         >
           {t("settings.wuwaDx12.checkUpdates")}
         </Button>
-        <Button disabled={busy} onClick={load}>
+        <Button ghost={true} disabled={busy} onClick={load}>
           {t("settings.wuwaDx12.detectAgain")}
         </Button>
-        <Button
-          disabled={busy || !data?.paths.win64}
-          onClick={() => window.api.openPathInExplorer(data.paths.win64)}
+        <Menu
+          label={t("common.actions.more")}
+          trigger={({ props }) => (
+            <button
+              type="button"
+              className="icon-btn"
+              title={t("common.actions.more")}
+              aria-label={t("common.actions.more")}
+              {...props}
+            >
+              <Icon name="more" size={16} strokeWidth={2.4} />
+            </button>
+          )}
         >
-          {t("settings.wuwaDx12.openGameDirectory")}
-        </Button>
-        <Button
-          onClick={() => open("https://github.com/lekarsenten/wwmi-dx12")}
-        >
-          {t("settings.wuwaDx12.projectInfo")}
-        </Button>
-        <Button onClick={() => open("https://reshade.me/")}>
-          {t("settings.wuwaDx12.reshadeWebsite")}
-        </Button>
+          <MenuItem
+            icon={<Icon name="folder" size={15} />}
+            disabled={busy || !data?.paths.win64}
+            onClick={() => window.api.openPathInExplorer(data.paths.win64)}
+          >
+            {t("settings.wuwaDx12.openGameDirectory")}
+          </MenuItem>
+          <MenuItem
+            icon={<Icon name="external" size={15} />}
+            onClick={() => open("https://github.com/lekarsenten/wwmi-dx12")}
+          >
+            {t("settings.wuwaDx12.projectInfo")}
+          </MenuItem>
+          <MenuItem
+            icon={<Icon name="external" size={15} />}
+            onClick={() => open("https://reshade.me/")}
+          >
+            {t("settings.wuwaDx12.reshadeWebsite")}
+          </MenuItem>
+        </Menu>
       </div>
       {busy && (
-        <p className="system-notice" role="status">
+        <p className="settings-footnote" role="status">
           {t("settings.wuwaDx12.processing")}
         </p>
       )}
       {data?.updates?.errors.storage && (
-        <p className="system-notice" role="alert">
+        <Notice kind="danger" role="alert">
           {data.updates.errors.storage}
-        </p>
+        </Notice>
       )}
       {error && (
-        <p
-          className="system-notice wuwa-dx12-settings-system-notice-layout"
-          role="alert"
-        >
+        <Notice kind="danger" role="alert">
           {error}
-        </p>
+        </Notice>
       )}
     </Section>
   );

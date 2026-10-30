@@ -1,4 +1,5 @@
 import React from "react";
+export const DEFAULT_DETAIL_WIDTH = 380;
 export function useModGallery({ setBatchMode, setSelectedMods }) {
   const [viewMode, setViewMode] = React.useState(() => {
     return localStorage.getItem("modview-view-mode") === "gallery"
@@ -7,10 +8,11 @@ export function useModGallery({ setBatchMode, setSelectedMods }) {
   });
   const [galleryDetailWidth, setGalleryDetailWidth] = React.useState(() => {
     const v = parseInt(
-      localStorage.getItem("modview-gallery-detail-width") || "480",
+      localStorage.getItem("modview-gallery-detail-width") ||
+        String(DEFAULT_DETAIL_WIDTH),
       10,
     );
-    return Number.isFinite(v) && v > 0 ? Math.min(900, Math.max(220, v)) : 480;
+    return Number.isFinite(v) && v > 0 ? Math.min(900, Math.max(220, v)) : DEFAULT_DETAIL_WIDTH;
   });
   const [isResizingGallery, setIsResizingGallery] = React.useState(false);
   const galleryContainerRef = React.useRef(null);
@@ -28,7 +30,7 @@ export function useModGallery({ setBatchMode, setSelectedMods }) {
   // Keep space for the list/grid, including its toolbar, at every window size.
   const maxDetailWidth = detailContainerWidth
     ? Math.max(220, Math.min(900, detailContainerWidth - 340))
-    : 480;
+    : DEFAULT_DETAIL_WIDTH;
   const minDetailWidth = Math.min(280, maxDetailWidth);
   const visibleDetailWidth = Math.min(
     maxDetailWidth,

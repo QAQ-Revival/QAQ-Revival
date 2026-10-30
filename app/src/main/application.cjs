@@ -38,7 +38,6 @@ function startApplication(runtimeIdentity) {
   require("./market/sources.cjs").registerIpc();
   require("./developer/access.cjs").registerIpc();
   windows.registerIpc();
-  require("./config/appearance.cjs").registerIpc();
   require("./ipc/settings.cjs").registerIpc();
   require("./ipc/games.cjs").registerIpc();
   require("./games/arknights/service.cjs").registerIpc();

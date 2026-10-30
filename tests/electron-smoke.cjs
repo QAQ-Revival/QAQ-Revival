@@ -70,7 +70,6 @@ fs.writeFileSync(path.join(profile, 'config.json'), JSON.stringify({
       launchMode: 'NEMI', supportedLaunchModes: ['NEMI', 'XXMI'] }] : [])
   ]
 }));
-fs.writeFileSync(path.join(profile, 'skin-config.json'), JSON.stringify({ activeSkinId: 'supporter', activatedSkins: [{ skinId: 'supporter', skinName: '旧功能包', cssVariables: { '--color-accent-primary': '#000000' } }] }));
 if (process.env.QAQR_SMOKE_SCOPE === 'persist') require('./persist-smoke.cjs').prepare({ profile, mods, endfield });
 if (process.env.QAQR_SMOKE_SCOPE === 'translation') {
   fs.writeFileSync(path.join(profile, 'hotkeys.json'), JSON.stringify({
@@ -295,7 +294,7 @@ async function captureUI(name) {
     window.webContents.once('paint', listener); window.webContents.startPainting(); window.webContents.invalidate();
   });
   fs.writeFileSync(path.join(root, name), pixels.toPNG());
-  const layout = await evaluate(`JSON.stringify({ sidebar: document.querySelector('.sidebar').className, sidebarWidth: document.querySelector('.sidebar').getBoundingClientRect().width, active: document.querySelector('.nav-item.active')?.textContent, authors: document.querySelectorAll('.paw-creator-card').length, posts: document.querySelectorAll('.paw-post-card').length, panel: !!document.querySelector('.qaqm-download-panel') })`);
+  const layout = await evaluate(`JSON.stringify({ topbarHeight: document.querySelector('.app-topbar').getBoundingClientRect().height, active: document.querySelector('.nav-item.active')?.textContent, authors: document.querySelectorAll('.paw-creator-card').length, posts: document.querySelectorAll('.paw-post-card').length, panel: !!document.querySelector('.qaqm-download-panel') })`);
   fs.appendFileSync(path.join(root, 'ui-layouts.jsonl'), JSON.stringify({ name, layout: JSON.parse(layout) }) + '\n');
 }
 async function waitFor(code, message, timeout = 15000) {
@@ -432,27 +431,19 @@ async function main() {
   for (const channel of ['get-tutorial-url', 'get-announcements']) assert.equal(handlers.has(channel), false);
   assert.equal(await evaluate(`'getTutorialUrl' in window.api || 'getAnnouncements' in window.api`), false);
   await require('./window-controls-smoke.cjs')({ evaluate, waitFor, window, handlers, passed });
-  await require('./sidebar-width-smoke.cjs')({ evaluate, waitFor, window, passed });
   if (process.env.QAQR_SMOKE_SCOPE === 'window-layout') {
     await evaluate(`document.documentElement.classList.remove('qaqm-compat-level-3', 'qaqm-compat-level-2')`);
     await captureUI('window-layout.png');
-    window.setSize(1000, 640);
-    await evaluate(`document.documentElement.style.setProperty('--ui-scale', '1.4')`);
-    await waitFor(`document.querySelector('.sidebar-resize-handle')?.getAttribute('aria-valuenow') === '280'`, 'scaled sidebar minimum');
+    window.setSize(900, 640);
+    await waitFor(`innerWidth <= 900`, 'compact window');
     assert.equal(await evaluate(`(() => {
-      const buttons = [...document.querySelectorAll('.launch-actions .btn')];
-      const [direct, xxmi, official] = buttons.map(button => button.getBoundingClientRect());
-      const card = document.querySelector('.launch-actions').getBoundingClientRect();
-      return Math.abs(xxmi.top - official.top) < 1 && xxmi.top >= direct.bottom && xxmi.right <= official.left
-        && buttons.every(button => {
-          const box = button.getBoundingClientRect(), label = button.querySelector('.launch-button-label');
-          return box.left >= card.left && box.right <= card.right && label.scrollWidth <= label.clientWidth + 1
-            && label.clientHeight <= Math.ceil(parseFloat(getComputedStyle(label).lineHeight)) + 1;
-        });
-    })()`), true, 'compact launch controls stay aligned and keep their labels visible');
+      const bar = document.querySelector('.app-topbar');
+      const launch = document.querySelector('.launch-actions').getBoundingClientRect();
+      const nav = document.querySelector('.nav-menu').getBoundingClientRect();
+      const controls = document.querySelector('.window-controls').getBoundingClientRect();
+      return bar.scrollWidth <= bar.clientWidth && nav.right <= launch.left && launch.right <= controls.left && controls.right <= innerWidth;
+    })()`), true, 'compact top bar keeps navigation, launch and window controls in one row');
     await captureUI('window-layout-compact.png');
-    await evaluate(`document.querySelector('.sidebar-toggle').click()`);
-    await captureUI('window-layout-collapsed.png');
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
@@ -492,7 +483,7 @@ async function main() {
     return;
   }
   if (process.env.QAQR_SMOKE_SCOPE === 'arknights') {
-    await require('./arknights-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, profile, handlers, passed, launchRequests });
+    await require('./arknights-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, profile, handlers, passed, launchRequests, selectNativeAction: action => { nextNativeMenuAction = action; } });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }
@@ -621,13 +612,13 @@ async function main() {
   assert.ok(nativeMenus.at(-1).menu.getMenuItemById('change-fixer'));
   assert.equal(snapshot(mods), beforeFixer);
   passed('Launch failures are visible; character context menu has one fixer action and allows changing the saved tool');
-  await clickText('有内容');
+  await clickText('有 Mod');
   await delay(200);
   const names = await evaluate(`Array.from(document.querySelectorAll('.character-card')).map(x => x.getAttribute('aria-label') || x.innerText)`);
   assert.ok(names.some(n => n.includes('安可')), JSON.stringify(names));
   assert.ok(!names.some(n => n.includes('女主')), JSON.stringify(names));
   passed('Has-content filter excludes skin-only characters and includes disabled Mods');
-  await clickText('全部角色');
+  await clickText('全部');
   await delay(150);
   assert.ok(await evaluate(`Array.from(document.querySelectorAll('.character-card')).some(x => (x.getAttribute('aria-label') || x.innerText).includes('女主'))`));
   passed('All-characters filter still shows skin-only characters');
@@ -666,7 +657,7 @@ async function main() {
   // Refresh closes any remaining scan state before testing the selector.
   await evaluate(`window.api.refreshCharacters()`);
   await evaluate(`document.querySelector('.game-selector-trigger').click()`);
-  await waitFor(`!!document.querySelector('#sidebar-game-menu')`, 'game menu');
+  await waitFor(`!!document.querySelector('#game-menu')`, 'game menu');
   await delay(700);
   await window.webContents.capturePage().then(img => fs.writeFileSync(path.join(root, 'game-selector.png'), img.toPNG()));
   assert.ok(!await evaluate(`Array.from(document.querySelectorAll('.nav-item')).some(x => x.textContent.includes('切换游戏'))`));
@@ -675,7 +666,7 @@ async function main() {
   await evaluate(`Array.from(document.querySelectorAll('[role="menuitemradio"]')).find(x => x.textContent.includes('明日方舟终末地')).click()`);
   await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('明日方舟终末地') && document.body.innerText.includes('佩丽卡')`, 'game switched');
   assert.ok(!await evaluate(`Array.from(document.querySelectorAll('.character-card')).some(x => (x.getAttribute('aria-label') || x.innerText).includes('安可'))`));
-  passed('Sidebar switch updates active game, character data and launch modes without a switch page');
+  passed('Game switcher updates active game, character data and launch modes without a switch page');
   fs.writeFileSync(fixerExe, 'Synthetic Endfield fixer, never executed');
   nextFixerSelection = { canceled: false, filePaths: [fixerExe] };
   await clickText('修复器');
@@ -686,33 +677,26 @@ async function main() {
   assert.equal(persistedFixers.endfield, fixerExe);
   assert.equal(persistedFixers['wuthering-waves'], replacementFixerExe);
   passed('Game switching keeps standalone fixer selections separate');
-  // Keyboard close + collapsed sidebar access.
+  // Keyboard close.
   await evaluate(`document.querySelector('.game-selector-trigger').click()`);
-  await waitFor(`!!document.querySelector('#sidebar-game-menu')`, 'reopened menu');
+  await waitFor(`!!document.querySelector('#game-menu')`, 'reopened menu');
   await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
-  await waitFor(`!document.querySelector('#sidebar-game-menu')`, 'escape closes menu');
-  await evaluate(`document.querySelector('.sidebar-toggle').click()`);
-  await delay(150);
-  assert.equal(await evaluate(`!!document.querySelector('.sidebar.collapsed [aria-label="官方启动"]:not(:disabled)')`), true);
-  await evaluate(`document.querySelector('.game-selector-trigger').click()`);
-  await waitFor(`!!document.querySelector('#sidebar-game-menu')`, 'collapsed selector');
-  passed('Game dropdown supports Escape and remains usable with the sidebar collapsed');
-  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); document.querySelector('.sidebar-header').click()`);
-  await waitFor(`!document.querySelector('.sidebar.collapsed')`, 'sidebar expanded');
-  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.launch-actions .btn')].map(button => button.getAttribute('aria-label'))`), ['直接启动', 'XXMI 启动', '官方启动']);
+  await waitFor(`!document.querySelector('#game-menu')`, 'escape closes menu');
+  passed('Game dropdown closes on Escape');
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.launch-actions .launch-button')].map(button => button.getAttribute('aria-label'))`), ['启动游戏', 'XXMI 启动', '官方启动']);
   assert.equal(await evaluate(`document.querySelectorAll('.launch-actions [aria-label="游戏设置"]').length`), 1);
-  assert.equal(await evaluate(`document.querySelector('.sidebar').innerText.includes('观看使用教程')`), false);
-  assert.equal(await evaluate(`document.querySelectorAll('.sidebar .mode-btn').length`), 0);
-  await clickText('直接启动');
-  await waitFor(`!document.querySelector('[aria-label="直接启动"]').disabled`, 'direct launch completed');
+  assert.equal(await evaluate(`document.querySelector('.app-topbar').innerText.includes('观看使用教程')`), false);
+  assert.equal(await evaluate(`document.querySelectorAll('.app-topbar .mode-btn').length`), 0);
+  await clickText('启动游戏');
+  await waitFor(`!document.querySelector('[aria-label="启动游戏"]').disabled`, 'direct launch completed');
   assert.deepEqual(launchRequests.at(-1).args, ['--nogui', '--xxmi', 'EFMI']);
   assert.match(path.basename(launchRequests.at(-1).file), /^r[a-f0-9]{24}\.exe$/);
   assert.equal(path.dirname(launchRequests.at(-1).file), path.dirname(loader));
   assert.ok(fs.readFileSync(launchRequests.at(-1).file).equals(fs.readFileSync(loader)));
-  await clickText('XXMI 启动');
+  await evaluate(`document.querySelector('[aria-label="XXMI 启动"]').click()`);
   await waitFor(`!document.querySelector('[aria-label="XXMI 启动"]').disabled`, 'XXMI launch completed');
   assert.deepEqual(launchRequests.at(-1).args, []);
-  await clickText('官方启动');
+  await evaluate(`document.querySelector('[aria-label="官方启动"]').click()`);
   await waitFor(`!document.querySelector('[aria-label="官方启动"]').disabled`, 'official launch completed');
   assert.equal(launchRequests.at(-1).file, officialLauncher);
   assert.equal(launchRequests.at(-1).cwd, path.dirname(officialLauncher));
@@ -722,25 +706,24 @@ async function main() {
   passed('Three launch buttons: direct uses EFMI, XXMI opens its GUI, official opens only the official launcher');
   await handlers.get('game:switch')({}, 'wuthering-waves');
   await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('鸣潮')`, 'switched back to Wuwa');
-  await clickText('直接启动');
-  await waitFor(`!document.querySelector('[aria-label="直接启动"]').disabled`, 'Wuwa launch completed');
+  await clickText('启动游戏');
+  await waitFor(`!document.querySelector('[aria-label="启动游戏"]').disabled`, 'Wuwa launch completed');
   assert.deepEqual(launchRequests.at(-1).args, ['--nogui', '--xxmi', 'WWMI']);
   const requestCount = launchRequests.length;
   assert.equal((await handlers.get('launch-game')({}, { launchMode: 'DIRECT', gameId: 'endfield' })).success, false);
   assert.equal(launchRequests.length, requestCount);
   passed('Direct launch follows the active game; stale game launch requests are rejected');
-  await clickText('官方启动');
+  await evaluate(`document.querySelector('[aria-label="官方启动"]').click()`);
   await waitFor(`document.querySelector('.launch-error')?.innerText.includes('未找到官方启动器')`, 'missing official launcher shown');
   assert.equal(launchRequests.length, requestCount);
   launchFailure = true;
-  await clickText('XXMI 启动');
+  await evaluate(`document.querySelector('[aria-label="XXMI 启动"]').click()`);
   await waitFor(`document.querySelector('.launch-error')?.innerText.includes('用户取消管理员授权')`, 'launch failure shown');
-  assert.equal(await evaluate(`document.querySelector('[aria-label="直接启动"]').disabled`), false);
+  assert.equal(await evaluate(`document.querySelector('[aria-label="启动游戏"]').disabled`), false);
   assert.equal(await evaluate(`document.querySelector('[aria-label="官方启动"]').disabled`), false);
   passed('Missing official paths never start a loader; launch errors release all three buttons');
   await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('Mod 下载')).click()`);
   await waitFor(`document.querySelector('.mod-download-source-name')?.textContent === 'QAQR'`, 'default download source is QAQR');
-  await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
   await waitFor(`document.querySelectorAll('.mod-download-source-option').length === 8`, 'download source menu');
   assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option')].map(el => el.dataset.source)`), ['qaqm', 'kemono', 'pawchive', 'gamebanana', 'arca', 'loverslab', 'huiyue', 'keke']);
   assert.equal(await evaluate(`!!document.querySelector('.mod-market-header .btn-publish, .mod-market-header .btn-download-orb')`), false);
@@ -813,17 +796,14 @@ async function main() {
   await waitFor(`document.querySelector('.qaqm-download-item')?.textContent.includes('20%')`, 'MEGA progress in built-in manager');
   assert.equal(await evaluate(`Array.from(document.querySelectorAll('.qaqm-download-task-actions button')).some(button => button.textContent === '导入 Mod')`), false);
   assert.equal(await evaluate(`document.querySelectorAll('.qaqm-download-orb').length`), 0);
-  assert.ok(await evaluate(`!!document.querySelector('.sidebar-header .sidebar-download-button')`));
+  assert.ok(await evaluate(`!!document.querySelector('.app-topbar .topbar-download-button')`));
   await clickText('暂停'); await waitFor(`document.querySelector('.qaqm-download-item')?.textContent.includes('已暂停')`, 'MEGA pause');
   await clickText('继续'); await waitFor(`document.querySelector('.qaqm-download-item')?.textContent.includes('40%')`, 'MEGA resume');
   await evaluate(`document.querySelector('[aria-label="关闭内容详情"]').click()`);
   await captureUI('download-manager-expanded.png');
   await evaluate(`document.querySelector('.qaqm-download-panel-head [aria-label="关闭"]').click()`);
-  await evaluate(`document.querySelector('.sidebar-toggle').click()`);
-  await waitFor(`!!document.querySelector('.sidebar.collapsed > .sidebar-download-button')`, 'collapsed sidebar download button');
-  await evaluate(`document.querySelector('.sidebar-download-button').click()`);
-  await waitFor(`!!document.querySelector('.qaqm-download-panel')`, 'collapsed download manager opens');
-  await captureUI('download-manager-collapsed.png');
+  await evaluate(`document.querySelector('.topbar-download-button').click()`);
+  await waitFor(`!!document.querySelector('.qaqm-download-panel')`, 'download manager reopens');
   const downloadedArchive = path.join(revivalRequests[0].directory, 'SubA', '测试模组.zip');
   fs.mkdirSync(path.dirname(downloadedArchive), { recursive: true });
   const zip = new (runtimeRequire('adm-zip'))(); zip.addFile('mod.ini', Buffer.from('[TextureOverrideTest]\nhash = 12345678\n')); zip.writeZip(downloadedArchive);
@@ -845,8 +825,6 @@ async function main() {
   await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.dataset.sortId === 'modmarket').click()`);
   await waitFor(`!!document.querySelector('.paw-post-card:has(.paw-change-kind.edited)')`, 'return to updates after import');
   await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
-  await evaluate(`document.querySelector('.sidebar-header').click()`);
-  await waitFor(`!document.querySelector('.sidebar.collapsed')`, 'sidebar restored');
   await evaluate(`document.querySelector('.paw-post-card:has(.paw-change-kind.edited) .paw-read-button').click()`);
   await waitFor(`document.querySelector('.paw-summary')?.textContent.includes('1 条未读更新')`, 'mark a single revision read');
   await clickText('检查更新');
@@ -857,14 +835,14 @@ async function main() {
   await waitFor(`document.querySelector('.paw-alert')?.textContent.includes('已保留上次记录')`, 'partial failure remains visible');
   assert.equal((await handlers.get('pawchive:get-state')({})).postUpdateCount, 1);
   pawOffline = false;
-  await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('角色一览')).click()`);
+  await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('角色')).click()`);
   await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('Mod 下载')).click()`);
   assert.ok(await evaluate(`document.querySelector('.paw-summary').textContent.includes('1 条未读更新')`));
   passed('Pawchive real IPC/React: pagination, persistent favorites, old-page Edited changes, new IDs, unread state, failure reporting and sanitized detail');
-  passed('MEGA folder becomes a source-worker task in the built-in manager; progress, pause, resume, completion and expanded/collapsed sidebar entry work');
+  passed('MEGA folder becomes a source-worker task in the built-in manager; progress, pause, resume, completion and the top bar entry work');
   passed('Pawchive fixed tab order, multiple author tabs, same-author deduplication, per-tab page/draft state, card click/keyboard and import-from-download review');
   await require('./mod-download-smoke.cjs')({ evaluate, waitFor, captureUI, window, passed, setDelayedPost: value => { delayedPost = value; } });
-  await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('角色一览')).click()`);
+  await evaluate(`Array.from(document.querySelectorAll('.nav-item')).find(item => item.textContent.includes('角色')).click()`);
   await waitFor(`document.querySelectorAll('.character-card').length > 0`, 'return to characters');
   launchFailure = false;
   const beforeModFixer = snapshot(mods);
@@ -889,7 +867,7 @@ async function main() {
   assert.equal(app.getName(), 'QAQ-Revival');
   assert.equal(window.getTitle(), 'QAQ-Revival');
   assert.equal(await evaluate('document.title'), 'QAQ-Revival');
-  assert.equal(await evaluate(`document.querySelector('.sidebar .logo')?.textContent.trim()`), 'QAQR');
+  assert.equal(await evaluate(`document.querySelector('.app-topbar .logo')?.textContent.trim()`), 'QAQR');
   assert.equal([...handlers.keys()].some(name => name.startsWith('updater:') || ['check-for-updates', 'download-update'].includes(name)), false);
   assert.equal(await evaluate(`Object.keys(window.api).some(key => /^updater/.test(key) || ['checkForUpdates', 'downloadUpdate', 'onUpdateAvailable', 'onUpdateDownloaded'].includes(key))`), false);
   await require('./settings-smoke.cjs')({ evaluate, waitFor, captureUI, window, passed, handlers, root, setSelection: result => { nextFixerSelection = result; } });

@@ -2,6 +2,7 @@ import { t } from "../../shared/i18n/index.mjs";
 import React from "react";
 import ReactDOM from "react-dom";
 import Cropper from "react-easy-crop";
+import { Icon } from "./Icon.jsx";
 async function getCroppedImg(imageSrc, pixelCrop) {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
@@ -79,10 +80,16 @@ function ImageCropper({ imageSrc, onCancel, onSave }) {
       }}
       onWheel={(e) => e.preventDefault()}
     >
-      <div className="cropper-container" onClick={(e) => e.stopPropagation()}>
-        <div className="cropper-header">
-          <h3>{t("characters.cover.editAvatar")}</h3>
-        </div>
+      <div
+        className="cropper-container"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cropper-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 id="cropper-title" className="dialog-title cropper-title">
+          {t("characters.cover.editAvatar")}
+        </h2>
         <div className="cropper-area">
           <Cropper
             image={imageSrc}
@@ -96,42 +103,32 @@ function ImageCropper({ imageSrc, onCancel, onSave }) {
           />
         </div>
         <div className="cropper-controls">
-          <div className="zoom-slider-container">
-            <span role="img" aria-label="zoom-out">
-              {"➖"}
-            </span>
+          <label className="cropper-zoom">
+            <Icon name="minus" size={14} />
             <input
               type="range"
               value={zoom}
               min={1}
               max={3}
               step={0.1}
-              aria-labelledby="Zoom"
+              aria-label={t("characters.cover.zoom")}
               onChange={(e) => setZoom(e.target.value)}
-              className="zoom-slider"
             />
-            <span role="img" aria-label="zoom-in">
-              {"➕"}
-            </span>
-          </div>
-          <div className="cropper-actions">
-            <button
-              className="btn btn-secondary"
-              onClick={onCancel}
-              disabled={saving}
-            >
-              {t("common.actions.cancel")}
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {saving
-                ? t("common.status.saving")
-                : t("characters.cover.confirmCrop")}
-            </button>
-          </div>
+            <Icon name="plus" size={14} />
+          </label>
+          <button type="button" className="btn" onClick={onCancel} disabled={saving}>
+            {t("common.actions.cancel")}
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving
+              ? t("common.status.saving")
+              : t("characters.cover.confirmCrop")}
+          </button>
         </div>
       </div>
     </div>,

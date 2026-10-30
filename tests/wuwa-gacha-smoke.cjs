@@ -51,7 +51,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   await waitFor(`!!document.querySelector('#gacha-url')`, 'authorized tools');
   passed('Consent is unchecked by default; UI and every data IPC operation remain blocked until checked and confirmed, with no requests or cache writes');
 
-  await button('从游戏日志提取');
+  await button('提取链接');
   await waitFor(`document.querySelector('#gacha-url').value.includes('smoke-only-token') && !document.querySelector('#gacha-url').disabled`, 'encrypted log extraction');
   assert.deepEqual(fs.readFileSync(logfile), logOriginal);
   await button('复制链接');
@@ -62,7 +62,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   await button('保存链接');
   await waitFor(`document.querySelector('.gacha-notice')?.textContent.includes('已导出')`, 'link saved');
   assert.equal(fs.readFileSync(outputFile, 'utf8'), url + '\n');
-  await button('获取全部卡池记录');
+  await button('获取记录');
   await waitFor(`document.querySelector('.gacha-stats')?.textContent.includes('20.00%') && !document.querySelector('#gacha-url').disabled`, 'all pools fetched');
   assert.equal(requests.length, 11);
   assert(requests.every(item => item.address === 'https://gmserver-api.aki-game2.com/gacha/record/query'));
@@ -77,31 +77,31 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   const exported = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
   assert.equal(exported.pools[1].length, 6); assert.equal(exported.complete, true);
   outputFile = path.join(root, 'wuwa_gacha_report.md');
-  await button('导出统计报告');
+  await button('导出报告');
   await waitFor(`document.querySelector('.gacha-notice')?.textContent.includes('wuwa_gacha_report.md')`, 'report export');
   assert.match(fs.readFileSync(outputFile, 'utf8'), /今汐/); assert(!fs.readFileSync(outputFile, 'utf8').includes('smoke-only-token'));
   passed('Encrypted log extraction preserves the log, copying and TXT/JSON/Markdown exports work, and all 11 pools yield correct totals, rates and 5-star details');
 
   mode = 'wait';
-  await button('获取全部卡池记录');
+  await button('获取记录');
   await waitFor(`!!document.querySelector('.gacha-progress')`, 'fetch progress');
   await button('取消获取');
   await waitFor(`!document.querySelector('#gacha-url').disabled && document.querySelector('.gacha-notice')?.textContent.includes('已取消')`, 'fetch canceled');
   assert.equal((await call('wuwa:gacha-state')).summary.total, 10);
   mode = 'partial';
-  await button('获取全部卡池记录');
+  await button('获取记录');
   await waitFor(`!document.querySelector('#gacha-url').disabled && !!document.querySelector('.gacha-notice.warning')`, 'partial result warning');
   assert.equal((await call('wuwa:gacha-state')).snapshot.complete, false);
   const complete = fs.readdirSync(path.join(profile, 'wuwa-gacha')).find(name => name.endsWith('-complete.json'));
   assert.equal(JSON.parse(fs.readFileSync(path.join(profile, 'wuwa-gacha', complete))).complete, true);
   mode = 'expired';
-  await button('获取全部卡池记录');
+  await button('获取记录');
   await waitFor(`!document.querySelector('#gacha-url').disabled && !!document.querySelector('.gacha-notice.error')`, 'expired link error');
   assert(!await evaluate(`document.querySelector('.gacha-notice.error').textContent.includes('smoke-only-token')`));
   const imported = path.join(root, 'upstream-records.json');
   fs.writeFileSync(imported, JSON.stringify({ url, params: exported.params, pools: { 1: records } }));
   setSelection({ canceled: false, filePaths: [imported] });
-  await button('导入记录 JSON');
+  await button('导入 JSON');
   await waitFor(`document.querySelector('.gacha-notice')?.textContent.includes('已导入')`, 'upstream import');
   await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));
   await waitFor(`!!document.querySelector('.nav-item[data-sort-id="gacha"]')`, 'reload');

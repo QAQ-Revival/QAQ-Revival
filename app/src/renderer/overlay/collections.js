@@ -7,12 +7,14 @@ import {
   normalizeVersionLabel,
   parseVersionWeight,
   compareVersionLabels,
+  parseArknightsCollectionName,
 } from "../../shared/mod-collection-names.mjs";
 export function parseOverlayCollectionName(
   mod,
   characterName,
   characterAliases = [],
 ) {
+  if (mod?.arknightsScope) return parseArknightsCollectionName(mod, characterName, characterAliases);
   const name = cleanCollectionText(mod?.name);
   if (!name) return null;
   const parts = splitCollectionNameParts(name);
@@ -82,34 +84,10 @@ export function buildOverlayCollectionView(
         : null;
     })
     .filter(Boolean);
-  const candidateNames = new Map(
-    records.map((record) => [record.collectionKey, record.collectionName]),
-  );
   const groups = new Map();
   const identityByName = new Map();
   records.forEach((record) => {
-    let collectionKey = record.collectionKey;
-    let collectionName = record.collectionName;
-    for (const [candidateKey, candidateName] of candidateNames.entries()) {
-      if (
-        !candidateKey ||
-        candidateKey === collectionKey ||
-        candidateKey.length < 2
-      )
-        continue;
-      if (collectionKey.startsWith(candidateKey)) {
-        collectionKey = candidateKey;
-        collectionName = candidateName;
-        break;
-      }
-    }
-    let variantName = record.variantName;
-    if (!variantName && collectionName !== record.collectionName) {
-      const suffix = cleanCollectionText(
-        record.collectionName.slice(collectionName.length),
-      );
-      if (suffix) variantName = suffix;
-    }
+    const { collectionKey, collectionName } = record;
     const identity = `${characterIdentityKey}:${collectionKey}`;
     if (!groups.has(identity)) {
       groups.set(identity, {
@@ -120,9 +98,6 @@ export function buildOverlayCollectionView(
     }
     groups.get(identity).records.push({
       ...record,
-      collectionName,
-      collectionKey,
-      variantName,
       identity,
     });
     identityByName.set(record.mod.name, identity);

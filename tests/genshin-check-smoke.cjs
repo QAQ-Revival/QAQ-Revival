@@ -23,7 +23,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   await click('[aria-label="原神启动前检查"]');
   await waitFor(`!document.querySelector('[aria-label="原神启动前检查"]').disabled`, 'preflight preference saved');
   const before = launchRequests.length;
-  await click('[aria-label="直接启动"]');
+  await click('[aria-label="启动游戏"]');
   await waitFor(`document.querySelector('.launch-error')?.textContent.includes('启动前检查未通过')`, 'invalid GIMI environment blocks launch');
   assert.equal(launchRequests.length, before);
   await click('[aria-label="XXMI 启动"]');
@@ -32,12 +32,12 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   // Opening the loader can prepare bridge files; inspect that new state before editing.
   await textButton('重新检查');
   await waitFor(`!document.querySelector('[aria-label="原神启动前检查"]').disabled`, 'refresh after loader preparation');
-  await textButton('备份并同步所选路径');
+  await textButton('备份并同步');
   await waitFor(`document.querySelector('.compatibility-summary')?.textContent.includes('0 项需处理')`, 'paths synchronized');
   assert.equal(JSON.parse(fs.readFileSync(config)).Importers.WWMI.keep, true);
   await waitFor(`!document.querySelector('#settings-game-paths .system-notice')`, 'path consistency notice refreshed');
-  await click('[aria-label="直接启动"]');
-  await waitFor(`!document.querySelector('[aria-label="直接启动"]').disabled`, 'validated GIMI launch');
+  await click('[aria-label="启动游戏"]');
+  await waitFor(`!document.querySelector('[aria-label="启动游戏"]').disabled`, 'validated GIMI launch');
   assert.deepEqual(launchRequests.at(-1).args, ['--nogui', '--xxmi', 'GIMI']);
   passed('Real diagnostics show repair previews without writes; opt-in preflight blocks errors, permits XXMI maintenance, and launches GIMI after scoped path repair');
   // The random-launcher session from that launch rewrites XXMI state; clear it and re-check before restoring paths.
@@ -46,17 +46,17 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   await waitFor(`document.querySelector('.compatibility-summary')?.textContent.includes('0 项需处理')`, 're-checked after session cleanup');
   const file = path.join(root, 'genshin-check.json'), originalDialog = electron.dialog.showSaveDialog;
   electron.dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });
-  try { await textButton('导出检查报告'); await waitFor(`document.querySelector('#settings-genshin-compatibility').textContent.includes('检查报告已导出')`, 'report exported'); }
+  try { await textButton('导出报告'); await waitFor(`document.querySelector('#settings-genshin-compatibility').textContent.includes('检查报告已导出')`, 'report exported'); }
   finally { electron.dialog.showSaveDialog = originalDialog; }
   const report = fs.readFileSync(file, 'utf8'); assert.equal(report.includes('private-user'), false); assert.equal(report.includes(path.basename(root)), false);
-  await textButton('恢复上次路径修复');
+  await textButton('恢复');
   await waitFor(`document.querySelectorAll('.compatibility-repairs input').length === 2`, 'repair restored');
   assert.ok(fs.readFileSync(config).equals(original));
   assert.equal((await call('genshin:update-check-settings', { preflightEnabled: 'true' })).success, false);
   assert.equal((await call('genshin:update-check-settings', { launchArgs: 'bad\nvalue' })).success, false);
   await evaluate(`document.querySelector('.compatibility-advanced summary').click()`);
   await evaluate(`(() => { const input = document.querySelector('[aria-label="原神启动附加参数"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '--xxmi WWMI'); input.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-  await textButton('保存附加参数');
+  await evaluate(`[...document.querySelectorAll('.compatibility-advanced button')].find(b => b.textContent.trim() === '保存').click()`);
   await waitFor(`document.querySelector('[data-check-id="args"]')?.dataset.level === 'error'`, 'argument override diagnosed');
   const current = await call('get-config');
   assert.equal(current.config.games.find(g => g.id === 'genshin-impact').genshinPreflightEnabled, true);

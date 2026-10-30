@@ -34,6 +34,15 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   assert.equal(fs.existsSync(path.join(mods, '神里绫华')), false, 'Existing English alias folder is reused');
   assert.equal((await call('autoinstall:detect-game-path', gameId)).gamePath, game);
   passed('Existing profiles gain Genshin; shared XXMI detects CN executable, custom GIMI and Mods without switching games or duplicating alias folders');
+  const defaultMods = path.join(process.env.QAQR_DATA_DIR, 'XXMI/GIMI/Mods'), adopted = path.join(defaultMods, 'Adopted');
+  write(path.join(adopted, 'mod.ini'), ini);
+  assert.equal((await call('game:update', { gameId, updates: { modFolderPath: defaultMods } })).success, true);
+  assert.equal((await call('auto-detect-paths', gameId)).success, true);
+  assert.equal((await call('game:get-settings', gameId)).game.modFolderPath, defaultMods, 'Detection keeps a default folder that already holds Mods');
+  fs.rmSync(adopted, { recursive: true });
+  assert.equal((await call('auto-detect-paths', gameId)).success, true);
+  assert.equal((await call('game:get-settings', gameId)).game.modFolderPath, mods);
+  passed('Detection replaces the default Mods folder only while it holds no files');
 
   await evaluate(`document.querySelector('.game-selector-trigger').click()`);
   await waitFor(`!!document.querySelector('.game-selector-option[data-sort-id="genshin-impact"]')`, 'Genshin menu entry');
@@ -42,7 +51,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   const characters = (await call('get-characters')).characters;
   for (const name of ['空', '荧', '神里绫华', '雷电将军', '武器', '滑翔翼']) assert.ok(characters.some(item => item.name === name), name);
   await captureUI('genshin-characters.png');
-  for (const [label, args] of [['直接启动', ['--nogui', '--xxmi', 'GIMI']], ['XXMI 启动', []]]) {
+  for (const [label, args] of [['启动游戏', ['--nogui', '--xxmi', 'GIMI']], ['XXMI 启动', []]]) {
     const before = launchRequests.length;
     await evaluate(`document.querySelector('[aria-label="${label}"]').click()`);
     await waitFor(`!document.querySelector('[aria-label="${label}"]').disabled`, label);

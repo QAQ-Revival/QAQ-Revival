@@ -5,6 +5,7 @@ const path = require('node:path');
 module.exports = async ({ electron, root, mods, handlers, passed }) => {
   const gameRoot = path.dirname(mods);
   fs.writeFileSync(path.join(gameRoot, 'd3dx.ini'), '[Include]\ninclude_recursive = wuwa-mods\n[System]\nsettings_auto_save_interval = 60\n');
+  fs.writeFileSync(path.join(gameRoot, 'd3d11.dll'), Buffer.from('Local\\QAQR.Activity.v1.%u', 'utf16le'));
   const ini = '[Constants]\nglobal $object_detected = 0\n[Present]\npost $object_detected = 0\n[TextureOverrideBody]\nhash = 12345678\n$object_detected = 1\n[KeyColor]\nkey = K\ntype = cycle\n';
   const file = path.join(mods, '安可', '活动模组', 'mod.ini');
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -33,6 +34,7 @@ module.exports = async ({ electron, root, mods, handlers, passed }) => {
     }
     throw Error('Timed out: ' + label + '\n' + JSON.stringify(await evaluate("({ status: document.querySelector('#activityStatus')?.textContent, selected: document.querySelector('.char-chip.active')?.dataset.name, rows: [...document.querySelectorAll('.mod-item, .mod-gallery-item')].map(el => [el.className, el.dataset.mod]) })")));
   };
+  let channel;
   try {
     await overlay.loadFile(path.join(process.resourcesPath, 'app/out/renderer/overlay/index.html'));
     // A hidden transparent Electron window may still report a visible document.
@@ -42,8 +44,8 @@ module.exports = async ({ electron, root, mods, handlers, passed }) => {
     await evaluate(`document.querySelector('.char-chip[data-name="洛瑟菈"]').click()`);
     await wait(`document.querySelector('.char-chip.active')?.dataset.name === '洛瑟菈'`);
     const metadata = JSON.parse(fs.readFileSync(path.join(gameRoot, 'qaqm/qaqm_activity.json')));
-    const snapshot = (tick, active = 1, second = 0) => fs.writeFileSync(path.join(gameRoot, 'd3dx_user.ini'),
-      `[Constants]\n$\\QAQM\\Activity\\token = ${metadata.token}\n$\\QAQM\\Activity\\tick = ${tick}\n$\\QAQM\\Activity\\m0 = ${active}\n$\\QAQM\\Activity\\m1 = ${second}\n`);
+    channel = require('./activity-channel-fixture.cjs')(metadata.token, 2);
+    const snapshot = (tick, active = 1, second = 0) => channel.write(tick, [active, second]);
     snapshot(1);
     await new Promise(resolve => setTimeout(resolve, 1200));
     assert.equal(await evaluate("document.querySelectorAll('.char-chip-live').length"), 0, 'one old snapshot is not a live signal');
@@ -85,7 +87,7 @@ module.exports = async ({ electron, root, mods, handlers, passed }) => {
     assert.equal(await evaluate("document.querySelector('.char-chip.active').dataset.name"), '洛瑟菈', 'manual browsing is not interrupted');
     overlay.webContents.send('overlay-window-shown');
     await wait("document.querySelector('.char-chip.active')?.dataset.name === '安可'");
-    fs.utimesSync(path.join(gameRoot, 'd3dx_user.ini'), new Date(0), new Date(0));
+    // Stop advancing the memory clock, as happens when the game exits.
     await wait("document.querySelectorAll('.char-chip-live').length === 0", 'expired snapshot is cleared');
     assert.equal(await evaluate("document.querySelector('.char-chip.active').dataset.name"), '安可', 'missing telemetry does not jump to another character');
     // Reproduce manual menu A -> game -> reopen while B's first sample is late.
@@ -133,6 +135,7 @@ module.exports = async ({ electron, root, mods, handlers, passed }) => {
     assert.match(fs.readFileSync(path.join(gameRoot, 'd3dx.ini'), 'utf8'), /settings_auto_save_interval = 60/);
     passed('Activity polling never opens or replaces a menu; explicit overlay opening locates and expands the current Mod, including reopening unchanged activity. Manual browsing, expiry and disabled restoration verified.');
   } finally {
+    channel?.close();
     overlay.destroy();
     electron.ipcMain.removeHandler('overlay-show-side');
     electron.ipcMain.handle('overlay-show-side', originalShowSide);

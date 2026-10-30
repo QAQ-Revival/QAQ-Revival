@@ -1,6 +1,6 @@
 import React from "react";
 import { t } from "../../../shared/i18n/index.mjs";
-import { Button, Row, Section, check } from "../settings/SettingsControls.jsx";
+import { Button, Row, Section, Switch, check } from "../settings/SettingsControls.jsx";
 
 export function ArknightsCursorSettings({ notify }) {
   const [state, setState] = React.useState(null);
@@ -69,16 +69,41 @@ export function ArknightsCursorSettings({ notify }) {
     }
   }
 
-  return <Section id="arknights-cursor" title={t("arknights.cursor.title")}>
-    <Row title={t("arknights.cursor.useSystem")} description={t("arknights.cursor.hint")} details={<>
-      {loading && <small role="status">{t("arknights.cursor.checking")}</small>}
-      {!loading && state?.gameRunning && <small role="status">{t("arknights.cursor.gameRunning")}</small>}
-      {!loading && state?.mode === "unsupported" && <small role="status">{t("arknights.cursor.unsupported")}</small>}
-      {!loading && state?.mode === "missing" && <small role="status">{t("arknights.cursor.missing")}</small>}
-      {error && <small role="alert">{error}</small>}
-    </>}>
-      <input className="system-switch" type="checkbox" role="switch" aria-label={t("arknights.cursor.useSystem")} checked={state?.enabled === true} disabled={loading || saving || !state?.supported || state.gameRunning} onChange={event => toggle(event.target.checked)} />
-      <Button disabled={loading || saving} onClick={refresh}>{t("arknights.cursor.refresh")}</Button>
-    </Row>
-  </Section>;
+  return (
+    <Section id="arknights-cursor" title={t("arknights.cursor.title")}>
+      <Row
+        title={t("arknights.cursor.useSystem")}
+        description={t("arknights.cursor.hint")}
+        details={
+          <React.Fragment>
+            {loading && <p role="status">{t("arknights.cursor.checking")}</p>}
+            {!loading && state?.gameRunning && (
+              <p className="settings-warning-text" role="status">{t("arknights.cursor.gameRunning")}</p>
+            )}
+            {!loading && state?.mode === "unsupported" && (
+              <p className="settings-warning-text" role="status">{t("arknights.cursor.unsupported")}</p>
+            )}
+            {!loading && state?.mode === "missing" && (
+              <p className="settings-warning-text" role="status">{t("arknights.cursor.missing")}</p>
+            )}
+            {error && (
+              <p className="settings-error" role="alert">
+                {error}
+              </p>
+            )}
+          </React.Fragment>
+        }
+      >
+        <Button ghost={true} small={true} disabled={loading || saving} onClick={refresh}>
+          {t("arknights.cursor.refresh")}
+        </Button>
+        <Switch
+          label={t("arknights.cursor.useSystem")}
+          checked={state?.enabled === true}
+          disabled={loading || saving || !state?.supported || state.gameRunning}
+          onChange={toggle}
+        />
+      </Row>
+    </Section>
+  );
 }

@@ -46,14 +46,14 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   await click('[aria-label="原神双生启动"]');
   await waitFor(`document.querySelector('[aria-label="原神双生启动"]').checked`, 'twin enabled');
   assert.match(await evaluate(`document.querySelector('#heading-genshin-anticrash [role="status"]').textContent`), /已保存/);
-  assert.equal(await evaluate(`document.querySelector('#settings-genshin-anticrash > .system-card > [role="status"]')`), null, 'saving does not add a banner inside the card');
+  assert.equal(await evaluate(`document.querySelector('#settings-genshin-anticrash > [role="status"]')`), null, 'saving does not add a banner inside the card');
   assert.ok(Math.abs(await evaluate(`document.querySelector('.anticrash-primary').getBoundingClientRect().top`) - primaryTopBeforeSave) < 1, 'save feedback does not move the controls');
   const stored = (await call('get-config')).config.games.find(g => g.id === 'genshin-impact').genshinAntiError;
   assert.equal(stored.twin, true);
   assert.equal(stored.customDll, false);
   assert.equal(stored.customDllPath, '');
 
-  await click('[aria-label="直接启动"]');
+  await click('[aria-label="启动游戏"]');
   await waitFor(`document.querySelectorAll('.anticrash-session').length === 1`, 'session card shown');
   const twinName = xxmiConfig().Importers.GIMI.Importer.process_exe_names?.[0];
   assert.match(twinName, TWIN_EXE);
@@ -74,7 +74,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   await selectInjectMode('direct');
   await waitFor(`document.querySelector('[aria-label="原神注入方式"]').value === 'direct' && !document.querySelector('[aria-label="原神注入方式"]').disabled`, 'direct injection chosen');
   assert.ok((await evaluate(`document.querySelector('.anticrash-session').textContent`)).includes('跟随 XXMI'), 'saving the next launch preference does not relabel the running session');
-  await click('[aria-label="直接启动"]');
+  await click('[aria-label="启动游戏"]');
   await waitFor(`!!document.querySelector('.launch-notice') && document.querySelector('.launch-notice').textContent.includes('等待你手动启动游戏')`, 'manual start notice shown');
   const appliedNow = xxmiConfig().Importers.GIMI.Importer;
   assert.equal(appliedNow.game_launch, 'MANUAL');
@@ -94,7 +94,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   assert.equal(deletes().length, adds().length, 'every firewall rule removed');
   passed('Manual cleanup restores config bytes, removes twins and firewall rules');
 
-  await click('[aria-label="直接启动"]');
+  await click('[aria-label="启动游戏"]');
   await waitFor(`!!document.querySelector('.anticrash-session')`, 'new session after cleanup');
   assert.equal(await evaluate(`document.querySelector('.anticrash-feedback')?.textContent.includes('已清理') || false`), false, 'new sessions discard the previous cleanup result');
   await textButton('立即清理');
@@ -105,7 +105,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   const systemDll = fs.readFileSync(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'd3d11.dll'));
   await click('[aria-label="原神本地原版组件"]');
   await waitFor(`document.querySelector('[aria-label="原神本地原版组件"]').checked`, 'original dll enabled');
-  await click('[aria-label="直接启动"]');
+  await click('[aria-label="启动游戏"]');
   await waitFor(`document.querySelector('.anticrash-session')?.textContent.includes('original_d3d11.dll')`, 'session reports deployed runtime copy');
   assert.ok(fs.existsSync(originalDll), 'runtime copy deployed into GIMI folder');
   assert.ok(fs.readFileSync(originalDll).equals(systemDll), 'deployed copy matches the system runtime');
@@ -137,7 +137,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   const selectedSettings = (await call('get-config')).config.games.find(g => g.id === 'genshin-impact').genshinAntiError;
   assert.equal(selectedSettings.twin, false);
   assert.equal(selectedSettings.customDll, true);
-  await click('[aria-label="直接启动"]');
+  await click('[aria-label="启动游戏"]');
   await waitFor(`document.querySelector('.anticrash-session')?.textContent.includes('外部定制组件生效中')`, 'session reports the mantle swap');
   assert.ok(fs.readFileSync(importerDll).equals(customDllBytes), 'importer component replaced with the local file');
   const mantleConfig = xxmiConfig().Importers.GIMI;
@@ -180,8 +180,8 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   await waitFor(`document.querySelector('[aria-label="原神注入方式"]').value === 'default' && !document.querySelector('[aria-label="原神注入方式"]').disabled`, 'inject mode reset');
   await call('settings:update-random-launch', { xxmi: false });
   const netshCount = antiCrashRequests.length, launchCount = launchRequests.length;
-  await click('[aria-label="直接启动"]');
-  await waitFor(`!document.querySelector('[aria-label="直接启动"]').disabled`, 'launch completed after disabling');
+  await click('[aria-label="启动游戏"]');
+  await waitFor(`!document.querySelector('[aria-label="启动游戏"]').disabled`, 'launch completed after disabling');
   await waitFor(`!document.querySelector('.launch-error')`, 'launch without anti-error errors');
   assert.equal(launchRequests.length, launchCount + 1);
   assert.deepEqual(twins(), []);

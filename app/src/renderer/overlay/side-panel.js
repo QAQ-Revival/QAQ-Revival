@@ -1,8 +1,8 @@
 import { t } from "../../shared/i18n/index.mjs";
 import { pinyin } from "pinyin-pro";
 import { saveCollectionSelection } from "../lib/collectionSelection.js";
-import "./side-panel.css";
 import "./controls.css";
+import "./side-panel.css";
 import "./details.css";
 import { renderLayout } from "./side-panel-layout.js";
 import { initializeRendererI18n } from "../../shared/i18n/renderer.mjs";
@@ -282,6 +282,7 @@ window.overlayApi.onSideContent((data) => {
             data.modPending = true;
             showSideToast(t("mods.conflicts.confirmToast"));
             toggleBtn.textContent = t("mods.conflicts.cancelPending");
+            toggleBtn.classList.replace("enable", "disable");
             if (!document.getElementById("detailConfirmBtn")) {
               toggleBtn.insertAdjacentHTML("afterend", `<button type="button" class="detail-toggle-btn enable" id="detailConfirmBtn">${t("mods.conflicts.confirmTogether")}</button>`);
               bindDetailConflictConfirmation(sideBody, data);

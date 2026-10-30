@@ -1,5 +1,6 @@
 import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
+import { Icon } from "../../../components/Icon.jsx";
 import {
   readCommentsCache,
   getOrCreateNickname,
@@ -8,38 +9,24 @@ import {
   writeCommentsCache,
   timeAgo,
 } from "../model/comments.js";
-function AvatarCircle({ nickname, avatarUrl, size = 32 }) {
+function AvatarCircle({ nickname, avatarUrl, size = 28 }) {
+  const style = {
+    width: size,
+    height: size,
+  };
   if (avatarUrl) {
     return (
       <img
         src={avatarUrl}
         alt={nickname}
-        style={{
-          width: size,
-          height: size,
-        }}
-        className="comment-avatar-image"
+        style={style}
+        className="comment-avatar"
       />
     );
   }
-  let hash = 0;
-  for (let i = 0; i < (nickname || "").length; i++) {
-    hash = nickname.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-  const char = (nickname || "?")[0];
   return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        background: `hsl(${hue}, 55%, 60%)`,
-        fontSize: size * 0.45,
-        fontWeight: 700,
-      }}
-      className="comment-avatar-placeholder"
-    >
-      {char}
+    <div style={style} className="comment-avatar comment-avatar-placeholder">
+      {(nickname || "?")[0]}
     </div>
   );
 }
@@ -538,71 +525,61 @@ function ModCommentSection({
   function renderComment(comment, isReply = false) {
     return (
       <div
-        style={{
-          padding: isReply ? "8px 0 8px 42px" : "12px 0",
-          borderBottom: isReply ? "none" : "1px solid rgba(0,0,0,0.05)",
-          opacity: comment.pending ? 0.65 : 1,
-        }}
         key={comment.id}
-        className="mod-comment-section-comment-row"
+        className={`comment-row ${isReply ? "is-reply" : ""} ${comment.pending ? "is-pending" : ""}`}
       >
         <AvatarCircle
           nickname={comment.nickname}
           avatarUrl={
             comment.isOwn ? comment.avatarUrl || myAvatarUrl : comment.avatarUrl
           }
-          size={isReply ? 28 : 32}
+          size={isReply ? 24 : 28}
         />
-        <div className="mod-comment-section-comment-content">
-          <div className="mod-comment-section-author-line">
-            <span className="mod-comment-section-heading">
-              {comment.nickname}
-            </span>
-            <span className="mod-comment-section-hint">
+        <div className="comment-copy">
+          <div className="comment-author-line">
+            <strong>{comment.nickname}</strong>
+            <span>
               {comment.pending
                 ? t("common.status.sending")
                 : timeAgo(comment.createdAt)}
             </span>
-            {comment.pending && (
-              <span className="comment-pending-spinner" aria-hidden="true" />
-            )}
+            {comment.pending && <span className="spinner" aria-hidden="true" />}
           </div>
-          <div className="mod-comment-section-hint-muted">
-            {comment.content}
-          </div>
-          <div className="mod-comment-section-comment-actions">
+          <div className="comment-text selectable">{comment.content}</div>
+          <div className="comment-actions">
             <button
+              type="button"
               onClick={() => handleLikeComment(comment.id)}
-              style={{
-                color: comment.isLiked ? "#ff8fa3" : "#9ca3af",
-              }}
-              className="mod-comment-section-action"
+              className={comment.isLiked ? "is-active" : ""}
+              aria-pressed={!!comment.isLiked}
             >
-              {comment.isLiked ? "❤️" : "🤍"} {comment.likes || 0}
+              <Icon
+                name="heart"
+                size={13}
+                fill={comment.isLiked ? "currentColor" : "none"}
+              />
+              {comment.likes || 0}
             </button>
             {!isReply && (
               <button
+                type="button"
                 onClick={() =>
                   setReplyTo({
                     id: comment.id,
                     nickname: comment.nickname,
                   })
                 }
-                className="mod-comment-section-reply-button"
               >
                 {t("market.comments.reply")}
               </button>
             )}
             {canModerateComments && !comment.pending && (
               <button
+                type="button"
                 onClick={() => handleHideComment(comment.id, isReply)}
                 disabled={hidingCommentId === comment.id}
-                style={{
-                  cursor: hidingCommentId === comment.id ? "wait" : "pointer",
-                  opacity: hidingCommentId === comment.id ? 0.6 : 1,
-                }}
                 title={t("market.comments.hideHint")}
-                className="mod-comment-section-danger-action"
+                className="is-danger"
               >
                 {hidingCommentId === comment.id
                   ? t("market.comments.hiding")
@@ -611,7 +588,7 @@ function ModCommentSection({
             )}
           </div>
           {!isReply && comment.replies && comment.replies.length > 0 && (
-            <div className="mod-comment-section-reply-list">
+            <div className="comment-replies">
               {comment.replies.map((r) => renderComment(r, true))}
             </div>
           )}
@@ -621,11 +598,10 @@ function ModCommentSection({
   }
   return (
     <div className="mod-comment-section">
-      {null}
-      <div className="comment-header">
-        <h3>{t("market.comments.title")}</h3>
-        {total > 0 && <span className="comment-count-badge">{total}</span>}
-      </div>
+      <h3 className="comment-header">
+        {t("market.comments.title")}
+        {total > 0 && <span className="badge">{total}</span>}
+      </h3>
       {replyTo && (
         <div className="comment-reply-hint">
           <span>
@@ -634,35 +610,34 @@ function ModCommentSection({
             })}
           </span>
           <button
-            className="comment-reply-cancel"
+            type="button"
+            className="icon-btn icon-btn-sm"
+            aria-label={t("common.actions.cancel")}
             onClick={() => setReplyTo(null)}
           >
-            {"✕"}
+            <Icon name="x" size={14} />
           </button>
         </div>
       )}
       {error && (
-        <div className="comment-error-banner" role="alert">
-          <span className="comment-error-icon" aria-hidden="true">
-            {"⚠️"}
-          </span>
-          <span className="comment-error-text">{error}</span>
+        <div className="notice notice-danger comment-error" role="alert">
+          <Icon name="alert" size={14} />
+          <span>{error}</span>
           <button
             type="button"
-            className="comment-error-close"
+            className="icon-btn icon-btn-sm"
             onClick={() => setError(null)}
             aria-label={t("common.actions.dismissError")}
           >
-            {"✕"}
+            <Icon name="x" size={14} />
           </button>
         </div>
       )}
       <form className="comment-input-area" onSubmit={handleSubmit}>
-        <div className="mod-comment-section-stack">
-          <AvatarCircle nickname={nickname} avatarUrl={myAvatarUrl} size={32} />
-        </div>
-        <div className="mod-comment-section-comment-content">
+        <AvatarCircle nickname={nickname} avatarUrl={myAvatarUrl} size={28} />
+        <div className="comment-input-field">
           <textarea
+            className="textarea"
             value={content}
             onChange={(e) => {
               setContent(e.target.value);
@@ -678,54 +653,49 @@ function ModCommentSection({
             rows={2}
             maxLength={500}
           />
-          <div className="mod-comment-section-actions">
-            <span
-              style={{
-                color: content.length > 450 ? "#ef4444" : "#9ca3af",
-              }}
-              className="mod-comment-section-character-count"
-            >
-              {content.length}
-              {"/500"}
-            </span>
-          </div>
+          {(content || submitting) && (
+            <div className="comment-input-foot">
+              <span className={content.length > 450 ? "is-near-limit" : ""}>
+                {content.length}
+                {"/500"}
+              </span>
+              <button
+                type="submit"
+                className="btn btn-sm"
+                disabled={submitting || !content.trim()}
+              >
+                {submitting
+                  ? t("common.status.sending")
+                  : t("common.actions.send")}
+              </button>
+            </div>
+          )}
         </div>
-        <button
-          type="submit"
-          className="comment-send-btn"
-          disabled={submitting || !content.trim()}
-        >
-          {submitting ? t("common.status.sending") : t("common.actions.send")}
-        </button>
       </form>
       {loading ? (
-        <div className="comment-empty">
+        <div className="comment-empty" role="status">
+          <span className="spinner" aria-hidden="true" />
           {t("market.comments.loading")}
-          <span className="comment-loading-dots" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
         </div>
       ) : comments.length === 0 ? (
         <div className="comment-empty">{t("market.comments.empty")}</div>
       ) : (
-        <div>
+        <div className="comment-list">
           {comments.map((c) => renderComment(c))}
           {hasMore && (
-            <div className="comment-load-more">
-              <button
-                onClick={() => loadComments(page + 1, true)}
-                disabled={loadingMore}
-              >
-                {loadingMore
-                  ? t("common.status.loading")
-                  : t("market.comments.loadMore", {
-                      commentsCount: comments.length,
-                      total,
-                    })}
-              </button>
-            </div>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost comment-load-more"
+              onClick={() => loadComments(page + 1, true)}
+              disabled={loadingMore}
+            >
+              {loadingMore
+                ? t("common.status.loading")
+                : t("market.comments.loadMore", {
+                    commentsCount: comments.length,
+                    total,
+                  })}
+            </button>
           )}
         </div>
       )}

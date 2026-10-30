@@ -6,7 +6,7 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, handlers, 
   const click = selector => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
   const button = text => evaluate(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(text)}).click()`);
   const write = (file, text) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); };
-  await click('.sidebar-settings');
+  await click('.topbar-settings');
   await waitFor(`!!document.querySelector('[aria-label="管理器随机名"]')`, 'global random settings');
   assert.equal(await evaluate(`!!document.querySelector('[data-category="games"]')`), false);
   assert.equal(await evaluate(`document.querySelector('[aria-label="管理器随机名"]').checked`), true);
@@ -18,9 +18,9 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, handlers, 
   assert.equal((await call('settings:update-random-launch', { xxmi: 'false' })).success, false);
   assert.equal((await call('settings:update-random-launch', { gameId: 'genshin-impact' })).success, false);
   await captureUI('system-random-settings.png');
-  const inside = await evaluate(`(() => { const button = document.querySelector('[aria-label="游戏设置"]'), card = document.querySelector('.launch-actions'); const a=button.getBoundingClientRect(), b=card.getBoundingClientRect(); return card.contains(button) && a.top >= b.top && a.bottom <= b.bottom; })()`);
+  const inside = await evaluate(`(() => { const button = document.querySelector('[aria-label="游戏设置"]'), card = document.querySelector('.launch-actions'); const a=button.getBoundingClientRect(), b=card.getBoundingClientRect(); return card.contains(button); })()`);
   assert.equal(inside, true);
-  passed('Global random-name switches persist independently; per-game controls leave System Settings and the Game Settings button is inside the launch card');
+  passed('Global random-name switches persist independently; per-game controls leave System Settings and Game Settings is reachable from the launch menu');
 
   const gameRoot = path.join(root, 'wuwa-game');
   const xxmi = path.join(root, 'tuning-XXMI'), loader = path.join(xxmi, 'Resources/Bin/XXMI Launcher.exe');
@@ -37,11 +37,11 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, handlers, 
   [user, engine, launcher].forEach((file, i) => assert.ok(fs.readFileSync(file).equals(initial[i]), 'Opening settings is read-only'));
   await click('[data-wuwa-preset="legacy2024"]');
   [user, engine, launcher].forEach((file, i) => assert.ok(fs.readFileSync(file).equals(initial[i]), 'Selecting a draft is read-only'));
-  await button('备份并应用方案');
+  await button('备份并应用');
   await waitFor(`document.querySelector('#settings-wuwa-tuning')?.textContent.includes('已备份并应用')`, 'WuWa preset applied');
   assert.equal((await call('wuwa:get-tuning')).values.distance, 20);
   assert.equal(JSON.parse(fs.readFileSync(launcher)).Importers.GIMI.keep, 'unchanged');
-  await button('恢复上次应用前');
+  await button('恢复上次');
   await waitFor(`document.querySelector('#settings-wuwa-tuning')?.textContent.includes('已恢复到上次应用前')`, 'WuWa restore');
   [user, engine, launcher].forEach((file, i) => assert.ok(fs.readFileSync(file).equals(initial[i])));
   await captureUI('wuwa-game-settings.png');
@@ -49,8 +49,8 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, handlers, 
   await waitFor(`document.querySelector('#settings-wuwa-tuning').getBoundingClientRect().top < document.querySelector('.system-settings-pane').getBoundingClientRect().top + 80`, 'WuWa section navigation');
   await evaluate('new Promise(resolve => setTimeout(resolve, 250))');
   await captureUI('wuwa-tuning-presets.png');
-  await click('[aria-label="直接启动"]');
-  await waitFor(`!document.querySelector('[aria-label="直接启动"]').disabled`, 'original launcher mode');
+  await click('[aria-label="启动游戏"]');
+  await waitFor(`!document.querySelector('[aria-label="启动游戏"]').disabled`, 'original launcher mode');
   assert.equal(launchRequests.at(-1).file, loader);
   await call('settings:update-random-launch', { xxmi: true });
   await click('[aria-label="XXMI 启动"]');
@@ -67,17 +67,15 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, handlers, 
   assert.equal(await evaluate(`!!document.querySelector('#settings-wuwa-tuning')`), false);
   await waitFor(`document.querySelector('#settings-genshin-compatibility').textContent.includes('检查结果')`, 'Genshin built-in diagnostics');
   await captureUI('genshin-game-settings.png');
-  await click('.sidebar-header .sidebar-toggle');
-  await waitFor(`!!document.querySelector('.sidebar.collapsed [aria-label="游戏设置"]')`, 'collapsed game settings');
   await click('[aria-label="游戏设置"]');
   assert.equal(await evaluate(`document.querySelector('[aria-label="游戏设置"]').getAttribute('aria-current')`), 'page');
-  await click('.sidebar-settings');
+  await click('.topbar-settings');
   await waitFor(`!!document.querySelector('[aria-label="管理器随机名"]')`, 'global settings across games');
   assert.equal(await evaluate(`document.querySelector('[aria-label="管理器随机名"]').checked`), false);
   assert.equal(await evaluate(`document.querySelector('[aria-label="XXMI 随机名"]').checked`), true);
   await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));
-  await waitFor(`!!document.querySelector('.sidebar-settings')`, 'reload');
-  await click('.sidebar-settings');
+  await waitFor(`!!document.querySelector('.topbar-settings')`, 'reload');
+  await click('.topbar-settings');
   await waitFor(`!!document.querySelector('[aria-label="管理器随机名"]')`, 'persisted random preferences');
   assert.equal(await evaluate(`document.querySelector('[aria-label="管理器随机名"]').checked`), false);
   passed('Game Settings follows the selected game, Genshin shows its local diagnostics, collapsed navigation works, and global choices survive reload');

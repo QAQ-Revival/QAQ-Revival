@@ -1,70 +1,66 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
-const ICONS = {
-  sliders: ["M4 7h16M4 17h16M8 4v6M16 14v6"],
-  palette: [
-    "M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1-3.7 1.5 1.5 0 0 1 1-2.8h2A4 4 0 0 0 21 10a9 9 0 0 0-9-7",
-    "M7 10h.01M10 6h.01M15 7h.01M6 14h.01",
-  ],
-  game: [
-    "M7 7h10a3 3 0 0 1 3 2l2 8a2 2 0 0 1-3.4 1.8L15 16H9l-3.6 2.8A2 2 0 0 1 2 17l2-8a3 3 0 0 1 3-2",
-    "M6 11h4M8 9v4M16 11h.01M18 13h.01",
-  ],
-  download: ["M12 3v12m-4-4 4 4 4-4M4 15v5h16v-5"],
-  keyboard: [
-    "M3 5h18v14H3zM6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8",
-  ],
-  tool: [
-    "M14 4a5 5 0 0 0-6 6L3 16a3 3 0 0 0 4 4l6-6a5 5 0 0 0 6-6l-3 3-3-3 3-3z",
-  ],
-  info: ["M12 8h.01M12 11v6", "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0"],
-};
-function Icon({ name }) {
+import ReactDOM from "react-dom";
+import { Icon } from "../../components/Icon.jsx";
+
+function Button({
+  children,
+  primary,
+  danger,
+  ghost,
+  small,
+  className = "",
+  ...props
+}) {
+  const classes = ["btn", "system-button"];
+  if (primary) classes.push("btn-primary");
+  if (danger) classes.push("btn-danger");
+  if (ghost) classes.push("btn-ghost");
+  if (small) classes.push("btn-sm");
+  if (className) classes.push(className);
   return (
-    <svg
-      width={20}
-      height={20}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.7}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden={true}
-    >
-      {(ICONS[name] || ICONS.info).map((d, i) => (
-        <path key={i} d={d} />
-      ))}
-    </svg>
-  );
-}
-function Button({ children, primary, ...props }) {
-  return (
-    <button
-      type="button"
-      className={`system-button${primary ? " primary" : ""}`}
-      {...props}
-    >
+    <button type="button" className={classes.join(" ")} {...props}>
       {children}
     </button>
   );
 }
-function Section({ id, title, children }) {
+
+function Section({ id, title, actions, children }) {
   return (
     <section
       id={`settings-${id}`}
-      className="system-section"
-      aria-labelledby={`heading-${id}`}
+      className="settings-section"
+      aria-labelledby={title ? `heading-${id}` : undefined}
     >
-      <h3 id={`heading-${id}`}>{title}</h3>
-      <div className="system-card">{children}</div>
+      {title && (
+        <div className="settings-section-head">
+          <h2 id={`heading-${id}`} className="settings-section-title">
+            {title}
+          </h2>
+          {actions && <div className="settings-section-actions">{actions}</div>}
+        </div>
+      )}
+      {children}
     </section>
   );
 }
-function Row({ title, description, details, children, stacked = false }) {
+
+// One row shape for every setting: copy on the left, control on the right.
+function Row({
+  title,
+  description,
+  hint,
+  details,
+  children,
+  stacked = false,
+  path = false,
+}) {
+  const classes = ["system-row"];
+  if (stacked) classes.push("stacked");
+  if (path) classes.push("is-path");
   return (
-    <div className={`system-row${stacked ? " stacked" : ""}`}>
-      <div className="system-row-copy">
+    <div className={classes.join(" ")}>
+      <div className="system-row-copy" title={hint}>
         <div className="system-row-title">{title}</div>
         {description && <p>{description}</p>}
         {details}
@@ -73,17 +69,25 @@ function Row({ title, description, details, children, stacked = false }) {
     </div>
   );
 }
+
+function PathValue({ label, value, placeholder }) {
+  const empty = placeholder || t("common.status.unset");
+  return (
+    <input
+      className="system-path"
+      readOnly={true}
+      value={value || ""}
+      placeholder={empty}
+      title={value || empty}
+      aria-label={label}
+    />
+  );
+}
+
 function PathControl({ label, value, onSelect, disabled, children }) {
   return (
-    <div className="system-path-control">
-      <input
-        className="system-path"
-        readOnly={true}
-        value={value || ""}
-        placeholder={t("common.status.unset")}
-        title={value || t("common.status.unset")}
-        aria-label={label}
-      />
+    <div className="path-control">
+      <PathValue label={label} value={value} />
       {value && (
         <Button
           disabled={disabled}
@@ -92,7 +96,7 @@ function PathControl({ label, value, onSelect, disabled, children }) {
             label,
           })}
         >
-          {t("common.actions.openLocation")}
+          {t("common.actions.open")}
         </Button>
       )}
       {children}
@@ -110,25 +114,188 @@ function PathControl({ label, value, onSelect, disabled, children }) {
     </div>
   );
 }
+
 function Choices({ label, value, options, onChange, disabled }) {
   return (
-    <div className="system-choices" role="group" aria-label={label}>
+    <div className="segmented" role="group" aria-label={label}>
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
-          className="system-choice"
+          className={`system-choice${value === option.value ? " active" : ""}`}
           aria-pressed={value === option.value}
+          title={option.desc}
           onClick={() => onChange(option.value)}
           disabled={disabled}
         >
-          <strong>{option.label}</strong>
-          {option.desc && <span>{option.desc}</span>}
+          {option.label}
         </button>
       ))}
     </div>
   );
 }
+
+function Switch({ label, checked, onChange, disabled, ...rest }) {
+  return (
+    <input
+      type="checkbox"
+      role="switch"
+      className={`toggle-switch-refined${checked ? " active" : ""}`}
+      aria-label={label}
+      checked={!!checked}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.checked)}
+      {...rest}
+    />
+  );
+}
+
+const NOTICE_ICONS = {
+  info: "info",
+  success: "check",
+  warning: "alert",
+  danger: "alert",
+};
+
+function Notice({ kind, role, className = "", children }) {
+  const classes = ["notice", "system-notice"];
+  if (kind) classes.push(`notice-${kind}`);
+  if (className) classes.push(className);
+  return (
+    <div className={classes.join(" ")} role={role}>
+      <Icon name={NOTICE_ICONS[kind] || "info"} size={14} />
+      <div className="settings-notice-body">{children}</div>
+    </div>
+  );
+}
+
+// Portaled so a custom wallpaper's translucent surfaces never reach the dialog.
+function Dialog({
+  title,
+  description,
+  className = "",
+  onClose,
+  busy = false,
+  actions,
+  children,
+}) {
+  const closeRef = React.useRef(onClose);
+  const busyRef = React.useRef(busy);
+  closeRef.current = onClose;
+  busyRef.current = busy;
+  const panel = React.useRef(null);
+  React.useEffect(() => {
+    const previous = document.activeElement;
+    const autofocus = panel.current?.querySelector("input, textarea, select");
+    (autofocus || panel.current)?.focus();
+    const onKey = (event) => {
+      if (event.key !== "Escape" || busyRef.current) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeRef.current?.();
+    };
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      previous?.focus?.();
+    };
+  }, []);
+  return ReactDOM.createPortal(
+    <div
+      className="modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !busyRef.current)
+          closeRef.current?.();
+      }}
+    >
+      <div
+        ref={panel}
+        className={`modal-content ${className}`.trim()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        aria-busy={busy}
+        tabIndex={-1}
+      >
+        <div className="dialog-title">{title}</div>
+        {description && <div className="dialog-desc">{description}</div>}
+        {children && <div className="dialog-body">{children}</div>}
+        {actions && <div className="dialog-actions">{actions}</div>}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// The game and general settings are two pages that read as one.
+function SettingsFrame({
+  scope,
+  gameId,
+  gameName,
+  paneRef,
+  nav,
+  toast,
+  children,
+}) {
+  const open = (tab) =>
+    window.dispatchEvent(
+      new CustomEvent("qaqm-navigate", {
+        detail: {
+          tab,
+        },
+      }),
+    );
+  const isGame = scope === "game";
+  return (
+    <div
+      className={`settings-view${isGame ? " game-settings-view" : ""}`}
+      data-game-id={isGame ? gameId : undefined}
+    >
+      <aside className="settings-nav">
+        <div
+          className="segmented settings-scope"
+          role="group"
+          aria-label={t("settings.scope.label")}
+        >
+          <button
+            type="button"
+            className={isGame ? "active" : ""}
+            aria-pressed={isGame}
+            onClick={() => open("game-settings")}
+          >
+            {t("settings.scope.game")}
+          </button>
+          <button
+            type="button"
+            className={isGame ? "" : "active"}
+            aria-pressed={!isGame}
+            onClick={() => open("settings")}
+          >
+            {t("settings.scope.general")}
+          </button>
+        </div>
+        {isGame && gameName && (
+          <div className="settings-nav-game" title={gameName}>
+            {gameName}
+          </div>
+        )}
+        {nav}
+      </aside>
+      <div className="system-settings-pane" ref={paneRef}>
+        <div className="settings-content">{children}</div>
+      </div>
+      {toast && (
+        <div
+          className={`toast toast-${toast.type}`}
+          role={toast.type === "error" ? "alert" : "status"}
+        >
+          {toast.message}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Range({
   label,
   value,
@@ -168,7 +335,7 @@ function Range({
     }
   }
   return (
-    <div className="system-range">
+    <div className="settings-range">
       <input
         type="range"
         aria-label={label}
@@ -183,13 +350,13 @@ function Range({
         onBlur={(e) => commit(e.currentTarget.value)}
         onPointerCancel={() => setDraft(String(value))}
       />
-      <div className="system-range-editor">
+      <div className="settings-range-editor">
         <input
           type="text"
           inputMode={step % 1 === 0 ? "numeric" : "decimal"}
           autoComplete="off"
           spellCheck={false}
-          className={`system-range-number ${isValid ? "is-valid" : "is-invalid"}`}
+          className="input settings-range-number"
           aria-label={t("settings.range.valueLabel", {
             label,
           })}
@@ -211,10 +378,10 @@ function Range({
             }
           }}
         />
-        <span className="system-range-unit">{suffix.trim()}</span>
+        <span className="settings-range-unit">{suffix.trim()}</span>
       </div>
       {!isValid && (
-        <small id={hintId} className="system-range-error" role="alert">
+        <small id={hintId} className="settings-error" role="alert">
           {t("settings.range.invalidHint", {
             min,
             max,
@@ -230,9 +397,24 @@ function Range({
     </div>
   );
 }
+
 function check(result) {
   if (!result?.success)
     throw new Error(result?.error || t("common.errors.operationFailed"));
   return result;
 }
-export { check, Button, Section, Row, Choices, Range, PathControl, Icon };
+
+export {
+  check,
+  Button,
+  Section,
+  Row,
+  Choices,
+  Range,
+  PathControl,
+  PathValue,
+  Switch,
+  Notice,
+  Dialog,
+  SettingsFrame,
+};

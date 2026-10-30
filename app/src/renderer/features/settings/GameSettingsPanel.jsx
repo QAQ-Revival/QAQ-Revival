@@ -12,6 +12,7 @@ import { XxmiSettings } from "./XxmiSettings.jsx";
 import {
   check,
   Button,
+  Notice,
   Row,
   PathControl,
   Section,
@@ -65,7 +66,7 @@ function GameSettings({ gameId, notify }) {
   }
   if (error)
     return (
-      <div className="system-state" role="alert">
+      <div className="settings-state" role="alert">
         {error}
         <Button onClick={() => setRevision((v) => v + 1)}>
           {t("common.actions.reload")}
@@ -74,7 +75,8 @@ function GameSettings({ gameId, notify }) {
     );
   if (!data)
     return (
-      <div className="system-state" role="status">
+      <div className="settings-state" role="status">
+        <span className="spinner" />
         {t("settings.game.loading")}
       </div>
     );
@@ -87,8 +89,8 @@ function GameSettings({ gameId, notify }) {
           importerPath: data.xxmiImporterInfo.importerPath,
         })
       : null;
-  const pathRow = (title, description, value, action, extra) => (
-    <Row title={title} description={description} stacked={true}>
+  const pathRow = (title, hint, value, action, extra) => (
+    <Row title={title} hint={hint} path={true}>
       <PathControl
         label={title}
         value={value}
@@ -101,24 +103,24 @@ function GameSettings({ gameId, notify }) {
   );
   return (
     <div className="system-game-detail" data-game-id={game.id} aria-busy={busy}>
-      <div className="system-game-heading">
-        <div>
-          <h3>{game.name}</h3>
-          <p>{t("settings.game.description")}</p>
-        </div>
-        <Button
-          disabled={busy}
-          onClick={() => act(() => window.api.autoDetectPaths(game.id))}
-        >
-          {t("settings.game.detectPaths")}
-        </Button>
-      </div>
-      <Section id="game-paths" title={t("settings.game.paths")}>
+      <Section
+        id="game-paths"
+        title={t("settings.game.pathAndLaunch")}
+        actions={
+          <Button
+            small={true}
+            disabled={busy}
+            onClick={() => act(() => window.api.autoDetectPaths(game.id))}
+          >
+            {t("settings.game.detectPaths")}
+          </Button>
+        }
+      >
         {pathRow(
           t("settings.game.modsFolder"),
-          game.id === "arknights" ? t("arknights.settings.libraryHint") : t("settings.game.modsFolderHint", {
-            name: game.name,
-          }),
+          game.id === "arknights"
+            ? t("arknights.settings.libraryHint")
+            : t("settings.game.modsFolderHint"),
           game.modFolderPath,
           () => window.api.selectModsFolder(game.id),
         )}
@@ -139,31 +141,40 @@ function GameSettings({ gameId, notify }) {
           game.officialLauncherPath,
           () => window.api.selectOfficialLauncherPath(game.id),
         )}
-        {game.id !== "arknights" && pathRow(
-          isNte
-            ? t("settings.game.nemiLoader")
-            : t("settings.game.xxmiLauncher"),
-          isNte ? t("settings.game.nemiHint") : t("settings.game.xxmiHint"),
-          game.modLoaderPath,
-          () => window.api.selectXxmiPath(game.id),
-        )}
+        {game.id !== "arknights" &&
+          pathRow(
+            isNte
+              ? t("settings.game.nemiLoader")
+              : t("settings.game.xxmiLauncher"),
+            isNte ? t("settings.game.nemiHint") : t("settings.game.xxmiHint"),
+            game.modLoaderPath,
+            () => window.api.selectXxmiPath(game.id),
+          )}
         {consistency && consistency.status !== "match" && (
-          <div className="system-notice" role="status">
+          <Notice kind="warning" role="status">
             {consistency.status === "unconfigured"
               ? t("settings.game.xxmiUnconfigured")
               : t("settings.game.xxmiPathMismatch")}
             {data.xxmiImporterInfo.importerPath && (
-              <p>
+              <div className="settings-mono-line">
                 {t("settings.game.xxmiImporterPath", {
                   importerPath: data.xxmiImporterInfo.importerPath,
                 })}
-              </p>
+              </div>
             )}
-          </div>
+          </Notice>
         )}
       </Section>
-      {game.id === "arknights" && <ArknightsSettings notify={notify} gamePath={game.gamePath} />}
-      {["endfield", "genshin-impact", "zzz", "wuthering-waves", "honkai-star-rail"].includes(game.id) && <XxmiSettings gameId={game.id} notify={notify} onPathsChanged={() => setRevision(value => value + 1)} />}
+      {game.id === "arknights" && (
+        <ArknightsSettings notify={notify} gamePath={game.gamePath} />
+      )}
+      {["endfield", "genshin-impact", "zzz", "wuthering-waves", "honkai-star-rail"].includes(game.id) && (
+        <XxmiSettings
+          gameId={game.id}
+          notify={notify}
+          onPathsChanged={() => setRevision((value) => value + 1)}
+        />
+      )}
       {game.id === "genshin-impact" && <GenshinAntiErrorSettings />}
       {game.id === "genshin-impact" && (
         <GenshinCompatibilitySettings
@@ -194,7 +205,7 @@ function GameSettings({ gameId, notify }) {
         />
       )}
       {isNte && (
-        <Section id="pak" title={t("settings.game.ntePakHeading")}>
+        <Section id="pak" title={t("settings.game.pakMode")}>
           {pathRow(
             t("settings.game.pakModsFolder"),
             t("settings.game.pakModsFolderHint"),
@@ -245,7 +256,7 @@ function GameSettings({ gameId, notify }) {
           )}
           <Row
             title={t("settings.game.repairPakLauncher")}
-            description={t("settings.game.repairPakLauncherHint")}
+            hint={t("settings.game.repairPakLauncherHint")}
           >
             <Button
               disabled={busy}
@@ -261,17 +272,21 @@ function GameSettings({ gameId, notify }) {
           </Row>
         </Section>
       )}
-      {game.id !== "arknights" && <Section id="fixer" title={t("settings.game.fixer")}>
-        {pathRow(
-          t("settings.game.fixerExecutable"),
-          t("settings.game.fixerHint"),
-          data.fixer,
-          () => window.api.fixSelectCustomExe(game.id),
-        )}
-      </Section>}
-      {game.id !== "arknights" && <Section id="game-persist" title={t("settings.categories.persist")}>
-        <PersistStateManager key={game.id} gameId={game.id} />
-      </Section>}
+      {game.id !== "arknights" && (
+        <Section id="fixer" title={t("settings.game.fixer")}>
+          {pathRow(
+            t("settings.game.fixerExecutable"),
+            t("settings.game.fixerHint"),
+            data.fixer,
+            () => window.api.fixSelectCustomExe(game.id),
+          )}
+        </Section>
+      )}
+      {game.id !== "arknights" && (
+        <Section id="game-persist" title={t("settings.categories.persist")}>
+          <PersistStateManager key={game.id} gameId={game.id} />
+        </Section>
+      )}
     </div>
   );
 }

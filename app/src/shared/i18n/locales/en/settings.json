@@ -2,8 +2,6 @@
   "mi": {
     "title": "XXMI Launcher",
     "navigation": "XXMI Launcher",
-    "components": "Loader components",
-    "description": "Install and update XXMI Launcher here. Manage game importers and runtime libraries inside the Launcher.",
     "directory": "Loader installation directory",
     "directoryHint": "Stored in data beside QAQR by default. Updates preserve Mods and existing settings.",
     "loading": "Reading component versions…",
@@ -11,7 +9,6 @@
     "working": "Working…",
     "installed": "Installed {{version}}",
     "notInstalled": "Not installed",
-    "unknownVersion": "Installed; version not identified",
     "available": "Update available: {{version}}",
     "latest": "Up to date: {{version}}",
     "install": "Install",
@@ -28,37 +25,57 @@
     "saveFailed": "Components were installed, but QAQR could not save the paths. Select them again.",
     "recoveryRequired": "Automatic rollback is incomplete. Recovery files are preserved at {{path}}. Close the locking program and restore the files before updating again.",
     "legacyMigrationDeferred": "Migration could not finish. The original directory remains in use; restart after resolving the issue to retry. {{error}}",
-    "progress": { "download": "Downloading {{name}}", "install": "Installing {{name}}", "verify": "Verifying {{name}}" }
+    "progress": {
+      "download": "Downloading {{name}}",
+      "install": "Installing {{name}}",
+      "verify": "Verifying {{name}}"
+    },
+    "fork": {
+      "title": "QAQR maintained MI",
+      "runtimeDescription": "Incremental Mod-state saving and the activity memory channel.",
+      "efmiDescription": "Incremental saving, activity detection, and the EFMI skeleton-buffer compatibility repair.",
+      "selected": "Maintained build {{version}} selected",
+      "available": "Available build {{version}}",
+      "apply": "Apply maintained build",
+      "update": "Update maintained build",
+      "restore": "Restore previous files",
+      "recover": "Recover interrupted operation",
+      "source": "Repair source",
+      "approvalHint": "In XXMI Launcher, select this game, enable Unsafe Mode in Advanced Settings, and save. This permits custom DLLs for this MI and skips the upstream DLL signature check.",
+      "restartHint": "The new runtime takes effect when the game starts again. F10 does not replace a loaded DLL.",
+      "applied": "Maintained files applied. Restart the game to use them.",
+      "restored": "Previous files restored. Restart the game; Unsafe Mode can be adjusted in the Launcher.",
+      "unsupported": "This game is not covered by the maintained MI builds.",
+      "notInitialized": "First install and configure this game’s MI in XXMI Launcher.",
+      "bundleMissing": "The maintained MI bundle is missing. Update or rebuild QAQR.",
+      "invalidBundle": "The maintained bundle failed verification.",
+      "invalidBackup": "The MI recovery record failed verification.",
+      "approvalRequired": "Enable and save Unsafe Mode for this game in XXMI Launcher before applying a custom runtime.",
+      "modified": "These MI files changed outside QAQR. Review them before applying or restoring another build.",
+      "unknownRuntime": "The current DLL is outside this build’s verified compatibility baseline. No files were changed.",
+      "unknownCore": "The installed EFMI Core is outside this build’s compatibility baseline. No files were changed.",
+      "writeFailed": "An MI file could not be replaced or verified.",
+      "recoveryRequired": "An interrupted operation needs recovery. Backups are preserved at {{path}}.",
+      "noBackup": "There is no maintained-build backup for this MI."
+    }
   },
   "language": {
-    "title": "Language",
-    "simplifiedChinese": "Simplified Chinese",
     "unsupported": "This language is not available yet",
     "saveFailed": "Failed to save language"
   },
   "categories": {
     "general": "General",
-    "generalDescription": "Window behavior, game visibility, and Mod state.",
     "persist": "Mod state",
-    "persistDescription": "Manage saved Mod state for each game.",
     "appearance": "Appearance",
-    "appearanceDescription": "Theme, scaling, and visual effects.",
     "downloads": "Downloads and network",
-    "downloadsDescription": "Download folders and market connection.",
     "shortcuts": "Shortcuts",
-    "shortcutsDescription": "Set the in-game Mod panel shortcut.",
     "maintenance": "Maintenance",
-    "maintenanceDescription": "Update loaders and troubleshoot Mods.",
-    "about": "About and updates",
-    "aboutDescription": "Version and updates."
+    "about": "About and updates"
   },
   "gameVisibility": {
     "title": "Game visibility",
-    "manage": "Choose which games to show",
     "description": "Turn off a game to hide it from the sidebar, Mod state, download filters, and other game lists. Settings, downloads, and Mods are retained. Turn it on to restore visibility.",
     "toggle": "Show {{name}}",
-    "shown": "Visible",
-    "hidden": "Hidden",
     "keepVisible": "Keep at least one game visible"
   },
   "window": {
@@ -67,17 +84,11 @@
   "randomLaunch": {
     "title": "Random executable names"
   },
-  "persist": {
-    "title": "Presets and state"
-  },
   "theme": {
     "title": "Theme"
   },
   "scale": {
     "title": "Interface size"
-  },
-  "cards": {
-    "title": "Download cards"
   },
   "compatibility": {
     "title": "Display compatibility",
@@ -98,9 +109,7 @@
   },
   "game": {
     "loading": "Loading game settings…",
-    "description": "Save paths and fixers for each game.",
     "detectPaths": "Detect paths",
-    "paths": "Game paths",
     "modsFolder": "Mods folder",
     "executable": "Game executable",
     "xxmiLauncher": "XXMI launcher",
@@ -112,9 +121,7 @@
   },
   "range": {
     "valueLabel": "{{label}} value",
-    "saveHint": "Press Enter or leave the field to save",
-    "integerHint": "Enter an integer from {{min}} to {{max}}",
-    "stepHint": "Enter a value from {{min}} to {{max}}, in steps of {{step}}"
+    "saveHint": "Press Enter or leave the field to save"
   },
   "updates": {
     "title": "App updates",
@@ -123,7 +130,6 @@
     "automaticLabel": "Check GitHub updates automatically",
     "automaticDescription": "Check GitHub for stable releases.",
     "frequency": "Check frequency",
-    "frequencyDescription": "Check once on each scheduled day.",
     "everyPrefix": "Every ",
     "daysSuffix": " days",
     "intervalLabel": "Days between update checks",

@@ -24,7 +24,7 @@ const testEntry = process.argv.includes('--window-state') ? 'window-state-smoke.
 fs.writeFileSync(entry, `require(${JSON.stringify(path.join(root, 'tests', testEntry))});`);
 manifest.main = './smoke-entry.cjs';
 fs.writeFileSync(manifestPath, JSON.stringify(manifest));
-const env = { ...process.env, QAQR_TEST_RESULTS: results, QAQR_USER_DATA: path.join(results, 'AppData/QAQ-Revival'), QAQR_DATA_DIR: path.join(results, 'data') };
+const env = { ...process.env, QAQR_TEST_RESULTS: results, QAQR_USER_DATA: path.join(results, 'AppData/QAQ-Revival'), QAQR_DATA_DIR: path.join(results, 'data'), QAQR_REPAIR_DIR: path.join(results, 'repair-backups') };
 const scopes = [
   'translation', 'genshin', 'genshin-check', 'genshin-anticrash', 'game-settings',
   'steam-bridge', 'hidden-characters', 'character-images', 'character-skins',

@@ -14,6 +14,8 @@ const gamesSettings = require("../games/settings.cjs");
 const { isOfficialLauncherPath, resolveOfficialLauncherPath } = require("../games/official-launcher.cjs");
 const installPaths = require("../install/paths.cjs");
 const marketSources = require("../market/sources.cjs");
+const dataPaths = require("../runtime/data-paths.cjs");
+const systemPaths = require("../system/paths.cjs");
 function registerIpc() {
   electron.ipcMain.handle("game:get-settings", async (_, gameId) => {
     try {
@@ -628,12 +630,13 @@ function registerIpc() {
           }
         }
       }
-      if (gameId2 === "genshin-impact" && (!activeGame.modFolderPath || !gamesSettings.isExistingDirectory(activeGame.modFolderPath))) {
+      const importer = dataPaths.IMPORTERS[gameId2];
+      if (importer && (!activeGame.modFolderPath || !gamesSettings.isExistingDirectory(activeGame.modFolderPath) || dataPaths.isUnusedDefaultModsPath(activeGame.modFolderPath, gameId2))) {
         const info = gamesSettings.readXxmiImporterPathInfo(activeGame.modLoaderPath, gameId2);
         const root = installPaths.resolveXxmiRootFromLauncherPath(activeGame.modLoaderPath);
-        const importerPath = info.importerPath || (root ? path.join(root, "GIMI") : "");
+        const importerPath = info.importerPath || (root ? path.join(root, importer) : "");
         const modsPath = importerPath ? path.join(importerPath, "Mods") : "";
-        if (activeGame.modLoaderPath && gamesSettings.isExistingDirectory(modsPath)) {
+        if (activeGame.modLoaderPath && gamesSettings.isExistingDirectory(modsPath) && !systemPaths.isSameResolvedPath(activeGame.modFolderPath, modsPath)) {
           gamesSettings.updateActiveGameConfig({
             modFolderPath: modsPath
           }, activeGame.id);

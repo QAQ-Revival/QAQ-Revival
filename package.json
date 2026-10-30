@@ -8,7 +8,7 @@
     "build": "node tools/build.cjs",
     "build:components": "node tools/build-components.cjs",
     "update:components": "node tools/update-components.cjs",
-    "test": "node tools/build-mega.cjs --test && node tools/build-steam-bridge.cjs --test && node tools/build-tray-host.cjs && node tools/build-key-helper.cjs --test && node --test tests/*.test.cjs && node tools/smoke.cjs && node tools/smoke.cjs --single-instance && node tools/smoke.cjs --translation && node tools/smoke.cjs --hidden-characters && node tools/smoke.cjs --steam-bridge && node tools/smoke.cjs --arknights",
+    "test": "node tools/build-mega.cjs --test && node tools/build-steam-bridge.cjs --test && node tools/build-tray-host.cjs && node tools/build-key-helper.cjs --test && node --test tests/*.test.cjs && node tools/smoke.cjs && node tools/smoke.cjs --single-instance && node tools/smoke.cjs --translation && node tools/smoke.cjs --hidden-characters && node tools/smoke.cjs --steam-bridge && node tools/smoke.cjs --arknights && node tools/smoke.cjs --xxmi",
     "test:single-instance": "node --test tests/single-instance.test.cjs && node tools/smoke.cjs --single-instance",
     "test:genshin": "node --test tests/genshin.test.cjs tests/windows-launch.test.cjs && node tools/smoke.cjs --genshin",
     "test:random-launch": "node --test tests/random-executable.test.cjs tests/single-instance.test.cjs tests/windows-launch.test.cjs && node tests/random-runtime-smoke.cjs",
@@ -32,7 +32,8 @@
     "lint": "eslint app/src",
     "test:unit": "node --test tests/*.test.cjs",
     "check": "npm run lint && npm run check:i18n",
-    "format": "prettier --write app/src"
+    "format": "prettier --write app/src",
+    "sync:upstreams": "node tools/sync-upstreams.cjs"
   },
   "productName": "QAQ-Revival",
   "devDependencies": {

@@ -1,5 +1,6 @@
 import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
+import { Icon } from "../../../components/Icon.jsx";
 import ModPersistSummary from "./ModPersistSummary.jsx";
 import { getModAppearanceSectionId, previewAspectRatioCache, getPreviewAspectRatioStyle, dataTransferIncludesImage } from "../model/modHelpers.js";
 import { getSectionId, getSectionName } from "../model/appearanceSections.js";
@@ -84,6 +85,7 @@ export function ModDetailsPanel({
   handleFixMod,
   fixRunning,
   confirmDelete,
+  handleToggle,
   onOpenPublishMod,
   handleCopyDevModInfo,
   devInfoBusy,
@@ -92,38 +94,38 @@ export function ModDetailsPanel({
   return <div id="mod-detail-panel" className={`mod-detail-panel ${viewMode === "gallery" ? "gallery-mode" : ""} ${!selectedMod || detailCollapsed ? "collapsed" : ""}`} aria-hidden={!selectedMod || detailCollapsed} inert={!selectedMod || detailCollapsed ? "" : void 0} style={{
     "--mod-detail-width": selectedMod && !detailCollapsed ? `${visibleDetailWidth}px` : "0px"
   }}>
-      {selectedMod ? <div className="card mod-detail-card">
+      {selectedMod ? <div className="mod-detail-card">
           <header className="mod-detail-header">
-            <div className="mod-detail-eyebrow">
-              <span>{t("mods.details.title")}</span>
-              <span className={`mod-status-badge ${selectedMod.enabled ? "is-enabled" : ""}`}>
-                {selectedMod.enabled ? t("common.status.enabled") : t("common.status.disabled")}
-              </span>
-            </div>
             {isRenamingMod ? <div className="mod-detail-rename">
                 <input type="text" value={renameModDraft} autoFocus={true} onChange={e => setRenameModDraft(e.target.value)} onKeyDown={e => {
             if (e.key === "Enter") handleSaveModRename();else if (e.key === "Escape") setIsRenamingMod(false);
-          }} className="input mod-details-panel-input-layout" />
-                <button className="btn btn-primary mod-details-panel-btn-layout" disabled={renameModSaving} onClick={handleSaveModRename}>
+          }} className="input" />
+                <button className="btn btn-primary" disabled={renameModSaving} onClick={handleSaveModRename}>
                   {renameModSaving ? t("common.status.saving") : t("common.actions.save")}
                 </button>
-                <button className="btn btn-secondary mod-details-panel-btn-layout" disabled={renameModSaving} onClick={() => setIsRenamingMod(false)}>
+                <button className="btn" disabled={renameModSaving} onClick={() => setIsRenamingMod(false)}>
                   {t("common.actions.cancel")}
                 </button>
               </div> : <div className="mod-detail-heading">
-                <span className="mod-details-panel-content">
+                <span className="mod-detail-name" title={selectedMod.name}>
                   {selectedMod.name}
                 </span>
-                {selectedMod.pinned && <span title={t("mods.status.pinned")} className="mod-details-panel-pinned-badge">
-                    {"📌"}
+                {selectedMod.pinned && <span title={t("mods.status.pinned")} className="mod-pin-icon">
+                    <Icon name="pin" size={13} />
                   </span>}
                 <button onClick={() => {
             setRenameModDraft(selectedMod.name);
             setIsRenamingMod(true);
-          }} title={t("mods.actions.rename")} onMouseEnter={e => e.currentTarget.style.opacity = "1"} onMouseLeave={e => e.currentTarget.style.opacity = "0.8"} className="mod-details-panel-action">
-                  {t("common.actions.rename")}
+          }} title={t("mods.actions.rename")} aria-label={t("mods.actions.rename")} className="icon-btn icon-btn-sm mod-detail-rename-btn">
+                  <Icon name="edit" size={14} />
                 </button>
               </div>}
+            <div className="mod-detail-state">
+              <span className={`mod-status-badge ${selectedMod.enabled ? "is-enabled" : ""}`}>
+                {selectedMod.enabled ? t("common.status.enabled") : t("common.status.disabled")}
+              </span>
+              <button type="button" role="switch" aria-checked={!!(selectedMod.enabled || selectedMod.pendingEnabled)} aria-label={`${selectedMod.enabled ? t("common.actions.disable") : t("common.actions.enable")} ${selectedMod.name}`} className={`toggle-switch-refined ${selectedMod.enabled || selectedMod.pendingEnabled ? "active" : ""} ${selectedMod.pendingEnabled ? "pending" : ""}`} onClick={e => handleToggle(selectedMod.name, selectedMod.enabled, e)} />
+            </div>
           </header>
           <div className={`image-drop-zone mod-detail-preview ${previewImage ? "has-image" : "is-empty"} ${isDragging ? "dragging" : ""} `} style={{
         aspectRatio: previewImage ? getPreviewAspectRatioStyle(previewImageAspectRatio) : void 0,
@@ -179,15 +181,13 @@ export function ModDetailsPanel({
           type: "error",
           message: t("market.images.loadFailed")
         })} key={imageKey} className="mod-details-panel-preview-image" /> : <div className="mod-preview-placeholder">
-                <span className="mod-preview-placeholder-icon" aria-hidden={true}>
-                  {"▧"}
-                </span>
+                <Icon name="image" size={20} />
                 <span>{t("mods.preview.dropHint")}</span>
-                <span className="mod-details-panel-hint">
+                <span className="mod-preview-placeholder-hint">
                   {t("mods.preview.pasteHint")}
                 </span>
               </div>}
-            {isDragging && <div className="mod-details-panel-row">
+            {isDragging && <div className="mod-preview-drop-hint">
                 {t("mods.preview.releaseHint")}
               </div>}
           </div>
@@ -220,97 +220,70 @@ export function ModDetailsPanel({
               </div>
               <LocalCollectionVariantStrip collection={selectedLocalCollection} currentPath={selectedMod.path} onSelect={selectLocalCollectionVariant} />
             </div>}
-          {Array.isArray(selectedMod.tags) && selectedMod.tags.length > 0 && <div className="ai-tag-dialog-row">
+          {Array.isArray(selectedMod.tags) && selectedMod.tags.length > 0 && <div className="mod-detail-tags">
               {selectedMod.tags.map((tag, ti) => {
           const tagActive = selectedTagFilters.has(String(tag).toLowerCase());
-          return <span title={tagActive ? t("mods.tags.removeFilterHint", {
+          return <button type="button" title={tagActive ? t("mods.tags.removeFilterHint", {
             tag
           }) : t("mods.tags.addFilterHint", {
             tag
-          })} onClick={() => toggleTagFilter(String(tag))} style={{
-            borderRadius: "999px",
-            background: tagActive ? "linear-gradient(90deg, #818cf8, #6366f1)" : "rgba(99,102,241,0.10)",
-            color: tagActive ? "#fff" : "#4338ca",
-            border: tagActive ? "1px solid rgba(79,70,229,0.8)" : "1px solid rgba(99,102,241,0.2)",
-            boxShadow: tagActive ? "0 1px 3px rgba(79,70,229,0.25)" : "none"
-          }} onMouseEnter={e => {
-            if (!tagActive) e.currentTarget.style.background = "rgba(99,102,241,0.18)";
-          }} onMouseLeave={e => {
-            if (!tagActive) e.currentTarget.style.background = "rgba(99,102,241,0.10)";
-          }} key={`detail-tag-${ti}`} className="mod-details-panel-hint-emphasis">
+          })} onClick={() => toggleTagFilter(String(tag))} aria-pressed={tagActive} key={`detail-tag-${ti}`} className={`chip ${tagActive ? "active" : ""}`}>
                     {"#"}
                     {tag}
-                  </span>;
+                  </button>;
         })}
             </div>}
           {activeGameId !== "arknights" && <ModPersistSummary gameId={activeGameId} characterName={characterName} modName={selectedMod.name} key={`${activeGameId}/${characterName}/${selectedMod.name}`} />}
           <div className="mod-detail-notes">
-            <div className="text-caption mod-details-panel-text-caption-layout">
+            <div className="mod-detail-section-head">
               <span>{t("mods.notes.title")}</span>
               {!isEditingNotes && <button onClick={() => {
             setNotesDraft(selectedMod.notes || "");
             setIsEditingNotes(true);
-          }} className="mod-details-panel-edit-notes">
+          }} className="link-btn mod-details-panel-edit-notes">
                   {selectedMod.notes ? t("common.actions.edit") : t("common.actions.add")}
                 </button>}
             </div>
             {isEditingNotes ? <div>
-                <textarea value={notesDraft} onChange={e => setNotesDraft(e.target.value)} placeholder={t("mods.notes.placeholder")} maxLength={500} rows={3} onFocus={e => {
-            e.target.style.borderColor = "var(--color-accent-primary)";
-          }} onBlur={e => {
-            e.target.style.borderColor = "rgba(0,0,0,0.1)";
-          }} className="mod-details-panel-textarea-field" />
-                <div className="mod-details-panel-actions">
-                  <span className="mod-details-panel-hint-subtle">
+                <textarea value={notesDraft} onChange={e => setNotesDraft(e.target.value)} placeholder={t("mods.notes.placeholder")} maxLength={500} rows={3} className="textarea mod-details-panel-textarea-field" />
+                <div className="mod-detail-notes-actions">
+                  <span className="text-caption">
                     {notesDraft.length}
                     {"/500"}
                   </span>
-                  <button className="btn btn-secondary mod-details-panel-note-action" disabled={notesSaving} onClick={() => setIsEditingNotes(false)}>
+                  <button className="btn btn-sm" disabled={notesSaving} onClick={() => setIsEditingNotes(false)}>
                     {t("common.actions.cancel")}
                   </button>
-                  <button className="btn btn-primary mod-details-panel-note-action" disabled={notesSaving} onClick={handleSaveModNotes}>
+                  <button className="btn btn-sm btn-primary" disabled={notesSaving} onClick={handleSaveModNotes}>
                     {notesSaving ? t("common.status.saving") : t("mods.notes.save")}
                   </button>
                 </div>
-              </div> : <div onClick={() => {
+              </div> : selectedMod.notes ? <div onClick={() => {
           setNotesDraft(selectedMod.notes || "");
           setIsEditingNotes(true);
-        }} style={{
-          background: selectedMod.notes ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.025)",
-          color: selectedMod.notes ? "var(--color-text-primary)" : "var(--color-text-tertiary)"
-        }} className="mod-details-panel-notes-content">
-                {selectedMod.notes || t("mods.notes.addPlaceholder")}
-              </div>}
+        }} className="mod-details-panel-notes-content selectable">
+                {selectedMod.notes}
+              </div> : null}
           </div>
           <div className="hotkey-section">
-            <div className="text-caption mod-details-panel-hotkey-heading">
+            <div className="mod-detail-section-head">
               <span>{t("mods.hotkeys.title")}</span>
-              <button className="btn-icon-small mod-details-panel-btn-icon-small-layout" disabled={isRefreshingHotkeys} onClick={e => {
+              <button className="icon-btn icon-btn-sm" disabled={isRefreshingHotkeys} onClick={e => {
             e.stopPropagation();
             loadModDetails(selectedMod.name, true);
-          }} title={t("mods.hotkeys.rescan")}>
-                <div style={{
-              animation: isRefreshingHotkeys ? "spin 1s linear infinite" : "none"
-            }} className="mod-details-panel-hotkey-refresh-icon">
-                  {"🔄"}
-                </div>
+          }} title={t("mods.hotkeys.rescan")} aria-label={t("mods.hotkeys.rescan")}>
+                <Icon name="refresh" size={14} className={isRefreshingHotkeys ? "is-spinning" : ""} />
               </button>
             </div>
             <div className="hotkey-group-list">
-              {hotkeyGroups.length === 0 ? <div className="text-caption">{t("mods.hotkeys.empty")}</div> : hotkeyGroups.map((group, groupIndex) => <section className="hotkey-group" key={group.relativePath ?? groupIndex}>
+              {hotkeyGroups.length === 0 ? <div className="mod-detail-empty">{t("mods.hotkeys.empty")}</div> : hotkeyGroups.map((group, groupIndex) => <section className="hotkey-group" key={group.relativePath ?? groupIndex}>
                     <h3 className="hotkey-group-name" title={group.relativePath || group.name}>
                       {group.name}
                     </h3>
                     {group.hotkeys.map((hk, rowIndex) => {
               const index = `${groupIndex}:${rowIndex}`;
               const aliasKey = group.relativePath ? `${group.relativePath}/${hk.section}` : hk.section;
-              return <div className="hotkey-row" style={hk.isMenu || hk.description === "菜单" ? {
-                background: "rgba(255, 182, 193, 0.2)",
-                borderLeft: "4px solid var(--color-accent-primary)",
-                borderRadius: "4px",
-                marginBottom: "4px",
-                padding: "8px 12px"
-              } : {}} key={index}>
+              return <div className={`hotkey-row ${hk.isMenu || hk.description === "菜单" ? "is-menu" : ""}`} key={index}>
                           {(() => {
                   const aliases = selectedMod?.hotkeyAliases || {};
                   const alias = aliases[aliasKey] || aliases[hk.section] || "";
@@ -326,42 +299,30 @@ export function ModDetailsPanel({
                           setAliasDraft("");
                         }
                       }} className="mod-details-panel-input-field" />
-                                  <button onClick={() => handleSaveHotkeyAlias(aliasKey)} disabled={aliasSaving} title={t("mods.hotkeys.saveLabelHint")} style={{
-                        cursor: aliasSaving ? "wait" : "pointer"
-                      }} className="mod-details-panel-save-hotkey-alias">
-                                    {"✓"}
+                                  <button onClick={() => handleSaveHotkeyAlias(aliasKey)} disabled={aliasSaving} title={t("mods.hotkeys.saveLabelHint")} aria-label={t("mods.hotkeys.saveLabelHint")} className="icon-btn icon-btn-sm mod-details-panel-save-hotkey-alias">
+                                    <Icon name="check" size={14} />
                                   </button>
                                   <button onClick={() => {
                         setEditingAliasSection(null);
                         setAliasDraft("");
-                      }} disabled={aliasSaving} title={t("common.actions.cancel")} className="mod-details-panel-action-spaced">
-                                    {"✕"}
+                      }} disabled={aliasSaving} title={t("common.actions.cancel")} aria-label={t("common.actions.cancel")} className="icon-btn icon-btn-sm">
+                                    <Icon name="x" size={14} />
                                   </button>
                                 </div>;
                   }
                   return <div className="hotkey-desc" title={alias ? t("mods.hotkeys.originalNameHint", {
                     base,
                     section: hk.section
-                  }) : hk.section} style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    ...(isMenu ? {
-                      fontWeight: "bold",
-                      color: "var(--color-accent-primary)"
-                    } : {})
-                  }}>
-                                <span className="hotkey-name" style={alias ? {
-                      fontStyle: "italic"
-                    } : void 0}>
+                  }) : hk.section}>
+                                <span className={`hotkey-name ${alias ? "is-alias" : ""}`}>
                                   {label}
                                 </span>
                                 <button onClick={e => {
                       e.stopPropagation();
                       setEditingAliasSection(aliasKey);
                       setAliasDraft(alias || "");
-                    }} title={t("mods.hotkeys.customLabelHint")} onMouseEnter={e => e.currentTarget.style.opacity = "1"} onMouseLeave={e => e.currentTarget.style.opacity = "0.55"} className="mod-details-panel-edit-hotkey-alias">
-                                  {"✏️"}
+                    }} title={t("mods.hotkeys.customLabelHint")} aria-label={t("mods.hotkeys.customLabelHint")} className="icon-btn icon-btn-sm hotkey-reveal mod-details-panel-edit-hotkey-alias">
+                                  <Icon name="edit" size={13} />
                                 </button>
                               </div>;
                 })()}
@@ -369,14 +330,11 @@ export function ModDetailsPanel({
                 // Editing mode
                 <div className="hotkey-edit-mode">
                               <input type="text" className="hotkey-capture-input mod-details-panel-hotkey-capture-input-layout" placeholder={t("mods.hotkeys.pressKeyPlaceholder")} value={capturedKey} onKeyDown={handleKeyCapture} readOnly={true} autoFocus={true} />
-                              <button onClick={saveHotkeyEdit} disabled={!capturedKey} style={{
-                    background: capturedKey ? "var(--color-accent-primary)" : "#ccc",
-                    cursor: capturedKey ? "pointer" : "not-allowed"
-                  }} className="mod-details-panel-save-hotkey-edit-action">
-                                {"✓"}
+                              <button onClick={saveHotkeyEdit} disabled={!capturedKey} aria-label={t("common.actions.save")} className="icon-btn icon-btn-sm mod-details-panel-save-hotkey-edit-action">
+                                <Icon name="check" size={14} />
                               </button>
-                              <button onClick={cancelHotkeyEdit} className="mod-details-panel-cancel-hotkey-edit-action">
-                                {"✕"}
+                              <button onClick={cancelHotkeyEdit} aria-label={t("common.actions.cancel")} className="icon-btn icon-btn-sm mod-details-panel-cancel-hotkey-edit-action">
+                                <Icon name="x" size={14} />
                               </button>
                             </div> :
                 // Display mode
@@ -391,8 +349,8 @@ export function ModDetailsPanel({
                                       {key}
                                     </span>)}
                                 </span>)}
-                              <button onClick={() => startHotkeyEdit(index, hk, group.relativePath)} className="hotkey-edit-btn mod-details-panel-hotkey-edit-btn-layout" title={t("mods.hotkeys.edit")} onMouseEnter={e => e.target.style.opacity = 1} onMouseLeave={e => e.target.style.opacity = 0.5}>
-                                {"✏️"}
+                              <button onClick={() => startHotkeyEdit(index, hk, group.relativePath)} className="icon-btn icon-btn-sm hotkey-reveal hotkey-edit-btn" title={t("mods.hotkeys.edit")} aria-label={t("mods.hotkeys.edit")}>
+                                <Icon name="edit" size={13} />
                               </button>
                             </div>}
                         </div>;
@@ -411,10 +369,10 @@ export function ModDetailsPanel({
                 </button>
               </div>
               <div className="mod-details-panel-tag-list">
-                {modTags.map(tag => <span key={tag} className="mod-details-panel-heading">
+                {modTags.map(tag => <span key={tag} className="chip">
                     {tag}
                     <button onClick={() => setModTags(prev => prev.filter(t => t !== tag))} className="mod-details-panel-remove-tag">
-                      {"✕"}
+                      <Icon name="x" size={11} />
                     </button>
                   </span>)}
                 {modTags.length === 0 && <span className="mod-details-panel-empty-tags-hint">
@@ -445,7 +403,7 @@ export function ModDetailsPanel({
               setModTags(prev => [...prev, t.name]);
               setTagInput("");
               setShowTagSuggestions(false);
-            }} onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"} onMouseLeave={e => e.currentTarget.style.background = ""} key={t.id} className="mod-details-panel-tag-suggestion">
+            }} key={t.id} className="mod-details-panel-tag-suggestion">
                             <span style={{
                 background: t.color || "#666"
               }} className="mod-details-panel-tag-color" />
@@ -461,17 +419,12 @@ export function ModDetailsPanel({
                   {aiNameResult && <button onClick={clearAiSuggestions} className="mod-details-panel-clear-ai-suggestions-action">
                       {t("common.actions.clear")}
                     </button>}
-                  <button onClick={handleAiSuggestName} disabled={aiNameLoading} style={{
-              cursor: aiNameLoading ? "default" : "pointer",
-              opacity: aiNameLoading ? 0.6 : 1
-            }} className="mod-details-panel-ai-suggest-name-action">
+                  <button onClick={handleAiSuggestName} disabled={aiNameLoading} className="btn btn-sm mod-details-panel-ai-suggest-name-action">
                     {aiNameLoading ? t("mods.ai.analyzing") : aiNameResult ? t("mods.ai.recommendAgain") : t("mods.ai.recommend")}
                   </button>
                 </div>
               </div>
-              <div style={{
-          marginBottom: aiNameResult ? "8px" : 0
-        }} className="mod-details-panel-current-name-caption">
+              <div className="mod-details-panel-current-name-caption">
                 {t("mods.ai.currentNamePrefix")}
                 <code className="mod-details-panel-current-name">
                   {selectedMod.name}
@@ -482,13 +435,7 @@ export function ModDetailsPanel({
                       <div className="mod-details-panel-heading-emphasis">
                         {g.label}
                       </div>
-                      {g.items.map((item, ii) => <div onMouseEnter={e => {
-              e.currentTarget.style.borderColor = "#6366f1";
-              e.currentTarget.style.background = "#eef2ff";
-            }} onMouseLeave={e => {
-              e.currentTarget.style.borderColor = "#e5e7eb";
-              e.currentTarget.style.background = "#fff";
-            }} key={ii} className="mod-details-panel-name-suggestion-row">
+                      {g.items.map((item, ii) => <div key={ii} className="mod-details-panel-name-suggestion-row">
                           <span className="mod-details-panel-name-suggestion">
                             {item.fullName}
                           </span>
@@ -509,14 +456,7 @@ export function ModDetailsPanel({
                       <div className="mod-details-panel-recommended-tag-list">
                         {aiNameResult.tags.map((tag, ti) => {
                 const alreadyAdded = modTags.includes(tag);
-                return <span onClick={() => !alreadyAdded && applyAiTags([tag])} style={{
-                  borderRadius: "10px",
-                  background: alreadyAdded ? "#d1fae5" : "#f3f4f6",
-                  color: alreadyAdded ? "#059669" : "#374151",
-                  cursor: alreadyAdded ? "default" : "pointer",
-                  border: alreadyAdded ? "1px solid #a7f3d0" : "1px solid #e5e7eb"
-                }} key={ti} className="mod-details-panel-recommended-tag">
-                              {alreadyAdded ? "✓ " : ""}
+                return <span onClick={() => !alreadyAdded && applyAiTags([tag])} key={ti} className={`chip ${alreadyAdded ? "active" : ""} mod-details-panel-recommended-tag`}>
                               {tag}
                             </span>;
               })}
@@ -531,20 +471,24 @@ export function ModDetailsPanel({
                 </div>}
             </div>}
           <div className="mod-detail-actions">
-            <button className="btn btn-secondary direct-import-dialog-content" onClick={e => handlePinMod(selectedMod.name, !selectedMod.pinned, e)}>
+            <button className="btn btn-sm" onClick={e => handlePinMod(selectedMod.name, !selectedMod.pinned, e)}>
+              <Icon name="pin" size={13} />
               {selectedMod.pinned ? t("characters.actions.unpin") : t("characters.actions.pinShort")}
             </button>
-            <button className="btn btn-secondary direct-import-dialog-content" onClick={() => openModSourceFolder(selectedMod)}>
+            <button className="btn btn-sm" onClick={() => openModSourceFolder(selectedMod)}>
+              <Icon name="folder" size={13} />
               {isDx12PakMod(selectedMod) ? t("mods.actions.open") : t("mods.actions.openSource")}
             </button>
-            <button className="btn btn-secondary mod-details-panel-launch-fixer" onClick={() => handleFixMod(selectedMod)} disabled={fixRunning}>
+            <button className="btn btn-sm" onClick={() => handleFixMod(selectedMod)} disabled={fixRunning}>
+              <Icon name="wrench" size={13} />
               {fixRunning ? t("common.status.opening") : t("characters.fixer.title")}
             </button>
-            <button className="btn btn-danger direct-import-dialog-content" onClick={e => confirmDelete(selectedMod.name, e)}>
+            <span className="mod-detail-actions-spacer" />
+            <button className="btn btn-sm btn-danger" onClick={e => confirmDelete(selectedMod.name, e)}>
               {t("common.actions.delete")}
             </button>
             {devMode && <React.Fragment>
-                <button className="btn mod-details-panel-btn-layout-emphasis" onClick={() => onOpenPublishMod?.({
+                <button className="btn btn-sm mod-details-panel-btn-layout-emphasis" onClick={() => onOpenPublishMod?.({
             characterName,
             modName: selectedMod.name,
             modFolderPath: selectedMod.path,
@@ -553,7 +497,7 @@ export function ModDetailsPanel({
           })}>
                   {t("mods.actions.publish")}
                 </button>
-                <button className="btn mod-details-panel-export-encrypted" onClick={async () => {
+                <button className="btn btn-sm mod-details-panel-export-encrypted" onClick={async () => {
             setToast({
               type: "info",
               message: t("mods.export.encrypting")
@@ -583,22 +527,17 @@ export function ModDetailsPanel({
           }}>
                   {t("mods.export.encrypted")}
                 </button>
-                <button className="btn mod-details-panel-copy-metadata" onClick={handleCopyDevModInfo} disabled={devInfoBusy} style={{
-            opacity: devInfoBusy ? 0.7 : 1
-          }}>
+                <button className="btn btn-sm mod-details-panel-copy-metadata" onClick={handleCopyDevModInfo} disabled={devInfoBusy}>
                   {t("mods.actions.copyInfo")}
                 </button>
-                <button className="btn mod-details-panel-import-metadata" onClick={handleImportDevModInfo} disabled={devInfoBusy} style={{
-            opacity: devInfoBusy ? 0.7 : 1
-          }}>
+                <button className="btn btn-sm mod-details-panel-import-metadata" onClick={handleImportDevModInfo} disabled={devInfoBusy}>
                   {t("mods.actions.importMetadata")}
                 </button>
               </React.Fragment>}
           </div>
-        </div> : <div className="card mod-details-panel-card-layout">
-          <span className="mod-details-panel-icon">{"👈"}</span>
-          <div className="mod-details-panel-empty-selection-hint">
-            {t("mods.details.chooseModHint")}
+        </div> : <div className="mod-detail-card mod-detail-card-empty">
+          <div className="empty-state">
+            <div className="empty-text">{t("mods.details.chooseModHint")}</div>
           </div>
         </div>}
     </div>;

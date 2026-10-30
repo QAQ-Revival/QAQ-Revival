@@ -93,7 +93,7 @@ function registerIpc() {
         };
         return await gamesWuwaServices.wuwaDx12Service.launch(systemWindows.parseLaunchArgs(customLaunchArgs));
       }
-      if (resolvedLaunchMode !== "DX12") await overlayKeypress.ensureKeypressBridgeForActiveGame();
+      if (resolvedLaunchMode !== "DX12" && resolvedLaunchMode !== "XXMI") await overlayKeypress.ensureKeypressBridgeForActiveGame();
       if (resolvedLaunchMode === "VANILLA") {
         if (!gamePath || !fs.existsSync(gamePath)) {
           return {

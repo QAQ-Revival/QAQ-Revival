@@ -244,13 +244,10 @@ const api = {
   },
   setServerUrl: (url, options) => electron.ipcRenderer.invoke("set-server-url", url, options),
   setUiZoom: (zoom) => electron.ipcRenderer.invoke("set-ui-zoom", zoom),
+  setNativeTheme: (mode) => electron.ipcRenderer.invoke("set-native-theme", mode),
   setModMarketCardSize: (size) => electron.ipcRenderer.invoke("set-mod-market-card-size", size),
   setModDownloadImageRatio: (ratio) => electron.ipcRenderer.invoke("set-mod-download-image-ratio", ratio),
   setCompatibilityMode: (enabled) => electron.ipcRenderer.invoke("set-compatibility-mode", enabled),
-  // Skin APIs
-  getSkins: () => electron.ipcRenderer.invoke("get-skins"),
-  setActiveSkin: (skinId) => electron.ipcRenderer.invoke("set-active-skin", skinId),
-  getActiveSkin: () => electron.ipcRenderer.invoke("get-active-skin"),
   // Order saving APIs
   saveCharacterOrder: (characterOrder) => electron.ipcRenderer.invoke("save-character-order", characterOrder),
   saveModOrder: (characterName, modOrder) => electron.ipcRenderer.invoke("save-mod-order", { characterName, modOrder }),
@@ -455,6 +452,8 @@ const api = {
   xxmiStatus: (gameId) => electron.ipcRenderer.invoke("xxmi:status", gameId),
   xxmiCheck: (gameId) => electron.ipcRenderer.invoke("xxmi:check", gameId),
   xxmiInstall: (opts) => electron.ipcRenderer.invoke("xxmi:install", opts),
+  xxmiForkApply: (opts) => electron.ipcRenderer.invoke("xxmi:fork-apply", opts),
+  xxmiForkRestore: (opts) => electron.ipcRenderer.invoke("xxmi:fork-restore", opts),
   onXxmiProgress: (cb) => {
     const handler = (_, data) => cb(data);
     electron.ipcRenderer.on("xxmi:progress", handler);

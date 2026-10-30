@@ -1,0 +1,13 @@
+{
+  "owner": "QAQ-Revival",
+  "forks": [
+    { "name": "XXMI-Launcher", "upstream": "SpectrumQT/XXMI-Launcher", "branch": "main", "path": "native/xxmi-launcher" },
+    { "name": "MegaDownloader-Revival", "upstream": "a1175815821/MegaDownloader-Revival", "branch": "main", "path": "bridges/mega/vendor/MegaDownloader-Revival" },
+    { "name": "minhook", "upstream": "TsudaKageyu/minhook", "branch": "master", "path": "native/arknights-tools/vendor/minhook" },
+    { "name": "UnityPy", "upstream": "K0lb3/UnityPy", "branch": "master", "path": "native/arknights-tools/vendor/UnityPy", "lfs": true },
+    { "name": "Ark-Unpacker", "upstream": "isHarryh/Ark-Unpacker", "branch": "v5.x", "path": "native/arknights-tools/vendor/Ark-Unpacker" },
+    { "name": "Ark-FBS-Py", "upstream": "isHarryh/Ark-FBS-Py", "branch": "dist", "path": "native/arknights-tools/vendor/Ark-Unpacker/src/fbs" },
+    { "name": "XXMI-Libs-Package", "upstream": "SpectrumQT/XXMI-Libs-Package", "branch": "master", "path": "native/xxmi-runtime" },
+    { "name": "EFMI-Package", "upstream": "SpectrumQT/EFMI-Package", "branch": "main", "path": "native/efmi-package" }
+  ]
+}

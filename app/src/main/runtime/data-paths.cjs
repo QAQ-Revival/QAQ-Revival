@@ -15,6 +15,13 @@ function getDefaultModsPath(gameId, dataRoot = getDataRoot()) {
   if (IMPORTERS[gameId]) return path.join(dataRoot, "XXMI", IMPORTERS[gameId], "Mods");
   return path.join(dataRoot, gameId === "arknights" ? "Arknights" : gameId === "neverness-to-everness" ? "NEMI" : gameId, "Mods");
 }
+// The default folder is pre-filled and pre-created, so only its contents can show that the user adopted it.
+function isUnusedDefaultModsPath(modsPath, gameId, dataRoot = getDataRoot()) {
+  if (!modsPath || path.resolve(modsPath).toLowerCase() !== path.resolve(getDefaultModsPath(gameId, dataRoot)).toLowerCase()) return false;
+  try {
+    return fs.readdirSync(modsPath, { recursive: true, withFileTypes: true }).every(entry => entry.isDirectory());
+  } catch { return false; }
+}
 function inventory(root) {
   const result = {};
   for (const entry of fs.readdirSync(root, { recursive: true, withFileTypes: true })) {
@@ -84,4 +91,4 @@ function resolveDisabledModsDirectory({ configured, preferred, legacyDirectories
   }
   return preferred;
 }
-module.exports = { resolveDataRoot, getDataRoot, getDefaultModsPath, migrateLegacyDirectory, migrateLegacyArknights, resolveDisabledModsDirectory, IMPORTERS };
+module.exports = { resolveDataRoot, getDataRoot, getDefaultModsPath, isUnusedDefaultModsPath, migrateLegacyDirectory, migrateLegacyArknights, resolveDisabledModsDirectory, IMPORTERS };

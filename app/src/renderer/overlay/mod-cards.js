@@ -2,16 +2,21 @@ import { t } from "../../shared/i18n/index.mjs";
 import { cleanCollectionText } from "../../shared/mod-collection-names.mjs";
 import { getCollectionVariantLabel } from "./collections.js";
 import { escapeHtml } from "./html.js";
+import { icon } from "./icons.js";
 import { getModTypeLabels } from "../lib/modPresentation.js";
-import "../lib/mod-selection.css";
 const renderTypes = mod => getModTypeLabels(mod).length ? `<span class="mod-type-badge">${escapeHtml(getModTypeLabels(mod).join(" · "))}</span>` : "";
+const renderSwitch = (m) => {
+  const on = m.enabled || m.pendingEnabled;
+  return `<button type="button" role="switch" aria-checked="${!!on}" aria-label="${escapeHtml(m.name)}" class="mod-switch ${on ? "active" : ""} ${m.pendingEnabled ? "pending" : ""}" data-toggle="1" data-mod="${escapeHtml(m.name)}" data-enabled="${m.enabled}" title="${m.pendingEnabled ? t("mods.conflicts.cancelPending") : m.enabled ? t("overlay.mods.disableHint") : t("overlay.mods.enableHint")}"></button>`;
+};
+const hasVisibleConflict = (m) => m.hasConflict && (m.enabled || m.pendingEnabled);
 export function renderModCards(
   displayMods,
   { viewMode, selectedModName, openCollectionMenu, compatibilityMode },
 ) {
   if (viewMode === "gallery") {
-    // Gallery card mirrors the manager view: fixed 4:3 preview plus
-    // a footer row with the mod name and enable switch.
+    // Gallery card mirrors the manager view: a preview plus a footer
+    // row with the mod name and enable switch.
     return displayMods
       .map((m) => {
         const collection = m._collection;
@@ -20,24 +25,24 @@ export function renderModCards(
             getCollectionVariantLabel(m)
           : "";
         return `
-                <div class="mod-gallery-item ${m.enabled ? "enabled" : ""} ${selectedModName === m.name ? "selected" : ""} ${collection ? "has-collection" : ""} ${collection && openCollectionMenu === collection.identity ? "collection-menu-open" : ""}" data-mod="${m.name}" data-enabled="${m.enabled}">
+                <div class="mod-gallery-item ${m.enabled ? "enabled" : ""} ${selectedModName === m.name ? "selected" : ""} ${collection && openCollectionMenu === collection.identity ? "collection-menu-open" : ""}" data-mod="${escapeHtml(m.name)}" data-enabled="${m.enabled}">
                     <div class="mod-gallery-image">
-                        ${m.previewUrl ? `<img src="${m.previewUrl}" alt="" loading="lazy" onerror="this.style.display='none'">` : '<div class="mod-gallery-placeholder">📦</div>'}
-                        ${m.pinned ? `<span class="mod-gallery-pin" title="${t("overlay.pin.added")}">📌</span>` : ""}
-                        <button class="mod-gallery-mark ${m.marked ? "active" : ""}" data-mark-toggle="1" data-mod="${m.name}" data-marked="${m.marked}" title="${m.marked ? t("overlay.mark.remove") : t("overlay.mark.add")}">🔖</button>
-                        ${m.hasConflict && (m.enabled || m.pendingEnabled) ? `<span class="mod-gallery-conflict" title="${t("overlay.mods.conflict")}">⚠️</span>` : ""}
+                        ${m.previewUrl ? `<img src="${m.previewUrl}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<div class="mod-gallery-placeholder">${icon("box", 28)}</div>`}
+                        ${m.pinned ? `<span class="mod-gallery-pin" title="${t("overlay.pin.added")}">${icon("pin", 14)}</span>` : ""}
+                        <button type="button" class="mod-gallery-mark ${m.marked ? "active" : ""}" data-mark-toggle="1" data-mod="${escapeHtml(m.name)}" data-marked="${m.marked}" title="${m.marked ? t("overlay.mark.remove") : t("overlay.mark.add")}">${icon("bookmark", 14)}</button>
+                        ${hasVisibleConflict(m) ? `<span class="mod-gallery-conflict" title="${t("overlay.mods.conflict")}">${icon("alert", 14)}</span>` : ""}
                         ${
                           collection
                             ? `
                             <div class="overlay-collection-dropdown" data-collection="${escapeHtml(collection.identity)}">
-                                <button class="overlay-collection-trigger" data-collection-trigger="1" data-collection="${escapeHtml(collection.identity)}" title="${t(
+                                <button type="button" class="overlay-collection-trigger" data-collection-trigger="1" data-collection="${escapeHtml(collection.identity)}" title="${t(
                                   "overlay.collections.name",
                                   {
                                     collectionName: escapeHtml(collection.name),
                                   },
                                 )}">
                                     <span>${escapeHtml(collectionLabel)}</span>
-                                    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    ${icon("chevron-down", 12)}
                                 </button>
                             </div>
                         `
@@ -45,8 +50,8 @@ export function renderModCards(
                         }
                     </div>
                     <div class="mod-gallery-footer">
-                        <div class="mod-gallery-name" title="${escapeHtml(m.name)}">${renderTypes(m)}${escapeHtml(m.name)}${collection ? ` <span class="overlay-collection-badge">${collection.variants.length}</span>` : ""}</div>
-                        <div class="mod-gallery-switch ${m.enabled || m.pendingEnabled ? "active" : ""} ${m.pendingEnabled ? "pending" : ""}" data-toggle="1" data-mod="${escapeHtml(m.name)}" data-enabled="${m.enabled}" title="${m.pendingEnabled ? t("mods.conflicts.cancelPending") : m.enabled ? t("overlay.mods.disableHint") : t("overlay.mods.enableHint")}"></div>
+                        <button type="button" class="mod-gallery-name" title="${escapeHtml(m.name)}"><span class="mod-gallery-name-text">${renderTypes(m)}${escapeHtml(m.name)}${collection ? ` <span class="overlay-collection-badge">${collection.variants.length}</span>` : ""}</span></button>
+                        ${renderSwitch(m)}
                     </div>
                 </div>
             `;
@@ -57,12 +62,12 @@ export function renderModCards(
       .map((m) => {
         const collection = m._collection;
         return `
-                <div class="mod-item ${m.enabled ? "enabled" : ""} ${selectedModName === m.name ? "selected" : ""}" data-mod="${m.name}" data-enabled="${m.enabled}">
+                <div class="mod-item ${m.enabled ? "enabled" : ""} ${selectedModName === m.name ? "selected" : ""}" data-mod="${escapeHtml(m.name)}" data-enabled="${m.enabled}">
                     <div class="mod-preview">
-                        ${!compatibilityMode && m.previewUrl ? `<img src="${m.previewUrl}" alt="">` : "📦"}
+                        ${!compatibilityMode && m.previewUrl ? `<img src="${m.previewUrl}" alt="">` : icon("box", 18)}
                     </div>
                     <div class="mod-info" data-action="detail">
-                        <div class="mod-name">${renderTypes(m)}${escapeHtml(m.name)}${
+                        <button type="button" class="mod-name" title="${escapeHtml(m.name)}">${renderTypes(m)}${escapeHtml(m.name)}${
                           collection
                             ? ` <span class="overlay-collection-badge">${t(
                                 "overlay.collections.count",
@@ -71,8 +76,8 @@ export function renderModCards(
                                 },
                               )}</span>`
                             : ""
-                        }${m.pinned ? ` <span class="mod-pin-icon" title="${t("overlay.pin.added")}">📌</span>` : ""}${m.hasConflict && (m.enabled || m.pendingEnabled) ? ' <span class="mod-conflict-icon">⚠️</span>' : ""}</div>
-                        <div class="mod-status-text">${m.pendingEnabled ? t("mods.conflicts.awaitingConfirmation") : m.enabled ? t("overlay.mods.enabledStatus") : t("overlay.mods.disabledStatus")}</div>
+                        }${m.pinned ? `<span class="mod-pin-icon" title="${t("overlay.pin.added")}">${icon("pin", 14)}</span>` : ""}${hasVisibleConflict(m) ? `<span class="mod-conflict-icon" title="${t("overlay.mods.conflict")}">${icon("alert", 14)}</span>` : ""}</button>
+                        ${m.pendingEnabled ? `<div class="mod-status-text">${t("mods.conflicts.awaitingConfirmation")}</div>` : ""}
                         ${
                           collection
                             ? `
@@ -80,7 +85,7 @@ export function renderModCards(
                                 ${collection.variants
                                   .map(
                                     (variant) => `
-                                    <button class="overlay-collection-chip ${variant.name === m.name ? "active" : ""}" data-collection-option="1" data-collection="${escapeHtml(collection.identity)}" data-mod="${escapeHtml(variant.name)}" title="${escapeHtml(variant.name)}">
+                                    <button type="button" class="overlay-collection-chip ${variant.name === m.name ? "active" : ""}" data-collection-option="1" data-collection="${escapeHtml(collection.identity)}" data-mod="${escapeHtml(variant.name)}" title="${escapeHtml(variant.name)}">
                                         ${escapeHtml(getCollectionVariantLabel(variant))}
                                     </button>
                                 `,
@@ -91,8 +96,8 @@ export function renderModCards(
                             : ""
                         }
                     </div>
-                    <button class="mod-mark-btn ${m.marked ? "active" : ""}" data-mark-toggle="1" data-mod="${m.name}" data-marked="${m.marked}" title="${m.marked ? t("overlay.mark.remove") : t("overlay.mark.add")}">🔖</button>
-                    <div class="toggle ${m.enabled || m.pendingEnabled ? "on" : ""} ${m.pendingEnabled ? "pending" : ""}" data-toggle="1" data-mod="${escapeHtml(m.name)}" data-enabled="${m.enabled}"></div>
+                    <button type="button" class="icon-btn mod-mark-btn ${m.marked ? "active" : ""}" data-mark-toggle="1" data-mod="${escapeHtml(m.name)}" data-marked="${m.marked}" title="${m.marked ? t("overlay.mark.remove") : t("overlay.mark.add")}">${icon("bookmark")}</button>
+                    ${renderSwitch(m)}
                 </div>
             `;
       })

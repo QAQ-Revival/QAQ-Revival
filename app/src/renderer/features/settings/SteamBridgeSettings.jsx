@@ -1,6 +1,16 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
-import { Button, Section, Row, Choices, check } from "./SettingsControls.jsx";
+import { Icon } from "../../components/Icon.jsx";
+import {
+  Button,
+  Notice,
+  PathValue,
+  Section,
+  Row,
+  Choices,
+  Switch,
+  check,
+} from "./SettingsControls.jsx";
 function SteamBridgeSettings({ gameId }) {
   const [data, setData] = React.useState(null),
     [options, setOptions] = React.useState(null);
@@ -83,16 +93,6 @@ function SteamBridgeSettings({ gameId }) {
         await refresh();
       }
     });
-  const pathValue = (label, value) => (
-    <input
-      className="system-path"
-      readOnly={true}
-      aria-label={label}
-      value={value || ""}
-      title={value || t("settings.steam.notDetected")}
-      placeholder={t("settings.steam.notDetected")}
-    />
-  );
   const checks = data && [
     [
       "Steam",
@@ -124,18 +124,12 @@ function SteamBridgeSettings({ gameId }) {
     ],
   ];
   return (
-    <Section id="steam-bridge" title={t("settings.game.steamBridge")}>
-      <Row
-        title={
-          data?.installed
-            ? data.phase === "enabled"
-              ? t("settings.steam.configured")
-              : t("settings.steam.incompleteHint")
-            : t("settings.steam.title")
-        }
-        description={t("settings.steam.description")}
-      >
+    <Section
+      id="steam-bridge"
+      title={t("settings.game.steamBridge")}
+      actions={
         <Button
+          small={true}
           disabled={busy}
           onClick={() =>
             act(async () =>
@@ -149,13 +143,23 @@ function SteamBridgeSettings({ gameId }) {
         >
           {t("settings.steam.openLibrary")}
         </Button>
-      </Row>
+      }
+    >
+      <Row
+        title={
+          data?.installed
+            ? data.phase === "enabled"
+              ? t("settings.steam.configured")
+              : t("settings.steam.incompleteHint")
+            : t("settings.steam.title")
+        }
+        description={t("settings.steam.description")}
+      />
       {options && (
         <React.Fragment>
           <Row
             title={t("settings.steam.launchMode")}
-            description={t("settings.steam.launchDescription")}
-            stacked={true}
+            hint={t("settings.steam.launchDescription")}
           >
             <Choices
               label={t("settings.steam.launchModeLabel")}
@@ -198,14 +202,15 @@ function SteamBridgeSettings({ gameId }) {
           )}
           <Row
             title={t("settings.steam.officialLauncher")}
-            description={t("settings.steam.detectLauncherHint")}
-            stacked={true}
+            hint={t("settings.steam.detectLauncherHint")}
+            path={true}
           >
-            <div className="system-path-control">
-              {pathValue(
-                t("settings.steam.officialLauncherLabel"),
-                options.launcher,
-              )}
+            <div className="path-control">
+              <PathValue
+                label={t("settings.steam.officialLauncherLabel")}
+                value={options.launcher}
+                placeholder={t("settings.steam.notDetected")}
+              />
               <Button
                 disabled={busy}
                 onClick={() =>
@@ -219,16 +224,22 @@ function SteamBridgeSettings({ gameId }) {
                   })
                 }
               >
-                {t("settings.steam.selectLauncher")}
+                {t("common.actions.select")}
               </Button>
             </div>
           </Row>
           <Row
             title={t("settings.game.executable")}
-            description={t("settings.steam.gameExecutableHint")}
-            stacked={true}
+            hint={t("settings.steam.gameExecutableHint")}
+            path={true}
           >
-            {pathValue(t("settings.steam.gameExecutableLabel"), data.gamePath)}
+            <div className="path-control">
+              <PathValue
+                label={t("settings.steam.gameExecutableLabel")}
+                value={data.gamePath}
+                placeholder={t("settings.steam.notDetected")}
+              />
+            </div>
           </Row>
           {options.launchMethod === "qaqr" && (
             <Row
@@ -239,47 +250,44 @@ function SteamBridgeSettings({ gameId }) {
                   : t("settings.steam.independentSessionHint")
               }
             >
-              <input
-                type="checkbox"
-                role="switch"
-                className="system-switch"
-                aria-label={t("settings.steam.managedSessionLabel")}
+              <Switch
+                label={t("settings.steam.managedSessionLabel")}
                 disabled={busy}
                 checked={!!options.qaqrSteamManaged}
-                onChange={(event) =>
-                  edit("qaqrSteamManaged", event.target.checked)
-                }
+                onChange={(value) => edit("qaqrSteamManaged", value)}
               />
             </Row>
           )}
           <Row
             title={t("settings.steam.autoSync")}
-            description={t("settings.steam.autoSyncHint")}
+            hint={t("settings.steam.autoSyncHint")}
           >
-            <input
-              type="checkbox"
-              role="switch"
-              className="system-switch"
-              aria-label={t("settings.steam.autoSync")}
+            <Switch
+              label={t("settings.steam.autoSync")}
               disabled={busy}
               checked={options.autoSync !== false}
-              onChange={(event) => edit("autoSync", event.target.checked)}
+              onChange={(value) => edit("autoSync", value)}
             />
           </Row>
         </React.Fragment>
       )}
       {checks && (
-        <div className="steam-bridge-checks" role="status">
+        <div className="settings-checks is-grid" role="status">
           {checks.map(([label, ready, detail]) => (
-            <div key={label} className={ready ? "ready" : "missing"}>
-              <span aria-hidden={true}>{ready ? "✓ " : "· "}</span>
-              <strong>{label + "："}</strong>
-              {detail}
+            <div
+              key={label}
+              className={`settings-check ${ready ? "ready" : "missing"}`}
+            >
+              <Icon name={ready ? "check" : "minus"} size={13} />
+              <span>
+                <strong>{label + "："}</strong>
+                {detail}
+              </span>
             </div>
           ))}
         </div>
       )}
-      <div className="wuwa-tuning-actions steam-bridge-actions">
+      <div className="settings-actions">
         <Button
           primary={true}
           disabled={busy || !options}
@@ -293,34 +301,36 @@ function SteamBridgeSettings({ gameId }) {
         <Button disabled={busy || !data?.installed} onClick={restore}>
           {t("settings.steam.restoreCurrent")}
         </Button>
-        <Button disabled={busy} onClick={() => act(() => refresh(options))}>
+        <Button
+          ghost={true}
+          disabled={busy}
+          onClick={() => act(() => refresh(options))}
+        >
           {t("settings.steam.detectAgain")}
         </Button>
       </div>
       {busy && (
-        <p className="system-notice" role="status">
+        <p className="settings-footnote" role="status">
           {t("settings.steam.processing")}
         </p>
       )}
       {message && (
-        <p className="system-notice" role="status">
+        <Notice kind="success" role="status">
           {message}
-        </p>
+        </Notice>
       )}
       {data?.automation?.message && (
-        <p className="system-notice" role="status">
-          {data.automation.message}
-        </p>
+        <Notice role="status">{data.automation.message}</Notice>
       )}
       {data?.automation?.warnings?.length > 0 && (
-        <p className="system-notice" role="status">
+        <Notice kind="warning" role="status">
           {data.automation.warnings.join("；")}
-        </p>
+        </Notice>
       )}
       {(error || data?.error || data?.automation?.error) && (
-        <p className="system-notice" role="alert">
+        <Notice kind="danger" role="alert">
           {error || data.error || data.automation.error}
-        </p>
+        </Notice>
       )}
     </Section>
   );

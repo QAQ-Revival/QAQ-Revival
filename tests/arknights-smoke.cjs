@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root, profile, passed, launchRequests }) => {
+module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root, profile, passed, launchRequests, selectNativeAction }) => {
   const call = (name, ...args) => handlers.get(name)({}, ...args);
   const click = selector => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
   const png = electron.nativeImage.createFromBitmap(Buffer.from([0x70, 0x90, 0xe0, 0xff]), { width: 1, height: 1 }).toPNG();
@@ -14,8 +14,8 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   fs.writeFileSync(path.join(source, 'illust_char_4215_buddy_mh_2.png'), png);
   await call('game:switch', 'arknights');
   await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('明日方舟')`, 'Arknights selected');
-  assert.equal(await evaluate(`document.querySelector('.launch-button-direct')?.getAttribute('aria-label')`), '直接启动');
-  assert.equal(await evaluate(`document.querySelector('.launch-button-direct')?.textContent.trim()`), '直接启动');
+  assert.equal(await evaluate(`document.querySelector('.launch-button-direct')?.getAttribute('aria-label')`), '启动游戏');
+  assert.equal(await evaluate(`document.querySelector('.launch-button-direct')?.textContent.trim()`), '启动游戏');
   const characters = await call('get-characters');
   assert(characters.characters.some(item => item.name === '罗德岛隐秘队'), JSON.stringify(characters).slice(0, 2000));
   assert(characters.characters.length > 400);
@@ -82,7 +82,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   assert.equal(await evaluate(`document.querySelector('.mod-view-titlebar-actions button').classList.contains('active')`), false);
   assert.equal(await evaluate(`document.querySelector('[data-mod-name="PC sample"] .mod-type-badge').textContent`), '皮肤 · 静态');
   assert.equal(await evaluate(`document.querySelectorAll('[data-mod-name] .mod-row-tag-row').length`), 0);
-  assert.equal(await evaluate(`!!document.querySelector('.mod-search-field .mod-tag-filter')`), true);
+  assert.equal(await evaluate(`!!document.querySelector('.mod-sort-bar .mod-tag-filter')`), true);
   await captureUI('arknights-library.png');
   const overlay = new electron.BrowserWindow({ show: false, webPreferences: { preload: path.join(process.resourcesPath, 'app/out/preload/overlay.js'), sandbox: false, contextIsolation: true, offscreen: true } });
   const runOverlay = code => overlay.webContents.executeJavaScript(code, true);
@@ -97,7 +97,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
     await overlayWait(`document.querySelectorAll('#appearanceSections [role="tab"]').length > 1`);
     assert.equal(await runOverlay(`document.querySelector('#exclusiveBtn').classList.contains('active')`), false);
     await runOverlay(`[...document.querySelectorAll('#appearanceSections button')].find(button => button.textContent.includes('跨皮肤')).click()`);
-    await waitFor(`document.querySelector('.mod-view-active-section-label')?.textContent.includes('跨皮肤')`, 'skin tab synchronization from overlay');
+    await waitFor(`document.querySelector('.appearance-section-tab.active')?.textContent.includes('跨皮肤')`, 'skin tab synchronization from overlay');
     await runOverlay(`[...document.querySelectorAll('#appearanceSections button')].find(button => button.textContent.includes('露营时间喵')).click()`);
     await overlayWait(`!!document.querySelector('[data-toggle="1"][data-mod="PC sample"]')`);
     assert.equal(await runOverlay(`document.querySelector('[data-mod="PC sample"] .mod-type-badge').textContent`), '皮肤 · 静态');
@@ -152,7 +152,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   assert.equal(await evaluate(`!!document.querySelector('#settings-game-persist, #settings-fixer')`), false);
   assert.equal(launchRequests.length, 0, 'No game or loader launches are permitted in this smoke scope');
   passed('Actual renderer context menu runs the offline worker and creates a disabled copy without changing its source; M4A settings render without XXMI controls; no game is launched');
-  await require('./library-performance-smoke.cjs')({ electron, evaluate, waitFor, captureUI, handlers, root, passed });
+  await require('./library-performance-smoke.cjs')({ electron, evaluate, waitFor, captureUI, handlers, root, passed, selectNativeAction });
   if (process.env.QAQR_ARKNIGHTS_GAME_EXE && process.env.QAQR_ARKNIGHTS_MOBILE_ZIP && process.env.QAQR_ARKNIGHTS_PC_ZIP) {
     const crypto = require('node:crypto');
     const hash = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
