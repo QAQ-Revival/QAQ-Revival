@@ -27,14 +27,19 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   const row = list.characters.find(c => c.name === 'Perf000');
   assert.match(row.coverUrl, /^file:/);
   let beats = 0;
-  const timer = setInterval(() => beats++, 5);
+  let timer;
+  // Start from a live timer turn after the synchronous fixture setup. The
+  // initial heartbeat must not count as progress during the detail read.
+  await new Promise(resolve => { timer = setInterval(() => { beats++; resolve(); }, 5); });
+  beats = 0;
   const detailStart = performance.now();
-  const details = await call('get-mods', 'Perf000');
-  clearInterval(timer);
+  let details;
+  try { details = await call('get-mods', 'Perf000'); }
+  finally { clearInterval(timer); }
+  const detailMs = Math.round(performance.now() - detailStart);
   assert.equal(details.success, true, details.error);
   assert.equal(details.mods[0].appearanceSectionId, 'base');
-  assert(beats > 0);
-  const detailMs = Math.round(performance.now() - detailStart);
+  assert(beats > 0, `No event-loop heartbeat during the ${detailMs} ms detail read`);
   await evaluate(`window.dispatchEvent(new CustomEvent('qaqm-navigate', { detail: { tab: 'characters' } }))`);
   await waitFor(`!!document.querySelector('.mod-view-back-btn')`, 'return to Mod view');
   await evaluate(`document.querySelector('.mod-view-back-btn').click()`);

@@ -42,9 +42,13 @@ function createSelectionController({ scope, conflicts, apply, commit = async () 
     const selected = names(context);
     const existing = new Set(mods.map(mod => mod.name));
     for (const name of selected) if (!existing.has(name) || mods.find(mod => mod.name === name)?.enabled) selected.delete(name);
-    let found;
-    try { found = await conflicts(context, [...selected]); }
-    catch { found = [...selected].map(name => ({ hash: "", mods: [name] })); }
+    let found = [];
+    // Disabled, unselected Mods cannot conflict. Avoid scanning the whole
+    // Arknights library just to display a character with no active Mods.
+    if (selected.size || mods.some(mod => mod.enabled)) {
+      try { found = await conflicts(context, [...selected]); }
+      catch { found = [...selected].map(name => ({ hash: "", mods: [name] })); }
+    }
     return mods.map(mod => ({
       ...mod,
       pendingEnabled: selected.has(mod.name),

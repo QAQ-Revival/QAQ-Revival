@@ -231,6 +231,8 @@ const arknightsComponentPath = runtimeRequire.resolve('./out/main/games/arknight
 const arknightsComponent = runtimeRequire(arknightsComponentPath);
 runtimeRequire.cache[arknightsComponentPath].exports = { ...arknightsComponent,
   runNative: async args => {
+    // The isolated fixture has no running game, even if the user has one open.
+    if (args[0] === '--status') return { success: true, running: false };
     if (args[0] === '--launch') {
       launchRequests.push({ arknights: true, args });
       return { success: true, runtimePending: true };
@@ -239,6 +241,17 @@ runtimeRequire.cache[arknightsComponentPath].exports = { ...arknightsComponent,
   }
 };
 if (process.env.QAQR_SMOKE_SCOPE === 'xxmi') {
+  const vulkanPath = runtimeRequire.resolve('./out/main/games/endfield/vulkan.cjs');
+  const vulkan = runtimeRequire(vulkanPath);
+  runtimeRequire.cache[vulkanPath].exports = { ...vulkan,
+    createEfmiVulkanService: options => vulkan.createEfmiVulkanService({ ...options, assertStopped: async paths => {
+      // These executables are fixture files; real games do not use this installation.
+      for (const file of [paths.mi, paths.game, paths.launcher]) {
+        const relative = path.relative(root, file);
+        assert(relative && !relative.startsWith('..') && !path.isAbsolute(relative), 'Vulkan operation stays inside the test fixture');
+      }
+    } })
+  };
   // A clean CI checkout has no downloaded upstream Vulkan bundle. Keep this
   // release fixture in the isolated test directory, never in the shipped app.
   const packagePath = runtimeRequire.resolve('./out/main/games/endfield/vulkan-packages.cjs');

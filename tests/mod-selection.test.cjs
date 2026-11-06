@@ -38,6 +38,30 @@ test('independent Mods apply immediately; conflicts stay pending across window s
   assert.equal((await f.controller.snapshot(f.context, [{ name: 'skinA', enabled: true }]))[0].pendingEnabled, false);
 });
 
+test('inactive snapshots avoid conflict scans while enabled and pending Mods still report conflicts', async () => {
+  const context = { characterName: 'operator', gameId: 'arknights' };
+  let scans = 0;
+  const controller = createSelectionController({
+    scope: c => c.gameId + '/' + c.characterName,
+    conflicts: () => { scans++; return [{ id: 'shared', hash: '12345678', mods: ['one', 'two'] }]; },
+    apply: async () => ({ success: true }),
+    notify: () => {}
+  });
+  const disabled = [{ name: 'one', enabled: false }, { name: 'two', enabled: false }];
+  const inactive = await controller.snapshot(context, disabled);
+  assert.equal(scans, 0);
+  assert(inactive.every(mod => !mod.hasConflict && !mod.pendingEnabled));
+  const active = await controller.snapshot(context, disabled.map(mod => ({ ...mod, enabled: true })));
+  assert.equal(scans, 1);
+  assert(active.every(mod => mod.hasConflict));
+  assert.equal((await controller.request({ ...context, modName: 'one', enable: true })).pending, true);
+  const before = scans;
+  const pending = await controller.snapshot(context, disabled);
+  assert.equal(scans, before + 1);
+  assert.equal(pending[0].pendingEnabled, true);
+  assert.equal(pending[0].hasConflict, true);
+});
+
 test('only explicit confirmation applies pending Mods, and failed batches restore the prior enabled set', async () => {
   for (const fail of ['', 'skinB']) {
     const f = fixture(fail);
