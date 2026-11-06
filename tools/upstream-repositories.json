@@ -1,0 +1,18 @@
+{
+  "owner": "QAQ-Revival",
+  "forks": [
+    { "name": "XXMI-Launcher", "upstream": "SpectrumQT/XXMI-Launcher", "branch": "main", "path": "native/xxmi-launcher" },
+    { "name": "MegaDownloader-Revival", "upstream": "a1175815821/MegaDownloader-Revival", "branch": "main", "path": "bridges/mega/vendor/MegaDownloader-Revival" },
+    { "name": "minhook", "upstream": "TsudaKageyu/minhook", "branch": "master", "path": "native/arknights-tools/vendor/minhook" },
+    { "name": "UnityPy", "upstream": "K0lb3/UnityPy", "branch": "master", "path": "native/arknights-tools/vendor/UnityPy", "lfs": true },
+    { "name": "Ark-Unpacker", "upstream": "isHarryh/Ark-Unpacker", "branch": "v5.x", "path": "native/arknights-tools/vendor/Ark-Unpacker" },
+    { "name": "Ark-FBS-Py", "upstream": "isHarryh/Ark-FBS-Py", "branch": "dist", "path": "native/arknights-tools/vendor/Ark-Unpacker/src/fbs" },
+    { "name": "XXMI-Libs-Package", "upstream": "SpectrumQT/XXMI-Libs-Package", "branch": "master", "versionTags": "upstream", "path": "native/xxmi-runtime" },
+    { "name": "EFMI-Package", "upstream": "SpectrumQT/EFMI-Package", "branch": "main", "path": "native/efmi-package" },
+    { "name": "XXMI-Libs-Package", "upstream": "myparsleycat/XXMI-Libs-Package-Forked", "upstreamBranch": "master", "branch": "vulkan", "also": ["master"], "optional": true, "versionTags": "origin", "path": "native/xxmi-runtime-vulkan" },
+    { "name": "wwmi-dx12", "upstream": "lekarsenten/wwmi-dx12", "branch": "main", "optional": true, "path": "native/wwmi-dx12" },
+    { "name": "reshade", "upstream": "crosire/reshade", "branch": "wwmi-dx12-sdk", "pinned": true, "path": "native/wwmi-dx12/reshade_addon/sdk" },
+    { "name": "imgui", "upstream": "ocornut/imgui", "branch": "wwmi-dx12-sdk", "pinned": true, "path": "native/wwmi-dx12/reshade_addon/sdk/deps/imgui" },
+    { "name": "WWMI-Package", "upstream": "SpectrumQT/WWMI-Package", "branch": "main", "path": "native/wwmi-package" }
+  ]
+}

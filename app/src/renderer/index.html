@@ -5,17 +5,18 @@
     <title>QAQ-Revival</title>
     <script>
       (function bootstrapTheme() {
+        var mode = "dark";
         try {
-          var root = document.documentElement;
-          var skinId = localStorage.getItem("themeBootstrapSkinId");
-          localStorage.removeItem("themeBootstrapCssVars");
-          if (skinId !== "aurora-premium") {
-            localStorage.removeItem("themeBootstrapSkinId");
-            return;
-          }
-
-          root.setAttribute("data-skin", skinId);
+          mode = localStorage.getItem("qaqr.theme") || "dark";
         } catch {}
+        var dark =
+          mode === "system"
+            ? matchMedia("(prefers-color-scheme: dark)").matches
+            : mode !== "light";
+        document.documentElement.setAttribute(
+          "data-theme",
+          dark ? "dark" : "light",
+        );
       })();
     </script>
     <script type="module" src="./main.jsx"></script>

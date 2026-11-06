@@ -6,7 +6,7 @@ const readline = require('node:readline');
 const { spawn } = require('node:child_process');
 const { mainDir } = require('../runtime/paths.cjs');
 
-function createNativeTray({ app, icon, showLabel, quitLabel, onShow, onQuit, onFallback, onReady = () => {}, onError = () => {},
+function createNativeTray({ app, icon, showLabel, quitLabel, nativeTheme, onShow, onQuit, onFallback, onReady = () => {}, onError = () => {},
   executable = path.join(mainDir, '../../resources/tray-host/QaqrTrayHost.exe'), launch = spawn }) {
   if (process.platform !== 'win32' || !app.isPackaged || !fs.existsSync(executable)) return false;
   let child, lines, timer, stopped = false;
@@ -15,8 +15,13 @@ function createNativeTray({ app, icon, showLabel, quitLabel, onShow, onQuit, onF
     stopped = true;
     clearTimeout(timer);
     app.removeListener('will-quit', stop);
+    nativeTheme?.removeListener('updated', updateTheme);
     lines?.close();
     child?.stdin.end();
+  }
+  const appearance = () => ({ theme: nativeTheme?.shouldUseDarkColors ? 'dark' : 'light', highContrast: nativeTheme?.shouldUseHighContrastColors ? 'true' : 'false' });
+  function updateTheme() {
+    if (!stopped) child.stdin.write(JSON.stringify(appearance()) + '\n', 'utf8');
   }
   function fail(error) {
     if (stopped) return;
@@ -44,7 +49,8 @@ function createNativeTray({ app, icon, showLabel, quitLabel, onShow, onQuit, onF
     timer = setTimeout(() => fail(Error('Tray host startup timed out')), 5000);
     timer.unref();
     app.once('will-quit', stop);
-    child.stdin.write(JSON.stringify({ icon, show: showLabel, quit: quitLabel }) + '\n', 'utf8');
+    child.stdin.write(JSON.stringify({ icon, show: showLabel, quit: quitLabel, ...appearance() }) + '\n', 'utf8');
+    nativeTheme?.on('updated', updateTheme);
     return true;
   } catch (error) {
     stop();

@@ -52,3 +52,51 @@ test('only explicit confirmation applies pending Mods, and failed batches restor
     assert.deepEqual(f.writes[0].approved, ['skinA', 'skinB']);
   }
 });
+
+test('requests made while a batch runs are applied together, and a queued Mod refuses a second request', async () => {
+  const applied = [], commits = [], events = [];
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const context = { characterName: 'operator', gameId: 'game' };
+  const controller = createSelectionController({
+    scope: c => c.gameId + '/' + c.characterName,
+    conflicts: () => [],
+    apply: async (c, session) => {
+      if (c.modName === 'first') await gate;
+      applied.push(c.modName + (c.enable ? '+' : '-'));
+      (session.names ||= []).push(c.modName);
+      return { success: true };
+    },
+    commit: async session => commits.push(session.names || []),
+    notify: () => {},
+    publishQueue: (_, state) => events.push(state)
+  });
+  const request = (modName, enable) => controller.request({ ...context, modName, enable });
+  const first = request('first', true);
+  await new Promise(setImmediate);
+  const later = [request('weapon', true), request('outfit', false), request('hair', true)];
+  assert.equal((await request('weapon', false)).busy, true);
+  assert.deepEqual(controller.queueState(context).items.map(item => item.modName).sort(), ['first', 'hair', 'outfit', 'weapon']);
+  release();
+  assert.equal((await first).success, true);
+  assert.deepEqual((await Promise.all(later)).map(result => result.success), [true, true, true]);
+  assert.deepEqual(commits, [['first'], ['outfit', 'weapon', 'hair']], 'disables go first and the waiting requests share one commit');
+  assert.deepEqual(applied, ['first+', 'outfit-', 'weapon+', 'hair+']);
+  assert.deepEqual(controller.queueState(context).items, []);
+  assert.deepEqual(events.at(-1).applied, [{ modName: 'weapon', enabled: true }, { modName: 'outfit', enabled: false }, { modName: 'hair', enabled: true }]);
+  assert.equal((await request('weapon', false)).success, true, 'a Mod accepts a new request once its batch is done');
+});
+
+test('a failed commit reports every Mod in its batch as failed', async () => {
+  const context = { characterName: 'operator', gameId: 'game' };
+  const controller = createSelectionController({
+    scope: c => c.gameId + '/' + c.characterName,
+    conflicts: () => [],
+    apply: async () => ({ success: true }),
+    commit: async session => { if (session.renamed.size) throw Error('deploy failed'); },
+    notify: () => {}
+  });
+  const results = await Promise.all(['a', 'b'].map(modName => controller.request({ ...context, modName, enable: true })));
+  assert.deepEqual(results.map(result => result.error), ['deploy failed', 'deploy failed']);
+  assert.deepEqual(controller.queueState(context).items, []);
+});

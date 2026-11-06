@@ -36,7 +36,8 @@
     "expand": "Expand",
     "collapse": "Collapse",
     "openNamedLocation": "Open {{label}} location",
-    "selectNamed": "Select {{label}}"
+    "selectNamed": "Select {{label}}",
+    "more": "More"
   },
   "status": {
     "loading": "Loading…",

@@ -72,7 +72,7 @@ async function run({ evaluate, waitFor, captureUI, window, profile, mods, endfie
   await waitFor(`!document.querySelector('[aria-label="XXMI 启动"]').disabled`, 'bridge re-enabled');
   assert.deepEqual(snapshot(), saved);
   passed('All 208 states are included with no cap; disable and re-enable preserve every value and the other game’s switch');
-  await click('.sidebar-settings');
+  await click('.topbar-settings');
   await waitFor(`!!document.querySelector('[data-category="persist"]')`, 'state management category');
   await click('[data-category="persist"]');
   await waitFor(`document.querySelectorAll('[data-persist-game]').length >= 2`, 'game state cards');
@@ -97,14 +97,14 @@ async function run({ evaluate, waitFor, captureUI, window, profile, mods, endfie
   finally { fs.readFileSync = readFile; }
   assert.equal(readPaths.some(file => file.endsWith('qaqm_state_fixture_200.ini')), false);
   await call('game:switch', 'endfield');
-  await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('终末地')`, 'different sidebar game before jump');
+  await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('终末地')`, 'different game before jump');
   await evaluate(`[...document.querySelectorAll('button')].find(b => b.textContent === '打开 Mod 详情').click()`);
-  await waitFor(`document.querySelector('.mod-persist-summary')?.textContent.includes('1 份配置')`, 'linked Mod detail persistence summary');
+  await waitFor(`document.querySelector('.mod-persist-summary')?.textContent.includes('1 项')`, 'linked Mod detail persistence summary');
   assert.ok(await evaluate(`document.querySelector('.game-selector-trigger').textContent.includes('鸣潮')`));
   await evaluate(`document.querySelector('.mod-persist-summary > details > summary').click()`);
   assert.ok(await evaluate(`document.querySelector('.mod-persist-summary .persist-variables').textContent.includes('42')`));
   await captureUI('mod-persist-summary.png');
-  await evaluate(`[...document.querySelectorAll('.mod-persist-summary button')].find(b => b.textContent === '打开状态管理').click()`);
+  await evaluate(`[...document.querySelectorAll('.mod-persist-summary button')].find(b => b.textContent === '管理').click()`);
   await waitFor(`document.querySelector('[data-persist-level="mod"] .persist-variables')?.textContent.includes('42')`, 'return directly to selected Mod persistence');
   const targetId = await evaluate(`document.querySelector('[data-persist-entry]').dataset.persistEntry`);
   const otherFile = path.join(path.dirname(endfield), 'qaqm/cache/qaqm_state_other.ini');
@@ -128,7 +128,7 @@ async function run({ evaluate, waitFor, captureUI, window, profile, mods, endfie
   assert.equal((await call('persist-bridge-set-enabled', { gameId: 'wuthering-waves', enabled: false })).success, true);
   assert.equal((await call('persist-bridge-list', 'wuthering-waves')).entries.length, 0);
   await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));
-  await waitFor(`!!document.querySelector('.sidebar-settings')`, 'renderer reload');
+  await waitFor(`!!document.querySelector('.topbar-settings')`, 'renderer reload');
   assert.equal((await call('persist-bridge-list', 'wuthering-waves')).game.enabled, false);
   assert.equal((await call('persist-bridge-list', 'endfield')).entries.length, 1);
   assert.equal(JSON.parse(fs.readFileSync(path.join(profile, 'config.json'))).persistBridgeByGame['wuthering-waves'].enabled, false);

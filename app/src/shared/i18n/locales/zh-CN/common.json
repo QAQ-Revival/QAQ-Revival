@@ -58,7 +58,8 @@
     "use": "使用",
     "saveChanges": "保存修改",
     "view": "查看",
-    "move": "移动"
+    "move": "移动",
+    "more": "更多"
   },
   "status": {
     "loading": "加载中...",

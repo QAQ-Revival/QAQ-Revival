@@ -1,0 +1,208 @@
+/* Design tokens. Every colour in the app resolves through this file. */
+:root {
+  /* Type */
+  --font-ui:
+    "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei",
+    "PingFang SC", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "Consolas", "Microsoft YaHei UI", monospace;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Shape */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* Motion */
+  --dur-fast: 90ms;
+  --dur: 150ms;
+  --dur-slow: 220ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* Layout */
+  --topbar-h: 48px;
+  --control-h: 32px;
+  --control-h-sm: 26px;
+  --control-h-lg: 38px;
+  --page-gutter: 24px;
+
+  /* Elevation order */
+  --z-sticky: 5;
+  --z-topbar: 50;
+  --z-popover: 200;
+  --z-modal: 1000;
+  --z-toast: 2000;
+}
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-rgb: 17 16 21;
+  --bg: #111015;
+  --bg-raised: #17161c;
+  --surface: #1d1c23;
+  --surface-2: #25242c;
+  --surface-3: #2f2e37;
+  --surface-sunken: #0c0b10;
+  --input-bg: rgba(255, 255, 255, 0.045);
+
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.14);
+
+  --fg: #f1f0f5;
+  --fg-2: #b0aebb;
+  --fg-3: #878592;
+  --fg-on-image: #ffffff;
+
+  --accent: #ff5d8f;
+  --accent-hover: #ff7ba5;
+  --accent-press: #ec4a7c;
+  --accent-fg: #2b0511;
+  --accent-text: #ff8fb1;
+  --accent-soft: rgba(255, 93, 143, 0.13);
+  --accent-soft-2: rgba(255, 93, 143, 0.22);
+
+  --success: #3ecf8e;
+  --success-soft: rgba(62, 207, 142, 0.14);
+  --warning: #f0b232;
+  --warning-soft: rgba(240, 178, 50, 0.14);
+  --danger: #ff6b62;
+  --danger-fg: #2b0604;
+  --danger-soft: rgba(255, 107, 98, 0.14);
+  --info: #6cb6ff;
+  --info-soft: rgba(108, 182, 255, 0.14);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--line-strong);
+  --shadow-3: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--line-strong);
+  --scrim: rgba(6, 5, 9, 0.62);
+  --image-scrim: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.72));
+  --tile-bg: linear-gradient(160deg, #2a2931, #1b1a20);
+  --scroll-thumb: rgba(255, 255, 255, 0.16);
+  --scroll-thumb-hover: rgba(255, 255, 255, 0.28);
+  --focus: #ff8fb1;
+  --switch-off: rgba(255, 255, 255, 0.2);
+  --switch-thumb: #ffffff;
+  --skeleton: rgba(255, 255, 255, 0.06);
+  --skeleton-shine: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-rgb: 243 242 245;
+  --bg: #f3f2f5;
+  --bg-raised: #fbfafc;
+  --surface: #ffffff;
+  --surface-2: #f0eff3;
+  --surface-3: #e6e4ea;
+  --surface-sunken: #e9e8ec;
+  --input-bg: #ffffff;
+
+  --line: rgba(24, 20, 34, 0.09);
+  --line-strong: rgba(24, 20, 34, 0.18);
+
+  --fg: #1b1a21;
+  --fg-2: #5b5966;
+  --fg-3: #737080;
+  --fg-on-image: #ffffff;
+
+  --accent: #d6246e;
+  --accent-hover: #c01c61;
+  --accent-press: #a81754;
+  --accent-fg: #ffffff;
+  --accent-text: #b81a5d;
+  --accent-soft: rgba(214, 36, 110, 0.09);
+  --accent-soft-2: rgba(214, 36, 110, 0.16);
+
+  --success: #12804f;
+  --success-soft: rgba(18, 128, 79, 0.11);
+  --warning: #a66300;
+  --warning-soft: rgba(201, 124, 0, 0.13);
+  --danger: #c9302c;
+  --danger-fg: #ffffff;
+  --danger-soft: rgba(201, 48, 44, 0.1);
+  --info: #1f6fc4;
+  --info-soft: rgba(31, 111, 196, 0.1);
+
+  --shadow-1: 0 1px 2px rgba(24, 20, 34, 0.08);
+  --shadow-2: 0 8px 24px rgba(24, 20, 34, 0.14), 0 0 0 1px var(--line);
+  --shadow-3: 0 24px 64px rgba(24, 20, 34, 0.24), 0 0 0 1px var(--line);
+  --scrim: rgba(24, 20, 34, 0.42);
+  --image-scrim: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.66));
+  --tile-bg: linear-gradient(160deg, #eceaf0, #dfdde5);
+  --scroll-thumb: rgba(24, 20, 34, 0.2);
+  --scroll-thumb-hover: rgba(24, 20, 34, 0.34);
+  --focus: #b81a5d;
+  --switch-off: rgba(24, 20, 34, 0.24);
+  --switch-thumb: #ffffff;
+  --skeleton: rgba(24, 20, 34, 0.06);
+  --skeleton-shine: rgba(24, 20, 34, 0.1);
+}
+
+/* A wallpaper shows through the window chrome; portaled dialogs keep opaque tokens. */
+.custom-bg-active {
+  --bg: transparent;
+  --bg-raised: rgb(from var(--bg-raised-solid) r g b / 0.84);
+  --surface: rgb(from var(--surface-solid) r g b / 0.86);
+  --surface-2: rgb(from var(--surface-2-solid) r g b / 0.9);
+}
+
+:root,
+:root[data-theme="dark"] {
+  --bg-raised-solid: #17161c;
+  --surface-solid: #1d1c23;
+  --surface-2-solid: #25242c;
+}
+
+:root[data-theme="light"] {
+  --bg-raised-solid: #fbfafc;
+  --surface-solid: #ffffff;
+  --surface-2-solid: #f0eff3;
+}
+
+/* Aliases for names that remain in JavaScript-computed styles. */
+:root {
+  --color-accent-primary: var(--accent);
+  --color-accent-secondary: var(--accent-soft-2);
+  --color-accent-gradient: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-text: var(--accent-fg);
+  --color-accent-foreground: var(--accent-text);
+  --color-focus-ring: var(--focus);
+  --color-text-primary: var(--fg);
+  --color-text-secondary: var(--fg-2);
+  --color-text-tertiary: var(--fg-3);
+  --color-success: var(--success);
+  --color-success-dark: var(--success);
+  --color-danger: var(--danger);
+  --color-danger-dark: var(--danger);
+  --color-border: var(--line-strong);
+  --color-bg-primary: var(--surface);
+  --color-bg-secondary: var(--surface-2);
+  --color-bg-base: var(--bg);
+  --color-glass-surface: var(--surface);
+  --color-glass-border: var(--line);
+  --color-glass-highlight: var(--surface-2);
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-2);
+  --shadow-lg: var(--shadow-3);
+  --shadow-glow: none;
+}

@@ -2,8 +2,33 @@ import { t } from "../../shared/i18n/index.mjs";
 import React from "react";
 import ReactDOM from "react-dom";
 import { useGameOrder } from "../hooks/useGameOrder.js";
-import { GAME_MENU_WIDTH } from "../lib/sidebarLayout.js";
-function GameSelector({ games = [], activeGame, collapsed, onSwitch }) {
+import { Icon } from "./Icon.jsx";
+
+const GAME_MENU_WIDTH = 300;
+const GAME_HUES = {
+  "wuthering-waves": 196,
+  endfield: 42,
+  "genshin-impact": 158,
+  zzz: 24,
+  "honkai-star-rail": 262,
+  "neverness-to-everness": 300,
+  arknights: 216,
+};
+
+function GameTile({ game }) {
+  const name = game?.shortName || game?.name || "";
+  return (
+    <span
+      className="game-tile"
+      style={{ "--game-hue": GAME_HUES[game?.id] ?? 340 }}
+      aria-hidden={true}
+    >
+      {name ? name.charAt(0) : <Icon name="gamepad" size={14} />}
+    </span>
+  );
+}
+
+function GameSelector({ games = [], activeGame, onSwitch }) {
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -22,7 +47,7 @@ function GameSelector({ games = [], activeGame, collapsed, onSwitch }) {
     const width = Math.min(GAME_MENU_WIDTH, window.innerWidth - 24);
     setPosition({
       left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
-      top: rect.bottom + 8,
+      top: rect.bottom + 6,
       width,
       maxHeight: Math.max(120, window.innerHeight - rect.bottom - 24),
     });
@@ -55,9 +80,6 @@ function GameSelector({ games = [], activeGame, collapsed, onSwitch }) {
       cancelAnimationFrame(frame);
     };
   }, [open]);
-  React.useEffect(() => {
-    setOpen(false);
-  }, [collapsed]);
   async function select(game) {
     if (switching.current) return;
     if (game.id === activeGame?.id) {
@@ -100,7 +122,7 @@ function GameSelector({ games = [], activeGame, collapsed, onSwitch }) {
     if (event.key === "Tab") close();
   }
   return (
-    <div className="sidebar-game-selector">
+    <div className="game-selector">
       <button
         ref={trigger}
         type="button"
@@ -108,13 +130,10 @@ function GameSelector({ games = [], activeGame, collapsed, onSwitch }) {
         disabled={busy}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-controls={open ? "sidebar-game-menu" : undefined}
+        aria-controls={open ? "game-menu" : undefined}
         aria-label={t("navigation.switchGameLabel", {
           name: activeGame?.name || t("common.status.unselected"),
         })}
-        title={
-          collapsed ? activeGame?.name || t("navigation.switchGame") : undefined
-        }
         onClick={() => {
           setError("");
           setOpen(!open);
@@ -126,41 +145,16 @@ function GameSelector({ games = [], activeGame, collapsed, onSwitch }) {
           }
         }}
       >
-        <span className="game-selector-icon" aria-hidden={true}>
-          {"🎮"}
-        </span>
-        {!collapsed && (
-          <span className="game-selector-copy">
-            <span className="game-selector-label">
-              {t("navigation.currentGame")}
-            </span>
-            <strong>
-              {busy
-                ? t("navigation.switchingGame")
-                : activeGame?.name || t("navigation.chooseGame")}
-            </strong>
-          </span>
-        )}
-        {!collapsed && (
-          <span className="game-selector-chevron" aria-hidden={true}>
-            <svg
-              viewBox="0 0 24 24"
-              width={18}
-              height={18}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              focusable="false"
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </span>
-        )}
+        <GameTile game={activeGame} />
+        <strong className="game-selector-name">
+          {busy
+            ? t("navigation.switchingGame")
+            : activeGame?.name || t("navigation.chooseGame")}
+        </strong>
+        <Icon name="chevron-down" size={14} className="game-selector-chevron" />
       </button>
       {error && !open && (
-        <div role="alert" className="game-selector-error">
+        <div role="alert" className="topbar-error">
           {error}
         </div>
       )}
@@ -168,7 +162,7 @@ function GameSelector({ games = [], activeGame, collapsed, onSwitch }) {
         ReactDOM.createPortal(
           <div
             ref={menu}
-            id="sidebar-game-menu"
+            id="game-menu"
             className="game-selector-menu"
             role="menu"
             aria-label={t("navigation.switchGame")}
@@ -190,6 +184,7 @@ function GameSelector({ games = [], activeGame, collapsed, onSwitch }) {
                 onClick={() => select(game)}
                 key={game.id}
               >
+                <GameTile game={game} />
                 <span className="game-selector-copy">
                   <strong>{game.name}</strong>
                   <span className="game-selector-description">
@@ -198,13 +193,12 @@ function GameSelector({ games = [], activeGame, collapsed, onSwitch }) {
                       : t("navigation.independentGameSettings")}
                   </span>
                 </span>
-                <span className="game-selector-check" aria-hidden={true}>
-                  {game.id === activeGame?.id ? "✓" : ""}
-                </span>
-                <span className="sort-grip" aria-hidden={true} />
+                {game.id === activeGame?.id && (
+                  <Icon name="check" className="game-selector-check" />
+                )}
               </button>
             ))}
-            <div className="sort-announcement" role="status">
+            <div className="sort-announcement sr-only" role="status">
               {sorting.announcement}
             </div>
             {sorting.error && (
@@ -228,4 +222,4 @@ function GameSelector({ games = [], activeGame, collapsed, onSwitch }) {
     </div>
   );
 }
-export { GameSelector };
+export { GameSelector, GameTile };

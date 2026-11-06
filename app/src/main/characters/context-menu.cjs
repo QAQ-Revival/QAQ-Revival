@@ -19,7 +19,9 @@ function showCharacterContextMenu(event, options = {}) {
       type: 'separator'
     }, item('fix', i18n.t("backend.characterContextMenu.fixer"), !options.busy), item('reset', i18n.t("backend.characterContextMenu.resetAllModIni")), {
       type: 'separator'
-    }, item('change-fixer', i18n.t("backend.characterContextMenu.changeFixer"), !options.busy)]);
+    }, item('change-fixer', i18n.t("backend.characterContextMenu.changeFixer"), !options.busy), {
+      type: 'separator'
+    }, item('rename', i18n.t("backend.characterContextMenu.rename")), item('hide', i18n.t("backend.characterContextMenu.hide"), !options.busy), item('delete', i18n.t("backend.characterContextMenu.delete"))]);
     // Let Electron use the screen cursor position and the OS work-area boundary.
     menu.popup({
       window: owner,

@@ -16,5 +16,25 @@
 	branch = main
 [submodule "native/xxmi-launcher"]
 	path = native/xxmi-launcher
-	url = https://github.com/SpectrumQT/XXMI-Launcher.git
+	url = https://github.com/QAQ-Revival/XXMI-Launcher.git
+	branch = main
+[submodule "native/xxmi-runtime"]
+	path = native/xxmi-runtime
+	url = https://github.com/QAQ-Revival/XXMI-Libs-Package.git
+	branch = master
+[submodule "native/efmi-package"]
+	path = native/efmi-package
+	url = https://github.com/QAQ-Revival/EFMI-Package.git
+	branch = main
+[submodule "native/xxmi-runtime-vulkan"]
+	path = native/xxmi-runtime-vulkan
+	url = https://github.com/QAQ-Revival/XXMI-Libs-Package.git
+	branch = vulkan
+[submodule "native/wwmi-dx12"]
+	path = native/wwmi-dx12
+	url = https://github.com/QAQ-Revival/wwmi-dx12.git
+	branch = main
+[submodule "native/wwmi-package"]
+	path = native/wwmi-package
+	url = https://github.com/QAQ-Revival/WWMI-Package.git
 	branch = main

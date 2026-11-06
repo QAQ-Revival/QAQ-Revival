@@ -60,6 +60,12 @@ const api = {
   wuwaDx12SetEnabled: (enabled) => electron.ipcRenderer.invoke("wuwa:dx12-set-enabled", enabled),
   wuwaDx12CheckUpdates: () => electron.ipcRenderer.invoke("wuwa:dx12-check-updates"),
   wuwaDx12UpdateComponent: (kind) => electron.ipcRenderer.invoke("wuwa:dx12-update-component", kind),
+  wuwaDx12SetChannel: (target) => electron.ipcRenderer.invoke("wuwa:dx12-set-channel", target),
+  efmiVulkanStatus: () => electron.ipcRenderer.invoke("efmi:vulkan-status"),
+  efmiVulkanSetEnabled: (opts) => electron.ipcRenderer.invoke("efmi:vulkan-set-enabled", opts),
+  efmiVulkanSetChannel: (target) => electron.ipcRenderer.invoke("efmi:vulkan-set-channel", target),
+  efmiVulkanCheckUpdates: () => electron.ipcRenderer.invoke("efmi:vulkan-check-updates"),
+  efmiVulkanUpdate: () => electron.ipcRenderer.invoke("efmi:vulkan-update"),
   genshinCheckEnvironment: () => electron.ipcRenderer.invoke("genshin:check-environment"),
   genshinRepairEnvironment: (options) => electron.ipcRenderer.invoke("genshin:repair-environment", options),
   genshinRestoreEnvironment: (options) => electron.ipcRenderer.invoke("genshin:restore-environment", options),
@@ -92,6 +98,10 @@ const api = {
   arknightsReloadMod: (payload) => electron.ipcRenderer.invoke("arknights:reload-mod", payload),
   arknightsCursorStatus: () => electron.ipcRenderer.invoke("arknights:cursor-status"),
   arknightsSetSystemCursor: (payload) => electron.ipcRenderer.invoke("arknights:set-system-cursor", payload),
+  arknightsWindowStatus: () => electron.ipcRenderer.invoke("arknights:window-status"),
+  arknightsSetResizableWindow: (payload) => electron.ipcRenderer.invoke("arknights:set-resizable-window", payload),
+  arknightsMouseStatus: () => electron.ipcRenderer.invoke("arknights:mouse-status"),
+  arknightsSetMouseCoalescing: (payload) => electron.ipcRenderer.invoke("arknights:set-mouse-coalescing", payload),
   arknightsAnalyze: (payload) => electron.ipcRenderer.invoke("arknights:analyze", payload),
   arknightsCreateCopy: (payload) => electron.ipcRenderer.invoke("arknights:create-copy", payload),
   getCharacters: () => electron.ipcRenderer.invoke("get-characters"),
@@ -244,13 +254,10 @@ const api = {
   },
   setServerUrl: (url, options) => electron.ipcRenderer.invoke("set-server-url", url, options),
   setUiZoom: (zoom) => electron.ipcRenderer.invoke("set-ui-zoom", zoom),
+  setNativeTheme: (mode) => electron.ipcRenderer.invoke("set-native-theme", mode),
   setModMarketCardSize: (size) => electron.ipcRenderer.invoke("set-mod-market-card-size", size),
   setModDownloadImageRatio: (ratio) => electron.ipcRenderer.invoke("set-mod-download-image-ratio", ratio),
   setCompatibilityMode: (enabled) => electron.ipcRenderer.invoke("set-compatibility-mode", enabled),
-  // Skin APIs
-  getSkins: () => electron.ipcRenderer.invoke("get-skins"),
-  setActiveSkin: (skinId) => electron.ipcRenderer.invoke("set-active-skin", skinId),
-  getActiveSkin: () => electron.ipcRenderer.invoke("get-active-skin"),
   // Order saving APIs
   saveCharacterOrder: (characterOrder) => electron.ipcRenderer.invoke("save-character-order", characterOrder),
   saveModOrder: (characterName, modOrder) => electron.ipcRenderer.invoke("save-mod-order", { characterName, modOrder }),
@@ -298,6 +305,11 @@ const api = {
     const handler = (_, data) => callback(data);
     electron.ipcRenderer.on("mods-changed", handler);
     return () => electron.ipcRenderer.removeListener("mods-changed", handler);
+  },
+  onModToggleQueue: (callback) => {
+    const handler = (_, data) => callback(data);
+    electron.ipcRenderer.on("mod-toggle-queue", handler);
+    return () => electron.ipcRenderer.removeListener("mod-toggle-queue", handler);
   },
   onHotkeysChanged: (callback) => {
     const listener = (_, data) => callback(data);
@@ -455,6 +467,8 @@ const api = {
   xxmiStatus: (gameId) => electron.ipcRenderer.invoke("xxmi:status", gameId),
   xxmiCheck: (gameId) => electron.ipcRenderer.invoke("xxmi:check", gameId),
   xxmiInstall: (opts) => electron.ipcRenderer.invoke("xxmi:install", opts),
+  xxmiForkSwitch: (opts) => electron.ipcRenderer.invoke("xxmi:fork-switch", opts),
+  xxmiUpdateOfficial: (opts) => electron.ipcRenderer.invoke("xxmi:update-official", opts),
   onXxmiProgress: (cb) => {
     const handler = (_, data) => cb(data);
     electron.ipcRenderer.on("xxmi:progress", handler);

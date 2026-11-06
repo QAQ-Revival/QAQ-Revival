@@ -83,3 +83,34 @@ test('resource sync reuses unrelated generated copies but force-refreshes the se
   assert.equal(fs.readFileSync(path.join(f.p.destination, modId(f.mod), 'char_001_demo.png'), 'utf8'), 'new!!');
   assert.equal(fs.readFileSync(path.join(f.p.destination, modId(other), 'other.png'), 'utf8'), 'unrelated');
 });
+
+test('several Mods share one patch and one runtime reload', async t => {
+  const f = fixture(t), second = path.join(f.p.library, 'operator', 'second');
+  fs.mkdirSync(second); fs.writeFileSync(path.join(second, 'char_002_other.png'), 'image');
+  const index = JSON.parse(fs.readFileSync(path.join(f.p.bundleRoot, 'bundle-index.json')));
+  index.bundles.push({ logical: 'skinpack/c.ab', inputs: [modId(second) + '/char_002_other.png'] });
+  fs.writeFileSync(path.join(f.p.bundleRoot, 'bundle-index.json'), JSON.stringify(index));
+  const workers = [], reloads = [];
+  let synced = 0;
+  const reload = createModReloader({ paths: () => f.p, resolveMod: (_, name) => name === 'second' ? second : f.mod, characterIds: name => [name === 'operator' ? 'char_001_demo' : 'char_002_other'], sync() { synced++; },
+    async runNative(args) {
+      if (args[0] === '--status') return { success: true, running: true };
+      if (args[0] === '--runtime-status') return { success: true, ...f.runtime };
+      reloads.push(args); f.runtime.lastPatch = args[2];
+      return { success: true, ...f.runtime };
+    },
+    async runWorker(payload) {
+      workers.push(payload);
+      fs.mkdirSync(payload.output, { recursive: true }); fs.writeFileSync(path.join(payload.output, 'manifest.tsv'), 'fixture');
+      return { bundles: [], removedBundles: index.bundles.filter(bundle => payload.affectedBundles.includes(bundle.logical)) };
+    }
+  });
+  const result = await reload({ mods: [{ characterName: 'operator', modName: 'sample' }, { characterName: 'operator', modName: 'second' }], synced: true });
+  assert.equal(result.bundleCount, 2);
+  assert.equal(synced, 0, 'the caller already deployed');
+  assert.equal(workers.length, 1); assert.equal(reloads.length, 1);
+  assert.deepEqual(workers[0].scopeSources, [f.mod, second]); assert.equal(workers[0].scopeSource, undefined);
+  assert.deepEqual(workers[0].affectedBundles.sort(), ['skinpack/a.ab', 'skinpack/c.ab']);
+  const next = JSON.parse(fs.readFileSync(path.join(path.dirname(f.runtime.lastPatch), 'bundle-index.json')));
+  assert.deepEqual(next.bundles, [f.other]);
+});

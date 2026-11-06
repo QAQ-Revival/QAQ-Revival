@@ -1,10 +1,6 @@
 {
   "actions": {
-    "add": "Add Mod",
-    "delete": "Delete Mod",
     "rename": "Rename Mod",
-    "enableAll": "Enable all",
-    "disableAll": "Disable all",
     "copyPath": "Copy path"
   },
   "search": {
@@ -13,11 +9,13 @@
   "empty": "No Mods yet",
   "pathCopied": "Path copied",
   "presets": {
-    "title": "Presets",
     "create": "Create preset",
-    "apply": "Apply preset",
     "delete": "Delete preset",
     "empty": "No presets yet"
+  },
+  "queue": {
+    "enabling": "Enabling, please wait",
+    "disabling": "Disabling, please wait"
   },
   "conflicts": {
     "confirmToast": "Mod conflict. Please confirm.",

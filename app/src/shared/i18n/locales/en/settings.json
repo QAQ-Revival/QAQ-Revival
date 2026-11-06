@@ -2,8 +2,6 @@
   "mi": {
     "title": "XXMI Launcher",
     "navigation": "XXMI Launcher",
-    "components": "Loader components",
-    "description": "Install and update XXMI Launcher here. Manage game importers and runtime libraries inside the Launcher.",
     "directory": "Loader installation directory",
     "directoryHint": "Stored in data beside QAQR by default. Updates preserve Mods and existing settings.",
     "loading": "Reading component versions…",
@@ -11,7 +9,6 @@
     "working": "Working…",
     "installed": "Installed {{version}}",
     "notInstalled": "Not installed",
-    "unknownVersion": "Installed; version not identified",
     "available": "Update available: {{version}}",
     "latest": "Up to date: {{version}}",
     "install": "Install",
@@ -25,40 +22,87 @@
     "timeout": "The installer timed out. Check the connection and try again.",
     "failed": "The XXMI installer failed",
     "busy": "Another XXMI operation is in progress. Try again later.",
+    "closeForUpdate": "Close the game and XXMI Launcher before updating official components.",
     "saveFailed": "Components were installed, but QAQR could not save the paths. Select them again.",
     "recoveryRequired": "Automatic rollback is incomplete. Recovery files are preserved at {{path}}. Close the locking program and restore the files before updating again.",
     "legacyMigrationDeferred": "Migration could not finish. The original directory remains in use; restart after resolving the issue to retry. {{error}}",
-    "progress": { "download": "Downloading {{name}}", "install": "Installing {{name}}", "verify": "Verifying {{name}}" }
+    "progress": {
+      "check": "Checking the official {{name}} version",
+      "download": "Downloading {{name}}",
+      "install": "Installing {{name}}",
+      "verify": "Verifying {{name}}"
+    },
+    "fork": {
+      "navigation": "MI components",
+      "title": "{{importer}} components",
+      "scope": "Switch each component on its own. Only the files listed below are replaced; the Launcher, Mods and settings stay as they are. Restart the game to apply; F10 does not replace a loaded DLL.",
+      "directory": "{{importer}} folder",
+      "official": "Official",
+      "fork": "QAQR fix",
+      "source": "Source",
+      "local": "Installed",
+      "switchTo": "Available",
+      "updateOfficial": "Update official files",
+      "updateNamedOfficial": "Update official {{name}} files",
+      "officialUpdated": "Official {{name}} updated to {{version}}",
+      "kinds": {
+        "official": "Official",
+        "fork": "QAQR fix",
+        "outdated": "Older fix",
+        "other": "Unrecognized files",
+        "vulkan": "Vulkan runtime"
+      },
+      "runtime": {
+        "officialDescription": "Official XXMI runtime",
+        "updateHint": "Updating official files keeps the active fix. Switching to official uses the updated files.",
+        "tag": "Runtime",
+        "description": "Replaces d3d11.dll · the fix adds incremental saving and activity detection",
+        "inactiveOnDx12": "The game is in DX12 mode and does not load d3d11.dll, so this choice applies once it is back on DX11"
+      },
+      "core": {
+        "officialUpdateHint": "Update the official Core and ShaderFixes while preserving Mods and settings.",
+        "officialDescription": "Official Core and ShaderFixes",
+        "updateHint": "Updating Core applies the official version; you can select the fix again afterwards. Mods and settings are preserved.",
+        "tag": "Core",
+        "description": "Replaces the MergedSkeleton INI, HLSL and shader cache · the fix supports structured skeleton buffers"
+      },
+      "switched": "{{name}} switched to {{target}}. Restart the game to apply.",
+      "approvalHint": "The fixed DLL needs Unsafe Mode: select this game in the Launcher, turn it on in Advanced Settings, and save. This permits custom DLLs for this MI and skips the upstream DLL signature check.",
+      "confirmTitle": "Replace unrecognized files",
+      "confirmDescription": "The installed {{name}} files are neither official nor the QAQR fix. They cannot be recovered after switching to {{target}}.",
+      "confirmAction": "Replace",
+      "confirmRequired": "These files cannot be recovered after replacing them. Confirm first.",
+      "unsupported": "This game has no QAQR fix.",
+      "notInitialized": "First install and configure this game’s MI in the Launcher.",
+      "bundleMissing": "The QAQR fix component is missing. Update or rebuild QAQR.",
+      "invalidBundle": "The QAQR fix component failed verification.",
+      "approvalRequired": "Turn on and save Unsafe Mode for this game in the Launcher first.",
+      "officialMissing": "The Launcher has no official DLL. Update once in the Launcher first.",
+      "runtimeNotAdapted": "The fix does not cover official {{version}} yet.",
+      "unknownRuntime": "The installed DLL has an unknown origin. Switch to official before enabling the fix.",
+      "unknownCore": "The installed files are not a known version. Switch to official before enabling the fix.",
+      "coreMismatch": "The fix targets EFMI {{fork}}, but {{version}} is installed. Switching is unavailable.",
+      "writeFailed": "Replacing the files failed and they were rolled back. Close the game and try again.",
+      "vulkanActive": "The Vulkan runtime is in use. Switch it under Vulkan Mod"
+    }
   },
   "language": {
-    "title": "Language",
-    "simplifiedChinese": "Simplified Chinese",
     "unsupported": "This language is not available yet",
     "saveFailed": "Failed to save language"
   },
   "categories": {
     "general": "General",
-    "generalDescription": "Window behavior, game visibility, and Mod state.",
     "persist": "Mod state",
-    "persistDescription": "Manage saved Mod state for each game.",
     "appearance": "Appearance",
-    "appearanceDescription": "Theme, scaling, and visual effects.",
     "downloads": "Downloads and network",
-    "downloadsDescription": "Download folders and market connection.",
     "shortcuts": "Shortcuts",
-    "shortcutsDescription": "Set the in-game Mod panel shortcut.",
     "maintenance": "Maintenance",
-    "maintenanceDescription": "Update loaders and troubleshoot Mods.",
-    "about": "About and updates",
-    "aboutDescription": "Version and updates."
+    "about": "About and updates"
   },
   "gameVisibility": {
     "title": "Game visibility",
-    "manage": "Choose which games to show",
     "description": "Turn off a game to hide it from the sidebar, Mod state, download filters, and other game lists. Settings, downloads, and Mods are retained. Turn it on to restore visibility.",
     "toggle": "Show {{name}}",
-    "shown": "Visible",
-    "hidden": "Hidden",
     "keepVisible": "Keep at least one game visible"
   },
   "window": {
@@ -67,17 +111,11 @@
   "randomLaunch": {
     "title": "Random executable names"
   },
-  "persist": {
-    "title": "Presets and state"
-  },
   "theme": {
     "title": "Theme"
   },
   "scale": {
     "title": "Interface size"
-  },
-  "cards": {
-    "title": "Download cards"
   },
   "compatibility": {
     "title": "Display compatibility",
@@ -98,9 +136,7 @@
   },
   "game": {
     "loading": "Loading game settings…",
-    "description": "Save paths and fixers for each game.",
     "detectPaths": "Detect paths",
-    "paths": "Game paths",
     "modsFolder": "Mods folder",
     "executable": "Game executable",
     "xxmiLauncher": "XXMI launcher",
@@ -112,9 +148,7 @@
   },
   "range": {
     "valueLabel": "{{label}} value",
-    "saveHint": "Press Enter or leave the field to save",
-    "integerHint": "Enter an integer from {{min}} to {{max}}",
-    "stepHint": "Enter a value from {{min}} to {{max}}, in steps of {{step}}"
+    "saveHint": "Press Enter or leave the field to save"
   },
   "updates": {
     "title": "App updates",
@@ -123,7 +157,6 @@
     "automaticLabel": "Check GitHub updates automatically",
     "automaticDescription": "Check GitHub for stable releases.",
     "frequency": "Check frequency",
-    "frequencyDescription": "Check once on each scheduled day.",
     "everyPrefix": "Every ",
     "daysSuffix": " days",
     "intervalLabel": "Days between update checks",
@@ -141,5 +174,41 @@
     "viewUpdate": "View update",
     "dismissVersion": "Dismiss this version",
     "failed": "Update failed"
+  },
+  "efmiVulkan": {
+    "toggle": "Load Mods with Vulkan",
+    "description": "Installs a d3d11.dll with the Vulkan backend and removes the -force-d3d11 launch argument. Turning it off restores the matching DX11 build",
+    "toggleLabel": "Endfield Vulkan Mods",
+    "official": "Original",
+    "fork": "QAQR fixed",
+    "channelLabel": "XXMI-Libs Vulkan build",
+    "runtimeDescription": "Original comes from upstream release {{official}} · The fixed build adds the QAQR fixes to it",
+    "forkMissing": "This version does not include the fixed build",
+    "kinds": {
+      "off": "Not enabled",
+      "official": "Original",
+      "fork": "QAQR fixed",
+      "outdated": "Older fixed build",
+      "other": "Unrecognized file"
+    },
+    "availableVersion": "Latest upstream {{version}}",
+    "updateAria": "Update the upstream Vulkan runtime",
+    "update": "Update",
+    "disabledHint": "Vulkan is off",
+    "ready": "Vulkan is ready",
+    "needsCheck": "Vulkan needs attention",
+    "checkUpdates": "Check for updates",
+    "detectAgain": "Detect again",
+    "openMiDirectory": "Open the EFMI folder",
+    "projectInfo": "QAQR branch",
+    "upstreamInfo": "Upstream project",
+    "processing": "Working…",
+    "limits": "Experimental: not every Mod works yet. Only a few DX11 ShaderRegex material patches convert automatically, and RabbitFX needs its Vulkan build. Restart the game to apply",
+    "confirmTitle": "Replace an unrecognized file",
+    "confirmDescription": "The local d3d11.dll is neither the official build nor the QAQR fixed build, and cannot be recovered after Vulkan is turned on",
+    "confirmAction": "Replace and turn on",
+    "enabled": "Vulkan is on. Restart the game to apply",
+    "disabled": "Back on DX11. Restart the game to apply",
+    "switched": "Switched to {{target}}. Restart the game to apply"
   }
 }

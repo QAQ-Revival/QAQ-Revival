@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { createWuwaDx12Components, createWuwaDx12Packages, releasePackage } = require('../app/src/main/games/wuwa/dx12-components.cjs');
 const { createWuwaDx12Service, resolveWuwaDx12Paths, buildWuwaDx12Args } = require('../app/src/main/games/wuwa/dx12.cjs');
 
@@ -164,4 +165,49 @@ test('component upgrades preserve disabled state and user files, with a backup a
   const reshade = new Map(f.bundles.reshade); reshade.version = '6.9.0'; let cached = false;
   assert.equal((await f.components.update(f.paths, 'reshade', reshade, { commit: async () => { cached = true; } })).cached, true);
   assert.equal(cached, true); assert.equal(fs.readFileSync(userDll, 'utf8'), 'user supplied runtime');
+});
+test('the add-on switches between the upstream and QAQR builds, while on or off, and leaves user files alone', async t => {
+  const f = fixture(t), addon = path.join(f.paths.win64, 'wwmi_dx12.addon64');
+  const forkAddon = Buffer.concat([pe(), Buffer.from('qaqr build')]);
+  const fork = new Map([...f.bundles.addon].map(([name, bytes]) => [name, name === 'wwmi_dx12.addon64' ? forkAddon : bytes]));
+  Object.assign(fork, { version: '2026.10.4', build: 'a'.repeat(12), addonHash: crypto.createHash('sha256').update(forkAddon).digest('hex') });
+  f.bundles.addon.version = '2026.10.3';
+  let enabled = true;
+  const packages = Object.assign(async kind => f.bundles[kind], { fork: () => fork, state: () => ({ components: {}, errors: {} }) });
+  const service = createWuwaDx12Service({ resolvePaths: () => ({ ...f.paths }), getEnabled: () => enabled, saveEnabled: value => { enabled = value; }, components: f.components, packages,
+    backupDir: path.join(f.root, 'backups'), stopped: async () => {}, inspect: async file => ({ ok: fs.existsSync(file), message: 'ReShade' }), launchProcess: async () => ({ success: true }) });
+  await f.service.setEnabled(true);
+  assert.equal((await service.status()).channel.current, 'official');
+  assert.deepEqual((await service.status()).channel.fork, { version: '2026.10.4', build: 'a'.repeat(12) });
+
+  await service.setChannel('fork');
+  assert.deepEqual(fs.readFileSync(addon), forkAddon);
+  let state = await service.status();
+  assert.equal(state.channel.current, 'fork'); assert.equal(state.sources.addon.source, 'managed'); assert.equal(state.sources.addon.version, '2026.10.4');
+
+  const updatedOfficial = new Map(f.bundles.addon);
+  updatedOfficial.set('wwmi_dx12.addon64', Buffer.concat([pe(), Buffer.from('official next')]));
+  updatedOfficial.version = '2026.11.1';
+  packages.prepareUpdate = async (kind, current) => { assert.equal(kind, 'addon'); assert.equal(current, undefined); return updatedOfficial; };
+  packages.commitUpdate = bundle => { f.bundles.addon = bundle; };
+  await service.updateComponent('addon');
+  assert.deepEqual(fs.readFileSync(addon), forkAddon, 'updating the official cache does not replace the active fix');
+  assert.equal((await service.status()).channel.current, 'fork');
+
+  // A disabled add-on keeps the build it would come back with.
+  await f.service.setEnabled(false);
+  enabled = false;
+  assert.equal(fs.existsSync(addon), false);
+  assert.equal((await service.status()).channel.current, 'fork');
+  await service.setChannel('official');
+  assert.equal(fs.existsSync(addon), false, 'switching does not turn DX12 back on');
+  assert.equal((await service.status()).channel.current, 'official');
+  await f.service.setEnabled(true);
+  enabled = true;
+  assert.deepEqual(fs.readFileSync(addon), f.bundles.addon.get('wwmi_dx12.addon64'));
+
+  const userAddon = f.write(addon, Buffer.concat([pe(), Buffer.from('user addon')]));
+  await assert.rejects(service.setChannel('fork'), /wwmi|backend/i);
+  assert.ok(fs.readFileSync(userAddon).includes(Buffer.from('user addon')));
+  await assert.rejects(service.setChannel('nightly'));
 });

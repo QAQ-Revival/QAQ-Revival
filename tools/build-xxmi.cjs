@@ -38,7 +38,10 @@ function build({ output = path.join(root, 'local-components/xxmi-installer'), te
   fs.mkdirSync(bootstrap, { recursive: true });
   fs.writeFileSync(path.join(bootstrap, 'sitecustomize.py'), `import os, site\nsite.addsitedir(${JSON.stringify(packages)})\n_dll_directory = os.add_dll_directory(${JSON.stringify(path.join(packages, 'pywin32_system32'))})\n`);
   const env = { ...process.env, PYTHONPATH: [bootstrap, path.join(upstream, 'src/xxmi_launcher'), packages, path.join(packages, 'win32'), path.join(packages, 'win32/lib'), path.join(packages, 'Pythonwin')].join(path.delimiter), PYTHONUTF8: '1', PYINSTALLER_CONFIG_DIR: path.join(work, 'pyinstaller-cache') };
-  if (test) run(python, [path.join(adapter, 'test_installer.py')], { env });
+  if (test) {
+    run(python, [path.join(adapter, 'test_installer.py')], { env });
+    run(python, ['-m', 'unittest', 'discover', '-s', path.join(upstream, 'tests')], { env });
+  }
   run(python, ['-m', 'PyInstaller', '--noconfirm', '--clean', '--onedir', '--name', 'XxmiInstaller', '--distpath', path.join(work, 'dist'), '--workpath', path.join(work, 'freeze'), '--specpath', work, '--paths', path.join(upstream, 'src/xxmi_launcher'), '--paths', packages, '--collect-data', 'customtkinter', '--exclude-module', 'av', '--exclude-module', 'tkinterweb', path.join(adapter, 'worker.py')], { env });
   // This fixed output is generated program code, never the managed XXMI install.
   for (let current = output; current !== path.dirname(current); current = path.dirname(current)) if (fs.existsSync(current) && fs.lstatSync(current).isSymbolicLink()) throw Error('Linked component output');
@@ -66,7 +69,7 @@ function build({ output = path.join(root, 'local-components/xxmi-installer'), te
     const file = path.join(entry.parentPath, entry.name);
     files[path.relative(output, file).split(path.sep).join('/')] = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
   }
-  fs.writeFileSync(path.join(output, 'component.json'), JSON.stringify({ protocol: 1, source: 'https://github.com/SpectrumQT/XXMI-Launcher', sourceCommit: revision, files }, null, 2));
+  fs.writeFileSync(path.join(output, 'component.json'), JSON.stringify({ protocol: 1, source: 'https://github.com/QAQ-Revival/XXMI-Launcher', sourceCommit: revision, files }, null, 2));
   console.log('Built embedded XXMI installer from pinned upstream submodule ' + revision);
   return output;
 }

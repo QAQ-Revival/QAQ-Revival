@@ -56,7 +56,22 @@ async function installationToken(app, fetchFn = fetch) {
 function matchesRepository(input) {
   return input.protocol === 'https' && input.host === 'github.com' && String(input.path || '').replace(/\.git$/, '').toLowerCase() === REPOSITORY.toLowerCase();
 }
+async function importKey(id, file) {
+  // Restores this machine's copy of the existing App, e.g. after the local
+  // application data was reset. The key file is removed once it is encrypted.
+  if (!/^\d+$/.test(id || '') || !file) throw Error('Usage: github-app-auth import <app id> <private-key.pem>');
+  const pem = fs.readFileSync(file, 'utf8');
+  const response = await fetch('https://api.github.com/app', { headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${createJwt({ id, pem })}`, 'User-Agent': 'QAQ-Revival-publisher' }, signal: AbortSignal.timeout(15000) });
+  if (!response.ok) throw Error(`GitHub rejected this App ID and key (HTTP ${response.status})`);
+  const app = await response.json();
+  if (app.owner?.login !== REPOSITORY.split('/')[0]) throw Error('This key belongs to an App outside the project organization');
+  saveRegistration({ id: app.id, slug: app.slug, pem });
+  fs.rmSync(file);
+  const result = await installationToken(readRegistration());
+  console.log(JSON.stringify({ identity: `${result.slug}[bot]`, repository: REPOSITORY, installationId: result.installationId, keyFileRemoved: true }));
+}
 async function main() {
+  if (process.argv[2] === 'import') return importKey(process.argv[3], process.argv[4]);
   if (process.argv[2] === 'status') {
     const result = await installationToken(readRegistration());
     console.log(JSON.stringify({ identity: `${result.slug}[bot]`, repository: REPOSITORY, installationId: result.installationId, expiresAt: result.expiresAt }));

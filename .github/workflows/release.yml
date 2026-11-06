@@ -15,7 +15,7 @@ jobs:
   release:
     if: startsWith(github.event.head_commit.message, '[P] ')
     runs-on: windows-2022
-    timeout-minutes: 30
+    timeout-minutes: 60
     permissions:
       contents: write
     defaults:
@@ -26,6 +26,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Node.js
@@ -39,7 +40,10 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Update components to their configured branches
+      - name: Merge upstream into organization forks and update components
+        env:
+          QAQR_GITHUB_APP_ID: ${{ secrets.QAQR_GITHUB_APP_ID }}
+          QAQR_GITHUB_APP_PRIVATE_KEY: ${{ secrets.QAQR_GITHUB_APP_PRIVATE_KEY }}
         run: node tools/update-components.cjs
 
       - name: Read version from app/package.json
@@ -76,6 +80,22 @@ jobs:
 
       - name: Build Windows x64 portable application
         run: node tools/build.cjs
+
+      # The Electron smoke window is 1440x960. The runner's default 1024x768
+      # display cannot hold it, and Windows keeps the page at the old size.
+      - name: Use a desktop-sized display for the Electron smoke window
+        run: |
+          if (Get-Command Set-DisplayResolution -ErrorAction SilentlyContinue) {
+            Set-DisplayResolution -Width 1920 -Height 1080 -Force
+          } else {
+            Add-Type -Path tools/ci/display-resolution.cs
+            $result = [QaqrDisplay]::Set(1920, 1080)
+            if ($result -ne 0) { throw "ChangeDisplaySettings returned $result" }
+          }
+          Add-Type -AssemblyName System.Windows.Forms
+          $area = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+          "Display work area: $($area.Width)x$($area.Height)"
+          if ($area.Width -lt 1440 -or $area.Height -lt 960) { throw "The runner display is too small for the 1440x960 Electron smoke window" }
 
       - name: Run regression and Electron smoke tests
         run: npm test

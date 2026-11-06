@@ -56,6 +56,39 @@ export function stripCollectionVersion(value) {
     version: "",
   };
 }
+export function parseArknightsCollectionName(mod, characterName, characterAliases = []) {
+  // Converted bundle names include a content fingerprint, not a Mod identity.
+  // Keep the complete title (including hyphenated descriptions) and resource
+  // scope; a common prefix or a missing version is not evidence of a release.
+  const name = cleanCollectionText(mod?.name).replace(/\s*\[[a-f\d]{8}\]$/i, "");
+  const suffix = name.match(/\s*\((?:PC|Repaired)(?: \d+)?\)$/i)?.[0] || "";
+  const parts = splitCollectionNameParts(suffix ? name.slice(0, -suffix.length) : name);
+  if (buildCharacterPrefixKeys(characterName, characterAliases).includes(normalizeCollectionKey(parts[0]))) parts.shift();
+  let version = "";
+  const titleParts = [];
+  for (const part of parts) {
+    const pureVersion = /^v?\s*\d+(?:\.\d+){0,3}[a-z]?$/i.test(part);
+    const stripped = pureVersion ? { text: "", version: part } : stripCollectionVersion(part);
+    if (stripped.version) {
+      if (version) return null;
+      version = normalizeVersionLabel(stripped.version);
+    }
+    if (stripped.text) titleParts.push(stripped.text);
+  }
+  if (!version || !titleParts.length) return null;
+  const collectionName = cleanCollectionText(titleParts.join("-") + suffix);
+  const scope = mod.arknightsScope;
+  const contentTypes = [...new Set(scope.contentTypes || [])].sort();
+  if (!contentTypes.length) return null;
+  return {
+    mod,
+    collectionName,
+    collectionKey: JSON.stringify(["arknights", normalizeCollectionKey(collectionName), mod.appearanceSectionId || scope.sectionId || "", [...new Set(scope.sectionIds || [])].sort(), contentTypes]),
+    variantName: "",
+    variantVersion: version,
+    explicitVersion: true,
+  };
+}
 export function normalizeVersionLabel(value) {
   const text = cleanCollectionText(value);
   if (!text) return "";

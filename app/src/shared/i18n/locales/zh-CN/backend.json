@@ -122,12 +122,15 @@
   },
   "characterContextMenu": {
     "unpin": "取消置顶",
-    "pin": "置顶到最上方",
-    "openSourceFolder": "打开源文件夹",
-    "moveHere": "移动到这里",
+    "pin": "置顶",
+    "openSourceFolder": "打开文件夹",
+    "moveHere": "移到这里",
     "fixer": "修复器",
-    "resetAllModIni": "重置全部 Mod ini",
-    "changeFixer": "更换修复器"
+    "resetAllModIni": "重置全部 ini",
+    "changeFixer": "更换修复器",
+    "rename": "重命名",
+    "hide": "隐藏（停用全部 Mod）",
+    "delete": "删除"
   },
   "characterImageCache": {
     "invalidCharacterImageRedirect": "Invalid character image redirect",
@@ -228,7 +231,7 @@
       "builtInGameCannotDelete": "内置游戏不可删除",
       "invalidVisibility": "无效的游戏显隐设置",
       "keepVisibleGame": "至少保留一个可见游戏",
-      "gameHidden": "此游戏已隐藏，请先在系统设置 → 通用中恢复显示",
+      "gameHidden": "此游戏已隐藏，到设置 → 通用 → 常规恢复显示",
       "chooseExecutable": "选择程序",
       "chooseFile": "选择文件",
       "selectModsFolder": "Select Mods Folder",
@@ -251,6 +254,8 @@
     },
     "mods": {
       "modFolderNotFound": "Mod folder not found",
+      "enableQueued": "开启中，请稍等",
+      "disableQueued": "关闭中，请稍等",
       "noINIFilesFoundInModFolder": "No INI files found in mod folder",
       "sectionKeyNotFoundInAnyINIFile": "Section [Key{{sectionName}}] not found in any INI file",
       "renameFailedAfterRetries": "Rename failed after retries",
@@ -289,13 +294,6 @@
     "linkedDirectory": "请先处理链接目录：{{root}}",
     "disableTargetExists": "无法禁用，目标已存在：{{to}}",
     "partialRestoreFailed": "{{reason}}；部分目录恢复失败：{{path}}"
-  },
-  "config": {
-    "appearance": {
-      "auroraDescription": "浅色渐变、玻璃质感与薄荷色高光",
-      "themeUnavailable": "该主题不可用，请选择内置主题",
-      "auroraName": "星辰薄荷"
-    }
   },
   "desktop": {
     "windows": {
@@ -460,18 +458,18 @@
   "games": {
     "genshinServices": {
       "saveSettingsFailed": "设置保存失败，请重试",
-      "processStateUnknown": "无法确认运行状态，请关闭原神与 XXMI 后重试",
-      "closeBeforePathRepair": "请先完全关闭原神与 XXMI，再修复或恢复路径配置",
-      "closeBeforeAntiCrash": "请先完全关闭原神与 XXMI，再应用防报错启动",
+      "processStateUnknown": "无法确认运行状态，关闭原神与 XXMI 后重试",
+      "closeBeforePathRepair": "先完全关闭原神与 XXMI，再修复或恢复路径",
+      "closeBeforeAntiCrash": "先完全关闭原神与 XXMI，再应用防报错启动",
       "firewallStateUnknown": "无法确认防火墙规则状态",
       "invalidCheckSettings": "原神检查设置无效",
-      "checkSettingsSaved": "原神检查设置已保存",
+      "checkSettingsSaved": "已保存",
       "exportCheckTitle": "导出原神兼容检查报告",
       "reportFilter": "检查报告",
       "jsonReportRequired": "请选择 JSON 报告文件",
-      "reportExported": "检查报告已导出；不包含绝对路径、账号资料或原始日志。",
+      "reportExported": "检查报告已导出，不含绝对路径、账号资料或原始日志",
       "invalidAntiCrashSettings": "原神防报错设置无效",
-      "antiCrashSettingsSaved": "原神防报错设置已保存，下次通过 QAQ 直接启动时生效。",
+      "antiCrashSettingsSaved": "已保存，下次直接启动生效",
       "selectCustomDll": "选择外部定制组件 d3d11.dll",
       "graphicsLibraryFilter": "图形组件",
       "dllRequired": "请选择 DLL 文件"
@@ -545,24 +543,24 @@
     },
     "settings": {
       "gameConfigMissing": "游戏配置不存在，请重新选择游戏",
-      "existingFolderRequired": "请选择一个已经存在的文件夹。",
+      "existingFolderRequired": "请选择已存在的文件夹",
       "currentFolder": "当前文件夹",
       "parentModsFolder": "上级 Mods 文件夹",
       "childModsFolder": "子级 Mods 文件夹",
       "importerModsFolder": "{{importerName}} Mods 文件夹",
       "nestedImporterModsFolder": "{{name}}\\{{importerName}} Mods 文件夹",
       "siblingModsFolder": "同级 Mods 文件夹",
-      "modsFolderNotFound": "没有找到真正的 Mods 文件夹。请选择 Mods 本身，或者选择包含 GIMI/WWMI/SRMI/ZZMI/EFMI/NEMI\\Mods 的上级目录。",
-      "ambiguousModsFolders": "检测到多个可用的 Mods 文件夹，请直接选择要使用的那个 Mods 文件夹。",
-      "modsPathNotConfigured": "当前游戏未设置 Mods 文件夹，请先到游戏设置中配置。",
-      "modsPathMissing": "当前游戏的 Mods 文件夹不存在，请重新到系统设置中选择。",
+      "modsFolderNotFound": "没有找到 Mods 文件夹。选择 Mods 本身，或包含 GIMI/WWMI/SRMI/ZZMI/EFMI/NEMI\\Mods 的上级目录",
+      "ambiguousModsFolders": "检测到多个 Mods 文件夹，直接选择要用的那个",
+      "modsPathNotConfigured": "未设置 Mods 文件夹，到游戏设置配置",
+      "modsPathMissing": "Mods 文件夹不存在，到游戏设置重新选择",
       "modLoader": "Mod 加载器",
       "gameExecutable": "游戏程序"
     },
     "wuwaServices": {
-      "saveDx12Failed": "无法保存 DX12 设置，请检查配置目录权限",
-      "processStateUnknown": "无法确认游戏运行状态，请关闭鸣潮与 XXMI 后重试",
-      "closeBeforeTuning": "请先完全关闭鸣潮与 XXMI，再应用或恢复游戏配置",
+      "saveDx12Failed": "无法保存 DX12 设置，检查配置目录权限",
+      "processStateUnknown": "无法确认运行状态，关闭鸣潮与 XXMI 后重试",
+      "closeBeforeTuning": "先完全关闭鸣潮与 XXMI，再应用或恢复配置",
       "chooseDeviceProfile": "选择鸣潮 DeviceProfiles.ini",
       "deviceProfileFilter": "DeviceProfiles 配置"
     }
@@ -1238,6 +1236,10 @@
     "storageReadFailed": "组件版本记录无法读取，使用随附版本；请重新检查更新"
   },
   "wuwaDx12": {
+    "invalidChannel": "无效的版本",
+    "channelNeedsManaged": "wwmi-dx12 是你自己放的文件，QAQR 不会替换。删掉后再开启 DX12",
+    "forkMissing": "这个版本没有打包 QAQR 修复版 wwmi-dx12",
+    "channelSwitched": "wwmi-dx12 已切换到 {{version}}，重启游戏生效",
     "configTooLarge": "配置文件过大，已保留原文件",
     "unknownConfigEncoding": "配置编码无法识别，已保留原文件",
     "systemStateUnavailable": "无法读取 Windows 组件或进程状态，请重试",
@@ -1286,6 +1288,7 @@
     "enabledUpdateNotice": "原文件已备份，DX12 保持开启。",
     "disabledUpdateNotice": "原文件已备份，组件仍保持停用。",
     "componentUpdated": "{{label}} 内置组件已更新至 {{version}}。{{label2}}",
+    "officialCached": "wwmi-dx12 原版已更新至 {{version}}；当前修复版继续使用，切回原版时生效",
     "bundledComponentDisabled": "QAQR 内置组件已停用，重新开启时自动恢复",
     "bundledComponentMissing": "尚未安装，开启时由 QAQR 自动安装"
   },
@@ -1321,5 +1324,37 @@
     "modsDirectory": "Mods 目录",
     "loader": "加载器路径",
     "mods": "Mods 路径"
+  },
+  "efmiVulkan": {
+    "gameTitle": "游戏",
+    "gameRequired": "先设置 Endfield.exe 路径",
+    "miTitle": "EFMI",
+    "miRequired": "先在 Launcher 里安装并配置 EFMI",
+    "approvalGranted": "已授权",
+    "approvalRequired": "在 Launcher 里选中 EFMI，到高级设置打开 Unsafe Mode 并保存",
+    "argumentTitle": "启动参数",
+    "argumentCleared": "已去掉 -force-d3d11",
+    "argumentPresent": "Launcher 配置还带着 -force-d3d11，启动前会自动校正",
+    "presentTitle": "显卡呈现",
+    "presentLayered": "NVIDIA：优先 DXGI 交换链",
+    "presentAuto": "NVIDIA：驱动默认（自动）。进游戏后 Mod 没生效时，把控制面板的 Vulkan/OpenGL 呈现方法改成优先 DXGI 交换链",
+    "presentNative": "NVIDIA 设成了优先原生呈现，Mod 不会生效。把控制面板的 Vulkan/OpenGL 呈现方法改成优先 DXGI 交换链",
+    "presentOtherVendor": "目前只有 NVIDIA 驱动能通过 D3D12 交换链呈现 Vulkan，这张显卡上 Mod 可能不生效",
+    "presentUnknown": "读取不到显卡设置",
+    "invalidValue": "无效的切换值",
+    "notEnabled": "先开启 Vulkan",
+    "invalidFork": "QAQR 修复版 Vulkan 组件校验失败",
+    "forkMissing": "这个版本没有打包 QAQR 修复版 Vulkan 组件",
+    "confirmRequired": "这个文件替换后无法找回，确认后再开启",
+    "operationInProgress": "另一个 Vulkan 操作正在进行",
+    "launcherConfigMissing": "Launcher 配置里没有 EFMI，先在 Launcher 里配置一次",
+    "closeGameFirst": "先关闭终末地和 XXMI Launcher",
+    "processStateUnknown": "读取不到进程状态，请重试",
+    "invalidRelease": "上游发布的文件清单不完整",
+    "downloadFailed": "下载上游组件失败（{{status}}）",
+    "checksumFailed": "{{name}} 校验失败",
+    "updateCheckFailed": "检查更新失败（{{status}}）",
+    "storageReadFailed": "读取版本记录失败",
+    "alreadyCurrent": "已经是最新版本"
   }
 }

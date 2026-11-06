@@ -127,7 +127,9 @@ async function listMods(characterName) {
         mods = [...orderedMods, ...unorderedMods];
       }
       mods = modsMetadata.movePinnedModsToTop(mods);
-      mods = await require("../mods/selection.cjs").snapshot({ characterName, gameId: gameId2 }, mods);
+      const selection = require("../mods/selection.cjs");
+      mods = await selection.snapshot({ characterName, gameId: gameId2 }, mods);
+      const toggleQueue = selection.queueState({ characterName, gameId: gameId2 });
       mods = mods.map(mod => ({ ...mod, fullName: mod.originalName, marked: require("../developer/marked.cjs").isModMarked(gameId2, characterName, mod.name) }));
       const sections = charactersSkins.buildAppearanceSectionsWithStats(characterName, mods, gameId2, definitions);
       addedAtAccessor.saveIfDirty();
@@ -136,6 +138,7 @@ async function listMods(characterName) {
         mods,
         sections,
         enabledSectionIds: sections.filter(section => section.enabledCount > 0).map(section => section.sectionId),
+        toggleQueue,
         characterAliases: charactersCatalog.getCharacterAliasCandidates(characterName, gameId2)
       };
     } catch (error) {
@@ -145,15 +148,19 @@ async function listMods(characterName) {
     }
 }
 
-async function applyModToggle({ characterName, modName, enable, gameId, autoReload = false, confirmedConflictIds = [] }) {
+// With a batch from the toggle queue, refreshes and game reloads wait for
+// commitModToggleBatch, which runs them once for the whole batch.
+async function applyModToggle({ characterName, modName, enable, gameId, autoReload = false, confirmedConflictIds = [], batch = null }) {
     try {
       const gameId2 = gameId || gamesSettings.getActiveGameScopeId();
       characterName = charactersSkins.assertSafeAppearancePathSegment(characterName, i18n.t("backend.validation.characterName"));
       modName = charactersSkins.assertSafeAppearancePathSegment(modName, i18n.t("backend.validation.modName"));
       if (enable) charactersHidden.assertCharacterVisible(characterName, gameId2);
-      if (gameId2 === "arknights") return require("../games/arknights/service.cjs").toggleMod({ characterName, modName, enable, autoReload, confirmedConflictIds });
+      if (gameId2 === "arknights") return require("../games/arknights/service.cjs").toggleMod({ characterName, modName, enable, autoReload, confirmedConflictIds, batch });
       if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
-        return modsNevernessPaks.toggleNevernessDx12PakMod(characterName, modName, enable);
+        const result = modsNevernessPaks.toggleNevernessDx12PakMod(characterName, modName, enable, { notify: !batch });
+        if (batch && result.success) (batch.changed ||= []).push({ gameId: gameId2, characterName, modName });
+        return result;
       }
       charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
       const env = gamesEnvironment.resolveActiveGameEnvRoot(gameId2);
@@ -196,6 +203,12 @@ async function applyModToggle({ characterName, modName, enable, gameId, autoRelo
       if (enable && persistTracking.isPersistBridgeEnabled(gameId2)) {
         persistService.restorePersistStateForMod(characterName, modName, newPath, gameId2);
       }
+      if (batch) {
+        const result = { success: true, persistRestored: false };
+        (batch.changed ||= []).push({ gameId: gameId2, characterName, modName });
+        if (enable && autoReload) (batch.overlayReload ||= []).push(result);
+        return result;
+      }
       desktopNotifications.notifyCharacterListChanged(characterName, {
         modName,
         reason: "manager-toggle"
@@ -217,7 +230,24 @@ async function applyModToggle({ characterName, modName, enable, gameId, autoRelo
       };
     }
 }
-
+async function commitModToggleBatch(batch) {
+  if (batch.arknights) await require("../games/arknights/service.cjs").commitToggleBatch(batch);
+  if (batch.overlayReload?.length) {
+    let reloadError = "";
+    try { await require("../overlay/helper.cjs").triggerOverlayReload(); }
+    catch (error) { reloadError = error.message; }
+    for (const result of batch.overlayReload) Object.assign(result, reloadError ? { reloadError } : { autoReloaded: true });
+  }
+  const changed = batch.changed || [];
+  if (!changed.length) return;
+  const characters = new Set(changed.map(item => item.characterName));
+  desktopNotifications.notifyCharacterListChanged(characters.size === 1 ? changed[0].characterName : "__all__", {
+    gameId: changed[0].gameId,
+    ...(changed.length === 1 ? { modName: changed[0].modName } : {}),
+    reason: "manager-toggle",
+    resourcesChanged: false
+  });
+}
 
 function selectionContext(characterName, overlay = false) {
   const gameId = gamesSettings.getActiveGameScopeId();
@@ -231,7 +261,9 @@ async function toggleMod(characterName, modName, enable, overlay = false) {
     modName = charactersSkins.assertSafeAppearancePathSegment(modName, i18n.t("backend.validation.modName"));
     if (typeof enable !== "boolean") throw Error("Invalid Mod state");
     if (enable) charactersHidden.assertCharacterVisible(context.characterName, context.gameId);
-    return await require("../mods/selection.cjs").request({ ...context, modName, enable });
+    const result = await require("../mods/selection.cjs").request({ ...context, modName, enable });
+    if (result.busy) return { ...result, error: i18n.t(result.enable ? "backend.ipc.mods.enableQueued" : "backend.ipc.mods.disableQueued") };
+    return result;
   } catch (error) { return { success: false, error: error.message }; }
 }
 async function confirmModConflicts(characterName, overlay = false) {
@@ -892,5 +924,5 @@ function registerIpc() {
   });
 }
 module.exports = {
-  registerIpc, listMods, toggleMod, applyModToggle, confirmModConflicts
+  registerIpc, listMods, toggleMod, applyModToggle, commitModToggleBatch, confirmModConflicts
 };

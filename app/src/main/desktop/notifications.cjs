@@ -3,7 +3,8 @@
 module.exports = {
   notifyAllModWindowsChanged,
   notifyCharacterListChanged,
-  notifyMarkedModsChanged
+  notifyMarkedModsChanged,
+  notifyModToggleQueue
 };
 const electron = require("electron");
 const charactersDirectories = require("../characters/directories.cjs");
@@ -31,6 +32,13 @@ function notifyCharacterListChanged(characterName = "__all__", meta = {}) {
     ...safeMeta,
     fullRefresh: true,
     changedCharacterName
+  });
+}
+// Queue changes only grey out or release single switches; they carry the
+// finished states so windows can update before their next full refresh.
+function notifyModToggleQueue(payload) {
+  electron.BrowserWindow.getAllWindows().forEach(window => {
+    if (!window.isDestroyed()) window.webContents.send("mod-toggle-queue", payload);
   });
 }
 function notifyMarkedModsChanged(gameId2 = gamesSettings.getActiveGameScopeId(), characterName = "__all__", meta = {}) {

@@ -1,13 +1,11 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
+import ReactDOM from "react-dom";
+import { Icon } from "../../components/Icon.jsx";
+import { Menu, MenuItem } from "../../components/Menu.jsx";
 import PostDialog, { Image } from "./ModPostDialog.jsx";
 import { RevivalDownload } from "./PawchiveView.jsx";
-const h = React.createElement;
-const button = (label, onClick, props = {}) => (
-  <button type="button" className="paw-button" onClick={onClick} {...props}>
-    {label}
-  </button>
-);
+import { SkeletonGrid, SourceError } from "./SourceStates.jsx";
 function EmbeddedVerification({ source, gameId, url, onFinish, onCancel }) {
   const viewport = React.useRef(null),
     token = React.useRef(crypto.randomUUID());
@@ -28,7 +26,11 @@ function EmbeddedVerification({ source, gameId, url, onFinish, onCancel }) {
     function geometry() {
       const rect = viewport.current.getBoundingClientRect();
       const x = Math.max(0, rect.left),
-        y = Math.max(36, rect.top);
+        y = Math.max(
+          document.querySelector(".app-topbar")?.getBoundingClientRect().bottom ||
+            0,
+          rect.top,
+        );
       return {
         x,
         y,
@@ -41,7 +43,7 @@ function EmbeddedVerification({ source, gameId, url, onFinish, onCancel }) {
       frame = requestAnimationFrame(() => {
         if (disposed || !opened) return;
         const visible = !document.querySelector(
-          ".mod-download-source-menu, .game-selector-menu, .qaqm-download-panel, .modal-backdrop",
+          ".menu:not([hidden]), .game-selector-menu, .qaqm-download-panel, .modal-backdrop",
         );
         const bounds = geometry(),
           serialized = JSON.stringify({
@@ -133,36 +135,45 @@ function EmbeddedVerification({ source, gameId, url, onFinish, onCancel }) {
       aria-label={t("downloads.site.inlineVerification")}
     >
       <div className="mod-site-verification-header">
-        <div>
+        <div className="mod-site-verification-copy">
           <strong>{t("downloads.site.verifyOrLogin")}</strong>
-          <p className="paw-muted">
+          <span className="toolbar-label">
             {host || t("downloads.site.loading")}
             {status === 403 ? t("downloads.site.forbiddenHint") : ""}
-          </p>
+          </span>
         </div>
-        <div className="mod-site-actions">
-          {button(t("downloads.site.refreshVerification"), () =>
-            window.api.modSiteReload({
-              source,
-              token: token.current,
-            }),
-          )}
-          {button(
-            finishing
+        <div className="page-actions">
+          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+            {t("common.actions.cancel")}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() =>
+              window.api.modSiteReload({
+                source,
+                token: token.current,
+              })
+            }
+          >
+            {t("downloads.site.refreshVerification")}
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={finishing}
+            onClick={finish}
+          >
+            {finishing
               ? t("downloads.site.confirming")
-              : t("downloads.site.finishVerification"),
-            finish,
-            {
-              className: "paw-button paw-primary",
-              disabled: finishing,
-            },
-          )}
-          {button(t("common.actions.cancel"), onCancel)}
+              : t("downloads.site.finishVerification")}
+          </button>
         </div>
       </div>
       {error && (
-        <p className="paw-alert" role="alert">
-          {error}
+        <p className="notice notice-danger" role="alert">
+          <Icon name="alert" size={14} />
+          <span>{error}</span>
         </p>
       )}
       <div
@@ -173,7 +184,7 @@ function EmbeddedVerification({ source, gameId, url, onFinish, onCancel }) {
     </section>
   );
 }
-function ModSiteView({ source, gameId, isActive }) {
+function ModSiteView({ source, gameId, isActive, sourceTabs }) {
   const [state, setState] = React.useState(null),
     [result, setResult] = React.useState(null),
     [error, setError] = React.useState(null);
@@ -348,90 +359,172 @@ function ModSiteView({ source, gameId, isActive }) {
   }
   return (
     <section
-      className="pawchive-view mod-site-view"
+      className="page pawchive-view mod-site-view"
       aria-label={site?.label || t("downloads.site.source")}
     >
-      <header className="mod-site-toolbar">
-        <h2>
-          {site
-            ? `${site.label} · ${site.gameName}`
-            : t("downloads.site.loadingSource")}
+      <header className="page-header mod-site-toolbar">
+        <h2 className="sr-only">
+          {site ? `${site.label} · ${site.gameName}` : t("downloads.site.source")}
         </h2>
-        <div className="mod-site-actions">
-          {button(
-            t("common.actions.refresh"),
-            () => {
+        {sourceTabs}
+        <div className="page-actions">
+          <button
+            type="button"
+            className="btn"
+            disabled={!!verification || loading}
+            onClick={() => {
               setVerificationCancelled(false);
               setRevision((value) => value + 1);
-            },
-            {
-              disabled: !!verification || loading,
-            },
-          )}
-          {button(t("downloads.site.account"), () => setAccount(!account), {
-            "aria-expanded": account,
-          })}
-          {button(t("downloads.site.sectionSettings"), () => {
-            setUrl(site?.url || "");
-            setEditing(!editing);
-          })}
+            }}
+          >
+            {t("common.actions.refresh")}
+          </button>
+          <Menu
+            label={t("common.actions.more")}
+            trigger={({ props }) => (
+              <button
+                type="button"
+                className="icon-btn"
+                title={t("common.actions.more")}
+                aria-label={t("common.actions.more")}
+                {...props}
+              >
+                <Icon name="more" size={18} />
+              </button>
+            )}
+          >
+            <div className="menu-label">
+              {state?.hasSession
+                ? t("downloads.site.sessionSaved")
+                : t("downloads.site.noSession")}
+            </div>
+            <MenuItem
+              icon={<Icon name="user" size={15} />}
+              onClick={() => {
+                setVerification({
+                  url: site?.url || "",
+                  post: null,
+                });
+                setSelected(null);
+              }}
+            >
+              {t("downloads.site.loginOrVerify")}
+            </MenuItem>
+            <MenuItem
+              icon={<Icon name="link" size={15} />}
+              onClick={() => {
+                setUrl(site?.url || "");
+                setEditing(true);
+              }}
+            >
+              {t("downloads.site.sectionSettings")}
+            </MenuItem>
+            <div className="menu-sep" />
+            <MenuItem
+              danger={true}
+              icon={<Icon name="trash" size={15} />}
+              onClick={() => setClearing(true)}
+            >
+              {t("downloads.site.clearSession")}
+            </MenuItem>
+          </Menu>
         </div>
       </header>
-      {account && (
-        <div className="mod-site-account">
-          <span>
-            {state?.hasSession
-              ? t("downloads.site.sessionSaved")
-              : t("downloads.site.noSession")}
-          </span>
-          {button(t("downloads.site.loginOrVerify"), () => {
-            setVerification({
-              url: site?.url || "",
-              post: null,
-            });
-            setSelected(null);
-          })}
-          {button(t("downloads.site.clearSession"), () => setClearing(true))}
+      {clearing &&
+        ReactDOM.createPortal(
+          <div className="modal-backdrop" onClick={() => setClearing(false)}>
+            <div
+              className="modal-content"
+              role="dialog"
+              aria-modal={true}
+              aria-label={t("downloads.site.clearSession")}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h3 className="dialog-title">{t("downloads.site.clearSession")}</h3>
+              <p className="dialog-desc">
+                {t("downloads.site.clearSessionConfirm")}
+              </p>
+              <div className="dialog-actions">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setClearing(false)}
+                >
+                  {t("common.actions.cancel")}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  disabled={busy}
+                  onClick={clearSession}
+                >
+                  {t("common.actions.confirmClear")}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+      {editing &&
+        ReactDOM.createPortal(
+          <div className="modal-backdrop" onClick={() => setEditing(false)}>
+            <form
+              className="modal-content"
+              role="dialog"
+              aria-modal={true}
+              aria-label={t("downloads.site.sectionSettings")}
+              onClick={(event) => event.stopPropagation()}
+              onSubmit={(event) => {
+                event.preventDefault();
+                configure(url);
+              }}
+            >
+              <h3 className="dialog-title">
+                {t("downloads.site.sectionSettings")}
+              </h3>
+              <label className="feedback-field dialog-body">
+                <span>{t("downloads.site.gameSectionUrl")}</span>
+                <input
+                  className="input"
+                  type="url"
+                  value={url}
+                  onChange={(event) => setUrl(event.target.value)}
+                  maxLength={2000}
+                  required={true}
+                />
+              </label>
+              <div className="dialog-actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost feedback-cancel"
+                  disabled={busy}
+                  onClick={() => configure("")}
+                >
+                  {t("common.actions.restoreDefault")}
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setEditing(false)}
+                >
+                  {t("common.actions.cancel")}
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={busy}>
+                  {t("downloads.site.saveSection")}
+                </button>
+              </div>
+            </form>
+          </div>,
+          document.body,
+        )}
+      {state?.warning && (
+        <div className="source-panel-notice">
+          <p className="notice notice-warning paw-alert">
+            <Icon name="alert" size={14} />
+            <span>{state.warning}</span>
+          </p>
         </div>
       )}
-      {clearing && (
-        <div className="paw-notice">
-          <p>{t("downloads.site.clearSessionConfirm")}</p>
-          {button(t("common.actions.confirmClear"), clearSession, {
-            disabled: busy,
-          })}{" "}
-          {button(t("common.actions.cancel"), () => setClearing(false))}
-        </div>
-      )}
-      {editing && (
-        <form
-          className="mod-site-section-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            configure(url);
-          }}
-        >
-          <label>
-            {t("downloads.site.gameSectionUrl")}
-            <input
-              type="url"
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-              maxLength={2000}
-              required={true}
-            />
-          </label>
-          <div className="mod-site-actions">
-            <button className="paw-button" disabled={busy}>
-              {t("downloads.site.saveSection")}
-            </button>
-            {button(t("common.actions.restoreDefault"), () => configure(""), {
-              disabled: busy,
-            })}
-          </div>
-        </form>
-      )}
-      {state?.warning && <p className="paw-alert">{state.warning}</p>}
       {isActive && verification ? (
         <EmbeddedVerification
           key={verification.url}
@@ -450,167 +543,149 @@ function ModSiteView({ source, gameId, isActive }) {
         />
       ) : (
         <React.Fragment>
-          {source === "loverslab" && !!site?.extra?.length && (
-            <div className="paw-toolbar">
-              <label>
-                {t("downloads.site.topicPrefix")}
-                {h(
-                  "select",
-                  {
-                    value: topic || site.url,
-                    onChange: (event) => {
-                      setTopic(event.target.value);
-                      setPage(1);
-                      setCursors([""]);
-                    },
-                  },
-                  <option value={site.url}>
-                    {t("downloads.site.primaryTopics")}
-                  </option>,
-                  ...site.extra.map((item) => (
-                    <option key={item.url} value={item.url}>
-                      {item.label}
-                    </option>
-                  )),
-                )}
-              </label>
+          <form
+            className="source-toolbar paw-toolbar mod-site-search"
+            onSubmit={search}
+          >
+            {source === "loverslab" && !!site?.extra?.length && (
+              <select
+                className="select"
+                aria-label={t("downloads.site.topic")}
+                value={topic || site.url}
+                onChange={(event) => {
+                  setTopic(event.target.value);
+                  setPage(1);
+                  setCursors([""]);
+                }}
+              >
+                <option value={site.url}>
+                  {t("downloads.site.primaryTopics")}
+                </option>
+                {site.extra.map((item) => (
+                  <option key={item.url} value={item.url}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            <div className="search-field paw-search">
+              <Icon name="search" size={15} />
+              <input
+                type="search"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                maxLength={100}
+                placeholder={
+                  pageSearch
+                    ? t("downloads.site.filterPage")
+                    : t("downloads.site.searchCurrentGame")
+                }
+                aria-label={t("market.search.placeholder")}
+              />
             </div>
-          )}
-          <form className="paw-toolbar mod-site-search" onSubmit={search}>
-            <input
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              maxLength={100}
-              placeholder={
-                pageSearch
-                  ? t("downloads.site.filterPage")
-                  : t("downloads.site.searchCurrentGame")
-              }
-              aria-label={t("market.search.placeholder")}
-            />
-            <button className="paw-button" disabled={loading}>
-              {t("common.actions.search")}
-            </button>
-            {result && (
-              <span className="paw-muted">
+            {!!result?.items.length && (
+              <span className="toolbar-label paw-result-count">
                 {t("downloads.site.pageSummary", {
                   page,
                   itemsCount: result.items.length,
-                  status: pageSearch ? t("downloads.site.pageSearchHint") : "",
                 })}
               </span>
             )}
           </form>
-          {error ? (
-            <div className="paw-empty" role="alert">
-              <h2>
-                {error.code === "VERIFY_REQUIRED"
-                  ? t("downloads.site.loginRequired")
-                  : t("downloads.site.parseFailed")}
-              </h2>
-              <p>{error.error || t("common.errors.unknown")}</p>
-              {button(
-                t("common.actions.reload"),
-                () => {
+          <div className="page-body source-panel">
+            {error ? (
+              <SourceError
+                title={
+                  error.code === "VERIFY_REQUIRED"
+                    ? t("downloads.site.loginRequired")
+                    : t("downloads.site.parseFailed")
+                }
+                message={error.error}
+                retryLabel={t("common.actions.reload")}
+                onRetry={() => {
                   setVerificationCancelled(false);
                   setRevision((value) => value + 1);
-                },
-                {
-                  className: "paw-button paw-primary",
-                },
-              )}
-            </div>
-          ) : loading ? (
-            h(
-              "div",
-              {
-                className: "paw-grid",
-                "aria-busy": true,
-              },
-              ...Array.from(
-                {
-                  length: 8,
-                },
-                (_, key) => (
-                  <div className="paw-skeleton" key={key}>
-                    <div />
-                    <span />
-                    <span />
-                  </div>
-                ),
-              ),
-            )
-          ) : result && !result.items.length ? (
-            <div className="paw-empty">
-              <h2>{t("downloads.site.noMatches")}</h2>
-            </div>
-          ) : (
-            h(
-              "div",
-              {
-                className: "paw-grid",
-              },
-              ...(result?.items || []).map((post) => (
-                <article
-                  className="paw-post-card"
-                  key={post.id}
-                  tabIndex={0}
-                  role="button"
-                  onClick={() => setSelected(post)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      setSelected(post);
-                    }
-                  }}
+                }}
+              />
+            ) : loading || !result ? (
+              <SkeletonGrid />
+            ) : !result.items.length ? (
+              <div className="empty-state">
+                <div className="empty-face">{"QAQ"}</div>
+                <div className="empty-title">
+                  {t("downloads.site.noMatches")}
+                </div>
+              </div>
+            ) : (
+              <div className="media-grid paw-grid">
+                {result.items.map((post) => (
+                  <article
+                    className="media-card paw-post-card"
+                    key={post.id}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={post.title}
+                    onClick={() => setSelected(post)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelected(post);
+                      }
+                    }}
+                  >
+                    <div className="media-card-image paw-card-image">
+                      <Image
+                        src={post.thumbnail}
+                        alt={post.title}
+                        mediaSource={source}
+                        gameId={gameId}
+                      />
+                    </div>
+                    <div className="media-card-body">
+                      <h3
+                        className="media-card-title paw-post-title"
+                        title={post.title}
+                      >
+                        {post.title}
+                      </h3>
+                      <div className="media-card-meta">
+                        <span className="paw-card-author">
+                          {post.creator.name}
+                        </span>
+                        {post.published && (
+                          <time className="paw-post-stats">
+                            {new Date(post.published).toLocaleDateString(
+                              "zh-CN",
+                            )}
+                          </time>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+            {result && !loading && (page > 1 || result.hasMore) && (
+              <div className="paw-pagination">
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((value) => value - 1)}
                 >
-                  <div className="paw-card-image">
-                    <Image
-                      src={post.thumbnail}
-                      alt={post.title}
-                      mediaSource={source}
-                      gameId={gameId}
-                    />
-                    <span className="paw-image-service">{site?.label}</span>
-                  </div>
-                  <div className="paw-card-body">
-                    <button
-                      className="paw-post-title"
-                      type="button"
-                      title={post.title}
-                    >
-                      {post.title}
-                    </button>
-                    <span className="paw-card-author">{post.creator.name}</span>
-                    <div className="paw-post-stats">
-                      {post.published
-                        ? new Date(post.published).toLocaleDateString("zh-CN")
-                        : t("common.actions.viewDetails")}
-                    </div>
-                    <div className="paw-card-actions">
-                      <button className="paw-button" type="button">
-                        {t("downloads.site.detailsLink")}
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              )),
-            )
-          )}
-          {result && !loading && (
-            <div className="paw-pagination">
-              {button(
-                t("common.actions.previousPage"),
-                () => setPage((value) => value - 1),
-                {
-                  disabled: page <= 1,
-                },
-              )}
-              {button(t("common.actions.nextPage"), next, {
-                disabled: !result.hasMore,
-              })}
-            </div>
-          )}
+                  {t("common.actions.previousPage")}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  disabled={!result.hasMore}
+                  onClick={next}
+                >
+                  {t("common.actions.nextPage")}
+                </button>
+              </div>
+            )}
+          </div>
         </React.Fragment>
       )}
       {isActive && selected && !verification && (

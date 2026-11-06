@@ -1,6 +1,7 @@
 import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
 import ReactDOM from "react-dom";
+import { Icon } from "../../../components/Icon.jsx";
 const _batchAiDone = new Set();
 function BatchAiPanel({ gameId, imageOnly = false, onClose }) {
   const [charList, setCharList] = React.useState([]);
@@ -374,120 +375,106 @@ function BatchAiPanel({ gameId, imageOnly = false, onClose }) {
     progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
   if (collapsed && running) {
     return ReactDOM.createPortal(
-      <div className="batch-ai-panel-floating-panel">
-        <div className="batch-ai-panel-panel">
-          <div className="batch-ai-panel-row">
-            <span className="batch-ai-panel-heading">
-              {paused ? "⏸" : "▶"}
-              {" AI "}
+      <div className="task-float batch-ai-float">
+        <div className="task-float-main">
+          <Icon name={paused ? "pause" : "play"} size={15} />
+          <span className="task-float-copy">
+            <strong>
+              {"AI "}
               {progress.current}
               {"/"}
               {progress.total}
-            </span>
-            <div className="batch-ai-panel-compact-controls">
-              <button
-                onClick={handlePause}
-                className="batch-ai-panel-pause-action"
-              >
-                {paused ? "▶" : "⏸"}
-              </button>
-              <button
-                onClick={handleCancel}
-                className="batch-ai-panel-cancel-action"
-              >
-                {"✕"}
-              </button>
-              <button
-                onClick={() => setCollapsed(false)}
-                className="batch-ai-panel-pause-action"
-              >
-                {t("common.actions.expand")}
-              </button>
-            </div>
-          </div>
-          <div className="batch-ai-panel-content">
-            <div
-              style={{
-                width: `${pct}%`,
-              }}
-              className="batch-ai-panel-compact-progress-fill"
-            />
-          </div>
-          <div className="batch-ai-panel-truncated-text">
-            {progress.currentMod}
-          </div>
-          {errorCount > 0 && (
-            <div className="batch-ai-panel-error-text">
-              {t("mods.ai.failureCount", {
-                errorCount,
-              })}
-            </div>
-          )}
+            </strong>
+            <span title={progress.currentMod}>{progress.currentMod}</span>
+          </span>
+          <button
+            type="button"
+            className="icon-btn icon-btn-sm"
+            onClick={handlePause}
+            aria-label={paused ? t("common.actions.continue") : t("downloads.actions.pause")}
+            title={paused ? t("common.actions.continue") : t("downloads.actions.pause")}
+          >
+            <Icon name={paused ? "play" : "pause"} size={14} />
+          </button>
+          <button
+            type="button"
+            className="icon-btn icon-btn-sm"
+            onClick={handleCancel}
+            aria-label={t("common.actions.cancel")}
+            title={t("common.actions.cancel")}
+          >
+            <Icon name="x" size={14} />
+          </button>
+          <button type="button" className="btn btn-sm btn-ghost" onClick={() => setCollapsed(false)}>
+            {t("common.actions.expand")}
+          </button>
         </div>
+        <div className="progress-track">
+          <div className="progress-fill" style={{ width: `${pct}%` }} />
+        </div>
+        {errorCount > 0 && (
+          <div className="task-float-status is-danger">
+            <span>{t("mods.ai.failureCount", { errorCount })}</span>
+          </div>
+        )}
       </div>,
       document.body,
     );
   }
   return ReactDOM.createPortal(
-    <div
-      onClick={!running ? onClose : void 0}
-      className="batch-ai-panel-overlay"
-    >
+    <div className="modal-backdrop" onClick={!running ? onClose : void 0}>
       <div
+        className="dev-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="batch-ai-title"
         onClick={(e) => e.stopPropagation()}
-        className="batch-ai-panel-stack"
       >
-        <div className="batch-ai-panel-row-spaced">
-          <div>
-            <div className="batch-ai-panel-heading-emphasis">
+        <header className="dev-panel-head">
+          <div className="dev-panel-heading">
+            <h2 id="batch-ai-title" className="dev-panel-title">
               {t("mods.ai.batchTitle", {
                 status: imageOnly ? t("mods.ai.imagesOnlySuffix") : "",
               })}
-            </div>
-            <div className="batch-ai-panel-hint">
+            </h2>
+            <span className="dev-panel-sub">
               {t("mods.ai.batchGameSummary", {
                 gameId: gameId || "unknown",
                 pendingCount,
               })}
-            </div>
+            </span>
           </div>
-          <div className="batch-ai-panel-header-actions">
-            {running && (
-              <button
-                onClick={() => setCollapsed(true)}
-                className="batch-ai-panel-action"
-              >
-                {t("mods.ai.runInBackground")}
-              </button>
-            )}
-            <button
-              onClick={running ? void 0 : onClose}
-              style={{
-                cursor: running ? "default" : "pointer",
-                color: running ? "#d1d5db" : "#9ca3af",
-              }}
-              className="batch-ai-panel-close-icon"
-            >
-              {"✕"}
+          {running && (
+            <button type="button" className="btn btn-sm" onClick={() => setCollapsed(true)}>
+              {t("mods.ai.runInBackground")}
             </button>
-          </div>
-        </div>
-        <div className="batch-ai-panel-content-spaced">
+          )}
+          <button
+            type="button"
+            className="icon-btn icon-btn-sm"
+            onClick={onClose}
+            disabled={running}
+            aria-label={t("common.actions.close")}
+            title={t("common.actions.close")}
+          >
+            <Icon name="x" size={15} />
+          </button>
+        </header>
+        <div className="dev-panel-body">
           {!running && (
-            <div className="batch-ai-panel-character-picker">
-              <div className="batch-ai-panel-character-picker-heading">
-                {t("market.cloud.chooseCharacters")}
+            <section className="dev-section">
+              <div className="dev-section-title">
+                <span>{t("market.cloud.chooseCharacters")}</span>
+                {!selectAll && selectedChars.size > 0 && (
+                  <em>{t("market.cloud.selectedCharacterCount", { size: selectedChars.size })}</em>
+                )}
               </div>
-              <div className="batch-ai-panel-character-options">
+              <div className="dev-chips">
                 <button
+                  type="button"
+                  className={`chip ${selectAll ? "active" : ""}`}
+                  aria-pressed={selectAll}
                   onClick={handleSelectAll}
-                  style={{
-                    borderRadius: "10px",
-                    border: selectAll ? "none" : "1px solid #e5e7eb",
-                    background: selectAll ? "#6366f1" : "#fff",
-                    color: selectAll ? "#fff" : "#6b7280",
-                  }}
-                  className="batch-ai-panel-select-all-action"
                 >
                   {t("characters.filter.all")}
                 </button>
@@ -495,89 +482,33 @@ function BatchAiPanel({ gameId, imageOnly = false, onClose }) {
                   const sel = !selectAll && selectedChars.has(c);
                   return (
                     <button
+                      type="button"
+                      className={`chip ${sel ? "active" : ""}`}
+                      aria-pressed={sel}
                       onClick={() => toggleChar(c)}
-                      style={{
-                        borderRadius: "10px",
-                        border: sel ? "none" : "1px solid #e5e7eb",
-                        background: sel ? "#a855f7" : "#fff",
-                        color: sel ? "#fff" : "#6b7280",
-                      }}
                       key={c}
-                      className="batch-ai-panel-character-option"
                     >
                       {c}
                     </button>
                   );
                 })}
               </div>
-              {!selectAll && selectedChars.size > 0 && (
-                <div className="batch-ai-panel-selected-character-count">
-                  {t("market.cloud.selectedCharacterCount", {
-                    size: selectedChars.size,
-                  })}
-                </div>
-              )}
-            </div>
+            </section>
           )}
           {!running && modList.length > 0 && (
-            <div className="batch-ai-panel-panel-spaced">
-              <div className="batch-ai-panel-queue-summary">
-                {t("mods.ai.batchTotalPrefix")}
-                <strong>{modList.length}</strong>
-                {t("mods.ai.batchProcessedSeparator")}
-                <strong className="batch-ai-panel-cached-count">
-                  {modList.filter((m) => m.hasCache).length}
-                </strong>
-                {t("mods.ai.batchPendingSeparator")}
-                <strong className="batch-ai-panel-pending-count">
-                  {pendingCount}
-                </strong>
-                {loadingMods && (
-                  <span className="batch-ai-panel-muted-message">
-                    {t("common.status.loading")}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-          {!running && (
-            <div className="batch-ai-panel-start-actions">
-              <button
-                onClick={runBatchAi}
-                disabled={pendingCount === 0 || loadingMods}
-                style={{
-                  cursor:
-                    pendingCount === 0 || loadingMods ? "default" : "pointer",
-                  background:
-                    pendingCount === 0 || loadingMods
-                      ? "#d1d5db"
-                      : "linear-gradient(135deg, #6366f1, #a855f7)",
-                }}
-                className="batch-ai-panel-run-batch-ai-action"
-              >
-                {pendingCount === 0
-                  ? t("mods.ai.allProcessed")
-                  : t("mods.ai.startBatch", {
-                      pendingCount,
-                    })}
-              </button>
-              {_batchAiDone.size > 0 && (
-                <button
-                  onClick={() => {
-                    _batchAiDone.clear();
-                    loadMods();
-                  }}
-                  className="batch-ai-panel-reset-records"
-                >
-                  {t("mods.ai.resetRecords")}
-                </button>
-              )}
+            <div className="dev-note">
+              {t("mods.ai.batchQueue", {
+                total: modList.length,
+                done: modList.filter((m) => m.hasCache).length,
+                pending: pendingCount,
+              })}
+              {loadingMods && <span className="spinner" aria-hidden="true" />}
             </div>
           )}
           {running && (
-            <div className="batch-ai-panel-progress-section">
-              <div className="batch-ai-panel-row">
-                <span className="batch-ai-panel-heading">
+            <section className="dev-section">
+              <div className="dev-progress-head">
+                <span>
                   {paused ? t("mods.ai.paused") : t("mods.ai.running")}
                   {" ("}
                   {progress.current}
@@ -585,144 +516,85 @@ function BatchAiPanel({ gameId, imageOnly = false, onClose }) {
                   {progress.total}
                   {")"}
                 </span>
-                <div className="batch-ai-panel-progress-actions">
-                  <button
-                    onClick={handlePause}
-                    style={{
-                      background: paused ? "#fef3c7" : "#fff",
-                    }}
-                    className="batch-ai-panel-pause-button"
-                  >
-                    {paused
-                      ? t("common.actions.continue")
-                      : t("downloads.actions.pause")}
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    className="batch-ai-panel-cancel-button"
-                  >
-                    {t("common.actions.cancel")}
-                  </button>
-                </div>
+                <button type="button" className="btn btn-sm" onClick={handlePause}>
+                  {paused ? t("common.actions.continue") : t("downloads.actions.pause")}
+                </button>
+                <button type="button" className="btn btn-sm" onClick={handleCancel}>
+                  {t("common.actions.cancel")}
+                </button>
               </div>
-              <div className="batch-ai-panel-current-mod">
+              <div className="progress-track">
+                <div className="progress-fill" style={{ width: `${pct}%` }} />
+              </div>
+              <div className="dev-note" title={progress.currentMod}>
                 {progress.currentMod}
               </div>
-              <div className="batch-ai-panel-progress-track">
-                <div
-                  style={{
-                    width: `${pct}%`,
-                  }}
-                  className="batch-ai-panel-progress-fill"
-                />
-              </div>
-            </div>
+            </section>
           )}
           {results.length > 0 && !running && (
-            <div
-              style={{
-                borderRadius: "8px",
-                background:
-                  errorCount > 0
-                    ? "rgba(239,68,68,0.06)"
-                    : "rgba(34,197,94,0.06)",
-                border: `1px solid ${errorCount > 0 ? "#fca5a5" : "#86efac"}`,
-              }}
-              className="batch-ai-panel-hint-spaced"
-            >
-              <div
-                style={{
-                  color: errorCount > 0 ? "#b45309" : "#16a34a",
-                }}
-                className="batch-ai-panel-result-summary"
-              >
+            <div className={`notice ${errorCount > 0 ? "notice-warning" : "notice-success"}`}>
+              <Icon name={errorCount > 0 ? "alert" : "check"} size={14} />
+              <span>
                 {t("mods.ai.batchSummary", {
                   doneCount,
                   errorCount,
-                  filterCount: results.filter((r) => r.status === "skip")
-                    .length,
+                  filterCount: results.filter((r) => r.status === "skip").length,
                 })}
-              </div>
+              </span>
             </div>
           )}
           {results.length > 0 && (
-            <div>
-              <div className="batch-ai-panel-log-output">
-                {results.map((r, i) => {
-                  if (r.status === "skip")
-                    return (
-                      <div key={i} className="batch-ai-panel-log-skip">
-                        {"━ "}
-                        {r.message}
-                      </div>
-                    );
-                  const color = r.status === "ok" ? "#4ade80" : "#f87171";
-                  const icon = r.status === "ok" ? "✓" : "✗";
-                  return (
-                    <div
-                      style={{
-                        color,
-                      }}
-                      key={i}
-                      className="batch-ai-panel-log-entry"
-                    >
-                      {icon}
-                      {" ["}
-                      {r.char}
-                      {"] "}
-                      {r.mod}
-                      {r.status === "ok" && (
-                        <span className="batch-ai-panel-log-result">
-                          {" → "}
-                          {r.message}
-                        </span>
-                      )}
-                      {r.status === "error" && (
-                        <span className="batch-ai-panel-log-error">
-                          {" | "}
-                          {r.message}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-                {running && (
-                  <div className="batch-ai-panel-log-cursor">{"▋"}</div>
-                )}
-                <div ref={logEndRef} />
-              </div>
+            <div className="dev-log selectable">
+              {results.map((r, i) =>
+                r.status === "skip" ? (
+                  <div key={i} className="dev-log-line is-muted">
+                    {r.message}
+                  </div>
+                ) : (
+                  <div
+                    key={i}
+                    className={`dev-log-line ${r.status === "ok" ? "is-ok" : "is-error"}`}
+                  >
+                    {"["}
+                    {r.char}
+                    {"] "}
+                    {r.mod}
+                    {r.status === "ok" ? " → " : " | "}
+                    {r.message}
+                  </div>
+                ),
+              )}
+              <div ref={logEndRef} />
             </div>
           )}
           {!running && errorCount > 0 && (
-            <div className="batch-ai-panel-error-section">
-              <div className="batch-ai-panel-error-heading">
-                {t("mods.ai.failureList", {
-                  errorCount,
-                })}
+            <section className="dev-section">
+              <div className="dev-section-title">
+                <span>{t("mods.ai.failureList", { errorCount })}</span>
               </div>
-              <div className="batch-ai-panel-error-list">
+              <div className="dev-rows">
                 {results
                   .filter((r) => r.status === "error")
                   .map((r, i) => (
-                    <div key={i} className="batch-ai-panel-error-item">
-                      <span className="batch-ai-panel-error-target">
+                    <div key={i} className="dev-row is-stacked">
+                      <span className="dev-row-name">
                         {"["}
                         {r.char}
                         {"] "}
                         {r.mod}
                       </span>
-                      <span className="batch-ai-panel-muted-message">
-                        {r.message}
-                      </span>
+                      <span className="dev-row-error selectable">{r.message}</span>
                     </div>
                   ))}
               </div>
-            </div>
+            </section>
           )}
         </div>
-        <div className="batch-ai-panel-actions">
+        <footer className="dev-panel-foot">
           {results.length > 0 && (
             <button
+              type="button"
+              className="btn"
               onClick={() => {
                 navigator.clipboard.writeText(
                   results
@@ -733,23 +605,39 @@ function BatchAiPanel({ gameId, imageOnly = false, onClose }) {
                     .join("\n"),
                 );
               }}
-              className="batch-ai-panel-action-spaced"
             >
               {t("market.cloud.copyLogs")}
             </button>
           )}
-          <button
-            onClick={running ? void 0 : onClose}
-            disabled={running}
-            style={{
-              cursor: running ? "default" : "pointer",
-              color: running ? "#d1d5db" : "#6b7280",
-            }}
-            className="batch-ai-panel-close-button"
-          >
+          {!running && _batchAiDone.size > 0 && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                _batchAiDone.clear();
+                loadMods();
+              }}
+            >
+              {t("mods.ai.resetRecords")}
+            </button>
+          )}
+          <span className="dev-panel-foot-spacer" />
+          <button type="button" className="btn" onClick={onClose} disabled={running}>
             {t("common.actions.close")}
           </button>
-        </div>
+          {!running && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={runBatchAi}
+              disabled={pendingCount === 0 || loadingMods}
+            >
+              {pendingCount === 0
+                ? t("mods.ai.allProcessed")
+                : t("mods.ai.startBatch", { pendingCount })}
+            </button>
+          )}
+        </footer>
       </div>
     </div>,
     document.body,

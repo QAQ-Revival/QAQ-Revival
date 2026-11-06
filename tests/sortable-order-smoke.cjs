@@ -15,8 +15,9 @@ module.exports = async function testSortableOrder({ evaluate, waitFor, captureUI
       const source = items.find(item => item.dataset.sortId === ${JSON.stringify(from)});
       const target = items.find(item => item.dataset.sortId === ${JSON.stringify(to)});
       const rect = target.getBoundingClientRect();
+      const before = ${JSON.stringify(edge)} === 'before';
       const options = { bubbles: true, cancelable: true, dataTransfer: new DataTransfer(),
-        clientX: rect.left + rect.width / 2, clientY: ${JSON.stringify(edge)} === 'before' ? rect.top + 2 : rect.bottom - 2 };
+        clientX: before ? rect.left + 2 : rect.right - 2, clientY: before ? rect.top + 2 : rect.bottom - 2 };
       source.dispatchEvent(new DragEvent('dragstart', options));
       target.dispatchEvent(new DragEvent('dragover', options));
       window.sortTestDrag = { source, target, options };
@@ -34,11 +35,11 @@ module.exports = async function testSortableOrder({ evaluate, waitFor, captureUI
   }
   async function openGames() {
     await evaluate(`document.querySelector('.game-selector-trigger').click()`);
-    await waitFor(`!!document.querySelector('#sidebar-game-menu')`, 'game menu opened');
+    await waitFor(`!!document.querySelector('#game-menu')`, 'game menu opened');
   }
   async function closeGames() {
     await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
-    await waitFor(`!document.querySelector('#sidebar-game-menu')`, 'game menu closed');
+    await waitFor(`!document.querySelector('#game-menu')`, 'game menu closed');
   }
   async function reload() {
     await window.loadFile(require('node:path').join(process.resourcesPath, 'app/out/renderer/index.html'));
@@ -60,27 +61,23 @@ module.exports = async function testSortableOrder({ evaluate, waitFor, captureUI
   assert.equal(await activeTab(), selectedTab);
   assert.equal(await evaluate(`!!document.querySelector('[data-sort-edge], [data-sort-dragging]')`), false);
 
-  // Reordering works when labels are hidden, and from the keyboard without losing focus.
-  await evaluate(`document.querySelector('.sidebar-toggle').click()`);
-  await waitFor(`!!document.querySelector('.sidebar.collapsed')`, 'sidebar collapsed');
+  // Reordering works from the keyboard without losing focus.
   await startDrag(nav, reorderedNav[0], reorderedNav.at(-1), 'after');
   await endDrag();
   await expectOrder(nav, defaults);
-  await evaluate(`(() => { const item = document.querySelector('.nav-item'); item.focus(); item.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true })); })()`);
+  await evaluate(`(() => { const item = document.querySelector('.nav-item'); item.focus(); item.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true, cancelable: true })); })()`);
   const keyboardNav = [defaults[1], defaults[0], ...defaults.slice(2)];
   await expectOrder(nav, keyboardNav);
   assert.equal(await evaluate(`document.activeElement.dataset.sortId`), defaults[0]);
   assert.equal(await activeTab(), selectedTab);
-  await evaluate(`document.querySelector('.sidebar-header').click()`);
-  await waitFor(`!document.querySelector('.sidebar.collapsed')`, 'sidebar expanded');
-  passed('Navigation drag/drop supports both directions, cancellation, collapsed mode and keyboard reorder without switching pages');
+  passed('Navigation drag/drop supports both directions, cancellation and keyboard reorder without switching pages');
 
   await openGames();
   const defaultGames = await readOrder(game);
   assert.ok(defaultGames.length >= 3, 'Games with explicit and default Mods directories are available');
   const selectedGame = await activeGame();
   const movedGame = defaultGames.at(-1);
-  assert.ok(await evaluate(`document.querySelector('.game-selector-option:last-of-type').textContent.includes('已配置 Mod 目录')`));
+  assert.ok(await evaluate(`document.querySelector('.game-selector-option:last-of-type').textContent.includes('已配置 Mods 目录')`));
   await startDrag(game, movedGame, defaultGames[0]);
   await waitFor(`!!document.querySelector('.game-selector-option[data-sort-edge="before"]')`, 'game drop indicator');
   await captureUI('game-reorder.png');
@@ -115,11 +112,11 @@ module.exports = async function testSortableOrder({ evaluate, waitFor, captureUI
   assert.equal(await activeGame(), selectedGame);
   // A subsequent deliberate click still switches the game normally.
   await evaluate(`(() => { const item = document.querySelector('.game-selector-option[data-sort-id="endfield"]'); item.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); item.click(); })()`);
-  await waitFor(`!document.querySelector('#sidebar-game-menu') && document.querySelector('.game-selector-trigger')?.textContent.includes('明日方舟终末地')`, 'normal game click after sorting');
+  await waitFor(`!document.querySelector('#game-menu') && document.querySelector('.game-selector-trigger')?.textContent.includes('明日方舟终末地')`, 'normal game click after sorting');
   await openGames();
   await expectOrder(game, reorderedGames);
   await evaluate(`document.querySelector('.game-selector-option[data-sort-id="wuthering-waves"]').click()`);
-  await waitFor(`!document.querySelector('#sidebar-game-menu') && document.querySelector('.game-selector-trigger')?.textContent.includes('鸣潮')`, 'restore game');
+  await waitFor(`!document.querySelector('#game-menu') && document.querySelector('.game-selector-trigger')?.textContent.includes('鸣潮')`, 'restore game');
   passed('Game ordering overrides configured-first defaults, preserves selection, rejects unrelated drops and retains normal switching and keyboard navigation');
 
   assert.deepEqual(await evaluate(`JSON.parse(localStorage.getItem('qaqm.navigationOrder'))`), keyboardNav);
@@ -145,7 +142,7 @@ module.exports = async function testSortableOrder({ evaluate, waitFor, captureUI
   const click = selector => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
   const persistOrder = () => evaluate(`[...document.querySelectorAll('[data-persist-game]')].map(item => item.dataset.persistGame)`);
   async function openSettings(category) {
-    await click('.sidebar-settings');
+    await click('.topbar-settings');
     await waitFor(`!!document.querySelector('[data-category="${category}"]')`, 'settings loaded');
     await click(`[data-category="${category}"]`);
   }

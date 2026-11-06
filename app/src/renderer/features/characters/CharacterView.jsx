@@ -30,6 +30,8 @@ import {
 import { pinyin, pinyinReady } from "./model/characterSearch.js";
 import { LegacyImportModal } from "./components/LegacyImportModal.jsx";
 import { ImageCropper } from "../../components/ImageCropper.jsx";
+import { Icon } from "../../components/Icon.jsx";
+import { Menu, MenuItem } from "../../components/Menu.jsx";
 function CharacterView({
   activeGame,
   initialCache,
@@ -932,8 +934,16 @@ function CharacterView({
   }
   if (loading && !initialized) {
     return (
-      <div className="character-view page-transition-enter character-view-loading">
-        {t("common.status.loading")}
+      <div
+        className="character-view page page-transition-enter character-view-loading"
+        role="status"
+        aria-label={t("common.status.loading")}
+      >
+        <div className="character-grid">
+          {Array.from({ length: 16 }, (_, index) => (
+            <div className="skeleton character-card-skeleton" key={index} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -1036,6 +1046,13 @@ function CharacterView({
         fix: () => handleFixCharacter(charName, "external"),
         reset: () => handleResetCharacterIni(charName),
         "change-fixer": () => handleSelectCustomFixExe(),
+        rename: () => {
+          setRenamingChar(charName);
+          setRenameValue(charName);
+          setTimeout(() => renameInputRef.current?.select(), 50);
+        },
+        hide: () => handleHideCharacter(charName),
+        delete: () => setShowDeleteModal(charName),
       };
       if (Object.hasOwn(actions, action)) await actions[action]();
     } catch (error) {
@@ -1060,7 +1077,6 @@ function CharacterView({
     );
   }
   function renderToolbarActions() {
-    const h = React.createElement;
     const busy =
       refreshingCharacters ||
       updatingCharacters ||
@@ -1068,85 +1084,86 @@ function CharacterView({
       migratingLegacyImport ||
       quarantiningLooseRoot ||
       loading;
-    const button = (label, title, onClick, disabled = busy) => (
-      <button
-        type="button"
-        className="character-tool-button"
-        title={title}
-        onClick={onClick}
-        disabled={disabled}
-      >
-        {label}
-      </button>
-    );
-    const group = (label, className, ...children) =>
-      h(
-        "div",
-        {
-          className: "character-action-group " + className,
-          role: "group",
-          "aria-label": label,
-        },
-        <span className="character-action-label">{label}</span>,
-        ...children,
-      );
     return (
       <div className="character-toolbar-actions">
-        {group(
-          t("characters.catalog.title"),
-          "",
-          button(
-            updatingCharacters
-              ? t("common.status.updating")
-              : t("characters.catalog.update"),
-            t("characters.catalog.updateHint"),
-            handleUpdateCharacters,
-          ),
-          button(
-            t("characters.hide.buttonLabel", {
-              status: hiddenCharacterCount ? ` (${hiddenCharacterCount})` : "",
-            }),
-            t("characters.hide.manageHint"),
-            () => setShowHiddenCharacters(true),
-            hidingCharacter,
-          ),
-        )}
-        {group(
-          t("characters.list.localFiles"),
-          "",
-          button(
-            refreshingCharacters
+        <button
+          type="button"
+          className="icon-btn"
+          title={t("characters.list.refreshHint")}
+          onClick={handleRefreshCharacters}
+          disabled={busy}
+        >
+          <Icon
+            name="refresh"
+            size={16}
+            className={refreshingCharacters ? "is-spinning" : ""}
+          />
+          <span className="sr-only">
+            {refreshingCharacters
               ? t("common.status.refreshing")
-              : t("common.actions.refresh"),
-            t("characters.list.refreshHint"),
-            handleRefreshCharacters,
-          ),
-          button(
-            scanningOrganization
+              : t("common.actions.refresh")}
+          </span>
+        </button>
+        <Menu
+          label={t("common.actions.more")}
+          minWidth={190}
+          trigger={({ props }) => (
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label={t("common.actions.more")}
+              title={t("common.actions.more")}
+              {...props}
+            >
+              <Icon name="more" size={18} strokeWidth={2.4} />
+            </button>
+          )}
+        >
+          <MenuItem
+            icon={<Icon name="download" />}
+            title={t("characters.catalog.updateHint")}
+            onClick={handleUpdateCharacters}
+            disabled={busy}
+          >
+            {updatingCharacters
+              ? t("common.status.updating")
+              : t("characters.catalog.update")}
+          </MenuItem>
+          <MenuItem
+            icon={<Icon name="folder" />}
+            title={t("characters.organization.previewHint")}
+            onClick={() => handleOrganizeCharacters()}
+            disabled={busy || missingPath}
+          >
+            {scanningOrganization
               ? t("common.status.scanning")
-              : t("characters.organization.title"),
-            t("characters.organization.previewHint"),
-            () => handleOrganizeCharacters(),
-            busy || missingPath,
-          ),
-        )}
-        {group(
-          t("characters.tools.external"),
-          "character-external-tools",
-          button(
-            fixRunning
-              ? t("common.status.opening")
-              : t("characters.fixer.title"),
-            t("characters.fixer.openHint"),
-            () => handleFixAll("external"),
-            fixRunning,
-          ),
-        )}
+              : t("characters.organization.title")}
+          </MenuItem>
+          <MenuItem
+            icon={<Icon name="eye-off" />}
+            title={t("characters.hide.manageHint")}
+            onClick={() => setShowHiddenCharacters(true)}
+            disabled={hidingCharacter}
+          >
+            {t("characters.hide.buttonLabel", {
+              status: hiddenCharacterCount ? ` (${hiddenCharacterCount})` : "",
+            })}
+          </MenuItem>
+          <div className="menu-sep" />
+          <MenuItem
+            icon={<Icon name="wrench" />}
+            title={t("characters.fixer.openHint")}
+            onClick={() => handleFixAll("external")}
+            disabled={fixRunning}
+          >
+            {fixRunning ? t("common.status.opening") : t("characters.fixer.title")}
+          </MenuItem>
+        </Menu>
       </div>
     );
   }
   return (
-    <div className="character-view page-transition-enter">
+    <div className="character-view page page-transition-enter">
       <CharacterToolbar
         visibleCharacters={visibleCharacters}
         characters={characters}
@@ -1182,14 +1199,16 @@ function CharacterView({
         confirmEnableDx12Mode={confirmEnableDx12Mode}
       />
       {missingPath ? (
-        <div className="settings-card character-view-settings-card-layout">
-          <div className="character-view-icon">{"📁"}</div>
-          <div className="text-h3 character-view-content">
+        <div className="empty-state character-view-empty">
+          <div className="empty-face" aria-hidden={true}>
+            {"QAQ"}
+          </div>
+          <div className="empty-title">
             {t("characters.errors.modsFolderUnset", {
               name: activeGame?.name || t("navigation.currentGame"),
             })}
           </div>
-          <div className="text-body character-view-text-body-layout">
+          <div className="empty-text">
             {t("characters.errors.configureGameFolder")}
           </div>
           <button
@@ -1200,8 +1219,11 @@ function CharacterView({
           </button>
         </div>
       ) : loadError ? (
-        <div className="settings-card character-view-settings-card-layout-spaced">
-          {loadError}
+        <div className="page-body">
+          <div className="notice notice-danger" role="alert">
+            <Icon name="alert" size={14} />
+            <span>{loadError}</span>
+          </div>
         </div>
       ) : (
         <React.Fragment>
@@ -1550,7 +1572,9 @@ function CharacterView({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="batch-guide-hero">
-                    <div className="batch-guide-hero-icon">{"📦"}</div>
+                    <div className="batch-guide-hero-icon">
+                      <Icon name="box" size={20} />
+                    </div>
                     <div>
                       <h2>{t("characters.import.batchModsTitle")}</h2>
                       <p>{t("characters.import.batchDescription")}</p>
@@ -1638,7 +1662,9 @@ function CharacterView({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="batch-guide-hero">
-                    <div className="batch-guide-hero-icon">{"🧩"}</div>
+                    <div className="batch-guide-hero-icon">
+                      <Icon name="layers" size={20} />
+                    </div>
                     <div>
                       <h2>{t("characters.import.integratedTitle")}</h2>
                       <p>{t("characters.import.integratedDescription")}</p>
@@ -1773,9 +1799,6 @@ function CharacterView({
             setDragOverChar={setDragOverChar}
             handleDropReorder={handleDropReorder}
             handleDropCover={handleDropCover}
-            hidingCharacter={hidingCharacter}
-            handleHideCharacter={handleHideCharacter}
-            setShowDeleteModal={setShowDeleteModal}
             characterCovers={characterCovers}
             setCharacterCovers={setCharacterCovers}
             renamingChar={renamingChar}
@@ -1837,9 +1860,10 @@ function CharacterView({
           <button
             onClick={scrollToTop}
             title={t("common.actions.backToTop")}
-            className="character-view-scroll-to-top-action"
+            aria-label={t("common.actions.backToTop")}
+            className="scroll-top-btn character-view-scroll-to-top-action"
           >
-            {"↑"}
+            <Icon name="arrow-up" size={16} />
           </button>,
           document.body,
         )}

@@ -32,18 +32,19 @@ function startApplication(runtimeIdentity) {
   require("./persist/service.cjs").initialize();
   require("./games/genshin/service.cjs").initialize();
   require("./games/wuwa/service.cjs").initialize();
+  require("./games/endfield/service.cjs").initialize();
   require("./fixes/service.cjs").initialize();
   require("./overlay/window.cjs").initialize();
 
   require("./market/sources.cjs").registerIpc();
   require("./developer/access.cjs").registerIpc();
   windows.registerIpc();
-  require("./config/appearance.cjs").registerIpc();
   require("./ipc/settings.cjs").registerIpc();
   require("./ipc/games.cjs").registerIpc();
   require("./games/arknights/service.cjs").registerIpc();
   require("./games/genshin/service.cjs").registerIpc();
   require("./games/wuwa/service.cjs").registerIpc();
+  require("./games/endfield/service.cjs").registerIpc();
   require("./games/wuwa/gacha-service.cjs").registerIpc();
   require("./games/steam/service.cjs").registerIpc();
   require("./games/neverness/loader.cjs").registerIpc();

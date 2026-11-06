@@ -1,6 +1,13 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
-import { Button, Section, Row, check } from "./SettingsControls.jsx";
+import {
+  Button,
+  Notice,
+  Section,
+  Row,
+  Switch,
+  check,
+} from "./SettingsControls.jsx";
 function getInjectModes() {
   return [
     {
@@ -154,37 +161,38 @@ function GenshinAntiErrorSettings({ onPathsChanged }) {
     <Section
       id="genshin-anticrash"
       title={
-        <span className="anticrash-heading">
-          <span>{t("settings.genshin.title")}</span>
-          <span className="anticrash-save-status" role="status">
+        <React.Fragment>
+          {t("settings.game.antiError")}
+          <span className="settings-save-status" role="status">
             {saveStatus}
           </span>
-        </span>
+        </React.Fragment>
       }
     >
       {!data && (
-        <p className="system-state" role="status">
+        <div className="settings-state" role="status">
+          <span className="spinner" />
           {t("settings.genshin.loading")}
-        </p>
+        </div>
       )}
       {error && (
-        <p className="system-notice" role="alert">
+        <Notice kind="danger" role="alert">
           {error}
-        </p>
+        </Notice>
       )}
       {message && (
-        <p className="system-notice anticrash-feedback" role="status">
+        <Notice className="anticrash-feedback" role="status">
           {message}
-        </p>
+        </Notice>
       )}
       {data && (
         <React.Fragment>
           {!data.ready && (
-            <p className="system-notice" role="alert">
+            <Notice kind="warning" role="alert">
               {t("settings.genshin.blockedHint", {
                 blockers: data.blockers.join("；"),
               })}
-            </p>
+            </Notice>
           )}
           {session && (
             <div
@@ -193,8 +201,14 @@ function GenshinAntiErrorSettings({ onPathsChanged }) {
               aria-label={t("settings.genshin.session.title")}
             >
               <div className="anticrash-live-heading">
-                <h4>{t("settings.genshin.session.title")}</h4>
+                <strong>{t("settings.genshin.session.title")}</strong>
+                <span className="anticrash-hint">
+                  {t("settings.genshin.session.startedAt", {
+                    value: new Date(session.createdAt).toLocaleString(),
+                  })}
+                </span>
                 <Button
+                  small={true}
                   disabled={busy}
                   onClick={() =>
                     run(async () => {
@@ -215,11 +229,6 @@ function GenshinAntiErrorSettings({ onPathsChanged }) {
                   {t("settings.genshin.session.cleanNow")}
                 </Button>
               </div>
-              <p className="anticrash-hint">
-                {t("settings.genshin.session.startedAt", {
-                  value: new Date(session.createdAt).toLocaleString(),
-                })}
-              </p>
               <div
                 className="anticrash-session"
                 data-twin-ready={session.twinReady}
@@ -300,39 +309,37 @@ function GenshinAntiErrorSettings({ onPathsChanged }) {
               </p>
             </div>
           )}
-          <fieldset
-            className="anticrash-primary"
-            aria-describedby="anticrash-primary-hint"
-          >
-            <legend>{t("settings.genshin.plan.title")}</legend>
-            <p id="anticrash-primary-hint" className="anticrash-hint">
-              {t("settings.genshin.plan.description")}
-            </p>
+          <fieldset className="anticrash-primary">
+            <legend title={t("settings.genshin.plan.description")}>
+              {t("settings.genshin.plan.title")}
+            </legend>
             {conflicting && (
-              <p className="system-notice" role="alert">
+              <Notice kind="warning" role="alert">
                 {t("settings.genshin.plan.conflictingSettings")}
-              </p>
+              </Notice>
             )}
-            <label className="anticrash-none">
-              <input
-                type="radio"
-                name="genshin-primary-mode"
-                value="none"
-                aria-label={t("settings.genshin.plan.disabledLabel")}
-                checked={primaryMode === "none"}
-                disabled={busy}
-                onChange={() => selectPrimary("none")}
-              />
-              <span>
-                {t("settings.genshin.plan.disable")}
-                <small>{t("settings.genshin.plan.extrasIndependent")}</small>
-              </span>
-            </label>
-            <div className="anticrash-primary-options">
+            <div className="settings-options">
+              <label
+                className="settings-option"
+                data-selected={primaryMode === "none"}
+              >
+                <input
+                  type="radio"
+                  name="genshin-primary-mode"
+                  value="none"
+                  aria-label={t("settings.genshin.plan.disabledLabel")}
+                  checked={primaryMode === "none"}
+                  disabled={busy}
+                  onChange={() => selectPrimary("none")}
+                />
+                <span className="settings-option-copy">
+                  <strong>{t("settings.genshin.plan.disable")}</strong>
+                </span>
+              </label>
               {getPrimaryModes().map((mode) => (
                 <label
                   key={mode.value}
-                  className="anticrash-primary-option"
+                  className="settings-option"
                   data-selected={primaryMode === mode.value}
                 >
                   <input
@@ -346,97 +353,83 @@ function GenshinAntiErrorSettings({ onPathsChanged }) {
                     disabled={busy}
                     onChange={() => selectPrimary(mode.value)}
                   />
-                  <span className="anticrash-primary-copy">
-                    <span className="anticrash-option-title">
-                      <strong>{mode.label}</strong>
-                      <span className="anticrash-tag">{mode.tag}</span>
-                    </span>
-                    <span className="anticrash-option-description">
-                      {mode.description}
-                    </span>
+                  <span className="settings-option-copy">
+                    <strong>
+                      {mode.label}
+                      <span className="badge">{mode.tag}</span>
+                    </strong>
+                    <span>{mode.description}</span>
                   </span>
                 </label>
               ))}
             </div>
             {settings.customDll && (
-              <div className="anticrash-custom-config">
-                <div className="system-path-control anticrash-component-picker">
-                  <span>{t("settings.genshin.custom.currentComponent")}</span>
-                  <code
-                    className="anticrash-dll-path"
-                    title={data.customDllPath || ""}
-                  >
-                    {data.customDllPath
-                      ? data.customDllPath.split(/[\\/]/).pop()
-                      : t("common.status.unselected")}
-                  </code>
-                  <Button disabled={busy} onClick={pickCustomDll}>
-                    {t("settings.genshin.custom.selectComponent")}
-                  </Button>
-                  {data.customDllPath && !data.customDllPathIsDefault && (
-                    <Button
-                      disabled={busy}
-                      onClick={() =>
-                        save({
-                          customDllPath: "",
-                        })
-                      }
-                    >
-                      {t("common.actions.restoreDefault")}
-                    </Button>
-                  )}
-                </div>
-                <p className="anticrash-hint">
-                  {data.customDllPath
+              <Row
+                title={t("settings.genshin.custom.currentComponent")}
+                description={
+                  data.customDllPath
                     ? t("settings.genshin.custom.directHint", {
                         status: data.customDllPathIsDefault
                           ? t("settings.genshin.custom.bundledComponentHint")
                           : t("settings.genshin.custom.selectedComponentHint"),
                       })
-                    : t("settings.genshin.custom.componentRequired")}
-                </p>
-              </div>
+                    : t("settings.genshin.custom.componentRequired")
+                }
+              >
+                <code
+                  className="settings-mono-value"
+                  title={data.customDllPath || ""}
+                >
+                  {data.customDllPath
+                    ? data.customDllPath.split(/[\\/]/).pop()
+                    : t("common.status.unselected")}
+                </code>
+                <Button disabled={busy} onClick={pickCustomDll}>
+                  {t("settings.genshin.custom.selectComponent")}
+                </Button>
+                {data.customDllPath && !data.customDllPathIsDefault && (
+                  <Button
+                    disabled={busy}
+                    onClick={() =>
+                      save({
+                        customDllPath: "",
+                      })
+                    }
+                  >
+                    {t("common.actions.restoreDefault")}
+                  </Button>
+                )}
+              </Row>
             )}
           </fieldset>
           <div
             className="anticrash-addons"
             role="group"
-            aria-labelledby="anticrash-addons-heading"
+            aria-label={t("settings.genshin.extras.title")}
           >
-            <h4 id="anticrash-addons-heading">
-              {t("settings.genshin.extras.title")}
-            </h4>
-            <p className="anticrash-hint">
-              {t("settings.genshin.extras.description")}
-            </p>
             <Row
               title={t("settings.genshin.original.title")}
               description={t("settings.genshin.original.description")}
             >
-              <input
-                type="checkbox"
-                role="switch"
-                className="system-switch"
-                aria-label={t("settings.genshin.original.label")}
+              <Switch
+                label={t("settings.genshin.original.label")}
                 checked={settings.originalDll}
                 disabled={busy}
-                onChange={(e) =>
+                onChange={(value) =>
                   save({
-                    originalDll: e.target.checked,
+                    originalDll: value,
                   })
                 }
               />
             </Row>
             <details
-              className="anticrash-advanced"
+              className="anticrash-advanced settings-disclosure"
               open={advancedOpen}
               onToggle={(e) => setAdvancedOpen(e.currentTarget.open)}
             >
               <summary>
                 <span>{t("settings.genshin.manual.title")}</span>
-                <span
-                  className={`anticrash-advanced-summary${settings.networkBlock ? " is-warning" : ""}`}
-                >
+                <span className="settings-disclosure-summary">
                   {advancedSummary}
                 </span>
               </summary>
@@ -444,16 +437,13 @@ function GenshinAntiErrorSettings({ onPathsChanged }) {
                 title={t("settings.genshin.manual.waiting")}
                 description={t("settings.genshin.manual.description")}
               >
-                <input
-                  type="checkbox"
-                  role="switch"
-                  className="system-switch"
-                  aria-label={t("settings.genshin.manual.label")}
+                <Switch
+                  label={t("settings.genshin.manual.label")}
                   checked={settings.manualStart}
                   disabled={busy}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     save({
-                      manualStart: e.target.checked,
+                      manualStart: value,
                     })
                   }
                 />
@@ -467,7 +457,7 @@ function GenshinAntiErrorSettings({ onPathsChanged }) {
                 }
               >
                 <select
-                  className="anticrash-inject-select"
+                  className="select settings-compact-select"
                   aria-label={t("settings.genshin.injection.label")}
                   value={settings.customDll ? "direct" : settings.injectMode}
                   disabled={busy || settings.customDll}
@@ -495,35 +485,36 @@ function GenshinAntiErrorSettings({ onPathsChanged }) {
                 title={
                   <React.Fragment>
                     {t("settings.genshin.network.title")}
-                    <span className="anticrash-tag warning">
+                    <span className="badge badge-warning">
                       {t("settings.genshin.network.testLabel")}
                     </span>
                   </React.Fragment>
                 }
-                description={t("settings.genshin.network.description")}
+                description={
+                  data.elevated
+                    ? t("settings.genshin.network.description")
+                    : t("settings.genshin.network.adminRequired")
+                }
               >
-                <input
-                  type="checkbox"
-                  role="switch"
-                  className="system-switch"
-                  aria-label={t("settings.genshin.network.label")}
+                <Switch
+                  label={t("settings.genshin.network.label")}
                   checked={settings.networkBlock}
                   disabled={busy || (!data.elevated && !settings.networkBlock)}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     save({
-                      networkBlock: e.target.checked,
+                      networkBlock: value,
                     })
                   }
                 />
               </Row>
-              {!data.elevated && (
-                <p className="anticrash-hint">
-                  {t("settings.genshin.network.adminRequired")}
-                </p>
+              {settings.networkBlock && (
+                <Notice kind="warning">
+                  {t("settings.genshin.network.activeWarning")}
+                </Notice>
               )}
             </details>
           </div>
-          <p className="anticrash-footnote">
+          <p className="settings-footnote">
             {t("settings.genshin.session.restoreHint")}
           </p>
         </React.Fragment>

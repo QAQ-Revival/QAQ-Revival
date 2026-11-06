@@ -21,21 +21,16 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, profile, m
   await waitFor(`!!${card}.querySelector('.character-pin-badge')`, 'native menu pin action');
   assert.equal(nativeMenus.at(-1).options.window, window);
   assert.equal('x' in nativeMenus.at(-1).options, false, 'Native menu uses screen cursor placement');
-  assert.ok(nativeMenus.at(-1).menu.items.every(item => !item.label.includes('隐藏')));
   assert.equal(await evaluate(`!!document.querySelector('.character-context-menu')`), false);
   await evaluate(`${card}.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`);
   await evaluate('new Promise(resolve => setTimeout(resolve, 100))');
   assert.equal(nativeMenus.at(-1).menu.getMenuItemById('pin').label, '取消置顶');
-  const placement = await evaluate(`(() => {
-    const card = ${card}; card.querySelector('.hide-character-btn').focus();
-    const hide = card.querySelector('.hide-character-btn').getBoundingClientRect();
-    const remove = card.querySelector('.delete-btn').getBoundingClientRect();
-    return { beside: hide.right < remove.left, aligned: hide.top === remove.top };
-  })()`);
-  assert.deepEqual(placement, { beside: true, aligned: true });
+  assert.ok(nativeMenus.at(-1).menu.getMenuItemById('hide'), 'Hide lives in the character menu');
+  assert.ok(nativeMenus.at(-1).menu.getMenuItemById('delete'), 'Delete lives in the character menu');
   await captureUI('character-card-actions.png');
-  passed('Character menu uses the native OS popup at the screen cursor; pin/cancel work; hide button sits left of delete and is absent from the menu');
-  await evaluate(`${card}.querySelector('.hide-character-btn').click()`);
+  passed('Character menu uses the native OS popup at the screen cursor; pin/cancel work; hide and delete are menu actions');
+  selectNativeAction('hide');
+  await evaluate(`${card}.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }))`);
   await waitFor(`!${card} && document.body.textContent.includes('已隐藏「安可」')`, 'hide completion');
   for (const relative of ['安可/DISABLED_Active A/mod.ini', '安可/DISABLED_Active B/mod.ini', 'Encore/DISABLED_AliasMod/mod.ini', '安可/DISABLED_测试模组/mod.ini']) assert.ok(fs.existsSync(path.join(mods, relative)), relative);
   assert.equal(fs.readFileSync(path.join(mods, '安可/info.json'), 'utf8'), '{"name":"安可","description":"keep me"}');

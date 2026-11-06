@@ -227,7 +227,9 @@ function createWuwaDx12Service({
     for (const key of ['reshade', 'addon']) {
       if (sources[key]?.source === 'managed' && !sources[key].active) checks.find(item => item.id === key).message = i18n.t("backend.wuwaDx12.bundledComponentDisabled");else if (sources[key]?.source === 'missing' && paths.gameRoot) checks.find(item => item.id === key).message = i18n.t("backend.wuwaDx12.bundledComponentMissing");
     }
-    const updates = packages?.state(sources);
+    const fork = packages?.fork?.() || null;
+    const onFork = fork && sources.addon?.sha256 === fork.addonHash;
+    const updates = packages?.state(onFork ? { ...sources, addon: { source: 'cached' } } : sources);
     return {
       success: true,
       enabled: getEnabled() === true,
@@ -235,7 +237,11 @@ function createWuwaDx12Service({
       checks,
       paths,
       sources,
-      updates
+      updates,
+      channel: {
+        current: onFork ? 'fork' : 'official',
+        fork: fork && { version: fork.version, build: fork.build }
+      }
     };
   }
   async function locked(action) {
@@ -386,6 +392,26 @@ function createWuwaDx12Service({
       }
     });
   }
+  async function setChannel(target) {
+    if (!['official', 'fork'].includes(target)) throw Error(i18n.t("backend.wuwaDx12.invalidChannel"));
+    return locked(async () => {
+      const state = await status();
+      if (state.channel.current === target) return state;
+      if (state.sources.addon.source !== 'managed') throw Error(i18n.t("backend.wuwaDx12.channelNeedsManaged"));
+      const bundle = target === 'fork' ? packages.fork() : await packages('addon');
+      if (!bundle) throw Error(i18n.t("backend.wuwaDx12.forkMissing"));
+      await components.update(state.paths, 'addon', bundle, {
+        beforeApply: () => stopped(state.paths),
+        validate: async () => {
+          if (state.enabled && !(await status()).ready) throw Error(i18n.t("backend.wuwaDx12.updatedEnvironmentInvalid"));
+        }
+      });
+      return {
+        ...(await status()),
+        message: i18n.t("backend.wuwaDx12.channelSwitched", { version: bundle.version })
+      };
+    });
+  }
   async function checkUpdates() {
     return locked(async () => {
       const result = await packages.checkUpdates();
@@ -399,7 +425,12 @@ function createWuwaDx12Service({
     if (!['reshade', 'addon'].includes(kind)) throw Error(i18n.t("backend.wuwaDx12Components.unknownComponent"));
     return locked(async () => {
       const state = await status();
-      const bundle = await packages.prepareUpdate(kind, state.sources[kind].version);
+      const keepFork = kind === 'addon' && state.channel.current === 'fork';
+      const bundle = await packages.prepareUpdate(kind, keepFork ? undefined : state.sources[kind].version);
+      if (keepFork) {
+        packages.commitUpdate(bundle);
+        return { ...(await status()), message: i18n.t("backend.wuwaDx12.officialCached", { version: bundle.version }) };
+      }
       const result = await components.update(state.paths, kind, bundle, {
         beforeApply: () => stopped(state.paths),
         validate: async () => {
@@ -421,6 +452,7 @@ function createWuwaDx12Service({
     status,
     setEnabled,
     launch,
+    setChannel,
     checkUpdates,
     updateComponent
   };

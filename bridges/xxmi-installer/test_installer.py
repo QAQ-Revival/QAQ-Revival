@@ -3,6 +3,8 @@ import tempfile
 import unittest
 import os
 import ctypes
+import io
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -137,6 +139,83 @@ class InstallerTests(unittest.TestCase):
         finally:
             for close in unlock:
                 close()
+
+    def component_fixture(self, importer="EFMI"):
+        import core.path_manager as Paths
+        Paths.App = Paths.Paths()
+        actual, mi = self.root / "launcher", self.root / "custom-importer"
+        config = {"Launcher": {"active_importer": "GIMI", "auto_update": False, "custom": "keep"},
+                  "Importers": {importer: {"Importer": {"importer_folder": str(mi), "d3d11_mode_cmd_args": "-popupwindow"},
+                                            "Migoto": {"unsafe_mode": True, "unsafe_mode_signature": "existing-consent"}}},
+                  "Packages": {"packages": {"Launcher": {"deployed_version": "2.4.9"}}}, "unknown": {"preserve": True}}
+        self.write("launcher/XXMI Launcher Config.json", json.dumps(config))
+        self.write("custom-importer/d3dx.ini", "user ini")
+        self.write("custom-importer/d3dx_user.ini", "persistent state")
+        self.write("custom-importer/d3d11.dll", "current runtime")
+        self.write("custom-importer/Mods/keep/mod.ini", "keep mod")
+        self.write("custom-importer/ShaderFixes/custom.hlsl", "custom shader")
+        main = "WuWa-Model-Importer.ini" if importer == "WWMI" else "main.ini"
+        self.write(f"custom-importer/Core/{importer}/{main}", f"global ${'wwmi_' if importer == 'WWMI' else ''}version = 1.48\n")
+        return actual, mi, config, main
+
+    def signed_update(self, importer="EFMI", component="core", deploy=False, corrupt=False, before_download=None):
+        from core.package_manager import Package
+        from core.utils.github_client import GitHubClient
+        from core.utils.security import Security
+        from core.packages.migoto_package import MigotoPackage
+        actual, mi, config, main = self.component_fixture(importer)
+        security = Security()
+        security.generate_key_pair()
+        runtime = b"verified official runtime"
+        files = {f"Core/{importer}/{main}": f"global ${'wwmi_' if importer == 'WWMI' else ''}version = 1.49\n",
+                 "d3dx.ini": "official default ini", f"Core/{importer}/new.ini": "official core"} if component == "core" else {"d3d11.dll": runtime}
+        if component == "runtime":
+            files["Manifest.json"] = json.dumps({"version": "1.4.9", "signatures": {"d3d11.dll": security.sign(runtime)}})
+        archive = io.BytesIO()
+        with zipfile.ZipFile(archive, "w") as package:
+            for name, value in files.items():
+                package.writestr(name, value)
+        data = archive.getvalue()
+        signature = security.sign(data + b"wrong") if corrupt else security.sign(data)
+        def download(*args, **kwargs):
+            if before_download:
+                before_download(mi)
+            return bytearray(data)
+        with patch("psutil.process_iter", return_value=[]), patch("core.package_manager.Security", return_value=security), \
+             patch.object(Package, "get_latest_version", return_value=("1.4.9", "https://example.invalid/official.zip", signature, "notes", None)), \
+             patch.object(GitHubClient, "download_data", side_effect=download), patch.object(MigotoPackage, "get_file_version", return_value="1.4.9"):
+            result = worker.execute({"action": "update-component", "root": str(actual), "miRoot": str(mi),
+                                     "importer": importer, "component": component, "deployRuntime": deploy})
+        return actual, mi, config, main, result
+
+    def test_official_core_updates_all_importers_and_preserves_user_files(self):
+        for importer in ("EFMI", "GIMI", "SRMI", "WWMI", "ZZMI"):
+            with self.subTest(importer=importer):
+                actual, mi, original, main, result = self.signed_update(importer)
+                self.assertEqual(result["version"], "1.4.9")
+                self.assertIn("1.49", (mi / f"Core/{importer}/{main}").read_text())
+                for name, expected in [("d3dx.ini", "user ini"), ("d3dx_user.ini", "persistent state"), ("d3d11.dll", "current runtime"),
+                                       ("Mods/keep/mod.ini", "keep mod"), ("ShaderFixes/custom.hlsl", "custom shader")]:
+                    self.assertEqual((mi / name).read_text(), expected)
+                saved = json.loads((actual / "XXMI Launcher Config.json").read_text())
+                saved["Packages"]["packages"].pop(importer)
+                self.assertEqual(saved, original)
+
+    def test_runtime_update_keeps_current_fix_unless_official_is_active(self):
+        for deploy in (False, True):
+            with self.subTest(deploy=deploy):
+                actual, mi, original, _, result = self.signed_update(component="runtime", deploy=deploy)
+                self.assertEqual((actual / "Resources/Packages/XXMI/d3d11.dll").read_bytes(), b"verified official runtime")
+                self.assertEqual((mi / "d3d11.dll").read_bytes(), b"verified official runtime" if deploy else b"current runtime")
+                self.assertEqual(result["restartRequired"], deploy)
+
+    def test_invalid_signature_and_concurrent_change_leave_original_core_intact(self):
+        with self.assertRaises(Exception):
+            self.signed_update(corrupt=True)
+        self.assertIn("1.48", (self.root / "custom-importer/Core/EFMI/main.ini").read_text())
+        with self.assertRaisesRegex(ValueError, "changed while updating"):
+            self.signed_update(before_download=lambda mi: (mi / "Core/EFMI/main.ini").write_text("concurrent edit"))
+        self.assertEqual((self.root / "custom-importer/Core/EFMI/main.ini").read_text(), "concurrent edit")
 
 
 

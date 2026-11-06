@@ -79,6 +79,8 @@ contextBridge.exposeInMainWorld("overlayApi", {
     ipcRenderer.on("marked-mods-changed", (_, data) => callback(data)),
   onModsChanged: (callback) =>
     ipcRenderer.on("mods-changed", (_, data) => callback(data)),
+  onModToggleQueue: (callback) =>
+    ipcRenderer.on("mod-toggle-queue", (_, data) => callback(data)),
   onHotkeysChanged: (callback) =>
     ipcRenderer.on("hotkeys-changed", (_, data) => callback(data)),
   fixRunMod: (characterName, modName) =>

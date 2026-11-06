@@ -9,8 +9,12 @@ const i18n = require("../../../shared/i18n/core.cjs");
 const modId = directory => crypto.createHash("sha256").update(directory).digest("hex").slice(0, 20);
 const samePath = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
 
+// `mods` puts several Mods into one patch; that needs a worker with the
+// multi-mod-reload-v1 capability. `synced` skips a deployment the caller just ran.
 function createModReloader({ paths, resolveMod, characterIds, sync, runNative, runWorker }) {
-  return async function reloadMod({ characterName, modName, optional = false }) {
+  return async function reloadMod({ characterName, modName, mods, optional = false, synced = false }) {
+    const targets = mods || [{ characterName, modName }];
+    if (!targets.length) throw Error(i18n.t("arknights.errors.modMissing"));
     const p = paths();
     const running = await runNative(["--status"]);
     if (!running.running) {
@@ -34,17 +38,19 @@ function createModReloader({ paths, resolveMod, characterIds, sync, runNative, r
     files.assertNoLinks(indexDirectory);
     const index = JSON.parse(fs.readFileSync(path.join(indexDirectory, "bundle-index.json"), "utf8"));
     if (index.schemaVersion !== 1 || !Array.isArray(index.bundles) || index.bundles.length > 200) throw Error(i18n.t("arknights.errors.reloadUnavailable"));
-    const source = resolveMod(characterName, modName);
-    const id = modId(path.join(path.dirname(source), path.basename(source).replace(files.DISABLED, "")));
-    const affectedBundles = index.bundles.filter(bundle => bundle.inputs?.some(input => input.startsWith(id + "/"))).map(bundle => bundle.logical);
-    const fingerprint = files.fingerprint(source);
-    sync({ changedModPath: source });
+    const scopes = targets.map(target => {
+      const source = resolveMod(target.characterName, target.modName);
+      return { source, id: modId(path.join(path.dirname(source), path.basename(source).replace(files.DISABLED, ""))), fingerprint: files.fingerprint(source), characterIds: characterIds(target.characterName) };
+    });
+    const affectedBundles = index.bundles.filter(bundle => bundle.inputs?.some(input => scopes.some(scope => input.startsWith(scope.id + "/")))).map(bundle => bundle.logical);
+    if (!synced) sync({ changedModPath: scopes.length === 1 ? scopes[0].source : "" });
     const output = path.join(reloadRoot, crypto.randomUUID());
     files.assertOutsideGame(output, p.gamePath);
     let sent = false;
     try {
-      const built = await runWorker({ action: "build-bundles", source: p.destination, gamePath: p.gamePath, output, scopeSource: source, affectedBundles, characterIds: characterIds(characterName) });
-      if (files.fingerprint(source) !== fingerprint || !samePath(paths().bundleRoot, p.bundleRoot) || paths().gamePath !== p.gamePath || paths().library !== p.library) throw Error(i18n.t("arknights.errors.changed"));
+      const scope = scopes.length === 1 ? { scopeSource: scopes[0].source } : { scopeSources: scopes.map(item => item.source) };
+      const built = await runWorker({ action: "build-bundles", source: p.destination, gamePath: p.gamePath, output, ...scope, affectedBundles, characterIds: [...new Set(scopes.flatMap(item => item.characterIds))] });
+      if (scopes.some(item => files.fingerprint(item.source) !== item.fingerprint) || !samePath(paths().bundleRoot, p.bundleRoot) || paths().gamePath !== p.gamePath || paths().library !== p.library) throw Error(i18n.t("arknights.errors.changed"));
       const touched = new Set([...built.bundles, ...built.removedBundles].map(bundle => bundle.logical.toLowerCase()));
       const next = { schemaVersion: 1, bundles: [...index.bundles.filter(bundle => !touched.has(bundle.logical.toLowerCase())), ...built.bundles] };
       fs.writeFileSync(path.join(output, "bundle-index.json"), JSON.stringify(next));
@@ -61,6 +67,9 @@ function createModReloader({ paths, resolveMod, characterIds, sync, runNative, r
       }
       if (accepted.protocol !== 2 || accepted.pid !== runtime.pid || !accepted.lastPatch || !samePath(accepted.lastPatch, patch)) throw Error(i18n.t("arknights.errors.reloadUnavailable"));
       return { success: true, autoReloaded: true, bundleCount: touched.size, refreshRequired: true };
+    } catch (error) {
+      if (sent) error.patchSent = true;
+      throw error;
     } finally {
       // Once sent, a patch may be live even if its reply was lost. Keep its
       // immutable files until the next launch prepares a fresh bundle tree.

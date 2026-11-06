@@ -10,10 +10,10 @@ export function DeleteCharacterDialog({
     showDeleteModal &&
     renderManagementModal(
       <React.Fragment>
-        <div className="text-h2 delete-character-dialog-content">
+        <div className="dialog-title">
           {t("common.dialog.confirmDelete")}
         </div>
-        <div className="text-body delete-character-dialog-text-body-layout">
+        <div className="dialog-desc">
           {t("characters.delete.confirmPrefix")}
           <strong>
             {'"'}
@@ -26,18 +26,15 @@ export function DeleteCharacterDialog({
             {t("characters.delete.contentsHint")}
           </span>
         </div>
-        <div className="add-character-dialog-row">
-          <button
-            onClick={() => handleDeleteCharacter(showDeleteModal)}
-            className="btn btn-danger add-character-dialog-btn-layout"
-          >
-            {t("common.actions.recycle")}
+        <div className="dialog-actions">
+          <button onClick={() => setShowDeleteModal(null)} className="btn">
+            {t("common.actions.cancel")}
           </button>
           <button
-            onClick={() => setShowDeleteModal(null)}
-            className="btn btn-secondary add-character-dialog-btn-layout"
+            onClick={() => handleDeleteCharacter(showDeleteModal)}
+            className="btn btn-danger"
           >
-            {t("common.actions.cancel")}
+            {t("common.actions.recycle")}
           </button>
         </div>
       </React.Fragment>,

@@ -1,36 +1,14 @@
 import { t } from "../../shared/i18n/index.mjs";
 import React from "react";
+import { Icon } from "./Icon.jsx";
+import { Menu, MenuItem } from "./Menu.jsx";
 
-function LaunchIcon({ kind }) {
-  const paths = {
-    direct: "m9 5 10 7-10 7V5Z",
-    xxmi: "M9 7V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-3M4 9h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10a1 1 0 0 1 1-1Z",
-    official: "M14 3h7v7m0-7L11 13M10 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5",
-    settings: "M21 7h-7M10 7H3M21 17h-3M14 17H3M10 4v6M18 14v6",
-    loading: "M21 12a9 9 0 1 1-9-9",
-  };
-  return (
-    <svg
-      className={`launch-icon${kind === "loading" ? " launch-icon-loading" : ""}`}
-      viewBox="0 0 24 24"
-      fill={kind === "direct" ? "currentColor" : "none"}
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d={paths[kind]} />
-    </svg>
-  );
+function LaunchIcon({ kind, launching }) {
+  if (launching) return <span className="spinner launch-spinner" aria-hidden="true" />;
+  return <Icon name={kind} size={15} />;
 }
 
-function LaunchControls({
-  activeGame,
-  collapsed,
-  settingsActive,
-  onOpenSettings,
-}) {
+function LaunchControls({ activeGame, settingsActive, onOpenSettings }) {
   const [launching, setLaunching] = React.useState(null);
   const [error, setError] = React.useState("");
   const [notice, setNotice] = React.useState("");
@@ -68,22 +46,21 @@ function LaunchControls({
       setLaunching(null);
     }
   }
+  const busy = !!launching || !activeGame?.id;
   return (
-    <div
-      className={`launch-actions ${collapsed ? "launch-actions-collapsed" : "launch-control-card"}`}
-    >
-      <button
-        type="button"
-        className="btn btn-primary launch-button launch-button-direct"
-        aria-label={t("games.launch.direct")}
-        title={
-          wuwaDx12 ? t("games.launch.dx12Hint") : t("games.launch.directHint")
-        }
-        disabled={!!launching || !activeGame?.id}
-        onClick={() => launch("DIRECT")}
-      >
-        <LaunchIcon kind={launching === "DIRECT" ? "loading" : "direct"} />
-        {!collapsed && (
+    <div className="launch-actions">
+      <div className="launch-split">
+        <button
+          type="button"
+          className="btn btn-primary launch-button launch-button-direct"
+          aria-label={t("games.launch.direct")}
+          title={
+            wuwaDx12 ? t("games.launch.dx12Hint") : t("games.launch.directHint")
+          }
+          disabled={busy}
+          onClick={() => launch("DIRECT")}
+        >
+          <LaunchIcon kind="play" launching={launching === "DIRECT"} />
           <span className="launch-button-label">
             {launching === "DIRECT"
               ? t("games.launch.launching")
@@ -91,70 +68,83 @@ function LaunchControls({
                 ? t("games.launch.directDx12")
                 : t("games.launch.direct")}
           </span>
-        )}
-      </button>
-      {activeGame?.id !== "arknights" && <button
-        type="button"
-        className="btn btn-secondary launch-button"
-        aria-label={t("games.launch.xxmi")}
-        title={
-          supportsXxmi ? t("games.launch.xxmiHint") : t("games.launch.nteHint")
-        }
-        disabled={!!launching || !activeGame?.id || !supportsXxmi}
-        onClick={() => launch("XXMI")}
-      >
-        <LaunchIcon kind={launching === "XXMI" ? "loading" : "xxmi"} />
-        {!collapsed && (
-          <span className="launch-button-label">
-            {launching === "XXMI"
-              ? t("games.launch.launching")
-              : t("games.launch.xxmiCompact")}
-          </span>
-        )}
-      </button>}
-      <button
-        type="button"
-        className="btn btn-secondary launch-button"
-        aria-label={t("games.launch.official")}
-        title={t("games.launch.officialHint")}
-        disabled={!!launching || !activeGame?.id}
-        onClick={() => launch("OFFICIAL")}
-      >
-        <LaunchIcon kind={launching === "OFFICIAL" ? "loading" : "official"} />
-        {!collapsed && (
-          <span className="launch-button-label">
+        </button>
+        <Menu
+          label={t("games.launch.moreOptions")}
+          minWidth={260}
+          trigger={({ props }) => (
+            <button
+              type="button"
+              className="btn btn-primary launch-menu-trigger"
+              aria-label={t("games.launch.moreOptions")}
+              title={t("games.launch.moreOptions")}
+              {...props}
+            >
+              <Icon name="chevron-down" size={14} />
+            </button>
+          )}
+        >
+          {activeGame?.id !== "arknights" && (
+            <MenuItem
+              className="launch-button"
+              aria-label={t("games.launch.xxmi")}
+              icon={<LaunchIcon kind="layers" launching={launching === "XXMI"} />}
+              hint={
+                supportsXxmi ? t("games.launch.xxmiHint") : t("games.launch.nteHint")
+              }
+              disabled={busy || !supportsXxmi}
+              onClick={() => launch("XXMI")}
+            >
+              {launching === "XXMI"
+                ? t("games.launch.launching")
+                : t("games.launch.xxmiCompact")}
+            </MenuItem>
+          )}
+          <MenuItem
+            className="launch-button"
+            aria-label={t("games.launch.official")}
+            icon={<LaunchIcon kind="external" launching={launching === "OFFICIAL"} />}
+            hint={t("games.launch.officialHint")}
+            disabled={busy}
+            onClick={() => launch("OFFICIAL")}
+          >
             {launching === "OFFICIAL"
               ? t("games.launch.launching")
               : t("games.launch.officialCompact")}
-          </span>
-        )}
-      </button>
-      <button
-        type="button"
-        className={`game-settings-button${settingsActive ? " active" : ""}`}
-        aria-label={t("navigation.gameSettings")}
-        aria-current={settingsActive ? "page" : undefined}
-        title={
-          activeGame
-            ? t("games.settingsLabel", {
-                name: activeGame.name,
-              })
-            : t("navigation.gameSettings")
-        }
-        disabled={!activeGame?.id}
-        onClick={onOpenSettings}
-      >
-        <LaunchIcon kind="settings" />
-        {!collapsed && t("navigation.gameSettings")}
-      </button>
-      {error && (
-        <div role="alert" className="launch-error" title={error}>
-          {error}
-        </div>
-      )}
-      {notice && (
-        <div role="status" className="launch-notice" title={notice}>
-          {notice}
+          </MenuItem>
+          <div className="menu-sep" />
+          <MenuItem
+            className={`game-settings-button${settingsActive ? " active" : ""}`}
+            aria-label={t("navigation.gameSettings")}
+            aria-current={settingsActive ? "page" : void 0}
+            icon={<Icon name="sliders" />}
+            disabled={!activeGame?.id}
+            onClick={onOpenSettings}
+          >
+            {activeGame
+              ? t("games.settingsLabel", { name: activeGame.name })
+              : t("navigation.gameSettings")}
+          </MenuItem>
+        </Menu>
+      </div>
+      {(error || notice) && (
+        <div
+          className={`launch-popover ${error ? "launch-error" : "launch-notice"}`}
+          role={error ? "alert" : "status"}
+        >
+          <Icon name={error ? "alert" : "info"} size={15} />
+          <span>{error || notice}</span>
+          <button
+            type="button"
+            className="icon-btn icon-btn-sm"
+            aria-label={t("common.actions.close")}
+            onClick={() => {
+              setError("");
+              setNotice("");
+            }}
+          >
+            <Icon name="x" size={14} />
+          </button>
         </div>
       )}
     </div>

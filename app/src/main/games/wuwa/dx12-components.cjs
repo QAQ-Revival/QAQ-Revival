@@ -150,7 +150,8 @@ function extractPackage(kind, bytes) {
 function createWuwaDx12Packages({
   bundledDir,
   cacheDir,
-  fetch: fetchImpl
+  fetch: fetchImpl,
+  loadFork = () => null
 }) {
   const loaded = new Map();
   const catalogFile = path.join(cacheDir, 'versions.json');
@@ -238,6 +239,17 @@ function createWuwaDx12Packages({
     return extracted;
   }
   getPackage.info = selected;
+  // The add-on built from the organization fork. It ships with QAQR, so it has nothing to download.
+  getPackage.fork = () => {
+    const bundle = loadFork();
+    if (!bundle?.files['wwmi_dx12.addon64'] || !/^\d+\.\d+\.\d+$/.test(bundle.manifest.version || '')) return null;
+    const entries = new Map();
+    for (const [name, file] of Object.entries(bundle.files)) if (name === 'wwmi_dx12.addon64' || name.startsWith('wwmi_dx12/')) entries.set(name, fs.readFileSync(file));
+    entries.version = bundle.manifest.version;
+    entries.build = bundle.manifest.sourceCommit.slice(0, 12);
+    entries.addonHash = bundle.manifest.files['wwmi_dx12.addon64'];
+    return entries;
+  };
   getPackage.state = (sources = {}) => ({
     checkedAt: catalog.checkedAt,
     errors: {
@@ -347,6 +359,7 @@ function createWuwaDx12Components({
       source: owned ? 'managed' : active ? 'user' : 'missing',
       active,
       path: target,
+      sha256: owned ? entry.sha256 : null,
       version: owned ? entry.version : version
     };
   }

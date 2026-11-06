@@ -1,6 +1,7 @@
 import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
 import ReactDOM from "react-dom";
+import { Icon } from "../../../components/Icon.jsx";
 const SERVER_URL_DEFAULT = "https://qaqm.top";
 function BatchCloudPanel({ gameId, onClose }) {
   const [mode, setMode] = React.useState(null);
@@ -238,7 +239,7 @@ function BatchCloudPanel({ gameId, onClose }) {
       setLogs((prev) => [
         ...prev,
         {
-          message: `❌ ${r.error}`,
+          message: `${r.error}`,
           level: "error",
         },
       ]);
@@ -261,7 +262,7 @@ function BatchCloudPanel({ gameId, onClose }) {
     if (modsToCheck.length === 0) {
       setLogs([
         {
-          message: "⚠️ 没有可检查的mod",
+          message: "没有可检查的 Mod",
           level: "warn",
         },
       ]);
@@ -285,7 +286,7 @@ function BatchCloudPanel({ gameId, onClose }) {
       setLogs((prev) => [
         ...prev,
         {
-          message: `⚠️ 获取市场数据失败: ${e.message}`,
+          message: `获取市场数据失败: ${e.message}`,
           level: "warn",
         },
       ]);
@@ -293,7 +294,7 @@ function BatchCloudPanel({ gameId, onClose }) {
     setLogs((prev) => [
       ...prev,
       {
-        message: `📊 市场已有 ${marketModNames.size} 个mod，开始逐个检查...`,
+        message: `市场已有 ${marketModNames.size} 个 Mod，开始逐个检查...`,
         level: "info",
       },
     ]);
@@ -330,7 +331,7 @@ function BatchCloudPanel({ gameId, onClose }) {
       setLogs((prev) => [
         ...prev,
         {
-          message: `⏭️ 无图片跳过 ${skippedNoImage.length} 个: ${skippedNoImage.map((m) => `[${m.char}]${m.modName}`).join(", ")}`,
+          message: `无图片跳过 ${skippedNoImage.length} 个: ${skippedNoImage.map((m) => `[${m.char}]${m.modName}`).join(", ")}`,
           level: "warn",
         },
       ]);
@@ -339,7 +340,7 @@ function BatchCloudPanel({ gameId, onClose }) {
       setLogs((prev) => [
         ...prev,
         {
-          message: `⏭️ 市场重复跳过 ${skippedDuplicate.length} 个: ${skippedDuplicate.map((m) => `[${m.char}]${m.modName}`).join(", ")}`,
+          message: `市场重复跳过 ${skippedDuplicate.length} 个: ${skippedDuplicate.map((m) => `[${m.char}]${m.modName}`).join(", ")}`,
           level: "warn",
         },
       ]);
@@ -347,7 +348,7 @@ function BatchCloudPanel({ gameId, onClose }) {
     setLogs((prev) => [
       ...prev,
       {
-        message: `✅ 符合条件: ${filtered.length} 个mod`,
+        message: `符合条件: ${filtered.length} 个 Mod`,
         level: "info",
       },
     ]);
@@ -355,7 +356,7 @@ function BatchCloudPanel({ gameId, onClose }) {
       setLogs((prev) => [
         ...prev,
         {
-          message: "没有需要上传的mod，操作结束",
+          message: "没有需要上传的 Mod，操作结束",
           level: "warn",
         },
       ]);
@@ -365,7 +366,7 @@ function BatchCloudPanel({ gameId, onClose }) {
     setLogs((prev) => [
       ...prev,
       {
-        message: `📤 开始上传 ${filtered.length} 个mod...`,
+        message: `开始上传 ${filtered.length} 个 Mod...`,
         level: "info",
       },
     ]);
@@ -394,48 +395,53 @@ function BatchCloudPanel({ gameId, onClose }) {
       modIds: [...selectedPending].join(","),
     });
   }
-  const logColor = {
-    info: "#d1d5db",
-    warn: "#fbbf24",
-    error: "#f87171",
-    progress: "#818cf8",
-  };
+  const modsByCharacter = {};
+  localMods.forEach((m) => {
+    if (!modsByCharacter[m.char]) modsByCharacter[m.char] = [];
+    modsByCharacter[m.char].push(m);
+  });
   return ReactDOM.createPortal(
-    <div onClick={onClose} className="batch-cloud-panel-close-action">
+    <div className="modal-backdrop" onClick={onClose}>
       <div
+        className="dev-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="batch-cloud-title"
         onClick={(e) => e.stopPropagation()}
-        className="batch-cloud-panel-stack"
       >
-        <div className="batch-cloud-panel-row">
-          <div>
-            <div className="batch-cloud-panel-heading">
+        <header className="dev-panel-head">
+          <div className="dev-panel-heading">
+            <h2 id="batch-cloud-title" className="dev-panel-title">
               {t("market.cloud.batchTitle")}
-            </div>
-            <div className="batch-cloud-panel-hint">
-              {t("market.cloud.gameLabel", {
-                gameId: gameId || "endfield",
-              })}
-            </div>
+            </h2>
+            <span className="dev-panel-sub">
+              {t("market.cloud.gameLabel", { gameId: gameId || "endfield" })}
+            </span>
           </div>
-          <button onClick={onClose} className="batch-cloud-panel-close-icon">
-            {"✕"}
+          <button
+            type="button"
+            className="icon-btn icon-btn-sm"
+            onClick={onClose}
+            aria-label={t("common.actions.close")}
+            title={t("common.actions.close")}
+          >
+            <Icon name="x" size={15} />
           </button>
-        </div>
-        <div className="batch-cloud-panel-content">
-          <div className="batch-cloud-panel-section">
-            <div className="batch-cloud-panel-heading-emphasis">
-              {t("market.cloud.chooseCharacters")}
+        </header>
+        <div className="dev-panel-body">
+          <section className="dev-section">
+            <div className="dev-section-title">
+              <span>{t("market.cloud.chooseCharacters")}</span>
+              {!selectAll && selectedChars.size > 0 && (
+                <em>{t("market.cloud.selectedCharacterCount", { size: selectedChars.size })}</em>
+              )}
             </div>
-            <div className="batch-cloud-panel-character-options">
+            <div className="dev-chips">
               <button
+                type="button"
+                className={`chip ${selectAll ? "active" : ""}`}
+                aria-pressed={selectAll}
                 onClick={handleSelectAll}
-                style={{
-                  borderRadius: "10px",
-                  border: selectAll ? "none" : "1px solid #e5e7eb",
-                  background: selectAll ? "#6366f1" : "#fff",
-                  color: selectAll ? "#fff" : "#6b7280",
-                }}
-                className="batch-cloud-panel-select-all-action"
               >
                 {t("characters.filter.all")}
               </button>
@@ -443,104 +449,63 @@ function BatchCloudPanel({ gameId, onClose }) {
                 const sel = !selectAll && selectedChars.has(c);
                 return (
                   <button
+                    type="button"
+                    className={`chip ${sel ? "active" : ""}`}
+                    aria-pressed={sel}
                     onClick={() => toggleChar(c)}
-                    style={{
-                      borderRadius: "10px",
-                      border: sel ? "none" : "1px solid #e5e7eb",
-                      background: sel ? "#f59e0b" : "#fff",
-                      color: sel ? "#fff" : "#6b7280",
-                    }}
                     key={c}
-                    className="batch-cloud-panel-action"
                   >
                     {c}
                   </button>
                 );
               })}
             </div>
-            {!selectAll && selectedChars.size > 0 && (
-              <div className="batch-cloud-panel-selected-character-count">
-                {t("market.cloud.selectedCharacterCount", {
-                  size: selectedChars.size,
-                })}
-              </div>
-            )}
-          </div>
+          </section>
           {localMods.length > 0 && (
-            <div className="batch-cloud-panel-mod-selection">
-              <div className="batch-cloud-panel-mod-selection-toolbar">
-                <div className="batch-cloud-panel-mod-selection-heading">
-                  {t("market.cloud.localModsPrefix")}
-                  {selectedMods === null
-                    ? t("common.actions.selectAll")
-                    : t("market.cloud.selectedCount", {
-                        size: selectedMods.size,
-                      })}
+            <section className="dev-section">
+              <div className="dev-section-title">
+                <span>{t("market.cloud.localMods")}</span>
+                <em>
+                  {selectedMods === null ? localMods.length : selectedMods.size}
                   {"/"}
                   {localMods.length}
-                  {"）"}
-                  {loadingMods && (
-                    <span className="batch-cloud-panel-content-emphasis">
-                      {t("common.status.loading")}
-                    </span>
-                  )}
-                </div>
+                </em>
+                {loadingMods && <span className="spinner" aria-hidden="true" />}
                 <button
+                  type="button"
+                  className={`chip dev-section-action ${selectedMods === null ? "active" : ""}`}
+                  aria-pressed={selectedMods === null}
                   onClick={handleSelectAllMods}
-                  style={{
-                    background: selectedMods === null ? "#6366f1" : "#fff",
-                    color: selectedMods === null ? "#fff" : "#6b7280",
-                  }}
-                  className="batch-cloud-panel-select-all-mods-action"
                 >
                   {t("common.actions.selectAll")}
                 </button>
               </div>
-              <div className="batch-cloud-panel-local-mod-list">
-                {(() => {
-                  const grouped = {};
-                  localMods.forEach((m) => {
-                    if (!grouped[m.char]) grouped[m.char] = [];
-                    grouped[m.char].push(m);
-                  });
-                  return Object.entries(grouped).map(([char, mods]) => (
-                    <div key={char}>
-                      <div className="batch-cloud-panel-mod-group-character">
-                        {char}
-                      </div>
-                      {mods.map((m) => (
-                        <label
-                          style={{
-                            background: isModSelected(m.folderName)
-                              ? "rgba(99,102,241,0.04)"
-                              : "transparent",
-                          }}
-                          key={m.folderName}
-                          className="batch-cloud-panel-row-spaced"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isModSelected(m.folderName)}
-                            onChange={() => toggleMod(m.folderName)}
-                          />
-                          <span className="batch-cloud-panel-truncated-text">
-                            {m.modName}
-                          </span>
-                          {m.modId && (
-                            <span className="batch-cloud-panel-mod-id">
-                              {"#"}
-                              {m.modId}
-                            </span>
-                          )}
-                        </label>
-                      ))}
-                    </div>
-                  ));
-                })()}
+              <div className="dev-rows dev-rows-scroll">
+                {Object.entries(modsByCharacter).map(([char, mods]) => (
+                  <React.Fragment key={char}>
+                    <div className="dev-row-group">{char}</div>
+                    {mods.map((m) => (
+                      <label className="dev-row" key={m.folderName}>
+                        <input
+                          type="checkbox"
+                          checked={isModSelected(m.folderName)}
+                          onChange={() => toggleMod(m.folderName)}
+                        />
+                        <span className="dev-row-name">{m.modName}</span>
+                        {m.modId && (
+                          <code className="dev-row-meta">
+                            {"#"}
+                            {m.modId}
+                          </code>
+                        )}
+                      </label>
+                    ))}
+                  </React.Fragment>
+                ))}
               </div>
-            </div>
+            </section>
           )}
-          <label className="batch-cloud-panel-overwrite-option">
+          <label className="dev-check">
             <input
               type="checkbox"
               checked={force}
@@ -548,22 +513,16 @@ function BatchCloudPanel({ gameId, onClose }) {
             />
             {t("market.cloud.forceOverwrite")}
           </label>
-          <div className="batch-cloud-panel-image-repair">
-            <div className="batch-cloud-panel-heading-emphasis">
-              {t("market.cloud.imageRepair")}
+          <section className="dev-section">
+            <div className="dev-section-title">
+              <span>{t("market.cloud.imageRepair")}</span>
             </div>
-            <div className="batch-cloud-panel-image-repair-actions">
+            <div className="dev-inline">
               <button
+                type="button"
+                className="btn"
                 onClick={fillMissingImages}
                 disabled={fillRunning || running}
-                style={{
-                  cursor: fillRunning || running ? "default" : "pointer",
-                  background:
-                    fillRunning || running
-                      ? "#d1d5db"
-                      : "linear-gradient(135deg, #ec4899, #8b5cf6)",
-                }}
-                className="batch-cloud-panel-fill-missing-images-action"
               >
                 {fillRunning
                   ? t("market.cloud.fillingImages")
@@ -571,34 +530,26 @@ function BatchCloudPanel({ gameId, onClose }) {
               </button>
               <input
                 type="password"
+                className="input"
                 value={adminKey}
                 onChange={(e) => {
                   setAdminKey(e.target.value);
                   localStorage.setItem("qaqm-dev-admin-key", e.target.value);
                 }}
                 placeholder={t("settings.developer.adminKey")}
-                className="batch-cloud-panel-input-field"
               />
             </div>
-            {fillResult && (
-              <div
-                style={{
-                  borderRadius: "8px",
-                  background: fillResult.error
-                    ? "rgba(239,68,68,0.06)"
-                    : "rgba(34,197,94,0.06)",
-                  border: `1px solid ${fillResult.error ? "#fca5a5" : "#86efac"}`,
-                }}
-                className="batch-cloud-panel-image-repair-result"
-              >
-                {fillResult.error ? (
-                  <div className="batch-cloud-panel-error-text">
-                    {"❌ "}
-                    {fillResult.error}
-                  </div>
-                ) : (
-                  <div>
-                    <div className="batch-cloud-panel-image-repair-summary">
+            {fillResult &&
+              (fillResult.error ? (
+                <div className="notice notice-danger" role="alert">
+                  <Icon name="alert" size={14} />
+                  <span className="selectable">{fillResult.error}</span>
+                </div>
+              ) : (
+                <div className="notice notice-success">
+                  <Icon name="check" size={14} />
+                  <div className="dev-notice-body">
+                    <div>
                       {t("market.cloud.fillImagesSummary", {
                         total: fillResult.total,
                         filled: fillResult.filled,
@@ -606,18 +557,14 @@ function BatchCloudPanel({ gameId, onClose }) {
                         errorCount: fillResult.errorCount,
                       })}
                     </div>
-                    {fillResult.filledList?.length > 0 && (
-                      <div className="batch-cloud-panel-repaired-mod-list">
-                        {fillResult.filledList.map((m) => (
-                          <div key={m.id}>
-                            {"#"}
-                            {m.id} {m.name}
-                          </div>
-                        ))}
+                    {fillResult.filledList?.map((m) => (
+                      <div key={m.id}>
+                        {"#"}
+                        {m.id} {m.name}
                       </div>
-                    )}
+                    ))}
                     {fillResult.skippedList?.length > 0 && (
-                      <div className="batch-cloud-panel-skipped-mod-summary">
+                      <div>
                         {t("market.cloud.skippedPrefix")}
                         {fillResult.skippedList
                           .map((m) => `#${m.id}(${m.reason})`)
@@ -625,180 +572,78 @@ function BatchCloudPanel({ gameId, onClose }) {
                       </div>
                     )}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="batch-cloud-panel-operation-actions">
-            <button
-              onClick={() => startOperation("sync-upload")}
-              disabled={running}
-              style={{
-                cursor: running ? "default" : "pointer",
-                background: running
-                  ? "#d1d5db"
-                  : "linear-gradient(135deg, #059669, #10b981)",
-              }}
-              className="batch-cloud-panel-action-emphasis"
-            >
-              {t("market.cloud.uploadMissing")}
-            </button>
-            <button
-              onClick={() => startOperation("upload")}
-              disabled={running}
-              style={{
-                cursor: running ? "default" : "pointer",
-                background: running
-                  ? "#d1d5db"
-                  : "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              }}
-              className="batch-cloud-panel-action-emphasis"
-            >
-              {t("market.cloud.uploadAll")}
-            </button>
-            <button
-              onClick={smartUploadWithFilter}
-              disabled={running}
-              style={{
-                cursor: running ? "default" : "pointer",
-                background: running
-                  ? "#d1d5db"
-                  : "linear-gradient(135deg, #059669, #10b981)",
-              }}
-              className="batch-cloud-panel-action-emphasis"
-            >
-              {t("market.cloud.uploadWithImages")}
-            </button>
-            <button
-              onClick={() => startOperation("replace")}
-              disabled={running}
-              style={{
-                cursor: running ? "default" : "pointer",
-                background: running
-                  ? "#d1d5db"
-                  : "linear-gradient(135deg, #f59e0b, #ef4444)",
-              }}
-              className="batch-cloud-panel-replace-links"
-            >
-              {t("market.cloud.replaceLinks")}
-            </button>
-            <button
-              onClick={() => startOperation("list-cloud")}
-              disabled={running}
-              style={{
-                cursor: running ? "default" : "pointer",
-                background: running
-                  ? "#d1d5db"
-                  : "linear-gradient(135deg, #10b981, #0ea5e9)",
-              }}
-              className="batch-cloud-panel-replace-links"
-            >
-              {t("market.cloud.compare")}
-            </button>
-          </div>
+                </div>
+              ))}
+          </section>
           {(running || result) && (
-            <div className="batch-cloud-panel-progress-section">
+            <section className="dev-section">
               {running && (
-                <div>
-                  <div className="batch-cloud-panel-progress-status">
+                <React.Fragment>
+                  <div className="dev-progress-head">
                     <span>{progress.message}</span>
-                    <span>
+                    <em>
                       {progress.current}
                       {"/"}
                       {progress.total}
-                    </span>
+                    </em>
                   </div>
-                  <div className="batch-cloud-panel-progress-track">
+                  <div className="progress-track">
                     <div
+                      className="progress-fill"
                       style={{
                         width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%`,
                       }}
-                      className="batch-cloud-panel-progress-fill"
                     />
                   </div>
-                </div>
+                </React.Fragment>
               )}
               {result && (
-                <div
-                  style={{
-                    borderRadius: "8px",
-                    background:
-                      result.errors > 0
-                        ? "rgba(239,68,68,0.06)"
-                        : "rgba(34,197,94,0.06)",
-                    border: `1px solid ${result.errors > 0 ? "#fca5a5" : "#86efac"}`,
-                  }}
-                  className="batch-cloud-panel-hint-spaced"
-                >
-                  <div
-                    style={{
-                      color: result.errors > 0 ? "#ef4444" : "#16a34a",
-                    }}
-                    className="batch-cloud-panel-operation-summary"
-                  >
-                    {t("market.cloud.resultSummary", {
-                      success: result.success,
-                      errors: result.errors,
-                    })}
-                  </div>
-                  {result.errorList && result.errorList.length > 0 && (
-                    <div className="batch-cloud-panel-error-list">
-                      {result.errorList.map((e, i) => (
-                        <div key={i}>
-                          {e.char && `[${e.char}] `}
-                          {e.mod && `${e.mod}: `}
-                          {e.error}
-                        </div>
-                      ))}
+                <div className={`notice ${result.errors > 0 ? "notice-danger" : "notice-success"}`}>
+                  <Icon name={result.errors > 0 ? "alert" : "check"} size={14} />
+                  <div className="dev-notice-body">
+                    <div>
+                      {t("market.cloud.resultSummary", {
+                        success: result.success,
+                        errors: result.errors,
+                      })}
                     </div>
-                  )}
+                    {result.errorList?.map((e, i) => (
+                      <div key={i} className="selectable">
+                        {e.char && `[${e.char}] `}
+                        {e.mod && `${e.mod}: `}
+                        {e.error}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-            </div>
+            </section>
           )}
           {cloudItems && !running && (
-            <div className="batch-cloud-panel-section">
-              <div className="batch-cloud-panel-comparison-toolbar">
-                <div className="batch-cloud-panel-mod-selection-heading">
-                  {t("market.cloud.compareResultPrefix")}
-                  {cloudItems.length}
-                  {t("market.cloud.modCountSuffix")}
-                  <span className="batch-cloud-panel-error-text">
-                    {t("market.cloud.pendingCount", {
-                      filterCount: cloudItems.filter(
-                        (i) => i.status === "待发布",
-                      ).length,
-                    })}
-                  </span>
-                  {" "}
-                  <span className="batch-cloud-panel-published-count">
-                    {t("market.cloud.publishedCount", {
-                      filterCount: cloudItems.filter(
-                        (i) => i.status === "已发布",
-                      ).length,
-                    })}
-                  </span>
-                </div>
+            <section className="dev-section">
+              <div className="dev-section-title">
+                <span>{t("market.cloud.compareSummary", { count: cloudItems.length })}</span>
+                <span className="badge badge-warning">
+                  {t("market.cloud.pendingCount", {
+                    filterCount: cloudItems.filter((i) => i.status === "待发布").length,
+                  })}
+                </span>
+                <span className="badge badge-success">
+                  {t("market.cloud.publishedCount", {
+                    filterCount: cloudItems.filter((i) => i.status === "已发布").length,
+                  })}
+                </span>
                 <button
+                  type="button"
+                  className="btn btn-sm dev-section-action"
                   onClick={selectAllPending}
-                  className="batch-cloud-panel-select-all-pending-action"
                 >
                   {t("market.cloud.selectPending")}
                 </button>
               </div>
-              <div className="batch-cloud-panel-comparison-list">
+              <div className="dev-rows dev-rows-scroll">
                 {cloudItems.map((item) => (
-                  <label
-                    style={{
-                      cursor: item.status === "待发布" ? "pointer" : "default",
-                      background:
-                        item.status === "待发布" && selectedPending.has(item.id)
-                          ? "rgba(239,68,68,0.05)"
-                          : "transparent",
-                    }}
-                    key={item.id}
-                    className="batch-cloud-panel-comparison-item"
-                  >
+                  <label className="dev-row" key={item.id}>
                     {item.status === "待发布" ? (
                       <input
                         type="checkbox"
@@ -806,19 +651,14 @@ function BatchCloudPanel({ gameId, onClose }) {
                         onChange={() => togglePending(item.id)}
                       />
                     ) : (
-                      <span className="batch-cloud-panel-column" />
+                      <span className="dev-row-check-gap" />
                     )}
                     <span
-                      style={{
-                        background:
-                          item.status === "待发布" ? "#fee2e2" : "#dcfce7",
-                        color: item.status === "待发布" ? "#b91c1c" : "#15803d",
-                      }}
-                      className="batch-cloud-panel-heading-spaced"
+                      className={`badge ${item.status === "待发布" ? "badge-warning" : "badge-success"}`}
                     >
                       {item.status}
                     </span>
-                    <span className="batch-cloud-panel-comparison-mod-name">
+                    <span className="dev-row-name">
                       {"#"}
                       {item.id} {item.char && `[${item.char}] `}
                       {item.name}
@@ -827,80 +667,103 @@ function BatchCloudPanel({ gameId, onClose }) {
                 ))}
               </div>
               {selectedPending.size > 0 && (
-                <div className="batch-cloud-panel-republish-actions">
-                  <span className="batch-cloud-panel-selected-count">
-                    {t("market.cloud.selectedPendingCount", {
-                      size: selectedPending.size,
-                    })}
+                <div className="dev-inline">
+                  <span className="dev-note">
+                    {t("market.cloud.selectedPendingCount", { size: selectedPending.size })}
                   </span>
                   <button
+                    type="button"
+                    className="btn btn-sm"
                     onClick={republishSelected}
                     disabled={running}
-                    className="batch-cloud-panel-republish-selected-action"
                   >
                     {t("market.cloud.publishSelected")}
                   </button>
                 </div>
               )}
-            </div>
+            </section>
           )}
           {logs.length > 0 && (
-            <div>
+            <section className="dev-section">
               <button
+                type="button"
+                className="dev-log-toggle"
+                aria-expanded={!logsCollapsed}
                 onClick={() => setLogsCollapsed(!logsCollapsed)}
-                className="batch-cloud-panel-logs-toggle"
               >
-                {t("market.cloud.logsHeading", {
-                  status: logsCollapsed ? "▶" : "▼",
-                  logsCount: logs.length,
-                })}
+                <Icon name={logsCollapsed ? "chevron-right" : "chevron-down"} size={14} />
+                {t("market.cloud.logsHeading", { logsCount: logs.length })}
               </button>
               {!logsCollapsed && (
-                <div className="batch-cloud-panel-panel">
+                <div className="dev-log selectable">
                   {logs.map((log, i) => (
-                    <div
-                      style={{
-                        color: logColor[log.level] || "#d1d5db",
-                      }}
-                      key={i}
-                      className="batch-cloud-panel-log-entry"
-                    >
+                    <div key={i} className={`dev-log-line is-${log.level}`}>
                       {log.message}
                     </div>
                   ))}
-                  {running && (
-                    <div className="batch-cloud-panel-log-cursor">{"▋"}</div>
-                  )}
                   <div ref={logEndRef} />
                 </div>
               )}
-            </div>
+            </section>
           )}
         </div>
-        <div className="batch-cloud-panel-actions">
+        <footer className="dev-panel-foot">
           {logs.length > 0 && (
             <button
+              type="button"
+              className="btn btn-ghost"
               onClick={() => {
-                navigator.clipboard.writeText(
-                  logs.map((l) => l.message).join("\n"),
-                );
+                navigator.clipboard.writeText(logs.map((l) => l.message).join("\n"));
               }}
-              className="batch-cloud-panel-action-spaced"
             >
               {t("market.cloud.copyLogs")}
             </button>
           )}
-          <button
-            onClick={onClose}
-            disabled={running}
-            style={{
-              cursor: running ? "default" : "pointer",
-            }}
-            className="batch-cloud-panel-close-button"
-          >
+          <span className="dev-panel-foot-spacer" />
+          <button type="button" className="btn" onClick={onClose} disabled={running}>
             {t("common.actions.close")}
           </button>
-        </div>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => startOperation("list-cloud")}
+            disabled={running}
+          >
+            {t("market.cloud.compare")}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => startOperation("replace")}
+            disabled={running}
+          >
+            {t("market.cloud.replaceLinks")}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => startOperation("sync-upload")}
+            disabled={running}
+          >
+            {t("market.cloud.uploadMissing")}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={smartUploadWithFilter}
+            disabled={running}
+          >
+            {t("market.cloud.uploadWithImages")}
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => startOperation("upload")}
+            disabled={running}
+          >
+            {t("market.cloud.uploadAll")}
+          </button>
+        </footer>
       </div>
     </div>,
     document.body,

@@ -2,7 +2,7 @@
   "description": "Arknights PC · Operator Mods, open-source loading and resource conversion",
   "tools": "Diagnose, repair and convert",
   "cursor": {
-    "title": "Mouse cursor",
+    "title": "Mouse",
     "useSystem": "Use system cursor",
     "hint": "Switch while the game is closed. Takes effect next launch. Turning this off restores the game cursor.",
     "checking": "Checking cursor resources…",
@@ -16,6 +16,27 @@
     "componentInvalid": "System cursor component verification failed. Reinstall or build the component.",
     "operationFailed": "The cursor operation failed. Check the resources and try again."
   },
+  "launchOption": {
+    "checking": "Checking…",
+    "refresh": "Check again"
+  },
+  "window": {
+    "title": "Game window",
+    "label": "Resize with fixed aspect ratio",
+    "hint": "Launch through QAQR, then drag a window edge or corner to resize while keeping the current aspect ratio. Switch while the game is closed; takes effect next launch.",
+    "enabled": "Aspect ratio resizing enabled for the next launch through QAQR.",
+    "disabled": "Original window behavior will return on the next launch.",
+    "gameRunning": "Close Arknights before switching window resizing.",
+    "unsupported": "This loader does not support window resizing. Update the Arknights component."
+  },
+  "mouse": {
+    "label": "High polling rate mouse fix",
+    "hint": "Merges mouse movement within each frame to stop frame drops with 4000 Hz and 8000 Hz mice. Pointer and clicks are unaffected. Switch while the game is closed; takes effect next launch through QAQR.",
+    "enabled": "High polling rate mouse fix enabled for the next launch through QAQR.",
+    "disabled": "Original mouse input will return on the next launch.",
+    "gameRunning": "Close Arknights before switching the mouse fix.",
+    "unsupported": "This loader does not support mouse input merging. Update the Arknights component."
+  },
   "reloadMod": "Reload this Mod",
   "reloading": "Reloading…",
   "reloaded": "Updated {{bundleCount}} affected bundles. Leave and reopen the operator view. Cached scenes may require a scene change.",
@@ -24,8 +45,6 @@
   "analyzeAgain": "Analyze again",
   "source": "Source",
   "target": "Output resource",
-  "matched": "Matched current resource",
-  "unverified": "Unverified",
   "summary": "{{count}} resources, {{matched}} matched to the current game, {{renamed}} names can be repaired.",
   "convert": "Create PC copy",
   "repair": "Create repaired copy",
@@ -63,7 +82,6 @@
     "viewSource": "View source",
     "sync": "Sync enabled Mods",
     "synced": "Synced {{modCount}} Mods and {{fileCount}} files.",
-    "workerReady": "Resource diagnostics and conversion are available",
     "workerMissing": "Source-built resource component is missing. Operator and Mod library management remain available.",
     "readOnly": "Diagnostics, conversion and preparation only read game files. Generated PC bundles stay in the QAQR data directory."
   },

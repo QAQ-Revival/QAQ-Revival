@@ -26,8 +26,8 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, passed }) => {
   assert.ok(likedClientIds.length > 0, 'Opening the market requests the current client’s liked mods');
   assert.ok(likedClientIds.every(id => id === canonical), 'Market requests use the canonical id instead of legacy localStorage');
   await captureUI('window-titlebar-integrated.png');
-  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-market-header button')].map(el => el.textContent.trim())`), ['网页版', '布局▾', '刷新▾']);
-  await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
+  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-market-header .menu-anchor > button')].map(el => el.textContent.trim())`), ['布局', '刷新']);
+  assert.ok(await evaluate(`[...document.querySelectorAll('.mod-market-header button')].some(el => el.textContent.trim() === '网页版')`));
   await waitFor(`document.querySelectorAll('.mod-download-source-option').length === 8`, 'source menu');
   assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option')].map(el => el.dataset.source)`), ['qaqm', 'kemono', 'pawchive', 'gamebanana', 'arca', 'loverslab', 'huiyue', 'keke']);
   await evaluate(`document.querySelector('[data-source="kemono"].mod-download-source-option').click()`);

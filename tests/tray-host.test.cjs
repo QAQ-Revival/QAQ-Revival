@@ -30,16 +30,24 @@ function mockChild() {
 test('native tray forwards actions, keeps its private pipe open, and closes it on application quit', t => {
   const child = mockChild();
   let ready = 0, shown = 0, quit = 0;
+  const nativeTheme = Object.assign(new EventEmitter(), { shouldUseDarkColors: true, shouldUseHighContrastColors: false });
   const opts = options(fixture(t), { launch: () => child,
+    nativeTheme,
     onReady: () => ready++, onShow: () => shown++, onQuit: () => quit++ });
   assert.equal(createNativeTray(opts), true);
   const request = JSON.parse(child.stdin.read().toString());
   assert.equal(request.show, '显示窗口'); assert.equal(request.quit, '退出程序');
+  assert.equal(request.theme, 'dark');
+  nativeTheme.shouldUseDarkColors = false;
+  nativeTheme.shouldUseHighContrastColors = true;
+  nativeTheme.emit('updated');
+  assert.deepEqual(JSON.parse(child.stdin.read().toString()), { theme: 'light', highContrast: 'true' });
   assert.equal(child.stdin.writableEnded, false);
   for (const type of ['ready', 'show', 'quit']) child.stdout.write(JSON.stringify({ type }) + '\n');
   assert.deepEqual([ready, shown, quit], [1, 1, 1]);
   opts.app.emit('will-quit');
   assert.equal(child.stdin.writableEnded, true);
+  assert.equal(nativeTheme.listenerCount('updated'), 0);
   child.emit('exit', 0);
   assert.equal(child.killed, undefined);
 });

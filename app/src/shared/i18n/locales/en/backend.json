@@ -1,4 +1,7 @@
 {
+  "wuwaDx12": {
+    "officialCached": "Official wwmi-dx12 updated to {{version}}. The current fix stays active; switch to official to use the update."
+  },
   "archiveDownloads": {
     "invalidAttachmentState": "Invalid attachment state"
   },
@@ -72,6 +75,8 @@
     },
     "mods": {
       "modFolderNotFound": "Mod folder not found",
+      "enableQueued": "Enabling, please wait",
+      "disableQueued": "Disabling, please wait",
       "noINIFilesFoundInModFolder": "No INI files found in mod folder",
       "sectionKeyNotFoundInAnyINIFile": "Section [Key{{sectionName}}] not found in any INI file",
       "renameFailedAfterRetries": "Rename failed after retries",
@@ -234,13 +239,6 @@
     "resetAllModIni": "Reset all Mod INI files",
     "changeFixer": "Change fixer"
   },
-  "config": {
-    "appearance": {
-      "auroraName": "Aurora Mint",
-      "auroraDescription": "Light gradients, glass surfaces, and mint highlights",
-      "themeUnavailable": "This theme is unavailable. Select a built-in theme."
-    }
-  },
   "common": {
     "none": "None",
     "notConfigured": "Not configured"
@@ -259,5 +257,37 @@
     "targetDirectory": "Target directory",
     "targetModsDirectory": "Target Mods directory",
     "downloadCacheDirectory": "Download cache directory"
+  },
+  "efmiVulkan": {
+    "gameTitle": "Game",
+    "gameRequired": "Set the Endfield.exe path first",
+    "miTitle": "EFMI",
+    "miRequired": "Install and configure EFMI in the Launcher first",
+    "approvalGranted": "Granted",
+    "approvalRequired": "Select EFMI in the Launcher, then turn on and save Unsafe Mode under Advanced Settings",
+    "argumentTitle": "Launch argument",
+    "argumentCleared": "-force-d3d11 is removed",
+    "argumentPresent": "The Launcher config still has -force-d3d11. This is corrected before launch",
+    "presentTitle": "Presentation",
+    "presentLayered": "NVIDIA: prefers a DXGI swap chain",
+    "presentAuto": "NVIDIA: driver default (auto). If Mods do not apply in game, set Vulkan/OpenGL present method to prefer a DXGI swap chain in the control panel",
+    "presentNative": "NVIDIA prefers native presentation, so Mods will not apply. Set Vulkan/OpenGL present method to prefer a DXGI swap chain in the control panel",
+    "presentOtherVendor": "Only the NVIDIA driver is known to present Vulkan through a D3D12 swap chain, so Mods may not apply on this GPU",
+    "presentUnknown": "Could not read the GPU settings",
+    "invalidValue": "Invalid value",
+    "notEnabled": "Turn on Vulkan first",
+    "invalidFork": "The QAQR Vulkan component failed verification",
+    "forkMissing": "This version does not include the QAQR Vulkan component",
+    "confirmRequired": "This file cannot be recovered once replaced. Confirm before turning this on",
+    "operationInProgress": "Another Vulkan operation is in progress",
+    "launcherConfigMissing": "EFMI is not in the Launcher config. Configure it in the Launcher first",
+    "closeGameFirst": "Close Endfield and the XXMI Launcher first",
+    "processStateUnknown": "Could not read the process state. Try again",
+    "invalidRelease": "The upstream release file list is incomplete",
+    "downloadFailed": "Could not download the upstream component ({{status}})",
+    "checksumFailed": "{{name}} failed verification",
+    "updateCheckFailed": "Update check failed ({{status}})",
+    "storageReadFailed": "Could not read the version record",
+    "alreadyCurrent": "Already up to date"
   }
 }

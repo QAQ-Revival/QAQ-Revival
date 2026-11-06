@@ -3,40 +3,22 @@ const path = require('node:path');
 
 module.exports = async function ({ evaluate, waitFor, captureUI, window, passed, setDelayedPost }) {
   const active = '.mod-download-provider:not([hidden])';
-  async function openSources() {
-    await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
-    await waitFor(`!!document.querySelector('.mod-download-source-menu')`, 'source menu');
-  }
   async function selectSource(source) {
-    await openSources();
-    await evaluate(`document.querySelector('.mod-download-source-option[data-source="${source}"]').click()`);
+    await evaluate(`document.querySelector('${active} .mod-download-source-option[data-source="${source}"]').click()`);
     await waitFor(`document.querySelector('${active}').dataset.source === ${JSON.stringify(source)}`, 'source selection');
-    assert.equal(await evaluate(`!!document.querySelector('.mod-download-source-menu')`), false);
   }
   async function clickVisible(text) {
     await evaluate(`(() => { const button = [...document.querySelectorAll('${active} button')].find(item => item.textContent.trim() === ${JSON.stringify(text)}); if (!button || button.disabled) throw Error('Missing enabled button: ' + ${JSON.stringify(text)}); button.click(); })()`);
   }
-  await openSources();
-  assert.deepEqual(await evaluate(`[...document.querySelectorAll('.mod-download-source-option strong')].map(option => option.textContent)`), ['QAQR', 'Kemono', 'Pawchive', '香蕉网', '韩网 · Arca', 'LoversLab', '辉站', '可可站']);
-  await waitFor(`document.activeElement?.dataset.source === 'pawchive'`, 'selected source focused');
-  await evaluate(`document.dispatchEvent(new Event('scroll'))`);
-  assert.equal(await evaluate(`!!document.querySelector('.mod-download-source-menu')`), true, 'Content reflow must not dismiss the source menu');
-  await captureUI('mod-download-source-menu.png');
-  await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }))`);
-  assert.equal(await evaluate(`document.activeElement.dataset.source`), 'keke');
-  await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true })); document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }))`);
-  assert.equal(await evaluate(`document.activeElement.dataset.source`), 'kemono');
-  await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))`);
-  await waitFor(`document.querySelector('${active}').dataset.source === 'kemono' && !document.querySelector('.mod-download-source-menu')`, 'keyboard source selection');
-  assert.equal(await evaluate(`document.activeElement.className`), 'mod-download-source-trigger');
+  const tabs = `[...document.querySelectorAll('${active} .mod-download-source-option strong')].map(option => option.textContent)`;
+  assert.deepEqual(await evaluate(tabs), ['QAQR', 'Kemono', 'Pawchive', '香蕉网', '韩网 · Arca', 'LoversLab', '辉站', '可可站']);
+  await evaluate(`document.querySelector('${active} .mod-download-source-option.active').focus()`);
+  await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }))`);
+  await waitFor(`document.querySelector('${active}').dataset.source === 'qaqm' && document.activeElement?.dataset.source === 'qaqm'`, 'Home selects the first source');
+  await evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }))`);
+  await waitFor(`document.querySelector('${active}').dataset.source === 'kemono' && document.activeElement?.dataset.source === 'kemono'`, 'arrow keys select and keep focus');
   await selectSource('pawchive');
-  await openSources();
-  await evaluate(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
-  await waitFor(`!document.querySelector('.mod-download-source-menu') && document.activeElement.className === 'mod-download-source-trigger'`, 'escape restores source focus');
-  await openSources();
-  await evaluate(`document.querySelector('.mod-download-header h1').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`);
-  await waitFor(`!document.querySelector('.mod-download-source-menu')`, 'outside click dismisses sources');
-  passed('Custom source menu: checked state, keyboard navigation and selection, Escape, outside click and focus restoration');
+  passed('Source tabs: visible order, one-click selection and keyboard navigation that keeps focus');
   await evaluate(`document.getElementById('pawchive-tab-posts').click()`);
   await waitFor(`!document.querySelector('${active} [aria-busy="true"]')`, 'post list');
   await evaluate(`document.querySelector('${active} .paw-pagination button:not(:disabled)')?.textContent.includes('上一页') && document.querySelector('${active} .paw-pagination button').click()`);
@@ -104,7 +86,7 @@ module.exports = async function ({ evaluate, waitFor, captureUI, window, passed,
   await waitFor(`document.querySelector('${active} .paw-post-title')?.textContent === 'Kemono 测试 MOD'`, 'Kemono creator posts wrapped in results');
   await evaluate(`document.querySelector('${active} .paw-post-title').click()`);
   await waitFor(`document.querySelector('.paw-gallery-counter')?.textContent === '1 / 3'`, 'Kemono image gallery');
-  assert.equal(await evaluate(`document.querySelector('.paw-eyebrow').textContent`), 'KEMONO / Mod 详情');
+  assert.equal(await evaluate(`document.querySelector('.paw-eyebrow').textContent`), 'Kemono');
   await evaluate(`document.querySelector('[aria-label="关闭内容详情"]').click()`);
   await selectSource('qaqm');
   await waitFor(`!!document.querySelector('${active} .mod-market-container')`, 'QAQR existing market');

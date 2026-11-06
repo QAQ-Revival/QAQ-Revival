@@ -65,7 +65,8 @@ function FittingTagRow({ tags, selectedTags, onToggleTag }) {
         const active =
           selectedTags && selectedTags.has(String(tag).toLowerCase());
         return (
-          <span
+          <button
+            type="button"
             data-fit-chip={true}
             title={
               active
@@ -76,23 +77,24 @@ function FittingTagRow({ tags, selectedTags, onToggleTag }) {
                     tag,
                   })
             }
+            aria-pressed={!!active}
             onClick={(e) => {
               e.stopPropagation();
               onToggleTag && onToggleTag(String(tag));
             }}
             key={`fit-${ti}`}
-            className={active ? "mod-row-tag-chip-active" : "mod-row-tag-chip"}
+            className={`chip mod-row-tag-chip ${active ? "active" : ""}`}
           >
             {"#"}
             {tag}
-          </span>
+          </button>
         );
       })}
       {hidden.length > 0 && (
         <span
           data-fit-more={true}
           title={hidden.map((t) => `#${t}`).join("  ")}
-          className="mod-row-tag-more"
+          className="badge"
         >
           {"+"}
           {hidden.length}

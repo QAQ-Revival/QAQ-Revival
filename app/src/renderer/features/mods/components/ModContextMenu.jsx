@@ -1,6 +1,7 @@
 import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
 import ReactDOM from "react-dom";
+import { Icon } from "../../../components/Icon.jsx";
 export function ModContextMenu({
   modContextMenu,
   setModContextMenu,
@@ -19,11 +20,19 @@ export function ModContextMenu({
   requestRollbackModIni,
   characterName,
   setToast,
+  confirmDelete,
 }) {
   return (
     modContextMenu &&
     ReactDOM.createPortal(
-      <div className="mod-context-backdrop">
+      <div
+        className="mod-context-backdrop"
+        onClick={() => setModContextMenu(null)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setModContextMenu(null);
+        }}
+      >
         <div
           className="mod-context-menu"
           style={{
@@ -46,8 +55,6 @@ export function ModContextMenu({
               setModContextMenu(null);
               handlePinMod(modContextMenu.mod.name, !modContextMenu.mod.pinned);
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             className="mod-context-menu-action"
           >
             {modContextMenu.mod.pinned
@@ -60,8 +67,6 @@ export function ModContextMenu({
               setModContextMenu(null);
               handleRequestRenameMod(mod);
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             className="mod-context-menu-action"
           >
             {t("common.actions.rename")}
@@ -72,8 +77,6 @@ export function ModContextMenu({
               setModContextMenu(null);
               openModSourceFolder(mod);
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             className="mod-context-menu-action"
           >
             {isDx12PakMod(modContextMenu.mod)
@@ -98,16 +101,12 @@ export function ModContextMenu({
                 });
               }
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             className="mod-context-menu-action"
           >
             {t("mods.actions.copyPath")}
           </button>
           <button
             onClick={() => handleRequestMoveMod(modContextMenu.mod)}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#eff6ff")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             className="mod-context-menu-action-emphasis"
           >
             {t("common.actions.move")}
@@ -116,8 +115,6 @@ export function ModContextMenu({
           <button
             onClick={() => handleFixMod(modContextMenu.mod, "external")}
             disabled={fixRunning}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#fff7ed")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             className="mod-context-menu-fixer-action"
           >
             {t(isArknights ? "arknights.tools" : "characters.fixer.title")}
@@ -128,14 +125,10 @@ export function ModContextMenu({
           >
             <button
               onClick={() => loadModIniBackups(modContextMenu.mod.name)}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#f5f3ff")
-              }
-              onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
               className="mod-context-menu-rollback-trigger"
             >
               <span>{t("mods.rollback.action")}</span>
-              <span className="mod-context-menu-submenu-arrow">{"›"}</span>
+              <Icon name="chevron-right" size={14} className="mod-context-menu-submenu-arrow" />
             </button>
             <div className="qaqm-context-submenu">
               {iniRollbackBackups.modName !== modContextMenu.mod.name ||
@@ -205,12 +198,21 @@ export function ModContextMenu({
                 });
               }
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#faf5ff")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             className="mod-context-menu-action-spaced"
           >
             {t("mods.ini.reset")}
           </button></>}
+          <div className="mod-context-menu-content" />
+          <button
+            onClick={(e) => {
+              const mod = modContextMenu.mod;
+              setModContextMenu(null);
+              confirmDelete(mod.name, e);
+            }}
+            className="mod-context-menu-delete"
+          >
+            {t("common.actions.delete")}
+          </button>
         </div>
       </div>,
       document.body,

@@ -1,6 +1,7 @@
 import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
 import ReactDOM from "react-dom";
+import { Icon } from "../../../components/Icon.jsx";
 function LinkCheckerPanel({ gameId, onClose }) {
   const [running, setRunning] = React.useState(false);
   const [logs, setLogs] = React.useState([]);
@@ -151,7 +152,7 @@ function LinkCheckerPanel({ gameId, onClose }) {
       setLogs((prev) => [
         ...prev,
         {
-          message: `❌ ${r.error}`,
+          message: `${r.error}`,
           level: "error",
         },
       ]);
@@ -173,7 +174,7 @@ function LinkCheckerPanel({ gameId, onClose }) {
     setLogs((prev) => [
       ...prev,
       {
-        message: `🔧 开始修复 ${targetIds.size} 个失效mod...`,
+        message: `开始修复 ${targetIds.size} 个失效 Mod...`,
         level: "info",
       },
     ]);
@@ -302,7 +303,7 @@ function LinkCheckerPanel({ gameId, onClose }) {
     setLogs((prev) => [
       ...prev,
       {
-        message: `🗑️ 开始删除 ${count} 个幽灵 mod...`,
+        message: `开始删除 ${count} 个幽灵 Mod...`,
         level: "info",
       },
     ]);
@@ -346,395 +347,274 @@ function LinkCheckerPanel({ gameId, onClose }) {
   }
   const overlay = (
     <div
+      className="modal-backdrop"
       onClick={(e) => {
         if (e.target === e.currentTarget && !running) onClose();
       }}
-      className="link-checker-panel-overlay"
     >
-      <div className="link-checker-panel-stack">
-        <div className="link-checker-panel-row">
-          <div className="link-checker-panel-heading">
-            {t("market.links.title")}
+      <div
+        className="dev-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="link-checker-title"
+      >
+        <header className="dev-panel-head">
+          <div className="dev-panel-heading">
+            <h2 id="link-checker-title" className="dev-panel-title">
+              {t("market.links.title")}
+            </h2>
+            {copyNotice && <span className="dev-panel-sub">{copyNotice}</span>}
           </div>
-          <div className="link-checker-panel-header-actions">
-            {copyNotice && (
-              <span
-                style={{
-                  color:
-                    copyNotice === t("common.status.copied")
-                      ? "#16a34a"
-                      : "#dc2626",
-                }}
-                className="link-checker-panel-hint"
-              >
-                {copyNotice}
-              </span>
-            )}
-            <button
-              onClick={copyPanelContent}
-              className="link-checker-panel-copy-panel-content-action"
-            >
-              {t("market.links.copyContent")}
-            </button>
-            <div
-              onClick={() => !running && onClose()}
-              style={{
-                cursor: running ? "default" : "pointer",
-              }}
-              className="link-checker-panel-content"
-            >
-              {"✕"}
-            </div>
-          </div>
-        </div>
-        <div className="link-checker-panel-content-spaced">
-          <div className="link-checker-panel-scan-actions">
-            <button
-              onClick={startCheck}
-              disabled={running}
-              style={{
-                cursor: running ? "default" : "pointer",
-                background: running
-                  ? "#d1d5db"
-                  : "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              }}
-              className="link-checker-panel-start-check-action"
-            >
-              {t("market.links.checkInvalid")}
-            </button>
-            <button
-              onClick={startDetectGhosts}
-              disabled={running}
-              style={{
-                cursor: running ? "default" : "pointer",
-                background: running
-                  ? "#d1d5db"
-                  : "linear-gradient(135deg, #0891b2, #06b6d4)",
-              }}
-              className="link-checker-panel-start-check-action"
-            >
-              {t("market.links.checkOrphans")}
-            </button>
-            {brokenItems && brokenItems.length > 0 && (
-              <button
-                onClick={() => startFix()}
-                disabled={running || selectedIds.size === 0}
-                style={{
-                  cursor:
-                    running || selectedIds.size === 0 ? "default" : "pointer",
-                  background:
-                    running || selectedIds.size === 0
-                      ? "#d1d5db"
-                      : "linear-gradient(135deg, #ef4444, #f97316)",
-                }}
-                className="link-checker-panel-start-check-action"
-              >
-                {t("market.links.fixSelected", {
-                  size: selectedIds.size,
-                })}
-              </button>
-            )}
-            {ghostItems && ghostItems.length > 0 && (
-              <button
-                onClick={startDeleteGhosts}
-                disabled={running || selectedGhostIds.size === 0}
-                style={{
-                  cursor:
-                    running || selectedGhostIds.size === 0
-                      ? "default"
-                      : "pointer",
-                  background:
-                    running || selectedGhostIds.size === 0
-                      ? "#d1d5db"
-                      : "linear-gradient(135deg, #991b1b, #dc2626)",
-                }}
-                className="link-checker-panel-start-check-action"
-              >
-                {t("market.links.deleteSelected", {
-                  size: selectedGhostIds.size,
-                })}
-              </button>
-            )}
-          </div>
+          <button
+            type="button"
+            className="icon-btn icon-btn-sm"
+            onClick={copyPanelContent}
+            aria-label={t("market.links.copyContent")}
+            title={t("market.links.copyContent")}
+          >
+            <Icon name="copy" size={15} />
+          </button>
+          <button
+            type="button"
+            className="icon-btn icon-btn-sm"
+            onClick={onClose}
+            disabled={running}
+            aria-label={t("common.actions.close")}
+            title={t("common.actions.close")}
+          >
+            <Icon name="x" size={15} />
+          </button>
+        </header>
+        <div className="dev-panel-body">
           {(running || progress.message) && (
-            <div className="link-checker-panel-panel">
-              <div className="link-checker-panel-progress-status">
-                <span className="link-checker-panel-progress-message">
-                  {progress.message || t("common.status.preparing")}
-                </span>
+            <section className="dev-section">
+              <div className="dev-progress-head">
+                <span>{progress.message || t("common.status.preparing")}</span>
                 {progress.total > 0 && (
-                  <span className="link-checker-panel-progress-count">
+                  <em>
                     {progress.current}
                     {"/"}
                     {progress.total}
-                  </span>
+                  </em>
                 )}
               </div>
               {progress.total > 0 && (
-                <div className="link-checker-panel-progress-track">
+                <div className="progress-track">
                   <div
+                    className="progress-fill"
                     style={{
                       width: `${Math.min(100, (progress.current / progress.total) * 100)}%`,
                     }}
-                    className="link-checker-panel-progress-fill"
                   />
                 </div>
               )}
-            </div>
+            </section>
           )}
           {brokenItems && brokenItems.length > 0 && (
-            <div className="link-checker-panel-result-section">
-              <div className="link-checker-panel-result-toolbar">
-                <span className="link-checker-panel-heading-emphasis">
-                  {t("market.links.brokenCount", {
-                    brokenItemsCount: brokenItems.length,
-                  })}
-                </span>
-                <div className="link-checker-panel-selection-actions">
-                  <button
-                    onClick={selectAllBroken}
-                    className="link-checker-panel-select-all-broken-action"
-                  >
-                    {t("common.actions.selectAll")}
-                  </button>
-                  <button
-                    onClick={deselectAllBroken}
-                    className="link-checker-panel-select-all-broken-action"
-                  >
-                    {t("common.actions.clearSelection")}
-                  </button>
-                </div>
+            <section className="dev-section">
+              <div className="dev-section-title">
+                <span>{t("market.links.brokenCount", { brokenItemsCount: brokenItems.length })}</span>
+                <button
+                  type="button"
+                  className="link-btn dev-section-action"
+                  onClick={selectAllBroken}
+                >
+                  {t("common.actions.selectAll")}
+                </button>
+                <button type="button" className="link-btn" onClick={deselectAllBroken}>
+                  {t("common.actions.clearSelection")}
+                </button>
               </div>
-              <div className="link-checker-panel-result-list">
+              <div className="dev-rows dev-rows-scroll">
                 {brokenItems.map((item) => (
-                  <label
-                    style={{
-                      background: selectedIds.has(item.id) ? "#fef2f2" : "#fff",
-                    }}
-                    key={item.id}
-                    className="link-checker-panel-result-item"
-                  >
+                  <label className="dev-row" key={item.id}>
                     <input
                       type="checkbox"
                       checked={selectedIds.has(item.id)}
                       onChange={() => toggleId(item.id)}
                     />
-                    <span className="link-checker-panel-result-character">
-                      {"["}
-                      {item.char}
-                      {"]"}
-                    </span>
-                    <span className="link-checker-panel-result-mod-name">
-                      {item.name}
-                    </span>
-                    <span className="link-checker-panel-result-meta">
-                      {"ID:"}
+                    <span className="dev-row-meta">{item.char}</span>
+                    <span className="dev-row-name">{item.name}</span>
+                    <code className="dev-row-meta">
+                      {"#"}
                       {item.id}
-                    </span>
+                    </code>
                     <span
-                      style={{
-                        background:
-                          item.baiduBroken && item.quarkBroken
-                            ? "#fecaca"
-                            : "#fed7aa",
-                        color:
-                          item.baiduBroken && item.quarkBroken
-                            ? "#991b1b"
-                            : "#9a3412",
-                      }}
-                      className="link-checker-panel-hint-spaced"
+                      className={`badge ${item.baiduBroken && item.quarkBroken ? "badge-danger" : "badge-warning"}`}
                     >
                       {item.reason}
                     </span>
                   </label>
                 ))}
               </div>
-            </div>
+            </section>
           )}
           {brokenItems && brokenItems.length === 0 && !running && (
-            <div className="link-checker-panel-healthy-summary">
-              {t("market.links.allHealthy")}
+            <div className="notice notice-success">
+              <Icon name="check" size={14} />
+              <span>{t("market.links.allHealthy")}</span>
             </div>
           )}
           {ghostItems && ghostItems.length > 0 && (
-            <div className="link-checker-panel-result-section">
-              <div className="link-checker-panel-result-toolbar">
-                <span className="link-checker-panel-orphan-summary">
-                  {t("market.links.orphanCount", {
-                    ghostItemsCount: ghostItems.length,
-                  })}
-                </span>
-                <div className="link-checker-panel-selection-actions">
-                  <button
-                    onClick={selectAllGhosts}
-                    className="link-checker-panel-select-all-broken-action"
-                  >
-                    {t("common.actions.selectAll")}
-                  </button>
-                  <button
-                    onClick={deselectAllGhosts}
-                    className="link-checker-panel-select-all-broken-action"
-                  >
-                    {t("common.actions.clearSelection")}
-                  </button>
-                </div>
+            <section className="dev-section">
+              <div className="dev-section-title">
+                <span>{t("market.links.orphanCount", { ghostItemsCount: ghostItems.length })}</span>
+                <button
+                  type="button"
+                  className="link-btn dev-section-action"
+                  onClick={selectAllGhosts}
+                >
+                  {t("common.actions.selectAll")}
+                </button>
+                <button type="button" className="link-btn" onClick={deselectAllGhosts}>
+                  {t("common.actions.clearSelection")}
+                </button>
               </div>
-              <div className="link-checker-panel-result-list">
+              <div className="dev-rows dev-rows-scroll">
                 {ghostItems.map((item) => (
-                  <label
-                    style={{
-                      background: selectedGhostIds.has(item.id)
-                        ? "#ecfeff"
-                        : "#fff",
-                    }}
-                    key={item.id}
-                    className="link-checker-panel-result-item"
-                  >
+                  <label className="dev-row" key={item.id}>
                     <input
                       type="checkbox"
                       checked={selectedGhostIds.has(item.id)}
                       onChange={() => toggleGhostId(item.id)}
                     />
-                    {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt=""
-                        onError={(e) => {
-                          e.target.style.visibility = "hidden";
-                        }}
-                        className="link-checker-panel-mod-thumbnail"
-                      />
-                    ) : (
-                      <div className="link-checker-panel-thumbnail-fallback">
-                        {"👻"}
-                      </div>
-                    )}
-                    <span className="link-checker-panel-result-character">
-                      {"["}
-                      {item.char}
-                      {"]"}
+                    <span className="dev-thumb">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt=""
+                          onError={(e) => {
+                            e.target.style.visibility = "hidden";
+                          }}
+                        />
+                      ) : (
+                        <Icon name="image" size={14} />
+                      )}
                     </span>
-                    <span className="link-checker-panel-result-mod-name">
-                      {item.name}
-                    </span>
-                    <span className="link-checker-panel-result-meta">
-                      {"ID:"}
+                    <span className="dev-row-meta">{item.char}</span>
+                    <span className="dev-row-name">{item.name}</span>
+                    <code className="dev-row-meta">
+                      {"#"}
                       {item.id}
-                    </span>
+                    </code>
                     {item.pinned && (
-                      <span className="link-checker-panel-pinned-badge">
-                        {t("characters.actions.pinShort")}
-                      </span>
+                      <span className="badge">{t("characters.actions.pinShort")}</span>
                     )}
-                    <span className="link-checker-panel-panel-spaced">
-                      {item.reason}
-                    </span>
+                    <span className="badge badge-warning">{item.reason}</span>
                   </label>
                 ))}
               </div>
-              <div className="link-checker-panel-delete-warning">
-                {t("market.links.deleteWarning")}
+              <div className="notice notice-warning">
+                <Icon name="alert" size={14} />
+                <span>{t("market.links.deleteWarning")}</span>
               </div>
-            </div>
+            </section>
           )}
           {ghostItems && ghostItems.length === 0 && !running && (
-            <div className="link-checker-panel-healthy-summary">
-              {t("market.links.noOrphans")}
+            <div className="notice notice-success">
+              <Icon name="check" size={14} />
+              <span>{t("market.links.noOrphans")}</span>
             </div>
           )}
           {result && (
-            <div
-              style={{
-                background: result.errors > 0 ? "#fef2f2" : "#f0fdf4",
-              }}
-              className="link-checker-panel-repair-result"
-            >
-              <div
-                style={{
-                  color: result.errors > 0 ? "#dc2626" : "#16a34a",
-                }}
-                className="link-checker-panel-repair-summary"
-              >
-                {t("market.links.fixCompleted", {
-                  success: result.success,
-                  errors: result.errors,
-                })}
+            <div className={`notice ${result.errors > 0 ? "notice-danger" : "notice-success"}`}>
+              <Icon name={result.errors > 0 ? "alert" : "check"} size={14} />
+              <div className="dev-notice-body">
+                <div>
+                  {t("market.links.fixCompleted", {
+                    success: result.success,
+                    errors: result.errors,
+                  })}
+                </div>
+                {result.errorList?.map((e, i) => (
+                  <div key={i} className="selectable">
+                    {e.char && `[${e.char}] `}
+                    {e.mod}
+                    {": "}
+                    {e.error}
+                  </div>
+                ))}
+                {result.errors > 0 && lastFixItems.length > 0 && (
+                  <div className="dev-inline">
+                    <span>
+                      {t("market.links.pendingKept", {
+                        lastFixItemsCount: lastFixItems.length,
+                      })}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={retryFailedFix}
+                      disabled={running}
+                    >
+                      {t("market.links.retryFill")}
+                    </button>
+                    <button type="button" className="btn btn-sm" onClick={copyPanelContent}>
+                      {t("market.links.copyResult")}
+                    </button>
+                  </div>
+                )}
               </div>
-              {result.errorList?.length > 0 && (
-                <div className="link-checker-panel-error-list">
-                  {result.errorList.map((e, i) => (
-                    <div key={i} className="link-checker-panel-error-item">
-                      {"• "}
-                      {e.char && `[${e.char}] `}
-                      {e.mod}
-                      {": "}
-                      {e.error}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {result.errors > 0 && lastFixItems.length > 0 && (
-                <div className="link-checker-panel-retry-actions">
-                  <span className="link-checker-panel-result-meta">
-                    {t("market.links.pendingKept", {
-                      lastFixItemsCount: lastFixItems.length,
-                    })}
-                  </span>
-                  <button
-                    onClick={retryFailedFix}
-                    disabled={running}
-                    style={{
-                      cursor: running ? "default" : "pointer",
-                    }}
-                    className="link-checker-panel-retry-failed-fix-action"
-                  >
-                    {t("market.links.retryFill")}
-                  </button>
-                  <button
-                    onClick={copyPanelContent}
-                    className="link-checker-panel-copy-result"
-                  >
-                    {t("market.links.copyResult")}
-                  </button>
-                </div>
-              )}
             </div>
           )}
           {logs.length > 0 && (
-            <div className="link-checker-panel-log-section">
-              <div
+            <section className="dev-section">
+              <button
+                type="button"
+                className="dev-log-toggle"
+                aria-expanded={!logsCollapsed}
                 onClick={() => setLogsCollapsed(!logsCollapsed)}
-                className="link-checker-panel-logs-toggle"
               >
-                {t("market.links.logsHeading", {
-                  status: logsCollapsed ? "▶" : "▼",
-                  logsCount: logs.length,
-                })}
-              </div>
+                <Icon name={logsCollapsed ? "chevron-right" : "chevron-down"} size={14} />
+                {t("market.links.logsHeading", { logsCount: logs.length })}
+              </button>
               {!logsCollapsed && (
-                <div className="link-checker-panel-log-output">
+                <div className="dev-log selectable">
                   {logs.map((log, i) => (
-                    <div
-                      style={{
-                        color:
-                          log.level === "error"
-                            ? "#f87171"
-                            : log.level === "warn"
-                              ? "#fbbf24"
-                              : "#d1d5db",
-                      }}
-                      key={i}
-                      className="link-checker-panel-log-entry"
-                    >
+                    <div key={i} className={`dev-log-line is-${log.level}`}>
                       {log.message}
                     </div>
                   ))}
                   <div ref={logEndRef} />
                 </div>
               )}
-            </div>
+            </section>
           )}
         </div>
+        <footer className="dev-panel-foot">
+          {ghostItems && ghostItems.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={startDeleteGhosts}
+              disabled={running || selectedGhostIds.size === 0}
+            >
+              {t("market.links.deleteSelected", { size: selectedGhostIds.size })}
+            </button>
+          )}
+          <span className="dev-panel-foot-spacer" />
+          <button type="button" className="btn" onClick={startDetectGhosts} disabled={running}>
+            {t("market.links.checkOrphans")}
+          </button>
+          <button
+            type="button"
+            className={`btn ${brokenItems?.length ? "" : "btn-primary"}`}
+            onClick={startCheck}
+            disabled={running}
+          >
+            {t("market.links.checkInvalid")}
+          </button>
+          {brokenItems && brokenItems.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => startFix()}
+              disabled={running || selectedIds.size === 0}
+            >
+              {t("market.links.fixSelected", { size: selectedIds.size })}
+            </button>
+          )}
+        </footer>
       </div>
     </div>
   );

@@ -1,114 +1,107 @@
 {
   "characters": {
     "empty": "暂无角色",
-    "withModsSelected": "已切换为只显示有 Mod 的角色",
-    "allSelected": "已显示全部角色",
-    "chooseCount": "🎭 选择角色 ({{count}})",
-    "withModsToggle": "只显示有 Mod 的角色（点击显示全部）",
-    "allToggle": "显示全部角色（点击仅显示有 Mod 的）",
+    "withModsSelected": "只显示有 Mod 的角色",
+    "allSelected": "显示全部角色",
+    "chooseCount": "角色 ({{count}})",
+    "withModsToggle": "只显示有 Mod 的角色",
+    "allToggle": "显示全部角色",
     "loadFailed": "角色加载失败",
-    "noLoadedMods": "没有装载 Mod 的角色",
-    "menu": "角色头像菜单",
-    "withMods": "只显示有 Mod 的角色",
-    "choose": "选择一个角色查看 Mod",
+    "noLoadedMods": "没有含 Mod 的角色",
+    "menu": "全部角色",
+    "choose": "选择角色",
     "actions": "角色操作",
-    "search": "搜索角色名称或拼音…",
-    "noMatches": "没有匹配的角色"
+    "search": "搜索角色或拼音",
+    "noMatches": "无匹配角色"
   },
   "focus": {
-    "enabledCount": "定位当前启用 Mod（{{count}} 个）",
-    "noneEnabled": "当前没有启用的 Mod",
-    "position": "已定位 {{targetModName}} ({{index}}/{{count}})",
+    "enabledCount": "定位已启用 Mod（{{count}} 个）",
+    "noneEnabled": "没有已启用的 Mod",
+    "position": "{{targetModName}} ({{index}}/{{count}})",
     "located": "已定位 {{targetModName}}",
-    "autoEnabled": "下次打开浮窗时自动定位",
+    "autoEnabled": "下次打开时自动定位",
     "autoDisabled": "自动定位已关闭",
-    "enabledHint": "定位当前启用 Mod",
-    "action": "🎯 定位",
-    "autoHint": "打开浮窗时定位当前 Mod，并展开快捷键",
-    "autoTitle": "自动定位当前 Mod"
+    "enabledHint": "定位已启用 Mod",
+    "autoHint": "打开时定位游戏中的 Mod 并展开快捷键",
+    "autoTitle": "自动定位"
   },
   "collections": {
-    "hide": "关闭合集展示",
-    "description": "按名称合并同一 Mod 的版本/变体",
-    "enabled": "已开启合集展示",
-    "disabled": "已关闭合集展示",
+    "hide": "取消合并版本",
+    "description": "合并同一 Mod 的版本",
+    "enabled": "已合并版本",
+    "disabled": "已取消合并",
     "name": "合集：{{collectionName}}",
-    "count": "合集 {{count}}",
-    "title": "合集"
+    "count": "{{count}} 个版本"
   },
   "view": {
     "list": "列表",
     "gallery": "画廊",
-    "toggle": "切换列表/画廊"
+    "toggle": "切换视图"
   },
   "pin": {
     "remove": "取消置顶",
-    "removeHint": "恢复普通排序",
-    "add": "置顶到最上方",
-    "addHint": "固定在列表前面",
+    "add": "置顶",
     "addedNamed": "{{modName}} 已置顶",
-    "removedNamed": "已取消 {{modName}} 的置顶",
+    "removedNamed": "{{modName}} 已取消置顶",
     "failed": "置顶失败",
     "added": "已置顶",
-    "window": "置顶窗口"
+    "window": "保持显示"
   },
   "mark": {
     "remove": "取消标记",
-    "removeHint": "从开发者标记列表中移除",
-    "add": "标记此 Mod",
-    "addHint": "加入开发者标记列表",
+    "add": "标记",
     "addedNamed": "{{modName}} 已标记",
-    "removedNamed": "已取消 {{modName}} 的标记",
+    "removedNamed": "{{modName}} 已取消标记",
     "failed": "标记失败",
-    "removeAction": "🏷️ 取消标记",
-    "addAction": "🔖 标记此 Mod",
+    "removeAction": "取消标记",
+    "addAction": "标记",
     "added": "已标记",
     "removed": "已取消标记"
   },
   "mods": {
-    "notFound": "未找到对应的 Mod",
-    "loadFailed": "Mod 列表加载失败",
-    "empty": "该角色没有 Mod",
+    "notFound": "找不到这个 Mod",
+    "loadFailed": "Mod 加载失败",
+    "empty": "没有 Mod",
     "conflict": "哈希冲突",
-    "disableHint": "点击禁用",
-    "enableHint": "点击启用",
-    "enabledStatus": "✅ 已启用",
-    "disabledStatus": "⬜ 已禁用",
+    "disableHint": "禁用",
+    "enableHint": "启用",
+    "enabledStatus": "已启用",
+    "disabledStatus": "已禁用",
     "disableFailed": "关闭 {{mName}} 失败",
     "toggleFailed": "切换失败",
-    "changed": "Mod 信息已更新，请重试",
-    "conflictNotice": "⚠️ 哈希冲突",
-    "disableAction": "⬜ 禁用",
-    "enableAction": "✅ 启用",
-    "choose": "选择一个 Mod",
-    "disabling": "正在禁用...",
-    "enabling": "正在启用...",
+    "changed": "Mod 已变更，再试一次",
+    "conflictNotice": "哈希冲突",
+    "disableAction": "禁用",
+    "enableAction": "启用",
+    "choose": "Mod",
+    "disabling": "禁用中…",
+    "enabling": "启用中…",
     "enabled": "已启用",
     "disabled": "已禁用"
   },
   "folder": {
     "opened": "已打开 {{modName}} 的文件夹",
-    "failed": "打开源文件夹失败",
-    "open": "打开源文件夹"
+    "failed": "打开文件夹失败",
+    "open": "打开文件夹"
   },
   "manager": {
     "opened": "已在管理器中定位 {{modName}}",
-    "failed": "打开管理器界面失败",
-    "open": "打开管理器界面"
+    "failed": "打开管理器失败",
+    "open": "在管理器中打开"
   },
   "fixer": {
-    "opened": "独立修复器已打开",
+    "opened": "修复器已打开",
     "failed": "打开修复器失败",
-    "open": "打开独立修复器"
+    "open": "打开修复器"
   },
   "ini": {
-    "restored": "ini 已重置，请按 F10 重载",
-    "processed": "ini 已处理，请按 F10 重载",
+    "restored": "ini 已重置，按 F10 重载",
+    "processed": "ini 已处理，按 F10 重载",
     "failed": "重置失败",
-    "characterRestored": "{{character}} 的 {{restoredCount}} 个 ini 已重置，请按 F10 重载",
-    "characterUnchanged": "{{character}} 没有需要重置的 ini",
-    "resetMod": "重置 Mod ini",
-    "resetCharacter": "恢复全部 Mod ini"
+    "characterRestored": "{{character}} 已重置 {{restoredCount}} 个 ini，按 F10 重载",
+    "characterUnchanged": "{{character}} 无需重置",
+    "resetMod": "重置 ini",
+    "resetCharacter": "重置全部 ini"
   },
   "actions": {
     "failed": "操作失败",
@@ -116,114 +109,111 @@
     "close": "关闭"
   },
   "reload": {
-    "enabled": "自动装载已开启，请在游戏中按 F10",
-    "disabled": "自动装载已关闭，请在游戏中按 F10",
-    "completedSuffix": " · 已自动刷新",
-    "title": "切换 Mod 后自动刷新",
-    "description": "首次使用先在游戏中按一次 F10，此后切换 Mod 会自动刷新。"
+    "enabled": "自动刷新已开启，游戏中按 F10",
+    "disabled": "自动刷新已关闭",
+    "completedSuffix": " · 已刷新",
+    "title": "切换后自动刷新",
+    "description": "首次使用先在游戏中按一次 F10"
   },
   "settings": {
     "failed": "设置失败",
-    "saved": "设置已保存，请在游戏中按 F10",
+    "saved": "已保存，游戏中按 F10",
     "title": "设置",
-    "heading": "⚙️ 设置"
+    "heading": "设置"
   },
   "presets": {
-    "reloadEnabled": "预设自动装载已开启，请在游戏中按 F10",
-    "reloadDisabled": "已关闭预设自动装载",
-    "applied": "预设「{{name}}」已应用{{reloadLabel}}",
-    "title": "📦 预设",
+    "reloadEnabled": "预设自动刷新已开启，游戏中按 F10",
+    "reloadDisabled": "预设自动刷新已关闭",
+    "applied": "已应用预设「{{name}}」{{reloadLabel}}",
     "reloadTitle": "应用预设后自动刷新",
-    "reloadDescription": "应用预设后自动刷新。首次使用先在游戏中按一次 F10。"
+    "reloadDescription": "首次使用先在游戏中按一次 F10"
   },
   "hotkeys": {
-    "clickEnabled": "已开启快捷键点击应用",
-    "clickDisabled": "已关闭快捷键点击应用",
-    "capture": "按下快捷键...",
-    "prefix": "快捷键: ",
-    "heading": "⌨ 快捷键",
-    "refreshHint": "重新扫描快捷键配置",
-    "refresh": "刷新快捷键",
-    "loading": "快捷键加载中...",
-    "applyHint": "点击应用快捷键",
-    "unsupportedHint": "查看快捷键说明",
-    "manualHint": "此快捷键需手动操作",
+    "clickEnabled": "已开启快捷键应用",
+    "clickDisabled": "已关闭快捷键应用",
+    "capture": "按下快捷键…",
+    "prefix": "快捷键：",
+    "heading": "快捷键",
+    "refreshHint": "重新扫描快捷键",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "applyHint": "应用快捷键",
+    "unsupportedHint": "不支持直接应用",
+    "manualHint": "需手动按键",
     "or": "或",
     "empty": "无快捷键",
-    "loadRetry": "快捷键读取失败，请稍后重试",
+    "loadRetry": "读取失败，稍后重试",
     "loadFailed": "快捷键读取失败",
-    "showOverlay": "唤出快捷键",
-    "captureHint": "点击后按下快捷键组合",
-    "clickTitle": "点击应用快捷键",
-    "clickDescription": "开启自动装载后，可点击详情中的快捷键应用。",
+    "showOverlay": "唤出浮层",
+    "captureHint": "选中后按下组合键",
+    "clickTitle": "从详情应用快捷键",
+    "clickDescription": "需开启自动刷新",
     "title": "快捷键",
-    "noApplicable": "没有可应用的快捷键",
+    "noApplicable": "无可应用的快捷键",
     "applied": "{{description}} 已应用",
     "refreshing": "刷新中…",
-    "refreshed": "快捷键已刷新",
+    "refreshed": "已刷新",
     "refreshFailed": "刷新失败"
   },
   "persist": {
-    "enabled": "持久化已开启，请重启管理器和游戏",
-    "disabled": "持久化已关闭，已保留保存内容。请重启管理器和游戏",
+    "enabled": "状态保存已开启，重启管理器和游戏后生效",
+    "disabled": "状态保存已关闭，已保存内容保留。重启管理器和游戏后生效",
     "restoredSuffix": " · 已恢复配件状态",
-    "title": "当前游戏的 Mod 状态",
-    "manageHint": "在系统设置 → Mod 状态管理中查看或删除。",
+    "manageHint": "在系统设置 → Mod 状态管理中查看或删除",
     "toggleTitle": "保存此游戏的 Mod 状态",
-    "description": "仅对当前游戏生效。关闭后保留已保存内容。",
-    "restartHint": "修改后请重启管理器和游戏。"
+    "restartHint": "修改后重启管理器和游戏"
   },
   "selection": {
-    "singleEnabled": "🔘 单选已开启",
-    "multiple": "多选模式",
-    "single": "🔘 单选"
+    "singleEnabled": "单选已开启",
+    "multiple": "已切换为多选",
+    "single": "单选"
   },
   "activity": {
-    "noMarkers": "暂无可识别标记",
-    "waiting": "等待游戏状态 / F10",
+    "noMarkers": "无可识别标记",
+    "waiting": "等待游戏 / F10",
     "detectedCount": "检测到 {{size}} 个角色",
     "noneDetected": "未检测到角色",
-    "detected": "已检测",
+    "detected": "游戏中",
     "sortHint": "按游戏中检测到的角色排序",
     "title": "检测游戏中的 Mod",
-    "description": "检测当前 Mod，用于排序和自动定位。首次开启或增删 Mod 后，请在游戏中按 F10。"
+    "description": "用于排序和自动定位。增删 Mod 后按 F10"
   },
   "loading": {
-    "pending": "加载中...",
+    "pending": "加载中…",
     "failed": "加载失败"
   },
   "details": {
-    "status": "状态: {{status}} | 角色: {{character}}",
+    "status": "{{status}} · {{character}}",
     "openFailed": "打开详情失败"
   },
   "translation": {
-    "description": "将快捷键名称翻译为简体中文",
-    "google": "谷歌翻译",
-    "showOriginal": "显示原文",
-    "translated": "已翻译 · 悬停查看原文",
-    "saveFailed": "翻译状态保存失败，请检查磁盘空间",
+    "description": "翻译快捷键名称",
+    "google": "翻译",
+    "showOriginal": "原文",
+    "translated": "悬停查看原文",
+    "saveFailed": "翻译状态保存失败，检查磁盘空间",
     "pending": "翻译中…",
-    "requesting": "正在翻译快捷键名称…",
-    "failed": "翻译失败，请重试",
-    "incomplete": "翻译结果不完整，请重试",
+    "requesting": "正在请求翻译",
+    "failed": "翻译失败，再试一次",
+    "incomplete": "翻译结果不完整，再试一次",
     "retry": "重试翻译"
   },
   "title": "Mod 切换",
   "sort": {
-    "title": "排序:",
+    "title": "排序",
     "name": "名称",
     "status": "状态",
     "time": "时间",
     "custom": "自定义"
   },
   "appearance": {
-    "opacity": "背景透明度",
-    "transparent": "透明",
-    "opaque": "不透明"
+    "opacity": "不透明度"
   },
   "zoom": {
+    "title": "界面缩放",
     "out": "缩小",
     "in": "放大",
-    "reset": "重置缩放"
+    "reset": "重置缩放",
+    "failed": "缩放失败"
   }
 }

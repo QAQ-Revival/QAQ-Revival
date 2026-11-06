@@ -1,6 +1,27 @@
 import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
+import { Icon } from "../../../components/Icon.jsx";
 import { isSameMarketCharacterName } from "../model/marketCollections.js";
+function CharacterOption({ char, active, onSelect, className }) {
+  return (
+    <button
+      type="button"
+      className={`${className} ${active ? "active" : ""}`}
+      onClick={onSelect}
+      title={char.name}
+    >
+      <span className="market-character-avatar">
+        {char.coverUrl ? (
+          <img src={char.coverUrl} alt="" />
+        ) : (
+          <em>{char.name.slice(0, 1)}</em>
+        )}
+      </span>
+      <span className="market-character-name">{char.name}</span>
+      <span className="market-character-count">{char.count}</span>
+    </button>
+  );
+}
 export function MarketToolbar({
   serverUrl,
   mods,
@@ -33,77 +54,40 @@ export function MarketToolbar({
   displayedMods,
   gameDisplayedMods,
 }) {
+  function chooseCharacter(name) {
+    setSelectedCharacter(name);
+    setShowCharacterPicker(false);
+    setCurrentPage(1);
+  }
+  function clearSearch() {
+    setSearchQuery("");
+    setSelectedTags([]);
+  }
   return (
     serverUrl &&
     mods.length > 0 && (
-      <div className="mod-market-toolbar">
-        <div
-          className="mod-market-search"
-          style={
-            visibleSelectedTags.length > 0
-              ? {
-                  minWidth: "200px",
-                  maxWidth: "360px",
-                }
-              : void 0
-          }
-        >
-          <span className="search-icon">{"🔍"}</span>
-          {visibleSelectedTags.length > 0 && (
-            <div className="search-tag-bubbles">
-              {visibleSelectedTags.map((tag) => (
-                <span
-                  className="search-tag-bubble"
-                  style={{
-                    background: `${tag.color || "#666"}18`,
-                    color: tag.color || "#666",
-                    borderColor: `${tag.color || "#666"}40`,
-                  }}
-                  key={tag.id}
-                >
-                  {tag.name}
-                  <button
-                    className="search-tag-bubble-x"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeTagFilter(tag.id);
-                    }}
-                    style={{
-                      color: tag.color || "#666",
-                    }}
-                  >
-                    {"✕"}
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
+      <div className="source-toolbar mod-market-toolbar">
+        <div className="search-field mod-market-search">
+          <Icon name="search" size={15} />
           <input
             type="text"
-            placeholder={
-              visibleSelectedTags.length > 0
-                ? t("market.filters.continueSearch")
-                : t("market.filters.searchPlaceholder")
-            }
+            placeholder={t("market.filters.searchPlaceholder")}
+            aria-label={t("market.filters.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={
-              visibleSelectedTags.length > 0
-                ? {
-                    paddingLeft: "8px",
-                  }
-                : void 0
-            }
+            onKeyDown={(e) => {
+              if (e.key === "Escape") clearSearch();
+            }}
           />
           {(searchQuery || visibleSelectedTags.length > 0) && (
             <button
-              className="search-clear"
-              onClick={() => {
-                setSearchQuery("");
-                setSelectedTags([]);
-              }}
+              type="button"
+              className="icon-btn search-clear"
+              title={t("common.actions.clearSearch")}
+              aria-label={t("common.actions.clearSearch")}
+              onClick={clearSearch}
             >
-              {"✕"}
+              <Icon name="x" size={14} />
             </button>
           )}
         </div>
@@ -115,12 +99,12 @@ export function MarketToolbar({
             setSelectedGameVersion("all");
             setSelectedModMode("all");
           }}
-          className="mod-market-select"
+          className="select mod-market-select"
+          aria-label={t("market.filters.allGames")}
         >
           <option value="all">{t("market.filters.allGames")}</option>
           {gameOptions.map((game) => (
             <option value={game.id} key={game.id}>
-              {"🎮 "}
               {game.name}
             </option>
           ))}
@@ -128,16 +112,17 @@ export function MarketToolbar({
         <div className="market-character-picker-wrap" ref={characterPickerRef}>
           <button
             type="button"
-            className={`market-character-trigger ${showCharacterPicker ? "active" : ""}`}
+            className="btn market-character-trigger"
             onClick={() => setShowCharacterPicker((value) => !value)}
             aria-haspopup="dialog"
             aria-expanded={showCharacterPicker}
           >
-            <span className="market-character-trigger-icon">{"🎭"}</span>
             <span className="market-character-trigger-text">
-              {selectedCharacterLabel}
+              {selectedCharacter === "all"
+                ? t("market.filters.allCharacters")
+                : selectedCharacterLabel}
             </span>
-            <span className="market-character-trigger-caret">{"▾"}</span>
+            <Icon name="chevron-down" size={14} />
           </button>
           {showCharacterPicker && (
             <div
@@ -146,98 +131,60 @@ export function MarketToolbar({
               aria-label={t("market.filters.chooseCharacter")}
             >
               <div className="market-character-panel-head">
-                <div>
-                  <strong>{t("market.filters.characterCategory")}</strong>
-                  <span>{t("market.filters.chooseCategoryHint")}</span>
-                </div>
+                <strong>{t("market.filters.characterCategory")}</strong>
                 <button
                   type="button"
-                  className="market-character-all"
-                  onClick={() => {
-                    setSelectedCharacter("all");
-                    setShowCharacterPicker(false);
-                    setCurrentPage(1);
-                  }}
+                  className="btn btn-sm"
+                  onClick={() => chooseCharacter("all")}
                 >
                   {t("characters.filter.all")}
                 </button>
               </div>
-              <div className="market-character-panel-body">
-                <section className="market-character-section market-character-section-roles">
+              <div className="market-character-grid">
+                {visibleCharacterPickerOptions.roleOptions.map((char) => (
+                  <CharacterOption
+                    key={char.name}
+                    char={char}
+                    className="market-character-option"
+                    active={isSameMarketCharacterName(
+                      selectedCharacter,
+                      char.name,
+                      marketCharacterAliasIndex,
+                    )}
+                    onSelect={() => chooseCharacter(char.name)}
+                  />
+                ))}
+              </div>
+              {visibleCharacterPickerOptions.functionOptions.length > 0 && (
+                <React.Fragment>
                   <div className="market-character-section-title">
-                    {t("navigation.characters")}
+                    {t("market.filters.functionCategory")}
                   </div>
                   <div className="market-character-grid">
-                    {visibleCharacterPickerOptions.roleOptions.map((char) => (
-                      <button
-                        type="button"
-                        className={`market-character-option ${isSameMarketCharacterName(selectedCharacter, char.name, marketCharacterAliasIndex) ? "active" : ""}`}
-                        onClick={() => {
-                          setSelectedCharacter(char.name);
-                          setShowCharacterPicker(false);
-                          setCurrentPage(1);
-                        }}
-                        title={char.name}
-                        key={char.name}
-                      >
-                        <span className="market-character-avatar">
-                          {char.coverUrl ? (
-                            <img src={char.coverUrl} alt="" />
-                          ) : (
-                            <em>{char.name.slice(0, 1)}</em>
+                    {visibleCharacterPickerOptions.functionOptions.map(
+                      (char) => (
+                        <CharacterOption
+                          key={char.name}
+                          char={char}
+                          className="market-character-option"
+                          active={isSameMarketCharacterName(
+                            selectedCharacter,
+                            char.name,
+                            marketCharacterAliasIndex,
                           )}
-                        </span>
-                        <span className="market-character-name">
-                          {char.name}
-                        </span>
-                        <span className="market-character-count">
-                          {char.count}
-                        </span>
-                      </button>
-                    ))}
+                          onSelect={() => chooseCharacter(char.name)}
+                        />
+                      ),
+                    )}
                   </div>
-                </section>
-                {visibleCharacterPickerOptions.functionOptions.length > 0 && (
-                  <section className="market-character-section market-character-section-functions">
-                    <div className="market-character-section-title">
-                      {t("market.filters.functionCategory")}
-                    </div>
-                    <div className="market-function-list">
-                      {visibleCharacterPickerOptions.functionOptions.map(
-                        (char) => (
-                          <button
-                            type="button"
-                            className={`market-function-option ${isSameMarketCharacterName(selectedCharacter, char.name, marketCharacterAliasIndex) ? "active" : ""}`}
-                            onClick={() => {
-                              setSelectedCharacter(char.name);
-                              setShowCharacterPicker(false);
-                              setCurrentPage(1);
-                            }}
-                            title={char.name}
-                            key={char.name}
-                          >
-                            <span className="market-function-avatar">
-                              {char.coverUrl ? (
-                                <img src={char.coverUrl} alt="" />
-                              ) : (
-                                <em>{char.name.slice(0, 1)}</em>
-                              )}
-                            </span>
-                            <span>{char.name}</span>
-                            <strong>{char.count}</strong>
-                          </button>
-                        ),
-                      )}
-                    </div>
-                  </section>
-                )}
-              </div>
+                </React.Fragment>
+              )}
             </div>
           )}
         </div>
         <button
           type="button"
-          className={`mod-market-favorite-filter ${likedOnly ? "active" : ""}`}
+          className={`icon-btn mod-market-favorite-filter ${likedOnly ? "is-active" : ""}`}
           aria-pressed={likedOnly}
           onClick={() => setLikedOnly((value) => !value)}
           title={
@@ -245,17 +192,20 @@ export function MarketToolbar({
               ? t("market.filters.showAllMods")
               : t("market.filters.showFavorites")
           }
+          aria-label={t("market.filters.showFavorites")}
         >
-          <span className="mod-favorite-heart" aria-hidden="true">
-            {likedOnly ? "♥" : "♡"}
-          </span>
-          <span>{t("market.actions.favorite")}</span>
+          <Icon
+            name="heart"
+            size={16}
+            fill={likedOnly ? "currentColor" : "none"}
+          />
         </button>
         {gameVersionOptions.length > 0 && (
           <select
             value={selectedGameVersion}
             onChange={(e) => setSelectedGameVersion(e.target.value)}
-            className="mod-market-select"
+            className="select"
+            aria-label={t("market.filters.allVersions")}
           >
             <option value="all">{t("market.filters.allVersions")}</option>
             {gameVersionOptions.map((ver) => (
@@ -268,7 +218,8 @@ export function MarketToolbar({
         <select
           value={selectedModMode}
           onChange={(e) => setSelectedModMode(e.target.value)}
-          className="mod-market-select"
+          className="select"
+          aria-label={t("market.filters.allModes")}
         >
           <option value="all">{t("market.filters.allModes")}</option>
           <option value="d3d">{"3dm"}</option>
@@ -277,7 +228,8 @@ export function MarketToolbar({
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
-          className="mod-market-select market-toolbar-mod-market-select-layout"
+          className="select"
+          aria-label={t("common.fields.sortOrder")}
         >
           <option value="newest">{t("market.filters.sortLatest")}</option>
           <option value="hot_today">{t("market.filters.sortToday")}</option>
@@ -286,12 +238,32 @@ export function MarketToolbar({
           <option value="downloads">{t("market.filters.sortDownloads")}</option>
           <option value="name">{t("market.filters.sortName")}</option>
         </select>
-        <span className="mod-market-count">
+        <span className="toolbar-label mod-market-count">
           {t("market.filters.resultCount", {
             displayedModsCount: displayedMods.length,
             gameDisplayedModsCount: gameDisplayedMods.length,
           })}
         </span>
+        {visibleSelectedTags.length > 0 && (
+          <div className="mod-market-tag-filters">
+            {visibleSelectedTags.map((tag) => (
+              <span className="chip active" key={tag.id}>
+                {tag.name}
+                <button
+                  type="button"
+                  className="chip-remove"
+                  aria-label={t("common.actions.remove")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeTagFilter(tag.id);
+                  }}
+                >
+                  <Icon name="x" size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     )
   );

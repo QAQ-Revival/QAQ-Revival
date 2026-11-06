@@ -9,8 +9,7 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, passed, ha
   await waitFor(`!!document.querySelector('.nav-item[aria-label="Mod 下载"]')`, 'download navigation');
   await evaluate(`document.querySelector('.nav-item[aria-label="Mod 下载"]').click()`);
   for (const [source, host] of [['pawchive', 'file.pawchive.pw'], ['kemono', 'n3.kemono.cr']]) {
-    await waitFor(`!!document.querySelector('.mod-download-source-trigger')`, 'source selector');
-    await evaluate(`document.querySelector('.mod-download-source-trigger').click()`);
+    await waitFor(`!!document.querySelector('.mod-download-source-option')`, 'source selector');
     await waitFor(`!!document.querySelector('.mod-download-source-option[data-source="${source}"]')`, 'source option');
     await evaluate(`document.querySelector('.mod-download-source-option[data-source="${source}"]').click()`);
     await waitFor(`!!document.getElementById('${source}-tab-posts')`, 'latest posts tab');

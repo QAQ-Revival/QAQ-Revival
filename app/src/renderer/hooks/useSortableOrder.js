@@ -26,6 +26,7 @@ function useSortableOrder(
   storageKey,
   enabled = true,
   isVisible = includeAll,
+  axis = "y",
 ) {
   const [order, setOrder] = React.useState(() => readSavedOrder(storageKey));
   const [dragged, setDragged] = React.useState(null);
@@ -110,6 +111,8 @@ function useSortableOrder(
   }
   function edgeAt(event) {
     const rect = event.currentTarget.getBoundingClientRect();
+    if (axis === "x")
+      return event.clientX < rect.left + rect.width / 2 ? "before" : "after";
     return event.clientY < rect.top + rect.height / 2 ? "before" : "after";
   }
   function itemProps(id) {
@@ -118,7 +121,8 @@ function useSortableOrder(
       "data-sort-id": id,
       "data-sort-dragging": dragged === id ? "true" : undefined,
       "data-sort-edge": target?.id === id ? target.edge : undefined,
-      "aria-keyshortcuts": "Alt+ArrowUp Alt+ArrowDown",
+      "aria-keyshortcuts":
+        axis === "x" ? "Alt+ArrowLeft Alt+ArrowRight" : "Alt+ArrowUp Alt+ArrowDown",
       onPointerDown: () => {
         suppressClickUntil.current = 0;
       },
@@ -175,19 +179,21 @@ function useSortableOrder(
       onKeyDown: (event) => {
         if (event.key === "Enter" || event.key === " ")
           suppressClickUntil.current = 0;
+        const [previousKey, nextKey] =
+          axis === "x" ? ["ArrowLeft", "ArrowRight"] : ["ArrowUp", "ArrowDown"];
         if (
           !enabled ||
           !event.altKey ||
-          !["ArrowUp", "ArrowDown"].includes(event.key)
+          ![previousKey, nextKey].includes(event.key)
         )
           return;
         event.preventDefault();
         event.stopPropagation();
         const index = orderedItems.findIndex((item) => item.id === id);
         const adjacent =
-          orderedItems[index + (event.key === "ArrowUp" ? -1 : 1)];
+          orderedItems[index + (event.key === previousKey ? -1 : 1)];
         if (adjacent)
-          move(id, adjacent.id, event.key === "ArrowUp" ? "before" : "after");
+          move(id, adjacent.id, event.key === previousKey ? "before" : "after");
       },
     };
   }

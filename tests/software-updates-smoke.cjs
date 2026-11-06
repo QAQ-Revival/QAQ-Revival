@@ -3,7 +3,7 @@ const path = require('node:path');
 module.exports = async ({ evaluate, waitFor, window, passed, requests, externalLinks, setRelease }) => {
   const currentVersion = require('../app/package.json').version.split('.').map(Number);
   const nextVersion = [currentVersion[0], currentVersion[1], currentVersion[2] + 1].join('.');
-  await evaluate(`document.querySelector('.sidebar-settings').click()`);
+  await evaluate(`document.querySelector('.topbar-settings').click()`);
   await waitFor(`!!document.querySelector('[data-category="about"]')`, 'settings categories');
   await evaluate(`document.querySelector('[data-category="about"]').click()`);
   await waitFor(`!!document.querySelector('[aria-label="自动检查 GitHub 更新"]')`, 'update settings');
@@ -30,8 +30,8 @@ module.exports = async ({ evaluate, waitFor, window, passed, requests, externalL
   await evaluate(`document.querySelector('[aria-label="不再提醒此版本"]').click()`);
   await waitFor(`!document.querySelector('.software-update-notice')`, 'notice dismissed');
   await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));
-  await waitFor(`!!document.querySelector('.sidebar-settings')`, 'reload');
-  await evaluate(`document.querySelector('.sidebar-settings').click()`);
+  await waitFor(`!!document.querySelector('.topbar-settings')`, 'reload');
+  await evaluate(`document.querySelector('.topbar-settings').click()`);
   await waitFor(`!!document.querySelector('[data-category="about"]')`, 'about after reload');
   await evaluate(`document.querySelector('[data-category="about"]').click()`);
   await waitFor(`!!document.querySelector('[aria-label="自动检查 GitHub 更新"]')`, 'preferences restored');

@@ -11,6 +11,15 @@ const settings = require("../games/settings.cjs");
 const { getDataRoot, IMPORTERS } = require("../runtime/data-paths.cjs");
 const installPaths = require("./paths.cjs");
 const { isPathInsideDirectory } = require("../system/paths.cjs");
+const { createMiForksService } = require("./mi-forks.cjs");
+const componentRoots = () => [path.dirname(process.execPath), path.resolve(electron.app.getAppPath(), "../.."), path.resolve(electron.app.getAppPath(), "..")];
+function resolveInstallation(gameId) {
+  const game = settings.getGameById(gameId);
+  const launcher = game && (game.modLoaderPath || path.join(paths(gameId).root, "Resources/Bin/XXMI Launcher.exe"));
+  const info = launcher && settings.readXxmiImporterPathInfo(launcher, gameId);
+  return info?.status === "configured" ? { launcherRoot: info.xxmiRootDir, miRoot: info.importerPath } : null;
+}
+const maintained = createMiForksService({ bundleRoots: componentRoots, resolveInstallation });
 const cache = new Map();
 let operation = null;
 function plain(file) {
@@ -24,7 +33,7 @@ function component() {
   if (!root) throw Error(i18n.t("settings.mi.componentMissing"));
   plain(root);
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "component.json"), "utf8"));
-  if (manifest.protocol !== 1 || manifest.source !== "https://github.com/SpectrumQT/XXMI-Launcher" || !manifest.files) throw Error(i18n.t("settings.mi.invalidComponent"));
+  if (manifest.protocol !== 1 || !["https://github.com/SpectrumQT/XXMI-Launcher", "https://github.com/QAQ-Revival/XXMI-Launcher"].includes(manifest.source) || !manifest.files) throw Error(i18n.t("settings.mi.invalidComponent"));
   for (const [relative, hash] of Object.entries(manifest.files)) {
     const file = path.resolve(root, relative);
     if (!isPathInsideDirectory(file, root) || file === root) throw Error(i18n.t("settings.mi.invalidComponent"));
@@ -45,7 +54,7 @@ function runWorker(payload, onProgress = () => {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(built.executable, [], { cwd: path.dirname(built.executable), windowsHide: true, shell: false, stdio: ["pipe", "pipe", "pipe"] });
     let buffer = "", size = 0, result = null, finished = false;
-    const timeout = setTimeout(() => fail(Error(i18n.t("settings.mi.timeout"))), payload.action === "install" ? 30 * 60 * 1000 : 120000);
+    const timeout = setTimeout(() => fail(Error(i18n.t("settings.mi.timeout"))), ["install", "update-component"].includes(payload.action) ? 30 * 60 * 1000 : 120000);
     function fail(error) {
       if (finished) return;
       finished = true;
@@ -78,6 +87,7 @@ function runWorker(payload, onProgress = () => {}) {
       finished = true;
       clearTimeout(timeout);
       if (result?.code === "RECOVERY_REQUIRED") reject(Error(i18n.t("settings.mi.recoveryRequired", { path: result.recoveryPath })));
+      else if (result?.code === "PROCESS_RUNNING") reject(Error(i18n.t("settings.mi.closeForUpdate")));
       else if (code || !result?.success) reject(Error(result?.error || i18n.t("settings.mi.failed")));
       else resolve({ ...result, sourceCommit: built.sourceCommit });
     });
@@ -87,7 +97,9 @@ function runWorker(payload, onProgress = () => {}) {
 async function status(gameId, action = "status") {
   const resolved = paths(gameId);
   if (operation) return { success: true, ...resolved, ...cache.get(gameId), busy: true };
-  const result = await runWorker({ ...resolved, action });
+  // In DX12 mode the game loads the ReShade add-on, so this DLL only applies once it is back on DX11.
+  const fork = { ...maintained.status(gameId), runtimeInactive: settings.getGameById(gameId)?.wuwaDx12Enabled === true };
+  const result = { ...await runWorker({ ...resolved, action }), fork };
   cache.set(gameId, result);
   return { ...result, ...resolved, busy: false };
 }
@@ -114,12 +126,44 @@ async function install({ gameId } = {}) {
     for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId, root: resolved.root });
   }
 }
+async function changeFork({ gameId, component, target, confirmed } = {}) {
+  if (operation) throw Error(i18n.t("settings.mi.busy"));
+  operation = { gameId };
+  try { return maintained.change(gameId, component, target, { confirmed: confirmed === true }); }
+  finally {
+    operation = null;
+    cache.clear();
+    for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId });
+  }
+}
+async function updateOfficial({ gameId, component } = {}) {
+  if (operation) throw Error(i18n.t("settings.mi.busy"));
+  const state = maintained.status(gameId);
+  const entry = state.components?.find(item => item.id === component);
+  if (!state.ready || !entry?.canUpdateOfficial) throw Error(state.error || i18n.t("settings.mi.unsupported"));
+  const installation = resolveInstallation(gameId);
+  operation = { gameId };
+  const changed = () => {
+    for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId });
+  };
+  changed();
+  try {
+    return await runWorker({ action: "update-component", root: installation.launcherRoot, miRoot: installation.miRoot,
+      importer: state.importer, component, deployRuntime: component === "runtime" && entry.local.kind === "official" }, progress => {
+      for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:progress", { ...progress, gameId });
+    });
+  } finally {
+    operation = null;
+    cache.clear();
+    changed();
+  }
+}
 function registerIpc() {
-  for (const [channel, action] of [["xxmi:status", gameId => status(gameId)], ["xxmi:check", gameId => status(gameId, "check")], ["xxmi:install", install]]) {
+  for (const [channel, action] of [["xxmi:status", gameId => status(gameId)], ["xxmi:check", gameId => status(gameId, "check")], ["xxmi:install", install], ["xxmi:fork-switch", changeFork], ["xxmi:update-official", updateOfficial]]) {
     electron.ipcMain.handle(channel, async (_, payload) => {
       try { return await action(payload); }
       catch (error) { return { success: false, error: error.message }; }
     });
   }
 }
-module.exports = { registerIpc, paths, runWorker, status, install };
+module.exports = { registerIpc, paths, runWorker, status, install, changeFork, updateOfficial, resolveInstallation, componentRoots, miForks: maintained, isBusy: () => !!operation };

@@ -13,6 +13,7 @@ const {
 } = require("../system/launch.cjs");
 const configStore = require("../config/store.cjs");
 const coreLogger = require("../core/logger.cjs");
+const gamesEndfieldServices = require("./endfield/service.cjs");
 const gamesGenshinServices = require("./genshin/service.cjs");
 const gamesNevernessLaunch = require("./neverness/paths.cjs");
 const gamesNevernessLoader = require("./neverness/loader.cjs");
@@ -93,7 +94,7 @@ function registerIpc() {
         };
         return await gamesWuwaServices.wuwaDx12Service.launch(systemWindows.parseLaunchArgs(customLaunchArgs));
       }
-      if (resolvedLaunchMode !== "DX12") await overlayKeypress.ensureKeypressBridgeForActiveGame();
+      if (resolvedLaunchMode !== "DX12" && resolvedLaunchMode !== "XXMI") await overlayKeypress.ensureKeypressBridgeForActiveGame();
       if (resolvedLaunchMode === "VANILLA") {
         if (!gamePath || !fs.existsSync(gamePath)) {
           return {
@@ -140,6 +141,7 @@ function registerIpc() {
             error: installAdvice.buildMissingXxmiLauncherLaunchError(resolvedLaunchMode, modLoaderPath)
           };
         }
+        if (activeGame?.id === "endfield") await gamesEndfieldServices.efmiVulkanService.prepareLaunch();
         const args = resolvedLaunchMode === "XXMI" ? [] : ["--nogui", "--xxmi", resolvedLaunchMode];
         args.push(...systemWindows.parseLaunchArgs(customLaunchArgs));
         coreLogger.logger.info("Launching Mod loader:", modLoaderPath, resolvedLaunchMode);

@@ -1,6 +1,13 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
-import { Button, Section, Row, check } from "./SettingsControls.jsx";
+import {
+  Button,
+  Notice,
+  Section,
+  Row,
+  Switch,
+  check,
+} from "./SettingsControls.jsx";
 function getLevels() {
   return {
     error: t("settings.genshin.check.needsFix"),
@@ -8,6 +15,30 @@ function getLevels() {
     info: t("settings.genshin.check.information"),
     ok: t("settings.genshin.check.passed"),
   };
+}
+const LEVEL_BADGES = {
+  error: "badge-danger",
+  warning: "badge-warning",
+  info: "badge-info",
+  ok: "badge-success",
+};
+function CheckRow({ item }) {
+  return (
+    <div
+      className="compatibility-check"
+      data-check-id={item.id}
+      data-level={item.level}
+    >
+      <span className={`badge ${LEVEL_BADGES[item.level] || ""}`.trim()}>
+        {getLevels()[item.level]}
+      </span>
+      <div className="compatibility-check-copy">
+        <strong>{item.title}</strong>
+        <p>{item.message}</p>
+        {item.path && <code title={item.path}>{item.path}</code>}
+      </div>
+    </div>
+  );
 }
 function GenshinCompatibilitySettings({ onPathsChanged }) {
   const [data, setData] = React.useState(null),
@@ -50,19 +81,23 @@ function GenshinCompatibilitySettings({ onPathsChanged }) {
       alive.current = false;
     };
   }, []);
+  const passed = data?.checks.filter((item) => item.level === "ok") || [];
+  const flagged = data?.checks.filter((item) => item.level !== "ok") || [];
   return (
     <Section
       id="genshin-compatibility"
-      title={t("settings.genshin.check.title")}
-    >
-      <Row
-        title={t("settings.genshin.check.environment")}
-        description={t("settings.genshin.check.description")}
-        stacked={true}
-      >
-        <div className="compatibility-actions">
+      title={t("settings.game.compatibility")}
+      actions={
+        <React.Fragment>
           <Button
-            primary={true}
+            small={true}
+            disabled={busy || !data}
+            onClick={() => run(() => window.api.genshinExportCheck())}
+          >
+            {t("settings.genshin.check.exportReport")}
+          </Button>
+          <Button
+            small={true}
             disabled={busy}
             onClick={() => run(() => window.api.genshinCheckEnvironment())}
           >
@@ -70,23 +105,18 @@ function GenshinCompatibilitySettings({ onPathsChanged }) {
               ? t("settings.updates.checking")
               : t("settings.genshin.check.recheck")}
           </Button>
-          <Button
-            disabled={busy || !data}
-            onClick={() => run(() => window.api.genshinExportCheck())}
-          >
-            {t("settings.genshin.check.exportReport")}
-          </Button>
-        </div>
-      </Row>
+        </React.Fragment>
+      }
+    >
       {error && (
-        <p className="system-notice" role="alert">
+        <Notice kind="danger" role="alert">
           {error}
-        </p>
+        </Notice>
       )}
       {message && (
-        <p className="system-notice" role="status">
+        <Notice kind="success" role="status">
           {message}
-        </p>
+        </Notice>
       )}
       {data && (
         <React.Fragment>
@@ -98,24 +128,26 @@ function GenshinCompatibilitySettings({ onPathsChanged }) {
             })}
           </p>
           <div className="compatibility-checks">
-            {data.checks.map((item) => (
-              <div
-                key={item.id}
-                className="compatibility-check"
-                data-check-id={item.id}
-                data-level={item.level}
-              >
-                <span className={`compatibility-level ${item.level}`}>
-                  {getLevels()[item.level]}
-                </span>
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.message}</p>
-                  {item.path && <code title={item.path}>{item.path}</code>}
-                </div>
-              </div>
+            {flagged.map((item) => (
+              <CheckRow key={item.id} item={item} />
             ))}
           </div>
+          {passed.length > 0 && (
+            <details className="settings-disclosure">
+              <summary>
+                <span>
+                  {t("settings.genshin.check.passedGroup", {
+                    count: passed.length,
+                  })}
+                </span>
+              </summary>
+              <div className="compatibility-checks">
+                {passed.map((item) => (
+                  <CheckRow key={item.id} item={item} />
+                ))}
+              </div>
+            </details>
+          )}
           {data.repairs.length > 0 && (
             <Row
               title={t("settings.genshin.check.repairablePaths")}
@@ -164,7 +196,7 @@ function GenshinCompatibilitySettings({ onPathsChanged }) {
           )}
           <Row
             title={t("settings.genshin.check.restorePaths")}
-            description={t("settings.genshin.check.restoreHint")}
+            hint={t("settings.genshin.check.restoreHint")}
           >
             <Button
               disabled={busy || !data.canRestore}
@@ -176,36 +208,36 @@ function GenshinCompatibilitySettings({ onPathsChanged }) {
                 )
               }
             >
-              {t("settings.genshin.check.restorePaths")}
+              {t("settings.genshin.check.restoreAction")}
             </Button>
           </Row>
           <Row
             title={t("settings.genshin.check.beforeLaunch")}
-            description={t("settings.genshin.check.beforeLaunchHint")}
+            hint={t("settings.genshin.check.beforeLaunchHint")}
           >
-            <input
-              type="checkbox"
-              role="switch"
-              className="system-switch"
-              aria-label={t("settings.genshin.check.beforeLaunchLabel")}
+            <Switch
+              label={t("settings.genshin.check.beforeLaunchLabel")}
               checked={data.preflightEnabled}
               disabled={busy}
-              onChange={(e) => {
-                const enabled = e.target.checked;
+              onChange={(enabled) =>
                 run(() =>
                   window.api.genshinUpdateCheckSettings({
                     preflightEnabled: enabled,
                   }),
-                );
-              }}
+                )
+              }
             />
           </Row>
-          <details className="compatibility-advanced">
-            <summary>{t("settings.genshin.check.launchArguments")}</summary>
-            <p>{t("settings.genshin.check.argumentsHint")}</p>
-            <div className="system-path-control">
+          <details className="compatibility-advanced settings-disclosure">
+            <summary>
+              <span>{t("settings.genshin.check.launchArguments")}</span>
+            </summary>
+            <p className="settings-footnote">
+              {t("settings.genshin.check.argumentsHint")}
+            </p>
+            <div className="path-control">
               <input
-                className="system-text-input"
+                className="input settings-mono-input"
                 aria-label={t("settings.genshin.check.argumentsLabel")}
                 value={args}
                 maxLength={2048}
@@ -222,18 +254,21 @@ function GenshinCompatibilitySettings({ onPathsChanged }) {
                   )
                 }
               >
-                {t("settings.genshin.check.saveArguments")}
+                {t("common.actions.save")}
               </Button>
             </div>
           </details>
-          <details className="compatibility-logs">
-            <summary>{t("settings.genshin.check.logClues")}</summary>
-            <p>{t("settings.genshin.check.logCluesHint")}</p>
+          <details className="compatibility-logs settings-disclosure">
+            <summary>
+              <span>{t("settings.genshin.check.logClues")}</span>
+            </summary>
             {!data.logs.length ? (
-              <p>{t("settings.genshin.check.noLogs")}</p>
+              <p className="settings-footnote">
+                {t("settings.genshin.check.noLogs")}
+              </p>
             ) : (
               data.logs.map((log) => (
-                <div key={log.name}>
+                <div key={log.name} className="compatibility-log">
                   <strong>{log.name}</strong>
                   <p>
                     {t("settings.genshin.check.logModified", {

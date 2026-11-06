@@ -1,6 +1,7 @@
 import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
 import ReactDOM from "react-dom";
+import { Icon } from "../../../components/Icon.jsx";
 export function AiNameDialog({
   showAiNameModal,
   aiNameModalMinimized,
@@ -19,168 +20,127 @@ export function AiNameDialog({
   modTags,
   handleAiSuggestName,
 }) {
+  const result = aiNameTaskResult || aiNameResult;
+  const dismiss = aiNameLoading ? minimizeAiNameModal : closeAiNameTask;
   return (
     showAiNameModal &&
     !aiNameModalMinimized &&
     ReactDOM.createPortal(
-      <div
-        onClick={aiNameLoading ? minimizeAiNameModal : closeAiNameTask}
-        className="ai-name-dialog-overlay"
-      >
+      <div className="modal-backdrop" onClick={dismiss}>
         <div
+          className="modal-content ai-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ai-name-title"
           onClick={(e) => e.stopPropagation()}
-          className="ai-name-dialog-panel"
         >
-          <div className="ai-name-dialog-row">
-            <div className="ai-name-dialog-heading">
+          <div className="ai-dialog-head">
+            <h2 id="ai-name-title" className="dialog-title">
               {t("mods.ai.nameTitle")}
-            </div>
+            </h2>
             <button
-              onClick={aiNameLoading ? minimizeAiNameModal : closeAiNameTask}
-              className="ai-name-dialog-action"
+              type="button"
+              className="icon-btn icon-btn-sm"
+              onClick={dismiss}
+              aria-label={
+                aiNameLoading ? t("mods.ai.minimize") : t("common.actions.close")
+              }
+              title={aiNameLoading ? t("mods.ai.minimize") : t("common.actions.close")}
             >
-              {aiNameLoading ? "—" : "✕"}
+              <Icon name={aiNameLoading ? "minus" : "x"} size={15} />
             </button>
           </div>
-          <div className="ai-name-dialog-hint">
+          <p className="dialog-desc ai-dialog-current" title={aiNameTaskTarget?.modName || selectedMod?.name}>
             {t("mods.ai.currentPrefix")}
-            <code className="ai-name-dialog-content">
-              {aiNameTaskTarget?.modName || selectedMod?.name}
-            </code>
-          </div>
+            {aiNameTaskTarget?.modName || selectedMod?.name}
+          </p>
           {aiNameLoading ? (
-            <div className="ai-name-dialog-centered-content">
-              <div className="ai-name-dialog-heading-emphasis">
-                {aiNameStage || t("mods.ai.analyzing")}
-              </div>
-              <div className="ai-name-dialog-elapsed-time">
-                {t("mods.ai.nameElapsed", {
-                  aiNameElapsedSeconds,
-                })}
+            <div className="ai-dialog-waiting" role="status">
+              <span className="spinner" aria-hidden="true" />
+              <div className="ai-dialog-stage">{aiNameStage || t("mods.ai.analyzing")}</div>
+              <div className="ai-dialog-elapsed">
+                {t("mods.ai.nameElapsed", { aiNameElapsedSeconds })}
               </div>
               {aiNameElapsedSeconds >= 20 && (
-                <div className="ai-name-dialog-slow-response-hint">
-                  {t("mods.ai.slowResponse")}
-                </div>
+                <div className="ai-dialog-elapsed">{t("mods.ai.slowResponse")}</div>
               )}
-              <button
-                onClick={minimizeAiNameModal}
-                className="ai-name-dialog-minimize-ai-name-modal-action"
-              >
-                {t("mods.ai.minimize")}
-              </button>
             </div>
           ) : aiNameTaskError ? (
-            <div className="ai-name-dialog-error-text">
-              {t("mods.ai.nameFailed", {
-                aiNameTaskError,
-              })}
+            <div className="notice notice-danger dialog-body" role="alert">
+              <Icon name="alert" size={14} />
+              <span>{t("mods.ai.nameFailed", { aiNameTaskError })}</span>
             </div>
-          ) : aiNameTaskResult || aiNameResult ? (
+          ) : result ? (
             <React.Fragment>
-              {(aiNameTaskResult || aiNameResult).groups.map((g, gi) => (
-                <div key={gi} className="ai-name-dialog-suggestion-group">
-                  <div className="ai-name-dialog-suggestion-group-label">
-                    {g.label}
+              <div className="dialog-body ai-dialog-results">
+                {result.groups.map((g, gi) => (
+                  <div key={gi}>
+                    <div className="ai-dialog-group-label">{g.label}</div>
+                    {g.items.map((item, ii) => (
+                      <div key={ii} className="ai-dialog-suggestion">
+                        <span className="selectable" title={item.fullName}>
+                          {item.fullName}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => applyAiName(item.fullName, aiNameTaskTarget)}
+                        >
+                          {t("common.actions.use")}
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                  {g.items.map((item, ii) => (
-                    <div
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#eef2ff";
-                        e.currentTarget.style.borderColor = "#6366f1";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "#f9fafb";
-                        e.currentTarget.style.borderColor = "#e5e7eb";
-                      }}
-                      key={ii}
-                      className="ai-name-dialog-suggestion-row"
-                    >
-                      <span className="ai-name-dialog-content-emphasis">
-                        {item.fullName}
-                      </span>
+                ))}
+                {result.tags?.length > 0 && (
+                  <div>
+                    <div className="ai-dialog-group-label">
+                      <span>{t("mods.ai.recommendedTags")}</span>
                       <button
-                        onClick={() =>
-                          applyAiName(item.fullName, aiNameTaskTarget)
-                        }
-                        className="ai-name-dialog-action-emphasis"
+                        type="button"
+                        className="link-btn"
+                        onClick={() => applyAiTags(result.tags, aiNameTaskTarget)}
                       >
-                        {t("common.actions.use")}
+                        {t("mods.ai.addAll")}
                       </button>
                     </div>
-                  ))}
-                </div>
-              ))}
-              {(aiNameTaskResult || aiNameResult).tags?.length > 0 && (
-                <div className="ai-name-dialog-recommended-tags">
-                  <div className="ai-name-dialog-recommended-tags-heading">
-                    <span className="ai-name-dialog-recommended-tags-title">
-                      {t("mods.ai.recommendedTags")}
-                    </span>
-                    <button
-                      onClick={() =>
-                        applyAiTags(
-                          (aiNameTaskResult || aiNameResult).tags,
-                          aiNameTaskTarget,
-                        )
-                      }
-                      className="ai-name-dialog-add-recommended-tags"
-                    >
-                      {t("mods.ai.addAll")}
-                    </button>
+                    <div className="ai-dialog-tags">
+                      {result.tags.map((tag, ti) => {
+                        const alreadyAdded = modTags.includes(tag);
+                        return (
+                          <button
+                            type="button"
+                            className={`chip ${alreadyAdded ? "active" : ""}`}
+                            aria-pressed={alreadyAdded}
+                            disabled={alreadyAdded}
+                            onClick={() => applyAiTags([tag], aiNameTaskTarget)}
+                            key={ti}
+                          >
+                            {alreadyAdded && <Icon name="check" size={12} />}
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="ai-name-dialog-recommended-tag-list">
-                    {(aiNameTaskResult || aiNameResult).tags.map((tag, ti) => {
-                      const alreadyAdded = modTags.includes(tag);
-                      return (
-                        <span
-                          onClick={() =>
-                            !alreadyAdded &&
-                            applyAiTags([tag], aiNameTaskTarget)
-                          }
-                          style={{
-                            borderRadius: "12px",
-                            background: alreadyAdded ? "#d1fae5" : "#f3f4f6",
-                            color: alreadyAdded ? "#059669" : "#374151",
-                            cursor: alreadyAdded ? "default" : "pointer",
-                            border: alreadyAdded
-                              ? "1px solid #a7f3d0"
-                              : "1px solid #e5e7eb",
-                          }}
-                          key={ti}
-                          className="ai-name-dialog-hint-emphasis"
-                        >
-                          {alreadyAdded ? "✓ " : ""}
-                          {tag}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              <div className="ai-name-dialog-actions">
-                <button
-                  onClick={closeAiNameTask}
-                  className="ai-name-dialog-close-ai-name-task-action"
-                >
+                )}
+              </div>
+              <div className="dialog-actions">
+                <button type="button" className="btn" onClick={closeAiNameTask}>
                   {t("common.actions.close")}
                 </button>
                 <button
+                  type="button"
+                  className="btn btn-primary"
                   onClick={handleAiSuggestName}
                   disabled={aiNameLoading}
-                  style={{
-                    opacity: aiNameLoading ? 0.6 : 1,
-                  }}
-                  className="ai-name-dialog-ai-suggest-name-action"
                 >
                   {t("mods.ai.recommendAgain")}
                 </button>
               </div>
             </React.Fragment>
           ) : (
-            <div className="ai-name-dialog-empty-result-hint">
-              {t("mods.ai.noResults")}
-            </div>
+            <div className="ai-dialog-waiting">{t("mods.ai.noResults")}</div>
           )}
         </div>
       </div>,

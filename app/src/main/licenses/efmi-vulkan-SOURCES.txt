@@ -1,0 +1,10 @@
+Optional Vulkan components installed by QAQ-Revival for Arknights: Endfield:
+
+XXMI DLL, original build, 1.2.2-nhd.27 (GPL-3.0)
+Project and corresponding source: https://github.com/myparsleycat/XXMI-Libs-Package-Forked/tree/v1.2.2-nhd.27
+Release: https://github.com/myparsleycat/XXMI-Libs-Package-Forked/releases/tag/v1.2.2-nhd.27
+The release's SPIRV-Tools-shared.dll, dxcompiler.dll and dxil.dll are installed next to it, as that project documents.
+
+XXMI DLL, QAQR fixed build (GPL-3.0)
+Project and corresponding source: https://github.com/QAQ-Revival/XXMI-Libs-Package/tree/vulkan
+Its license, notices and source archive are in local-components/xxmi-runtime-vulkan.

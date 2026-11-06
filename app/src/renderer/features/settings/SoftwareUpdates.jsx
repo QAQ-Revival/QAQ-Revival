@@ -1,6 +1,7 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
-const h = (...args) => React.createElement(...args);
+import { Icon } from "../../components/Icon.jsx";
+import { Button, Row, Section, Switch } from "./SettingsControls.jsx";
 function useUpdateState() {
   const [state, setState] = React.useState(null),
     [error, setError] = React.useState("");
@@ -63,127 +64,18 @@ function SoftwareUpdateSettings() {
     if (state && validDays && Number(days) !== state.intervalDays && !busy)
       configure(state.enabled);
   }
-  return h(
-    "section",
-    {
-      className: "system-section",
-      id: "settings-software-update",
-      "aria-labelledby": "software-update-title",
-    },
-    h(
-      "h3",
-      {
-        id: "software-update-title",
-      },
-      t("settings.updates.title"),
-    ),
-    h(
-      "div",
-      {
-        className: "system-card",
-      },
-      !state
-        ? h("p", null, error || t("settings.updates.loading"))
-        : h(
-            React.Fragment,
-            null,
-            h(
-              "div",
-              {
-                className: "system-row",
-              },
-              h(
-                "div",
-                {
-                  className: "system-row-copy",
-                },
-                h(
-                  "div",
-                  {
-                    className: "system-row-title",
-                  },
-                  t("settings.updates.automatic"),
-                ),
-                h("p", null, t("settings.updates.automaticDescription")),
-              ),
-              h("input", {
-                type: "checkbox",
-                role: "switch",
-                className: "system-switch",
-                "aria-label": t("settings.updates.automaticLabel"),
-                checked: state.enabled,
-                disabled: busy,
-                onChange: (event) =>
-                  request("softwareUpdateConfigure", {
-                    enabled: event.target.checked,
-                    intervalDays: state.intervalDays,
-                  }),
-              }),
-            ),
-            h(
-              "div",
-              {
-                className: "system-row",
-              },
-              h(
-                "div",
-                {
-                  className: "system-row-copy",
-                },
-                h(
-                  "div",
-                  {
-                    className: "system-row-title",
-                  },
-                  t("settings.updates.frequency"),
-                ),
-                h("p", null, t("settings.updates.frequencyDescription")),
-              ),
-              h(
-                "label",
-                {
-                  className: "software-update-frequency",
-                },
-                t("settings.updates.everyPrefix"),
-                h("input", {
-                  type: "text",
-                  inputMode: "numeric",
-                  "aria-label": t("settings.updates.intervalLabel"),
-                  "aria-invalid": !validDays,
-                  value: days,
-                  disabled: busy || !state.enabled,
-                  onChange: (event) => setDays(event.target.value),
-                  onBlur: saveDays,
-                  onKeyDown: (event) => {
-                    if (event.key === "Enter") saveDays();
-                    if (event.key === "Escape")
-                      setDays(String(state.intervalDays));
-                  },
-                }),
-                t("settings.updates.daysSuffix"),
-              ),
-            ),
-            !validDays &&
-              h(
-                "p",
-                {
-                  className: "system-range-error",
-                  role: "alert",
-                },
-                t("settings.updates.intervalInvalid"),
-              ),
-            h(
-              "div",
-              {
-                className: "system-row stacked",
-              },
-              h(
-                "p",
-                {
-                  className: "software-update-summary",
-                  role: "status",
-                },
-                state.checking
+  return (
+    <Section id="software-update" title={t("settings.updates.title")}>
+      {!state ? (
+        <div className="settings-state" role={error ? "alert" : "status"}>
+          {error || t("settings.updates.loading")}
+        </div>
+      ) : (
+        <React.Fragment>
+          <Row
+            title={
+              <span className="software-update-summary" role="status">
+                {state.checking
                   ? t("settings.updates.checkingGitHub")
                   : state.updateAvailable
                     ? t("settings.updates.available", {
@@ -198,59 +90,91 @@ function SoftwareUpdateSettings() {
                           })
                         : t("settings.updates.uncheckedVersion", {
                             currentVersion: state.currentVersion,
-                          }),
-              ),
-              h(
-                "small",
-                null,
-                state.lastCheckedAt
-                  ? t("settings.updates.lastChecked", {
-                      value: new Date(state.lastCheckedAt).toLocaleString(
-                        "zh-CN",
-                      ),
-                    })
-                  : "",
-              ),
-              (error || state.error) &&
-                h(
-                  "p",
-                  {
-                    className: "system-range-error",
-                    role: "alert",
-                  },
-                  error || state.error,
-                ),
-              h(
-                "div",
-                {
-                  className: "software-update-actions",
-                },
-                h(
-                  "button",
-                  {
-                    type: "button",
-                    className: "system-button primary",
-                    disabled: busy || state.checking,
-                    onClick: () => request("softwareUpdateCheck"),
-                  },
-                  state.checking
-                    ? t("settings.updates.checking")
-                    : t("settings.updates.checkNow"),
-                ),
-                state.release &&
-                  h(
-                    "button",
-                    {
-                      type: "button",
-                      className: "system-button",
-                      onClick: () => request("softwareUpdateOpenRelease"),
-                    },
-                    t("settings.updates.openRelease"),
-                  ),
-              ),
-            ),
-          ),
-    ),
+                          })}
+              </span>
+            }
+            description={
+              state.lastCheckedAt
+                ? t("settings.updates.lastChecked", {
+                    value: new Date(state.lastCheckedAt).toLocaleString(
+                      "zh-CN",
+                    ),
+                  })
+                : ""
+            }
+            details={
+              (error || state.error) && (
+                <p className="settings-error" role="alert">
+                  {error || state.error}
+                </p>
+              )
+            }
+          >
+            {state.release && (
+              <Button onClick={() => request("softwareUpdateOpenRelease")}>
+                {t("settings.updates.openRelease")}
+              </Button>
+            )}
+            <Button
+              primary={true}
+              disabled={busy || state.checking}
+              onClick={() => request("softwareUpdateCheck")}
+            >
+              {state.checking
+                ? t("settings.updates.checking")
+                : t("settings.updates.checkNow")}
+            </Button>
+          </Row>
+          <Row
+            title={t("settings.updates.automatic")}
+            hint={t("settings.updates.automaticDescription")}
+          >
+            <Switch
+              label={t("settings.updates.automaticLabel")}
+              checked={state.enabled}
+              disabled={busy}
+              onChange={(value) =>
+                request("softwareUpdateConfigure", {
+                  enabled: value,
+                  intervalDays: state.intervalDays,
+                })
+              }
+            />
+          </Row>
+          <Row
+            title={t("settings.updates.frequency")}
+            details={
+              !validDays && (
+                <p className="settings-error" role="alert">
+                  {t("settings.updates.intervalInvalid")}
+                </p>
+              )
+            }
+          >
+            <label className="software-update-frequency">
+              {t("settings.updates.everyPrefix")}
+              <input
+                type="text"
+                inputMode="numeric"
+                className="input"
+                aria-label={t("settings.updates.intervalLabel")}
+                aria-invalid={!validDays}
+                value={days}
+                disabled={busy || !state.enabled}
+                onChange={(event) => setDays(event.target.value)}
+                onBlur={saveDays}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") saveDays();
+                  if (event.key === "Escape")
+                    setDays(String(state.intervalDays));
+                }}
+              />
+              {t("settings.updates.daysSuffix")}
+            </label>
+          </Row>
+        </React.Fragment>
+      )}
+    </Section>
   );
 }
 function SoftwareUpdateNotice() {
@@ -260,41 +184,35 @@ function SoftwareUpdateNotice() {
     state.release.version === state.dismissedVersion
   )
     return null;
-  return h(
-    "div",
-    {
-      className: "software-update-notice",
-      role: "status",
-    },
-    h(
-      "span",
-      null,
-      t("settings.updates.notice", {
-        version: state.release.version,
-      }),
-    ),
-    h(
-      "button",
-      {
-        type: "button",
-        onClick: () => window.api.softwareUpdateOpenRelease(),
-      },
-      t("settings.updates.viewUpdate"),
-    ),
-    h(
-      "button",
-      {
-        type: "button",
-        "aria-label": t("settings.updates.dismissVersion"),
-        onClick: async () => {
+  return (
+    <div className="software-update-notice" role="status">
+      <span className="software-update-notice-text">
+        {t("settings.updates.notice", {
+          version: state.release.version,
+        })}
+      </span>
+      <button
+        type="button"
+        className="btn btn-sm"
+        onClick={() => window.api.softwareUpdateOpenRelease()}
+      >
+        {t("settings.updates.viewUpdate")}
+      </button>
+      <button
+        type="button"
+        className="icon-btn icon-btn-sm"
+        title={t("settings.updates.dismissVersion")}
+        aria-label={t("settings.updates.dismissVersion")}
+        onClick={async () => {
           const result = await window.api.softwareUpdateDismiss(
             state.release.version,
           );
           if (result.success) setState(result.state);
-        },
-      },
-      "×",
-    ),
+        }}
+      >
+        <Icon name="x" size={14} />
+      </button>
+    </div>
   );
 }
 export { SoftwareUpdateSettings, SoftwareUpdateNotice };

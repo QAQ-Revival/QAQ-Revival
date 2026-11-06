@@ -81,7 +81,7 @@ def replace_file(source, target):
                 pass
 
 
-def promote(groups, work, config_file, config_data):
+def promote(groups, work, config_file, config_data, extra_files=()):
     """Back up changed files, replace atomically, and restore on any failure."""
     changes = []
     for staged, target in groups:
@@ -91,6 +91,8 @@ def promote(groups, work, config_file, config_data):
             if original and updated and digest(original) == digest(updated):
                 continue
             changes.append((target / relative, updated, digest(original) if original else None))
+    for updated, target in extra_files:
+        changes.append((target, updated, digest(target) if target.exists() else None))
     config_stage = work / "config-next.json"
     config_stage.write_text(json.dumps(config_data, indent=4), encoding="utf-8")
     changes.append((config_file, config_stage, digest(config_file) if config_file.exists() else None))
@@ -157,6 +159,8 @@ def newer(candidate, installed):
 
 
 def execute(payload):
+    if payload.get("action") == "update-component":
+        return update_component(payload)
     actual = Path(payload["root"])
     if not actual.is_absolute():
         raise ValueError("An absolute installation path is required")
@@ -261,6 +265,130 @@ def execute(payload):
                 shutil.rmtree(work)
 
 
+def update_component(payload):
+    """Use the official package's download, signature and install code in staging."""
+    import psutil
+    import core.path_manager as Paths
+    import core.config_manager as Config
+    import core.event_manager as Events
+    from core.package_manager import PackageManager
+    from core.packages.migoto_package import MigotoPackage
+    from core.packages.model_importers.efmi_package import EFMIPackage
+    from core.packages.model_importers.gimi_package import GIMIPackage
+    from core.packages.model_importers.srmi_package import SRMIPackage
+    from core.packages.model_importers.wwmi_package import WWMIPackage
+    from core.packages.model_importers.zzmi_package import ZZMIPackage
+
+    importers = {"EFMI": EFMIPackage, "GIMI": GIMIPackage, "SRMI": SRMIPackage,
+                 "WWMI": WWMIPackage, "ZZMI": ZZMIPackage}
+    importer, component = payload.get("importer"), payload.get("component")
+    if importer not in importers or component not in {"core", "runtime"}:
+        raise ValueError("Unsupported official component")
+    actual, mi = Path(payload["root"]), Path(payload["miRoot"])
+    if not actual.is_absolute() or not mi.is_absolute():
+        raise ValueError("An absolute installation path is required")
+    assert_plain(actual)
+    assert_plain(mi)
+    config_file = actual / "XXMI Launcher Config.json"
+    original_bytes = config_file.read_bytes()
+    original_config = json.loads(original_bytes.decode("utf-8-sig"))
+    configured = Path(original_config.get("Importers", {}).get(importer, {}).get("Importer", {}).get("importer_folder", importer))
+    configured = configured if configured.is_absolute() else actual / configured
+    if configured.resolve() != mi.resolve() or not (mi / "d3dx.ini").is_file():
+        raise ValueError("The configured importer directory changed")
+    loaded = Config.Manager.config_from_dict(original_config)
+    active = getattr(loaded.Importers, importer)
+    names = {name.lower() for name in active.Importer.game_exe_names}
+    names.update(name.lower() for name in active.Importer.process_exe_names)
+    names.add(active.Importer.game_process_exe.lower())
+
+    def stopped():
+        for process in psutil.process_iter(["name", "exe"]):
+            name, executable = (process.info.get("name") or "").lower(), process.info.get("exe")
+            if name in names or name == "xxmi launcher.exe" or (executable and Path(executable).parent == actual / "Resources/Bin"):
+                failure = RuntimeError("Close the game and XXMI Launcher before updating components")
+                failure.code = "PROCESS_RUNNING"
+                raise failure
+
+    stopped()
+    parent = actual / ".installer-work"
+    assert_plain(parent)
+    if mi.resolve().is_relative_to(parent.resolve()):
+        raise ValueError("Importer directory overlaps update staging")
+    parent.mkdir(parents=True, exist_ok=True)
+    for existing in parent.glob("xxmi-*/*"):
+        if existing.name in {"recovery.json", "rollback"}:
+            raise RecoveryRequiredError(existing.parent, "A previous rollback still needs recovery")
+    work = Path(tempfile.mkdtemp(prefix="xxmi-", dir=parent))
+    preserve_work = False
+    try:
+        root, staged = work / "launcher", work / "launcher" / importer
+        root.mkdir()
+        package_name = "XXMI" if component == "runtime" else importer
+        relative_cache = Path("Resources/Packages") / package_name
+        groups = [(root / relative_cache, actual / relative_cache)]
+        if component == "core":
+            groups += [(staged / name, mi / name) for name in ("Core", "ShaderFixes")]
+        before = [{relative: digest(file) for relative, file in program_files(target).items()} for _, target in groups]
+        for destination, source in groups:
+            copy_program(source, destination)
+        staged.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(mi / "d3dx.ini", staged / "d3dx.ini")
+        runtime_hash = digest(mi / "d3d11.dll") if (mi / "d3d11.dll").exists() else None
+        Paths.App.set_root_path(root)
+        Config.Config.__dict__.update(loaded.__dict__)
+        Config.Manager._update_globals()
+        Config.Active = getattr(Config.Importers, importer)
+        Config.Active.Importer.importer_folder = str(staged)
+        Config.Active.Importer.overwrite_ini = False
+        Config.Active.Importer.shortcut_deployed = True
+        Config.Launcher.active_importer = importer
+
+        class StagedRuntime(MigotoPackage):
+            def install_latest_version(self, clean):
+                self.move_contents(self.downloaded_asset_path, self.package_path)
+                self.verify_files_integrity(self.package_path)
+
+        package = StagedRuntime() if component == "runtime" else importers[importer]()
+        manager = PackageManager([package])
+        manager.github_client.configure(access_token="", verify_ssl=True, proxy_config=Config.Launcher.proxy)
+        Events.Subscribe(Events.PackageManager.UpdateDownloadProgress, lambda event: emit({"type": "progress", "stage": "download", "package": package_name, "downloaded": event.downloaded_bytes, "total": event.total_bytes}))
+        installed = package.get_installed_version()
+        emit({"type": "progress", "stage": "check", "package": package_name})
+        package.detect_latest_version()
+        if installed and installed != "X.X.X" and newer(installed, package.cfg.latest_version):
+            raise ValueError("The installed component is newer than the official release")
+        emit({"type": "progress", "stage": "install", "package": package_name})
+        package.update()
+        # A previous fix's compiled shader is not part of the official source.
+        shader_cache = Path("Core/EFMI/Shaders/MergedSkeleton_InstanceConfigOverrider_ConstantBuffer.cs_5_0.8000.bin")
+        if component == "core" and importer == "EFMI" and shader_cache not in package.downloaded_asset_hashes:
+            (staged / shader_cache).unlink(missing_ok=True)
+        extra = []
+        if component == "runtime" and payload.get("deployRuntime") is True:
+            extra = [(package.package_path / "d3d11.dll", mi / "d3d11.dll")]
+        result_config = json.loads(json.dumps(original_config))
+        serialized = Config.Manager.config_to_dict(Config.Config)
+        result_config.setdefault("Packages", {}).setdefault("packages", {})[package_name] = serialized["Packages"]["packages"][package_name]
+        stopped()
+        if config_file.read_bytes() != original_bytes or before != [{relative: digest(file) for relative, file in program_files(target).items()} for _, target in groups]:
+            raise ValueError("Installation changed while updating")
+        if extra and runtime_hash != (digest(mi / "d3d11.dll") if (mi / "d3d11.dll").exists() else None):
+            raise ValueError("Runtime changed while updating")
+        emit({"type": "progress", "stage": "verify", "package": package_name})
+        count = promote(groups, work, config_file, result_config, extra)
+        return {"success": True, "component": component, "version": package.installed_version,
+                "changedFiles": count, "restartRequired": component == "core" or bool(extra)}
+    except RecoveryRequiredError:
+        preserve_work = True
+        raise
+    finally:
+        if work.exists() and not preserve_work and not (work / "recovery.json").exists():
+            if work.parent != parent or not work.name.startswith("xxmi-"):
+                raise ValueError("Invalid staging cleanup path")
+            shutil.rmtree(work)
+
+
 if __name__ == "__main__":
     try:
         sys.stdin.reconfigure(encoding="utf-8")
@@ -269,5 +397,5 @@ if __name__ == "__main__":
         emit({"type": "result", "success": False, "error": str(error), "code": "RECOVERY_REQUIRED", "recoveryPath": error.recovery_path})
         sys.exit(1)
     except Exception as error:
-        emit({"type": "result", "success": False, "error": str(error)})
+        emit({"type": "result", "success": False, "error": str(error), "code": getattr(error, "code", None)})
         sys.exit(1)

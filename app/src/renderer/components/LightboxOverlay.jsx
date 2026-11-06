@@ -1,6 +1,7 @@
 import { t } from "../../shared/i18n/index.mjs";
 import React from "react";
 import { MarketImage } from "../features/market/components/MarketImage.jsx";
+import { Icon } from "./Icon.jsx";
 function LightboxOverlay({ images, index, onClose, onChange }) {
   const [currentIdx, setCurrentIdx] = React.useState(index);
   const hasMultiple = images.length > 1;
@@ -48,26 +49,39 @@ function LightboxOverlay({ images, index, onClose, onChange }) {
     });
   };
   return (
-    <div className="lightbox-overlay" onClick={onClose}>
+    <div className="image-viewer" onClick={onClose}>
       <button
-        className="lightbox-close"
+        type="button"
+        className="image-viewer-btn image-viewer-close"
+        aria-label={t("common.actions.close")}
+        title={t("common.actions.close")}
         onClick={(e) => {
           e.stopPropagation();
           onClose();
         }}
       >
-        {"✕"}
+        <Icon name="x" size={18} />
       </button>
       {hasMultiple && (
         <React.Fragment>
-          <button className="lightbox-nav lightbox-nav-prev" onClick={goPrev}>
-            {"‹"}
+          <button
+            type="button"
+            className="image-viewer-btn image-viewer-prev"
+            aria-label={t("common.actions.previousPage")}
+            onClick={goPrev}
+          >
+            <Icon name="chevron-left" size={22} />
           </button>
-          <button className="lightbox-nav lightbox-nav-next" onClick={goNext}>
-            {"›"}
+          <button
+            type="button"
+            className="image-viewer-btn image-viewer-next"
+            aria-label={t("common.actions.nextPage")}
+            onClick={goNext}
+          >
+            <Icon name="chevron-right" size={22} />
           </button>
           <div
-            className="lightbox-counter"
+            className="image-viewer-count"
             onClick={(e) => e.stopPropagation()}
           >
             {currentIdx + 1}
@@ -76,11 +90,11 @@ function LightboxOverlay({ images, index, onClose, onChange }) {
           </div>
         </React.Fragment>
       )}
-      <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+      <div className="image-viewer-stage" onClick={(e) => e.stopPropagation()}>
         <MarketImage
           src={images[currentIdx]?.url}
           alt={t("common.actions.preview")}
-          className="market-image-lightbox"
+          className="image-viewer-image"
           loading="eager"
           fetchPriority="high"
         />

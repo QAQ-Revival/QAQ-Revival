@@ -1,5 +1,7 @@
 import { t } from "../../shared/i18n/index.mjs";
 import React from "react";
+import { Icon } from "./Icon.jsx";
+
 function DownloadManagerButton() {
   const [summary, setSummary] = React.useState({
     count: 0,
@@ -14,7 +16,7 @@ function DownloadManagerButton() {
   return (
     <button
       type="button"
-      className="sidebar-download-button"
+      className="icon-btn topbar-download-button"
       title={t("downloads.title")}
       aria-label={t("downloads.title")}
       aria-expanded={summary.open}
@@ -23,21 +25,9 @@ function DownloadManagerButton() {
         window.dispatchEvent(new CustomEvent("qaqm:toggle-download-panel"));
       }}
     >
-      <svg
-        width={18}
-        height={18}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden={true}
-      >
-        <path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4" />
-      </svg>
+      <Icon name="download" size={18} />
       {summary.count > 0 && (
-        <span className="sidebar-download-count">
+        <span className="topbar-download-count">
           {summary.count > 99 ? "99+" : summary.count}
         </span>
       )}

@@ -1,6 +1,6 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
-import { Button, Section, Row, check } from "./SettingsControls.jsx";
+import { Button, Notice, Section, Row, check } from "./SettingsControls.jsx";
 function WuwaTuningSettings() {
   const [data, setData] = React.useState(null);
   const [selected, setSelected] = React.useState("");
@@ -57,36 +57,33 @@ function WuwaTuningSettings() {
       : t("settings.wuwaTuning.customConfiguration"));
   return (
     <Section id="wuwa-tuning" title={t("settings.wuwaTuning.title")}>
-      <Row
-        title={t("settings.wuwaTuning.plan")}
-        description={t("settings.wuwaTuning.description")}
-        stacked={true}
-      >
-        {data && (
-          <div
-            className="wuwa-tuning-options"
-            role="group"
-            aria-label={t("settings.wuwaTuning.planLabel")}
-          >
-            {data.presets.map((preset) => (
-              <button
-                key={preset.id}
-                type="button"
-                className="system-choice"
-                data-wuwa-preset={preset.id}
-                aria-pressed={selected === preset.id}
-                disabled={busy}
-                onClick={() => setSelected(preset.id)}
-              >
+      {data && (
+        <div
+          className="settings-options"
+          role="group"
+          aria-label={t("settings.wuwaTuning.planLabel")}
+        >
+          {data.presets.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              className="settings-option"
+              data-wuwa-preset={preset.id}
+              aria-pressed={selected === preset.id}
+              disabled={busy}
+              onClick={() => setSelected(preset.id)}
+            >
+              <span className="settings-option-mark" aria-hidden={true} />
+              <span className="settings-option-copy">
                 <strong>{preset.name}</strong>
                 <span>{preset.description}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </Row>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
       {data && (
-        <p className="system-notice">
+        <p className="settings-footnote">
           {t("settings.wuwaTuning.currentParameters", {
             current,
             launcherFov: data.values.launcherFov,
@@ -94,7 +91,7 @@ function WuwaTuningSettings() {
           })}
         </p>
       )}
-      <div className="wuwa-tuning-actions">
+      <div className="settings-actions">
         <Button
           primary={true}
           disabled={
@@ -125,14 +122,13 @@ function WuwaTuningSettings() {
         >
           {t("settings.wuwaTuning.restorePrevious")}
         </Button>
-        <Button disabled={busy} onClick={load}>
+        <Button ghost={true} disabled={busy} onClick={load}>
           {t("settings.wuwaTuning.reload")}
         </Button>
       </div>
       <Row
         title={t("settings.wuwaTuning.profilesPlan")}
-        description={t("settings.wuwaTuning.profilesDescription")}
-        stacked={true}
+        hint={t("settings.wuwaTuning.profilesDescription")}
       >
         <Button
           disabled={busy || !data}
@@ -148,16 +144,16 @@ function WuwaTuningSettings() {
         </Button>
       </Row>
       {error && (
-        <p className="system-notice" role="alert">
+        <Notice kind="danger" role="alert">
           {error}
-        </p>
+        </Notice>
       )}
       {message && (
-        <p className="system-notice" role="status">
+        <Notice kind="success" role="status">
           {message}
-        </p>
+        </Notice>
       )}
-      <p className="system-notice">{t("settings.wuwaTuning.restartHint")}</p>
+      <p className="settings-footnote">{t("settings.wuwaTuning.restartHint")}</p>
     </Section>
   );
 }

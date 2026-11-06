@@ -1,0 +1,528 @@
+/* Application frame */
+.app-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--bg);
+}
+
+.main-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.app-page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--fg-3);
+}
+
+/* Wallpaper */
+.app-custom-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--custom-bg-image);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  pointer-events: none;
+  contain: paint;
+}
+
+.app-custom-bg-blur-layer {
+  background-image: var(--custom-bg-blurred-image);
+}
+
+/* The wallpaper stays visible, but text always sits on a dark or light enough wash. */
+.custom-bg-active .main-content {
+  background: rgb(var(--bg-rgb) / max(0.76, var(--custom-bg-overlay, 0)));
+}
+
+/* Top bar: brand, game, sections, global actions, window buttons */
+.app-topbar {
+  position: relative;
+  z-index: var(--z-topbar);
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: var(--topbar-h);
+  padding-left: 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-raised);
+}
+
+.window-drag-region {
+  position: absolute;
+  inset: 0;
+  -webkit-app-region: drag;
+}
+
+.app-topbar > *:not(.window-drag-region) {
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.logo {
+  flex: none;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.logo-mouth {
+  color: var(--accent);
+}
+
+.topbar-divider {
+  flex: none;
+  width: 1px;
+  height: 18px;
+  margin: 0 6px;
+  background: var(--line-strong);
+}
+
+.app-topbar > .topbar-error,
+.game-selector > .topbar-error {
+  position: absolute;
+  top: calc(var(--topbar-h) - 2px);
+  left: 12px;
+  max-width: 320px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  color: var(--danger);
+  font-size: var(--text-xs);
+}
+
+/* Game switcher */
+.game-selector {
+  position: relative;
+  flex: none;
+}
+
+.game-selector-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 200px;
+  height: 32px;
+  padding: 0 8px 0 5px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.game-selector-trigger:hover:not(:disabled),
+.game-selector-trigger[aria-expanded="true"] {
+  background: var(--surface-2);
+}
+
+.game-selector-name {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.game-selector-chevron {
+  color: var(--fg-3);
+}
+
+.game-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  background: hsl(var(--game-hue) 62% 42%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.game-selector-menu {
+  position: fixed;
+  z-index: var(--z-popover);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px;
+  overflow-y: auto;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  animation: qaqr-pop var(--dur-fast) var(--ease);
+}
+
+.game-selector-option {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+}
+
+.game-selector-option:hover:not(:disabled),
+.game-selector-option:focus-visible {
+  background: var(--surface-2);
+}
+
+.game-selector-option[aria-checked="true"] {
+  background: var(--accent-soft);
+}
+
+.game-selector-option[data-sort-dragging="true"] {
+  opacity: 0.5;
+}
+
+.game-selector-option[data-sort-edge="before"] {
+  box-shadow: 0 -2px 0 var(--accent);
+}
+
+.game-selector-option[data-sort-edge="after"] {
+  box-shadow: 0 2px 0 var(--accent);
+}
+
+.game-selector-option .game-tile {
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+}
+
+.game-selector-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.game-selector-copy strong {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.game-selector-description {
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+}
+
+.game-selector-check {
+  color: var(--accent-text);
+}
+
+.game-selector-error {
+  padding: 8px;
+  color: var(--danger);
+  font-size: var(--text-xs);
+}
+
+/* Sections */
+.nav-menu {
+  display: flex;
+  flex: none;
+  align-self: stretch;
+  gap: 2px;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--fg-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.nav-item:hover {
+  color: var(--fg);
+}
+
+.nav-item.active {
+  color: var(--fg);
+}
+
+.nav-item.active::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  bottom: -1px;
+  left: 10px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--accent);
+}
+
+.nav-item:focus-visible {
+  outline-offset: -4px;
+}
+
+.nav-item[data-sort-dragging="true"] {
+  opacity: 0.5;
+}
+
+.nav-item[data-sort-edge="before"] {
+  box-shadow: -2px 0 0 var(--accent);
+}
+
+.nav-item[data-sort-edge="after"] {
+  box-shadow: 2px 0 0 var(--accent);
+}
+
+/* Global actions */
+.topbar-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding-left: 12px;
+}
+
+.topbar-download-button {
+  position: relative;
+}
+
+.topbar-download-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+}
+
+.launch-actions {
+  position: relative;
+  margin-left: 8px;
+}
+
+.launch-split {
+  display: flex;
+}
+
+.launch-split .launch-button-direct {
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.launch-menu-trigger {
+  width: 26px;
+  height: 30px;
+  padding: 0;
+  border-left: 1px solid rgb(from var(--accent-fg) r g b / 0.25);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.launch-spinner {
+  width: 14px;
+  height: 14px;
+  border-color: rgb(from currentColor r g b / 0.3);
+  border-top-color: currentColor;
+}
+
+.launch-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 340px;
+  padding: 10px 6px 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+  color: var(--fg);
+  font-size: var(--text-xs);
+  user-select: text;
+  animation: qaqr-pop var(--dur-fast) var(--ease);
+}
+
+.launch-popover > span {
+  flex: 1;
+  margin-top: 1px;
+  word-break: break-word;
+}
+
+.launch-popover > .icon {
+  margin-top: 1px;
+}
+
+.launch-error > .icon {
+  color: var(--danger);
+}
+
+.launch-notice > .icon {
+  color: var(--info);
+}
+
+/* Window buttons */
+.window-titlebar {
+  display: flex;
+  flex: none;
+  align-self: stretch;
+  align-items: stretch;
+  margin-left: 8px;
+  background: transparent;
+}
+
+.window-controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+
+.window-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  border: 0;
+  background: transparent;
+  color: var(--fg-2);
+  transition: background-color var(--dur-fast) linear;
+}
+
+.window-control:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+
+.window-close:hover {
+  background: #e81123;
+  color: #fff;
+}
+
+.window-titlebar[data-focused="false"] .window-control {
+  color: var(--fg-3);
+}
+
+.window-control-error {
+  align-self: center;
+  max-width: 200px;
+  margin-right: 8px;
+  overflow: hidden;
+  color: var(--danger);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Narrow windows keep every action reachable by dropping decoration first. */
+@media (max-width: 1080px) {
+  .nav-item .nav-icon {
+    display: none;
+  }
+
+  .nav-item {
+    padding: 0 8px;
+  }
+
+  .nav-item.active::after {
+    right: 8px;
+    left: 8px;
+  }
+}
+
+@media (max-width: 940px) {
+  .logo,
+  .topbar-divider {
+    display: none;
+  }
+
+  .game-selector-trigger {
+    max-width: 130px;
+  }
+
+  .window-control {
+    width: 40px;
+  }
+}
+
+/* Developer tools */
+.app-dev-toolbar {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: var(--z-popover);
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-2);
+}
+
+.app-dev-toolbar > button {
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--fg-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.app-dev-toolbar > button:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+
+.app-dev-toolbar > .app-dev-mode-action {
+  color: var(--warning);
+}
+
+.app-dev-password-error {
+  margin-top: 6px;
+  color: var(--danger);
+  font-size: var(--text-xs);
+}

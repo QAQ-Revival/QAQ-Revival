@@ -60,13 +60,16 @@ import {
   getCollectionCardTitle,
   getModModeLabel,
   getMarketVersionLabel,
-  getMarketCardImageMinHeight,
-  getMarketCardWideImageMinHeight,
-  getMarketCardImageMaxHeight,
 } from "./model/marketCollections.js";
 import { MarketImage } from "./components/MarketImage.jsx";
 import { LightboxOverlay } from "../../components/LightboxOverlay.jsx";
 import { ModFeedbackModal } from "./components/ModFeedbackModal.jsx";
+import { Icon } from "../../components/Icon.jsx";
+import { Menu, MenuItem } from "../../components/Menu.jsx";
+import { SkeletonGrid, SourceError } from "../downloads/SourceStates.jsx";
+// Images carry the card, so the stored scale maps onto a denser grid.
+const getCardWidth = (scale) => Math.round(getMarketCardMinWidth(scale) * 0.8);
+const getCardGap = (scale) => Math.round(getMarketCardGap(scale) * 0.6);
 function ModMarketView({
   activeGameId,
   games = [],
@@ -74,6 +77,7 @@ function ModMarketView({
   isActive = true,
   pendingDetailMod,
   onPendingDetailConsumed,
+  sourceTabs,
 }) {
   const initialMarketGameId = activeGameId || "endfield";
   const marketVisibleRef = React.useRef(isActive);
@@ -167,13 +171,10 @@ function ModMarketView({
     const saved = localStorage.getItem("modmarket-show-hot-section");
     return saved === null ? true : saved === "true";
   });
-  const [showLayoutMenu, setShowLayoutMenu] = React.useState(false);
   const [lightboxData, setLightboxData] = React.useState(null);
   const [cardImageIdx, setCardImageIdx] = React.useState({});
   const [selectedCollectionVariants, setSelectedCollectionVariants] =
     React.useState({});
-  const [openCollectionVariantMenu, setOpenCollectionVariantMenu] =
-    React.useState(null);
   const [detailMod, setDetailMod] = React.useState(null);
   const [detailGalleryIdx, setDetailGalleryIdx] = React.useState(0);
   const [closingDetail, setClosingDetail] = React.useState(false);
@@ -253,10 +254,7 @@ function ModMarketView({
     () => initialMarketSessionCache?.popularityData || {},
   );
   const loadedCommentCountIdsRef = React.useRef(new Set());
-  const [showRefreshMenu, setShowRefreshMenu] = React.useState(false);
   const [showCharacterPicker, setShowCharacterPicker] = React.useState(false);
-  const refreshMenuRef = React.useRef(null);
-  const layoutMenuRef = React.useRef(null);
   const characterPickerRef = React.useRef(null);
   const gameOptions = React.useMemo(
     () =>
@@ -468,43 +466,6 @@ function ModMarketView({
     };
   }, [marketGameId, showCharacterPicker]);
   React.useEffect(() => {
-    if (!showRefreshMenu) return void 0;
-    function handleDocClick(e) {
-      if (
-        refreshMenuRef.current &&
-        !refreshMenuRef.current.contains(e.target)
-      ) {
-        setShowRefreshMenu(false);
-      }
-    }
-    function handleKey(e) {
-      if (e.key === "Escape") setShowRefreshMenu(false);
-    }
-    document.addEventListener("mousedown", handleDocClick);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleDocClick);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [showRefreshMenu]);
-  React.useEffect(() => {
-    if (!showLayoutMenu) return void 0;
-    function handleDocClick(e) {
-      if (layoutMenuRef.current && !layoutMenuRef.current.contains(e.target)) {
-        setShowLayoutMenu(false);
-      }
-    }
-    function handleKey(e) {
-      if (e.key === "Escape") setShowLayoutMenu(false);
-    }
-    document.addEventListener("mousedown", handleDocClick);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleDocClick);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [showLayoutMenu]);
-  React.useEffect(() => {
     if (!showCharacterPicker) return void 0;
     function handleDocClick(e) {
       if (
@@ -524,21 +485,6 @@ function ModMarketView({
       document.removeEventListener("keydown", handleKey);
     };
   }, [showCharacterPicker]);
-  React.useEffect(() => {
-    if (!openCollectionVariantMenu) return void 0;
-    function handleDocClick() {
-      setOpenCollectionVariantMenu(null);
-    }
-    function handleKey(e) {
-      if (e.key === "Escape") setOpenCollectionVariantMenu(null);
-    }
-    document.addEventListener("mousedown", handleDocClick);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleDocClick);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [openCollectionVariantMenu]);
   React.useEffect(() => {
     if (!activeGameId || activeGameIdRef.current === activeGameId) return;
     activeGameIdRef.current = activeGameId;
@@ -772,8 +718,8 @@ function ModMarketView({
             .split(" ")
             .filter((part) => part && part !== "none").length;
         } else {
-          const minWidth = getMarketCardMinWidth(modMarketCardScale);
-          const gap = getMarketCardGap(modMarketCardScale);
+          const minWidth = getCardWidth(modMarketCardScale);
+          const gap = getCardGap(modMarketCardScale);
           columns = Math.max(
             1,
             Math.floor((grid.clientWidth + gap) / (minWidth + gap)),
@@ -1081,7 +1027,7 @@ function ModMarketView({
   React.useEffect(() => {
     if (!detailMod || !relatedScrollRef.current) return;
     const active = relatedScrollRef.current.querySelector(
-      ".xhs-related-item.active",
+      ".detail-rail-item.active",
     );
     if (active) {
       active.scrollIntoView({
@@ -1141,14 +1087,14 @@ function ModMarketView({
   }
   function renderFilterTag({
     label,
-    className = "",
+    className = "chip",
     onClick,
     title = t("market.filters.categoryHint"),
   }) {
     return (
       <button
         type="button"
-        className={`tag tag-clickable ${className}`.trim()}
+        className={className}
         onClick={(e) => {
           e.stopPropagation();
           onClick?.();
@@ -1159,7 +1105,7 @@ function ModMarketView({
       </button>
     );
   }
-  function renderMarketCard(mod, visualIndex = 0) {
+  function renderMarketCard(mod) {
     const cardKey = mod._displayKey || mod.id;
     const displayCharacterName = getMarketCanonicalCharacterName(
       mod.characterName || mod._originalCharacterName || "通用",
@@ -1168,8 +1114,6 @@ function ModMarketView({
     const collectionVariants = Array.isArray(mod._collectionVariants)
       ? mod._collectionVariants
       : [];
-    const isVariantMenuOpen =
-      openCollectionVariantMenu === mod._collectionIdentity;
     const selectedVariantIndex = collectionVariants.findIndex(
       (variant) => String(variant.id) === String(mod.id),
     );
@@ -1180,205 +1124,236 @@ function ModMarketView({
     const isPinnedCard = mod._marketSection === "pinned";
     const isHotCard = mod._marketSection === "hot";
     const isUpdatedCard = isMarketRecentlyPublished(mod);
-    const isFirstRowCard = visualIndex < Math.max(1, marketGridColumns || 1);
-    const useFixedImage = equalRowHeight || isPinnedCard || isFirstRowCard;
+    const images = buildImageList(mod);
+    const imageIndex = Math.min(cardImageIdx[cardKey] || 0, images.length - 1);
+    const liked = likedMods.has(String(mod.id));
+    const openDetail = () => openModDetail(mod);
+    const stepImage = (e, delta) => {
+      e.stopPropagation();
+      setCardImageIdx((prev) => ({
+        ...prev,
+        [cardKey]: ((prev[cardKey] || 0) + delta + images.length) % images.length,
+      }));
+    };
     return (
-      <div
-        className={[
-          "mod-card",
-          equalRowHeight ? "mod-card-equal-row" : "mod-card-adaptive-row",
-          isFirstRowCard ? "mod-card-first-row" : "",
-          isPinnedCard ? "mod-card-fixed-image" : "",
-          isVariantMenuOpen ? "variant-menu-open" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
+      <article
+        className="media-card mod-card"
+        tabIndex={0}
+        aria-label={getCollectionCardTitle(mod)}
+        onClick={openDetail}
+        onKeyDown={(e) => {
+          if (e.target === e.currentTarget && ["Enter", " "].includes(e.key)) {
+            e.preventDefault();
+            openDetail();
+          }
+        }}
         key={cardKey}
       >
-        <div
-          className={`mod-card-image ${useFixedImage ? "mod-card-image-fixed" : "mod-card-image-adaptive"}`}
-          onClick={() => openModDetail(mod)}
-        >
-          {(() => {
-            const images = buildImageList(mod);
-            const idx = Math.min(cardImageIdx[cardKey] || 0, images.length - 1);
-            return images.length > 0 ? (
-              <MarketImage
-                src={images[idx].url}
-                alt={mod.name}
-                className="market-image-card"
-                key={`${cardKey}-${mod.id}-${idx}`}
-              />
-            ) : (
-              <div className="mod-card-placeholder">{"🖼️"}</div>
-            );
-          })()}
-          {buildImageList(mod).length > 1 && (
-            <React.Fragment>
-              <div className="mod-card-img-count">
-                {"🖼 "}
-                {buildImageList(mod).length}
-              </div>
-              <button
-                className="mod-card-nav-btn mod-card-nav-prev"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const len = buildImageList(mod).length;
-                  setCardImageIdx((prev) => ({
-                    ...prev,
-                    [cardKey]: ((prev[cardKey] || 0) - 1 + len) % len,
-                  }));
-                }}
-              >
-                {"‹"}
-              </button>
-              <button
-                className="mod-card-nav-btn mod-card-nav-next"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const len = buildImageList(mod).length;
-                  setCardImageIdx((prev) => ({
-                    ...prev,
-                    [cardKey]: ((prev[cardKey] || 0) + 1) % len,
-                  }));
-                }}
-              >
-                {"›"}
-              </button>
-              <div className="mod-card-dots">
-                {buildImageList(mod).map((_, i) => (
-                  <button
-                    className={`mod-card-dot ${i === (cardImageIdx[cardKey] || 0) ? "active" : ""}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCardImageIdx((prev) => ({
-                        ...prev,
-                        [cardKey]: i,
-                      }));
-                    }}
-                    key={i}
-                  />
-                ))}
-              </div>
-            </React.Fragment>
-          )}
-          {mod._isCollectionCard && collectionVariants.length > 1 && (
-            <div
-              className="mod-card-variant-row mod-card-variant-floating"
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              <button
-                type="button"
-                className="mod-card-variant-trigger"
-                aria-haspopup="listbox"
-                aria-expanded={isVariantMenuOpen}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOpenCollectionVariantMenu((current) =>
-                    current === mod._collectionIdentity
-                      ? null
-                      : mod._collectionIdentity,
-                  );
-                }}
-                onKeyDown={(e) => {
-                  if (
-                    e.key === "ArrowDown" ||
-                    e.key === "Enter" ||
-                    e.key === " "
-                  ) {
-                    e.preventDefault();
-                    setOpenCollectionVariantMenu(mod._collectionIdentity);
-                  }
-                }}
-              >
-                <span className="mod-card-variant-trigger-main">
-                  {selectedVariantVersion}
-                </span>
-              </button>
-              {isVariantMenuOpen && (
-                <div className="mod-card-variant-menu" role="listbox">
-                  {collectionVariants.map((variant, index) => {
-                    const isSelected = String(variant.id) === String(mod.id);
-                    return (
-                      <button
-                        type="button"
-                        className={`mod-card-variant-option ${isSelected ? "active" : ""}`}
-                        role="option"
-                        aria-selected={isSelected}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          selectCollectionVariant(
-                            mod._collectionIdentity,
-                            variant,
-                          );
-                          setOpenCollectionVariantMenu(null);
-                        }}
-                        key={variant.id}
-                      >
-                        <span>{getVariantLabel(variant, index)}</span>
-                        <em>{getVariantSourceLabel(variant)}</em>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+        <div className="media-card-image mod-card-image">
+          {images.length > 0 ? (
+            <MarketImage
+              src={images[imageIndex].url}
+              alt={mod.name}
+              className="market-image-card"
+              key={`${cardKey}-${mod.id}-${imageIndex}`}
+            />
+          ) : (
+            <div className="market-image-empty">
+              <Icon name="image" size={24} />
             </div>
           )}
-          {mod._isCollectionCard && (
-            <div className="mod-card-collection-badge">
-              {t("market.collections.variantCount", {
-                collectionVariantsCount: collectionVariants.length,
-              })}
-            </div>
-          )}
-          {(isPinnedCard || isHotCard || isUpdatedCard) && (
-            <div className="mod-card-section-badges">
+          {(isPinnedCard ||
+            isHotCard ||
+            isUpdatedCard ||
+            mod._isCollectionCard) && (
+            <div className="media-card-badges">
               {isPinnedCard && (
-                <div className="mod-card-section-badge mod-card-section-pinned">
+                <span className="image-badge">
                   {t("characters.actions.pinShort")}
-                </div>
+                </span>
               )}
               {isHotCard && (
-                <div className="mod-card-section-badge mod-card-section-hot">
+                <span className="image-badge">
                   {t("market.collections.popular")}
-                </div>
+                </span>
               )}
               {isUpdatedCard && (
-                <div className="mod-card-section-badge mod-card-section-update">
+                <span className="image-badge">
                   {t("common.actions.update")}
-                </div>
+                </span>
+              )}
+              {mod._isCollectionCard && (
+                <span className="image-badge">
+                  {t("market.collections.variantCount", {
+                    collectionVariantsCount: collectionVariants.length,
+                  })}
+                </span>
+              )}
+            </div>
+          )}
+          <div className="media-card-actions">
+            <button
+              type="button"
+              className={`image-btn ${liked ? "is-active" : ""}`}
+              title={
+                liked
+                  ? t("market.actions.unfavorite")
+                  : t("market.actions.favorite")
+              }
+              aria-label={
+                liked
+                  ? t("market.actions.unfavorite")
+                  : t("market.actions.favorite")
+              }
+              aria-pressed={liked}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleLike(mod.id);
+              }}
+            >
+              <Icon
+                name="heart"
+                size={14}
+                fill={liked ? "currentColor" : "none"}
+              />
+            </button>
+          </div>
+          {images.length > 1 && (
+            <React.Fragment>
+              <span className="image-badge media-card-corner">
+                <Icon name="image" size={12} />
+                {images.length}
+              </span>
+              <button
+                type="button"
+                className="image-btn media-card-nav is-previous"
+                aria-label={t("market.images.previous")}
+                onClick={(e) => stepImage(e, -1)}
+              >
+                <Icon name="chevron-left" size={16} />
+              </button>
+              <button
+                type="button"
+                className="image-btn media-card-nav is-next"
+                aria-label={t("market.images.next")}
+                onClick={(e) => stepImage(e, 1)}
+              >
+                <Icon name="chevron-right" size={16} />
+              </button>
+            </React.Fragment>
+          )}
+          {(shouldShowDirectDownload(mod) ||
+            mod.downloadUrl ||
+            mod.quarkDownloadUrl) && (
+            <div className="media-card-downloads">
+              {shouldShowDirectDownload(mod) && (
+                <button
+                  type="button"
+                  className="image-pill"
+                  title={t("market.actions.downloadAndInstall")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDirectDownload(mod, "market_card");
+                  }}
+                >
+                  <Icon name="download" size={13} />
+                  {t("common.actions.download")}
+                </button>
+              )}
+              {mod.downloadUrl && (
+                <button
+                  type="button"
+                  className="image-pill"
+                  title={t("market.actions.downloadBaidu")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload(mod, mod.downloadUrl, "baidu", "market_card");
+                  }}
+                >
+                  {t("market.sources.baidu")}
+                </button>
+              )}
+              {mod.quarkDownloadUrl && (
+                <button
+                  type="button"
+                  className="image-pill"
+                  title={t("market.actions.downloadQuark")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload(
+                      mod,
+                      mod.quarkDownloadUrl,
+                      "quark",
+                      "market_card",
+                    );
+                  }}
+                >
+                  {t("market.sources.quark")}
+                </button>
               )}
             </div>
           )}
         </div>
-        <div className="mod-card-body" onClick={() => openModDetail(mod)}>
-          <h3 className="mod-card-title">{getCollectionCardTitle(mod)}</h3>
-          <div className="mod-card-tags">
-            <div className="mod-card-tags-row">
-              {renderFilterTag({
-                label: `👤 ${displayCharacterName || t("settings.categories.general")}`,
-                className: "tag-character",
-                onClick: () =>
-                  applyQuickFilter({
-                    gameId: getModGameId(mod),
-                    character: displayCharacterName || "all",
-                  }),
-                title: displayCharacterName
-                  ? t("market.filters.characterHint", {
-                      displayCharacterName,
-                    })
-                  : t("market.filters.sharedModHint"),
-              })}
-              <span
-                className="tag"
-                title={(mod.modMode || "d3d") === "pak" ? "Pak Mod" : "3dm Mod"}
-              >
-                {getModModeLabel(mod.modMode || "d3d")}
+        <div className="media-card-body">
+          <h3
+            className="media-card-title mod-card-title"
+            title={getCollectionCardTitle(mod)}
+          >
+            {getCollectionCardTitle(mod)}
+          </h3>
+          <div className="media-card-meta">
+            {renderFilterTag({
+              label: displayCharacterName || t("settings.categories.general"),
+              className: "meta-link",
+              onClick: () =>
+                applyQuickFilter({
+                  gameId: getModGameId(mod),
+                  character: displayCharacterName || "all",
+                }),
+              title: displayCharacterName
+                ? t("market.filters.characterHint", {
+                    displayCharacterName,
+                  })
+                : t("market.filters.sharedModHint"),
+            })}
+            <span title={(mod.modMode || "d3d") === "pak" ? "Pak Mod" : "3dm Mod"}>
+              {getModModeLabel(mod.modMode || "d3d")}
+            </span>
+            {mod._isCollectionCard && collectionVariants.length > 1 ? (
+              <span className="mod-card-variant" onClick={(e) => e.stopPropagation()}>
+                <Menu
+                  label={t("market.collections.title")}
+                  align="start"
+                  trigger={({ props }) => (
+                    <button
+                      type="button"
+                      className="meta-link mod-card-variant-trigger"
+                      {...props}
+                    >
+                      {selectedVariantVersion}
+                      <Icon name="chevron-down" size={12} />
+                    </button>
+                  )}
+                >
+                  {collectionVariants.map((variant, index) => (
+                    <MenuItem
+                      role="menuitemradio"
+                      aria-checked={String(variant.id) === String(mod.id)}
+                      hint={getVariantSourceLabel(variant)}
+                      onClick={() =>
+                        selectCollectionVariant(mod._collectionIdentity, variant)
+                      }
+                      key={variant.id}
+                    >
+                      {getVariantLabel(variant, index)}
+                    </MenuItem>
+                  ))}
+                </Menu>
               </span>
-              {renderFilterTag({
+            ) : (
+              renderFilterTag({
                 label: getMarketVersionLabel(mod),
-                className: "tag-version",
+                className: "meta-link",
                 onClick: () =>
                   mod.game_version
                     ? applyQuickFilter({
@@ -1392,86 +1367,20 @@ function ModMarketView({
                       mod: mod.game_version,
                     })
                   : t("mods.fields.version"),
-              })}
-            </div>
-          </div>
-          <div className="mod-card-bottom" onClick={(e) => e.stopPropagation()}>
-            <div className="mod-card-downloads">
-              <button
-                type="button"
-                className={`mod-dl-btn mod-dl-favorite ${likedMods.has(String(mod.id)) ? "active" : ""}`}
-                title={
-                  likedMods.has(String(mod.id))
-                    ? t("market.actions.unfavorite")
-                    : t("market.actions.favorite")
-                }
-                aria-label={
-                  likedMods.has(String(mod.id))
-                    ? t("market.actions.unfavorite")
-                    : t("market.actions.favorite")
-                }
-                aria-pressed={likedMods.has(String(mod.id))}
-                onClick={() => handleToggleLike(mod.id)}
-              >
-                <span className="mod-favorite-heart" aria-hidden="true">
-                  {likedMods.has(String(mod.id)) ? "♥" : "♡"}
-                </span>
-              </button>
-              {shouldShowDirectDownload(mod) && (
-                <button
-                  className="mod-dl-btn mod-dl-direct"
-                  onClick={() => handleDirectDownload(mod, "market_card")}
-                >
-                  {t("common.actions.download")}
-                </button>
-              )}
-              {mod.downloadUrl && (
-                <button
-                  className="mod-dl-btn mod-dl-baidu"
-                  onClick={() =>
-                    handleDownload(mod, mod.downloadUrl, "baidu", "market_card")
-                  }
-                >
-                  {t("market.sources.baidu")}
-                </button>
-              )}
-              {mod.quarkDownloadUrl && (
-                <button
-                  className="mod-dl-btn mod-dl-quark"
-                  onClick={() =>
-                    handleDownload(
-                      mod,
-                      mod.quarkDownloadUrl,
-                      "quark",
-                      "market_card",
-                    )
-                  }
-                >
-                  {t("market.sources.quark")}
-                </button>
-              )}
-              <button
-                type="button"
-                className="mod-dl-btn mod-dl-feedback"
-                title={t("market.feedback.brokenDownloadHint")}
-                onClick={() => openFeedbackModal(mod)}
-              >
-                {t("market.status.broken")}
-              </button>
-            </div>
+              })
+            )}
           </div>
         </div>
-      </div>
+      </article>
     );
   }
+  const marketReady = serverUrl && !loading && !marketIsBooting && !error;
   return (
-    <div className="mod-market-container">
+    <div className="page mod-market-container">
       <MarketHeader
+        sourceTabs={sourceTabs}
         syncing={syncing}
         syncStatus={syncStatus}
-        layoutMenuRef={layoutMenuRef}
-        setShowLayoutMenu={setShowLayoutMenu}
-        showLayoutMenu={showLayoutMenu}
         infiniteScroll={infiniteScroll}
         setInfiniteScroll={setInfiniteScroll}
         setCurrentPage={setCurrentPage}
@@ -1479,11 +1388,8 @@ function ModMarketView({
         setEqualRowHeight={setEqualRowHeight}
         showHotSection={showHotSection}
         setShowHotSection={setShowHotSection}
-        refreshMenuRef={refreshMenuRef}
-        setShowRefreshMenu={setShowRefreshMenu}
         loading={loading}
         serverUrl={serverUrl}
-        showRefreshMenu={showRefreshMenu}
         syncMods={syncMods}
       />
       <MarketToolbar
@@ -1518,88 +1424,83 @@ function ModMarketView({
         displayedMods={displayedMods}
         gameDisplayedMods={gameDisplayedMods}
       />
-      {error && (
-        <div className="mod-market-error">
-          {"⚠️ "}
-          {error}
-        </div>
-      )}
-      {!serverUrl && (
-        <div className="mod-market-empty">
-          <div className="empty-icon">{"🔗"}</div>
-          <p>{t("market.errors.serverRequired")}</p>
-        </div>
-      )}
-      {(loading || marketIsBooting) && (
-        <div className="mod-market-loading">
-          <div className="spinner" />
-          <p>
-            {marketIsBooting
-              ? t("market.status.loadingCache")
-              : t("market.status.loadingMods")}
-          </p>
-        </div>
-      )}
-      {serverUrl && !loading && !marketIsBooting && !error && (
-        <div
-          className={[
-            "mod-market-grid",
-            equalRowHeight
-              ? "mod-market-grid-equal"
-              : "mod-market-grid-adaptive",
-          ].join(" ")}
-          style={{
-            "--market-card-min": `${getMarketCardMinWidth(modMarketCardScale)}px`,
-            "--market-card-gap": `${getMarketCardGap(modMarketCardScale)}px`,
-            "--market-card-min-image-height": `${getMarketCardImageMinHeight(modMarketCardScale)}px`,
-            "--market-card-wide-min-image-height": `${getMarketCardWideImageMinHeight(modMarketCardScale)}px`,
-            "--market-card-max-image-height": `${getMarketCardImageMaxHeight(modMarketCardScale)}px`,
-          }}
-          ref={marketGridRef}
-        >
-          {equalRowHeight
-            ? pagedMods.map((mod, index) => renderMarketCard(mod, index))
-            : adaptiveColumns.map((column, columnIndex) => (
-                <div
-                  className="mod-market-column"
-                  key={`market-column-${columnIndex}`}
-                >
-                  {column.map(({ mod, index }) => renderMarketCard(mod, index))}
+      <div className="page-body">
+        {error && (
+          <SourceError
+            title={t("market.errors.load")}
+            message={error}
+            onRetry={() => syncMods(false)}
+          />
+        )}
+        {!serverUrl && !error && (
+          <div className="empty-state">
+            <div className="empty-title">{t("market.errors.serverRequired")}</div>
+          </div>
+        )}
+        {(loading || marketIsBooting) && (
+          <SkeletonGrid count={12} label={t("market.status.loading")} />
+        )}
+        {marketReady && (
+          <div
+            className={[
+              "mod-market-grid",
+              equalRowHeight
+                ? "mod-market-grid-equal"
+                : "mod-market-grid-adaptive",
+            ].join(" ")}
+            style={{
+              "--market-card-min": `${getCardWidth(modMarketCardScale)}px`,
+              "--market-card-gap": `${getCardGap(modMarketCardScale)}px`,
+            }}
+            ref={marketGridRef}
+          >
+            {equalRowHeight
+              ? pagedMods.map((mod) => renderMarketCard(mod))
+              : adaptiveColumns.map((column, columnIndex) => (
+                  <div
+                    className="mod-market-column"
+                    key={`market-column-${columnIndex}`}
+                  >
+                    {column.map(({ mod }) => renderMarketCard(mod))}
+                  </div>
+                ))}
+            {initialCacheReady && sectionedDisplayedMods.length === 0 && (
+              <div className="empty-state mod-market-no-results">
+                <div className="empty-face">{"QAQ"}</div>
+                <div className="empty-title">
+                  {t("market.status.noMatchingMods")}
                 </div>
-              ))}
-          {initialCacheReady && sectionedDisplayedMods.length === 0 && (
-            <div className="mod-market-no-results">
-              {t("market.status.noMatchingMods")}
-            </div>
-          )}
-        </div>
-      )}
-      {serverUrl &&
-        !loading &&
-        !marketIsBooting &&
-        !error &&
-        !infiniteScroll &&
-        sectionedDisplayedMods.length > 0 && (
-          <div className="mod-market-pagination">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedTags([]);
+                    setSelectedCharacter("all");
+                    setSelectedGameVersion("all");
+                    setSelectedModMode("all");
+                    setLikedOnly(false);
+                  }}
+                >
+                  {t("market.filters.clearFilters")}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {marketReady && !infiniteScroll && sectionedDisplayedMods.length > 0 && (
+          <div className="paw-pagination mod-market-pagination">
             <button
-              className="page-btn"
-              onClick={() => {
-                setCurrentPage(1);
-                scrollToTop();
-              }}
-              disabled={currentPage === 1}
-            >
-              {"«"}
-            </button>
-            <button
-              className="page-btn"
+              type="button"
+              className="btn btn-sm"
+              aria-label={t("common.actions.previousPage")}
               onClick={() => {
                 setCurrentPage((p) => Math.max(1, p - 1));
                 scrollToTop();
               }}
               disabled={currentPage === 1}
             >
-              {"‹"}
+              <Icon name="chevron-left" size={14} />
             </button>
             {Array.from(
               {
@@ -1618,12 +1519,14 @@ function ModMarketView({
               }, [])
               .map((item, idx) =>
                 item === "..." ? (
-                  <span className="page-ellipsis" key={`ellipsis-${idx}`}>
+                  <span className="toolbar-label" key={`ellipsis-${idx}`}>
                     {"…"}
                   </span>
                 ) : (
                   <button
-                    className={`page-btn ${item === currentPage ? "active" : ""}`}
+                    type="button"
+                    className={`btn btn-sm ${item === currentPage ? "btn-primary" : ""}`}
+                    aria-current={item === currentPage ? "page" : void 0}
                     onClick={() => {
                       setCurrentPage(item);
                       scrollToTop();
@@ -1635,26 +1538,18 @@ function ModMarketView({
                 ),
               )}
             <button
-              className="page-btn"
+              type="button"
+              className="btn btn-sm"
+              aria-label={t("common.actions.nextPage")}
               onClick={() => {
                 setCurrentPage((p) => Math.min(totalPages, p + 1));
                 scrollToTop();
               }}
               disabled={currentPage === totalPages}
             >
-              {"›"}
+              <Icon name="chevron-right" size={14} />
             </button>
-            <button
-              className="page-btn"
-              onClick={() => {
-                setCurrentPage(totalPages);
-                scrollToTop();
-              }}
-              disabled={currentPage === totalPages}
-            >
-              {"»"}
-            </button>
-            <span className="page-info">
+            <span className="toolbar-label">
               {t("market.status.pageSummary", {
                 currentPage,
                 totalPages,
@@ -1663,6 +1558,7 @@ function ModMarketView({
             </span>
           </div>
         )}
+      </div>
       {lightboxData &&
         isActive &&
         ReactDOM.createPortal(
@@ -1713,25 +1609,30 @@ function ModMarketView({
         handleDirectDownload={handleDirectDownload}
         handleDownload={handleDownload}
       />
-      {showBackToMarketPosition &&
+      {isActive &&
+        showBackToMarketPosition &&
         ReactDOM.createPortal(
           <button
-            className={`market-restore-position-btn ${showBackToTop ? "with-back-top" : ""}`}
+            type="button"
+            className={`btn btn-sm market-restore-position-btn ${showBackToTop ? "with-back-top" : ""}`}
             onClick={restoreMarketScrollPosition}
-            title={t("market.actions.restoreScrollHint")}
           >
+            <Icon name="history" size={14} />
             {t("market.actions.restoreScroll")}
           </button>,
           document.body,
         )}
-      {showBackToTop &&
+      {isActive &&
+        showBackToTop &&
         ReactDOM.createPortal(
           <button
-            className="back-to-top-btn"
+            type="button"
+            className="icon-btn back-to-top-btn"
             onClick={scrollToTop}
             title={t("common.actions.backToTop")}
+            aria-label={t("common.actions.backToTop")}
           >
-            {"↑"}
+            <Icon name="arrow-up" size={16} />
           </button>,
           document.body,
         )}

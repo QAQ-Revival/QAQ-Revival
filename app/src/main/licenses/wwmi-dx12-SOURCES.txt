@@ -5,6 +5,11 @@ Project and corresponding source: https://github.com/lekarsenten/wwmi-dx12/tree/
 Release: https://github.com/lekarsenten/wwmi-dx12/releases/tag/v2026.10.3
 Its LICENSE, THIRD-PARTY-NOTICES and component licenses are preserved in the installed wwmi_dx12 directory.
 
+wwmi-dx12, QAQR fixed build (GPL-3.0)
+Project and corresponding source: https://github.com/QAQ-Revival/wwmi-dx12
+Its engine comes from https://github.com/QAQ-Revival/XXMI-Libs-Package; its ReShade SDK and Dear ImGui from pinned branches of https://github.com/QAQ-Revival/reshade and https://github.com/QAQ-Revival/imgui.
+Its licenses are in local-components/wwmi-dx12-qaqr/wwmi_dx12.
+
 ReShade 6.8.0, full add-on support (BSD-3-Clause)
 Official download: https://reshade.me/
 Corresponding source: https://github.com/crosire/reshade/tree/v6.8.0

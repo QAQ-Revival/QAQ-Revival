@@ -1,15 +1,14 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
-const check = (result) => {
-  if (!result?.success)
-    throw Error(result?.error || t("common.errors.operationFailed"));
-  return result;
-};
-const button = (text, props = {}) => (
-  <button type="button" className="system-button" {...props}>
-    {text}
-  </button>
-);
+import { Icon } from "../../components/Icon.jsx";
+import { Menu, MenuItem } from "../../components/Menu.jsx";
+import {
+  Button,
+  Dialog,
+  Notice,
+  Switch,
+  check,
+} from "./SettingsControls.jsx";
 const UNKNOWN = "__unlinked__";
 function openPersistManager(gameId, characterName, modName) {
   sessionStorage.setItem(
@@ -60,8 +59,10 @@ function PersistVariables({ entries }) {
           data-persist-entry={entry.id}
         >
           <summary>
-            {entry.iniPath || entry.title}
-            <span>
+            <span className="persist-file-name" title={entry.iniPath || entry.title}>
+              {entry.iniPath || entry.title}
+            </span>
+            <span className="persist-file-count">
               {t("settings.persist.variableCountSuffix", {
                 variablesCount: entry.variables.length,
               })}
@@ -170,41 +171,41 @@ function PersistStateBrowser({ gameId = null, games = [] }) {
     }
   }
   const toggle = (game) => (
-    <input
-      type="checkbox"
-      role="switch"
-      className="system-switch"
+    <Switch
       checked={game.enabled}
       disabled={busy}
-      aria-label={t("settings.persist.gameToggleLabel", {
+      label={t("settings.persist.gameToggleLabel", {
         name: game.name,
       })}
-      onChange={(event) => {
-        const value = event.target.checked;
+      onChange={(value) =>
         act(
           () => window.api.persistBridgeSetEnabled(game.id, value),
           t("settings.persist.savedRestart"),
-        );
-      }}
+        )
+      }
     />
   );
   const notices = (
     <React.Fragment>
       {error && (
-        <div className="system-notice persist-error" role="alert">
+        <Notice kind="danger" className="persist-error" role="alert">
           {error}
-          {button(t("common.actions.retry"), {
-            onClick: () => setRevision((value) => value + 1),
-          })}
-        </div>
+          <Button
+            small={true}
+            onClick={() => setRevision((value) => value + 1)}
+          >
+            {t("common.actions.retry")}
+          </Button>
+        </Notice>
       )}
       {message && (
-        <div className="system-notice" role="status">
+        <Notice kind="success" role="status">
           {message}
-        </div>
+        </Notice>
       )}
       {!data && !error && (
-        <div className="system-state" role="status">
+        <div className="settings-state" role="status">
+          <span className="spinner" />
           {t("settings.persist.loadingSaved")}
         </div>
       )}
@@ -214,10 +215,9 @@ function PersistStateBrowser({ gameId = null, games = [] }) {
   if (!at.gameId)
     return (
       <div className="persist-manager" aria-busy={busy}>
-        <p className="system-notice">{t("settings.persist.description")}</p>
         {notices}
         {data?.games && (
-          <div className="persist-game-grid">
+          <div className="persist-game-list">
             {games
               .flatMap((game) => {
                 const saved = data.games.find((item) => item.id === game.id);
@@ -226,34 +226,38 @@ function PersistStateBrowser({ gameId = null, games = [] }) {
               .map((game) => (
                 <article
                   key={game.id}
-                  className="system-card persist-game-card"
+                  className="system-row"
                   data-persist-game={game.id}
                 >
-                  <div className="persist-game-heading">
-                    <h3>{game.name}</h3>
+                  <div className="system-row-copy">
+                    <div className="system-row-title">{game.name}</div>
+                    <p>
+                      {t("settings.persist.configurationSummary", {
+                        status: game.enabled
+                          ? t("common.status.enabled")
+                          : t("settings.persist.notEnabled"),
+                        count: game.count,
+                      })}
+                      {!game.configured &&
+                        ` · ${t("settings.persist.modsFolderUnset")}`}
+                    </p>
+                  </div>
+                  <div className="system-row-control">
+                    <Button
+                      disabled={busy}
+                      aria-label={t("settings.persist.manageGame", {
+                        name: game.name,
+                      })}
+                      onClick={() =>
+                        navigate({
+                          gameId: game.id,
+                        })
+                      }
+                    >
+                      {t("common.actions.view")}
+                    </Button>
                     {toggle(game)}
                   </div>
-                  <p>
-                    {t("settings.persist.configurationSummary", {
-                      status: game.enabled
-                        ? t("common.status.enabled")
-                        : t("settings.persist.notEnabled"),
-                      count: game.count,
-                    })}
-                  </p>
-                  {!game.configured && (
-                    <small>{t("settings.persist.modsFolderUnset")}</small>
-                  )}
-                  {button(t("settings.persist.viewCharacter"), {
-                    disabled: busy,
-                    "aria-label": t("settings.persist.manageGame", {
-                      name: game.name,
-                    }),
-                    onClick: () =>
-                      navigate({
-                        gameId: game.id,
-                      }),
-                  })}
                 </article>
               ))}
           </div>
@@ -304,18 +308,13 @@ function PersistStateBrowser({ gameId = null, games = [] }) {
   const pageCount = Math.max(1, Math.ceil(items.length / 36)),
     currentPage = Math.min(page, pageCount - 1),
     visible = items.slice(currentPage * 36, (currentPage + 1) * 36);
-  const title =
-    at.modName ||
-    (at.characterName === UNKNOWN
-      ? t("settings.persist.unlinked")
-      : at.characterName) ||
-    data?.game?.name;
   const deleteIds = (ids, label) =>
     setConfirm({
       ids,
       label,
       count: ids?.length ?? entries.length,
     });
+  const showCrumbs = !gameId || !!at.characterName;
   return (
     <div
       className="persist-manager"
@@ -325,149 +324,226 @@ function PersistStateBrowser({ gameId = null, games = [] }) {
       }
       aria-busy={busy}
     >
-      <nav
-        className="persist-breadcrumbs"
-        aria-label={t("settings.persist.storagePath")}
-      >
-        {!gameId &&
-          button(t("settings.persist.allGames"), {
-            disabled: busy,
-            onClick: () => navigate({}),
-          })}
-        {button(data?.game?.name || t("settings.persist.game"), {
-          disabled: busy || !at.characterName,
-          onClick: () =>
-            navigate({
-              gameId: at.gameId,
-            }),
-        })}
-        {at.characterName &&
-          button(
-            at.characterName === UNKNOWN
-              ? t("settings.persist.unlinked")
-              : at.characterName,
-            {
-              disabled: busy || !isMod,
-              onClick: () =>
-                navigate({
-                  gameId: at.gameId,
-                  characterName: at.characterName,
-                }),
-            },
+      {showCrumbs && (
+        <nav
+          className="persist-breadcrumbs"
+          aria-label={t("settings.persist.storagePath")}
+        >
+          {!gameId && (
+            <React.Fragment>
+              <button
+                type="button"
+                className="link-btn"
+                disabled={busy}
+                onClick={() => navigate({})}
+              >
+                {t("settings.persist.allGames")}
+              </button>
+              <Icon name="chevron-right" size={12} />
+            </React.Fragment>
           )}
-        {isMod && <span aria-current="page">{at.modName}</span>}
-      </nav>
+          <button
+            type="button"
+            className="link-btn"
+            disabled={busy || !at.characterName}
+            aria-current={at.characterName ? undefined : "page"}
+            onClick={() =>
+              navigate({
+                gameId: at.gameId,
+              })
+            }
+          >
+            {data?.game?.name || t("settings.persist.game")}
+          </button>
+          {at.characterName && (
+            <React.Fragment>
+              <Icon name="chevron-right" size={12} />
+              <button
+                type="button"
+                className="link-btn"
+                disabled={busy || !isMod}
+                aria-current={isMod ? undefined : "page"}
+                onClick={() =>
+                  navigate({
+                    gameId: at.gameId,
+                    characterName: at.characterName,
+                  })
+                }
+              >
+                {at.characterName === UNKNOWN
+                  ? t("settings.persist.unlinked")
+                  : at.characterName}
+              </button>
+            </React.Fragment>
+          )}
+          {isMod && (
+            <React.Fragment>
+              <Icon name="chevron-right" size={12} />
+              <span aria-current="page">{at.modName}</span>
+            </React.Fragment>
+          )}
+        </nav>
+      )}
       {notices}
       {data?.game && (
         <React.Fragment>
-          <div className="persist-detail-heading">
-            <div>
-              <h3>{title}</h3>
-              <p>
-                {isMod
-                  ? t("settings.persist.variablesSummary", {
-                      entriesCount: entries.length,
-                      reduce: entries.reduce(
-                        (sum, entry) => sum + entry.variables.length,
-                        0,
-                      ),
-                    })
-                  : t("settings.persist.itemSummary", {
-                      size: groups.size,
-                      status: at.characterName
-                        ? " Mod"
-                        : t("settings.persist.characterCategory"),
-                    })}
-              </p>
-            </div>
-            {!at.characterName
-              ? toggle(data.game)
-              : isMod &&
-                data.modExists &&
-                button(t("settings.persist.openModDetails"), {
-                  disabled: busy,
-                  onClick: () =>
-                    window.dispatchEvent(
-                      new CustomEvent("qaqm-open-manager-target", {
-                        detail: at,
-                      }),
-                    ),
-                })}
-          </div>
           {!at.characterName && (
-            <p className="system-notice">
-              {t("settings.persist.characterHint")}
-            </p>
+            <div className="system-row">
+              <div className="system-row-copy">
+                <div className="system-row-title">
+                  {t("settings.persist.toggle")}
+                </div>
+                <p>
+                  {t("settings.persist.itemSummary", {
+                    size: groups.size,
+                    status: t("settings.persist.characterCategory"),
+                  })}
+                </p>
+              </div>
+              <div className="system-row-control">{toggle(data.game)}</div>
+            </div>
           )}
           {at.characterName === UNKNOWN && (
-            <p className="system-notice">
+            <p className="settings-footnote">
               {t("settings.persist.unlinkedHint")}
             </p>
           )}
           <div className="persist-toolbar">
-            <input
-              type="search"
-              className="system-text-input"
-              aria-label={t("settings.persist.searchSaved")}
-              placeholder={
-                isMod
-                  ? t("settings.persist.searchVariablesPlaceholder")
-                  : at.characterName
-                    ? t("settings.persist.searchModsPlaceholder")
-                    : t("settings.persist.searchCharactersPlaceholder")
-              }
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-            />
-            {button(t("common.actions.refresh"), {
-              disabled: busy,
-              onClick: () => setRevision((value) => value + 1),
-            })}
-            {!at.characterName &&
-              button(t("settings.persist.clearGame"), {
-                disabled: busy || !entries.length,
-                onClick: () => deleteIds(null, data.game.name),
-              })}
-            {isMod &&
-              button(t("settings.persist.deleteModSave"), {
-                disabled: busy || !entries.length,
-                onClick: () =>
-                  deleteIds(
-                    entries.map((entry) => entry.id),
-                    at.modName,
-                  ),
-              })}
+            <div className="search-field">
+              <Icon name="search" size={15} />
+              <input
+                type="text"
+                aria-label={t("settings.persist.searchSaved")}
+                placeholder={
+                  isMod
+                    ? t("settings.persist.searchVariablesPlaceholder")
+                    : at.characterName
+                      ? t("settings.persist.searchModsPlaceholder")
+                      : t("settings.persist.searchCharactersPlaceholder")
+                }
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setSearch("");
+                }}
+              />
+              {search && (
+                <button
+                  type="button"
+                  className="icon-btn search-clear"
+                  title={t("common.actions.clearSearch")}
+                  aria-label={t("common.actions.clearSearch")}
+                  onClick={() => setSearch("")}
+                >
+                  <Icon name="x" size={14} />
+                </button>
+              )}
+            </div>
+            <Button
+              disabled={busy}
+              onClick={() => setRevision((value) => value + 1)}
+            >
+              {t("common.actions.refresh")}
+            </Button>
+            {isMod && data.modExists && (
+              <Button
+                disabled={busy}
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent("qaqm-open-manager-target", {
+                      detail: at,
+                    }),
+                  )
+                }
+              >
+                {t("settings.persist.openModDetails")}
+              </Button>
+            )}
+            {(!at.characterName || isMod) && (
+              <Menu
+                label={t("common.actions.more")}
+                trigger={({ props }) => (
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    title={t("common.actions.more")}
+                    aria-label={t("common.actions.more")}
+                    {...props}
+                  >
+                    <Icon name="more" size={16} strokeWidth={2.4} />
+                  </button>
+                )}
+              >
+                {!at.characterName && (
+                  <MenuItem
+                    danger={true}
+                    icon={<Icon name="trash" size={15} />}
+                    disabled={busy || !entries.length}
+                    onClick={() => deleteIds(null, data.game.name)}
+                  >
+                    {t("settings.persist.clearGame")}
+                  </MenuItem>
+                )}
+                {isMod && (
+                  <MenuItem
+                    danger={true}
+                    icon={<Icon name="trash" size={15} />}
+                    disabled={busy || !entries.length}
+                    onClick={() =>
+                      deleteIds(
+                        entries.map((entry) => entry.id),
+                        at.modName,
+                      )
+                    }
+                  >
+                    {t("settings.persist.deleteModSave")}
+                  </MenuItem>
+                )}
+              </Menu>
+            )}
           </div>
           {confirm && (
-            <div className="persist-confirm" role="alert">
-              <p>
-                {t("settings.persist.confirmDelete", {
-                  label: confirm.label,
-                  count: confirm.count,
-                })}
-              </p>
-              {button(t("common.dialog.confirmDelete"), {
-                disabled: busy,
-                onClick: () =>
-                  act(
-                    () =>
-                      confirm.ids
-                        ? window.api.persistBridgeDelete(at.gameId, confirm.ids)
-                        : window.api.clearPersistCache(at.gameId),
-                    t("settings.persist.deletedRestart"),
-                  ),
+            <Dialog
+              className="persist-confirm"
+              title={t("common.dialog.confirmDelete")}
+              description={t("settings.persist.confirmDelete", {
+                label: confirm.label,
+                count: confirm.count,
               })}
-              {button(t("common.actions.cancel"), {
-                disabled: busy,
-                onClick: () => setConfirm(null),
-              })}
-            </div>
+              busy={busy}
+              onClose={() => setConfirm(null)}
+              actions={
+                <React.Fragment>
+                  <Button disabled={busy} onClick={() => setConfirm(null)}>
+                    {t("common.actions.cancel")}
+                  </Button>
+                  <Button
+                    danger={true}
+                    disabled={busy}
+                    onClick={() =>
+                      act(
+                        () =>
+                          confirm.ids
+                            ? window.api.persistBridgeDelete(
+                                at.gameId,
+                                confirm.ids,
+                              )
+                            : window.api.clearPersistCache(at.gameId),
+                        t("settings.persist.deletedRestart"),
+                      )
+                    }
+                  >
+                    {t("common.dialog.confirmDelete")}
+                  </Button>
+                </React.Fragment>
+              }
+            />
           )}
           {!items.length && (
-            <div className="system-state">
+            <div className="settings-state">
               {query
                 ? t("settings.persist.noMatches")
                 : isMod
@@ -475,13 +551,13 @@ function PersistStateBrowser({ gameId = null, games = [] }) {
                   : t("settings.persist.empty")}
             </div>
           )}
-          {!isMod && (
-            <div className="persist-group-grid">
+          {!isMod && items.length > 0 && (
+            <div className="persist-group-list">
               {visible.map((group) => (
                 <button
                   key={group.name}
                   type="button"
-                  className="system-card persist-group-card"
+                  className="persist-group"
                   disabled={busy}
                   data-persist-character={
                     !at.characterName ? group.name : undefined
@@ -503,56 +579,59 @@ function PersistStateBrowser({ gameId = null, games = [] }) {
                     )
                   }
                 >
-                  <span className="persist-group-avatar" aria-hidden={true}>
-                    {(group.name === UNKNOWN ? "?" : group.title).slice(0, 1)}
+                  <span className="persist-group-name">{group.title}</span>
+                  <span className="persist-group-meta">
+                    {at.characterName
+                      ? t("settings.persist.entrySummary", {
+                          entriesCount: group.entries.length,
+                          status: group.entries.some((entry) => entry.active)
+                            ? t("settings.persist.modEnabledSuffix")
+                            : "",
+                        })
+                      : t("settings.persist.modSummary", {
+                          size: group.mods.size,
+                          entriesCount: group.entries.length,
+                        })}
                   </span>
-                  <span>
-                    <strong>{group.title}</strong>
-                    <small>
-                      {at.characterName
-                        ? t("settings.persist.entrySummary", {
-                            entriesCount: group.entries.length,
-                            status: group.entries.some((entry) => entry.active)
-                              ? t("settings.persist.modEnabledSuffix")
-                              : "",
-                          })
-                        : t("settings.persist.modSummary", {
-                            size: group.mods.size,
-                            entriesCount: group.entries.length,
-                          })}
-                    </small>
-                  </span>
-                  <span aria-hidden={true}>{"›"}</span>
+                  <Icon name="chevron-right" size={14} />
                 </button>
               ))}
             </div>
           )}
           {isMod && (
-            <div className="persist-entries">
+            <div className="persist-entry-list">
               {visible.map((entry) => (
-                <article key={entry.id} className="system-card persist-entry">
-                  <div className="persist-entry-content">
-                    <PersistVariables entries={[entry]} />
-                    {button(t("settings.persist.deleteItem"), {
-                      disabled: busy,
-                      onClick: () => deleteIds([entry.id], entry.iniPath),
-                    })}
-                  </div>
+                <article key={entry.id} className="persist-entry">
+                  <PersistVariables entries={[entry]} />
+                  <Button
+                    small={true}
+                    danger={true}
+                    disabled={busy}
+                    onClick={() => deleteIds([entry.id], entry.iniPath)}
+                  >
+                    {t("settings.persist.deleteItem")}
+                  </Button>
                 </article>
               ))}
             </div>
           )}
           {pageCount > 1 && (
             <div className="persist-pagination">
-              {button(t("common.actions.previousPage"), {
-                disabled: busy || currentPage === 0,
-                onClick: () => setPage(currentPage - 1),
-              })}
+              <Button
+                small={true}
+                disabled={busy || currentPage === 0}
+                onClick={() => setPage(currentPage - 1)}
+              >
+                {t("common.actions.previousPage")}
+              </Button>
               <span>{`${currentPage + 1} / ${pageCount}`}</span>
-              {button(t("common.actions.nextPage"), {
-                disabled: busy || currentPage + 1 >= pageCount,
-                onClick: () => setPage(currentPage + 1),
-              })}
+              <Button
+                small={true}
+                disabled={busy || currentPage + 1 >= pageCount}
+                onClick={() => setPage(currentPage + 1)}
+              >
+                {t("common.actions.nextPage")}
+              </Button>
             </div>
           )}
         </React.Fragment>

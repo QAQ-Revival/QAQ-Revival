@@ -6,6 +6,7 @@ import {
   stripCollectionVersion as stripLocalVariantVersion,
   normalizeVersionLabel as normalizeLocalVersionLabel,
   compareVersionLabels as compareLocalVersionLabels,
+  parseArknightsCollectionName,
 } from "../../../../shared/mod-collection-names.mjs";
 function stripDisabledPrefix(name) {
   return String(name || "").replace(/^DISABLED_/i, "");
@@ -15,6 +16,7 @@ function parseLocalModCollectionName(
   characterName,
   characterAliases = [],
 ) {
+  if (mod?.arknightsScope) return parseArknightsCollectionName(mod, characterName, characterAliases);
   const name = cleanLocalCollectionText(mod?.name);
   if (!name) return null;
   const parts = splitLocalModNameParts(name);
@@ -87,34 +89,10 @@ function buildLocalCollectionView(
         : null;
     })
     .filter(Boolean);
-  const candidateNames = new Map(
-    records.map((record) => [record.collectionKey, record.collectionName]),
-  );
   const groups = new Map();
   const identityByPath = new Map();
   records.forEach((record) => {
-    let collectionKey = record.collectionKey;
-    let collectionName = record.collectionName;
-    for (const [candidateKey, candidateName] of candidateNames.entries()) {
-      if (
-        !candidateKey ||
-        candidateKey === collectionKey ||
-        candidateKey.length < 2
-      )
-        continue;
-      if (collectionKey.startsWith(candidateKey)) {
-        collectionKey = candidateKey;
-        collectionName = candidateName;
-        break;
-      }
-    }
-    let variantName = record.variantName;
-    if (!variantName && collectionName !== record.collectionName) {
-      const suffix = cleanLocalCollectionText(
-        record.collectionName.slice(collectionName.length),
-      );
-      if (suffix) variantName = suffix;
-    }
+    const { collectionKey, collectionName } = record;
     const identity = `${characterIdentityKey}:${collectionKey}`;
     if (!groups.has(identity)) {
       groups.set(identity, {
@@ -126,9 +104,6 @@ function buildLocalCollectionView(
     }
     groups.get(identity).records.push({
       ...record,
-      collectionName,
-      collectionKey,
-      variantName,
       identity,
     });
     if (record.mod?.path) identityByPath.set(record.mod.path, identity);

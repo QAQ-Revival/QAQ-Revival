@@ -1,6 +1,7 @@
 import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
 import ReactDOM from "react-dom";
+import { Icon } from "../../../components/Icon.jsx";
 function HiddenCharactersDialog({ gameId, gameName, onClose, onRestored }) {
   const [characters, setCharacters] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
@@ -65,7 +66,8 @@ function HiddenCharactersDialog({ gameId, gameName, onClose, onRestored }) {
   function onKeyDown(event) {
     if (event.key === "Escape") {
       event.stopPropagation();
-      if (!busy) onClose();
+      if (query && event.target.tagName === "INPUT") setQuery("");
+      else if (!busy) onClose();
     }
     if (event.key !== "Tab") return;
     const controls = [
@@ -100,37 +102,57 @@ function HiddenCharactersDialog({ gameId, gameName, onClose, onRestored }) {
         onKeyDown={onKeyDown}
       >
         <div className="hidden-characters-header">
-          <h2 id="hidden-characters-title" className="text-h2">
+          <h2 id="hidden-characters-title" className="dialog-title">
             {t("characters.actions.hide")}
           </h2>
+          <span className="hidden-characters-count" role="status">
+            {t("characters.hide.count", {
+              charactersCount: characters.length,
+            })}
+          </span>
           <button
             type="button"
-            className="btn btn-secondary"
+            className="icon-btn icon-btn-sm"
             aria-label={t("characters.hide.close")}
+            title={t("common.actions.close")}
             disabled={!!busy}
             onClick={onClose}
           >
-            {t("common.actions.close")}
+            <Icon name="x" size={15} />
           </button>
         </div>
-        <p className="hidden-characters-description">
+        <p className="dialog-desc">
           {t("characters.hide.description", {
             gameName: gameName || t("navigation.currentGame"),
           })}
         </p>
-        <input
-          className="input"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          aria-label={t("characters.hide.searchLabel")}
-          placeholder={t("characters.hide.searchPlaceholder")}
-        />
+        <div className="search-field hidden-characters-search">
+          <Icon name="search" size={15} />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            aria-label={t("characters.hide.searchLabel")}
+            placeholder={t("characters.hide.searchPlaceholder")}
+          />
+          {query && (
+            <button
+              type="button"
+              className="icon-btn search-clear"
+              aria-label={t("common.actions.clearSearch")}
+              onClick={() => setQuery("")}
+            >
+              <Icon name="x" size={14} />
+            </button>
+          )}
+        </div>
         {error && (
-          <div className="hidden-characters-error" role="alert">
-            {error}
+          <div className="notice notice-danger hidden-characters-error" role="alert">
+            <Icon name="alert" size={14} />
+            <span>{error}</span>
             {!busy && (
               <button
-                className="btn btn-secondary"
+                type="button"
+                className="btn btn-sm"
                 onClick={() => setRevision((value) => value + 1)}
               >
                 {t("common.actions.reload")}
@@ -140,7 +162,10 @@ function HiddenCharactersDialog({ gameId, gameName, onClose, onRestored }) {
         )}
         <div className="hidden-characters-list" aria-busy={loading || !!busy}>
           {loading ? (
-            <p>{t("characters.hide.loading")}</p>
+            <p className="hidden-characters-empty">
+              <span className="spinner" aria-hidden="true" />
+              {t("characters.hide.loading")}
+            </p>
           ) : filtered.length ? (
             filtered.map((item) => (
               <div key={item.name} className="hidden-character-row">
@@ -150,7 +175,7 @@ function HiddenCharactersDialog({ gameId, gameName, onClose, onRestored }) {
                 <span className="hidden-character-name">{item.name}</span>
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-sm"
                   disabled={!!busy}
                   onClick={() => restore(item.name)}
                   aria-label={t("characters.hide.restoreNamed", {
@@ -171,11 +196,6 @@ function HiddenCharactersDialog({ gameId, gameName, onClose, onRestored }) {
             </p>
           )}
         </div>
-        <p className="hidden-characters-description" role="status">
-          {t("characters.hide.count", {
-            charactersCount: characters.length,
-          })}
-        </p>
       </section>
     </div>,
     document.body,

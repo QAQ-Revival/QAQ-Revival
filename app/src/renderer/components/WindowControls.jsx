@@ -1,6 +1,6 @@
 import { t } from "../../shared/i18n/index.mjs";
 import React from "react";
-import ReactDOM from "react-dom";
+
 function WindowControls() {
   const [state, setState] = React.useState({
     maximized: false,
@@ -57,9 +57,8 @@ function WindowControls() {
       </button>
     );
   }
-  return ReactDOM.createPortal(
-    <header className="window-titlebar" data-focused={state.focused}>
-      <div className="window-drag-region" aria-hidden={true} />
+  return (
+    <div className="window-titlebar" data-focused={state.focused}>
       {error && (
         <span className="window-control-error" role="alert">
           {error}
@@ -82,8 +81,7 @@ function WindowControls() {
         )}
         {button("close", t("native.window.close"), ["M1.5 1.5l9 9m0-9-9 9"])}
       </div>
-    </header>,
-    document.body,
+    </div>
   );
 }
 export { WindowControls };

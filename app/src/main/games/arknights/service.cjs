@@ -174,7 +174,7 @@ async function launch() {
   processing = true;
   try {
     const prepared = await prepareLoader();
-    const result = await sourceComponent.runNative(["--launch", "--manifest", prepared.manifest]);
+    const result = await sourceComponent.runNative(["--launch", "--manifest", prepared.manifest, ...windowService.launchArguments(), ...mouseService.launchArguments()]);
     return result;
   } finally { finishProcessing(); }
 }
@@ -222,42 +222,119 @@ function resolveMod(characterName, modName) {
 }
 const reloadMod = require("./reload.cjs").createModReloader({ paths, resolveMod, characterIds, sync, runNative: args => sourceComponent.runNative(args), runWorker });
 const cursorService = require("./cursor.cjs").createCursorService({ getGamePath: () => paths().gamePath, getStateRoot: () => path.join(paths().root, "SystemCursor") });
-async function toggleMod({ characterName, modName, enable, autoReload = true, confirmedConflictIds = [] }) {
+const launchOptions = require("./launch-option.cjs");
+const [windowService, mouseService] = ["window", "mouse"].map(name => launchOptions.createLaunchOption(name, {
+  getGame: () => settings.getGameById(GAME),
+  saveEnabled: enabled => settings.updateActiveGameConfig({ [launchOptions.OPTIONS[name].field]: enabled }, GAME),
+  component: sourceComponent
+}));
+function stageToggle({ characterName, modName, enable, confirmedConflictIds = [] }) {
+  if (typeof enable !== "boolean") throw Error(i18n.t("arknights.errors.invalidPath"));
+  const current = resolveMod(characterName, modName);
+  if (enable) hidden.assertCharacterVisible(characterName, GAME);
+  const cleanName = path.basename(current).replace(files.DISABLED, "");
+  const target = path.join(path.dirname(current), enable ? cleanName : "DISABLED_" + cleanName);
+  if (current === target) return null;
+  if (fs.existsSync(target)) throw Error(i18n.t("arknights.errors.invalidPath"));
+  if (enable) assertCanEnable(current, { characterName, confirmedConflictIds });
+  files.renameDirectory(current, target);
+  return { characterName, cleanName, enable, current, target, confirmedConflictIds };
+}
+// One deployment and one live reload cover every staged rename. A failed
+// deployment puts every folder back before the error reaches the caller.
+async function commitToggles(staged) {
+  const confirmedConflictIds = [...new Set(staged.filter(item => item.enable).flatMap(item => item.confirmedConflictIds))];
+  const previousApprovals = configStore.currentConfig.arknightsConflictApprovals;
+  try {
+    sync({ confirmedConflictIds });
+    if (confirmedConflictIds.length) {
+      const approvals = conflictApprovals(confirmedConflictIds);
+      configStore.currentConfig.arknightsConflictApprovals = { ...previousApprovals, [approvals.key]: approvals.ids };
+      if (!configStore.saveConfig(configStore.currentConfig)) throw Error(i18n.t("arknights.errors.approvalSave"));
+    }
+  } catch (error) {
+    if (previousApprovals === undefined) delete configStore.currentConfig.arknightsConflictApprovals;
+    else configStore.currentConfig.arknightsConflictApprovals = previousApprovals;
+    for (const item of [...staged].reverse()) files.renameDirectory(item.target, item.current);
+    try { sync(); } catch { /* Preserve the original error and the user's library state. */ }
+    throw error;
+  }
+  const reloads = new Map();
+  for (const item of staged) if (item.autoReload) reloads.set(path.join(path.dirname(item.target), item.cleanName).toLowerCase(), item);
+  const groups = [[...reloads.values()]];
+  if (groups[0].length > 1 && !supportsMultiModReload()) groups.splice(0, 1, ...groups[0].map(item => [item]));
+  while (groups.length) {
+    const group = groups.shift();
+    if (!group.length) continue;
+    let reload;
+    try { reload = await reloadMod({ mods: group.map(item => ({ characterName: item.characterName, modName: item.cleanName })), optional: true, synced: true }); }
+    catch (error) {
+      // An unsent combined patch changed nothing in the game; retry each Mod.
+      if (group.length > 1 && !error.patchSent) { groups.unshift(...group.map(item => [item])); continue; }
+      reload = { autoReloaded: false, reloadError: error.message };
+    }
+    for (const item of group) item.reload = reload;
+  }
+  for (const item of staged) {
+    require("../../mods/conflicts.cjs").clearConflictCache(item.characterName, GAME);
+    Object.assign(item.result, { success: true, persistRestored: false, ...(item.reload || { autoReloaded: false }) });
+  }
+}
+function supportsMultiModReload() {
+  try { return sourceComponent.packageInfo().manifest.capabilities?.includes("multi-mod-reload-v1") === true; }
+  catch { return false; }
+}
+async function toggleMod({ characterName, modName, enable, autoReload = true, confirmedConflictIds = [], batch = null }) {
+  if (batch) return stageBatchToggle(batch, { characterName, modName, enable, autoReload, confirmedConflictIds });
   if (processing) return { success: false, error: i18n.t("arknights.errors.busy") };
   processing = true;
   try {
-    if (typeof enable !== "boolean") throw Error(i18n.t("arknights.errors.invalidPath"));
-    const current = resolveMod(characterName, modName);
-    if (enable) hidden.assertCharacterVisible(characterName, GAME);
-    const cleanName = path.basename(current).replace(files.DISABLED, "");
-    const target = path.join(path.dirname(current), enable ? cleanName : "DISABLED_" + cleanName);
-    if (current === target) return { success: true, autoReloaded: false, alreadyInState: true };
-    if (fs.existsSync(target)) throw Error(i18n.t("arknights.errors.invalidPath"));
-    if (enable) assertCanEnable(current, { characterName, confirmedConflictIds });
-    files.renameDirectory(current, target);
-    const previousApprovals = configStore.currentConfig.arknightsConflictApprovals;
-    try {
-      sync({ confirmedConflictIds });
-      if (enable && confirmedConflictIds.length) {
-        const approvals = conflictApprovals(confirmedConflictIds);
-        configStore.currentConfig.arknightsConflictApprovals = { ...previousApprovals, [approvals.key]: approvals.ids };
-        if (!configStore.saveConfig(configStore.currentConfig)) throw Error(i18n.t("arknights.errors.approvalSave"));
-      }
-    } catch (error) {
-      if (previousApprovals === undefined) delete configStore.currentConfig.arknightsConflictApprovals;
-      else configStore.currentConfig.arknightsConflictApprovals = previousApprovals;
-      files.renameDirectory(target, current);
-      try { sync(); } catch { /* Preserve the original error and the user's library state. */ }
-      throw error;
-    }
-    let reload;
-    try { reload = autoReload ? await reloadMod({ characterName, modName: cleanName, optional: true }) : { autoReloaded: false }; }
-    catch (error) { reload = { autoReloaded: false, reloadError: error.message }; }
-    require("../../mods/conflicts.cjs").clearConflictCache(characterName, GAME);
-    require("../../desktop/notifications.cjs").notifyCharacterListChanged(characterName, { gameId: GAME, modName: cleanName, reason: "toggle", resourcesChanged: false });
-    return { success: true, persistRestored: false, ...reload };
+    const staged = stageToggle({ characterName, modName, enable, confirmedConflictIds });
+    if (!staged) return { success: true, autoReloaded: false, alreadyInState: true };
+    const result = {};
+    await commitToggles([{ ...staged, autoReload, result }]);
+    require("../../desktop/notifications.cjs").notifyCharacterListChanged(characterName, { gameId: GAME, modName: staged.cleanName, reason: "toggle", resourcesChanged: false });
+    return result;
   } catch (error) { return { success: false, error: error.message }; }
   finally { finishProcessing(); }
+}
+// The toggle queue stages renames while it walks a batch and holds the tools
+// until commitToggleBatch runs, so launches and rebuilds never see half of it.
+function stageBatchToggle(batch, request) {
+  if (!batch.arknights) {
+    if (processing) return { success: false, error: i18n.t("arknights.errors.busy") };
+    processing = true;
+    batch.arknights = [];
+  }
+  try {
+    const staged = stageToggle(request);
+    if (!staged) return { success: true, autoReloaded: false, alreadyInState: true };
+    const result = { success: true, persistRestored: false };
+    batch.arknights.push({ ...staged, autoReload: request.autoReload, request, result });
+    return result;
+  } catch (error) { return { success: false, error: error.message }; }
+}
+async function commitToggleBatch(batch) {
+  const staged = batch.arknights || [];
+  try {
+    if (!staged.length) return;
+    try { await commitToggles(staged); }
+    catch (error) {
+      if (staged.length === 1) throw error;
+      // Every folder is back where it was; apply them one at a time to find the one that fails.
+      for (const item of staged) {
+        try {
+          const again = stageToggle(item.request);
+          if (again) await commitToggles([{ ...again, autoReload: item.autoReload, result: item.result }]);
+        } catch (single) { Object.assign(item.result, { success: false, error: single.message }); }
+      }
+    }
+  } catch (error) {
+    for (const item of staged) Object.assign(item.result, { success: false, error: error.message });
+  } finally {
+    for (const item of staged) if (item.result.success) (batch.changed ||= []).push({ gameId: GAME, characterName: item.characterName, modName: item.cleanName });
+    if (batch.arknights) finishProcessing();
+  }
 }
 function finishProcessing() {
   processing = false;
@@ -326,6 +403,10 @@ async function createCopy({ token, selectedIds }) {
   }
 }
 function registerIpc() {
+  for (const [channel, service] of [["arknights:window-status", windowService], ["arknights:mouse-status", mouseService]]) electron.ipcMain.handle(channel, async () => {
+    try { return await service.status(); }
+    catch (error) { return { success: false, error: error.message }; }
+  });
   electron.ipcMain.handle("arknights:cursor-status", async () => {
     try { return await cursorService.status(); }
     catch (error) { return { success: false, error: error.message }; }
@@ -336,6 +417,8 @@ function registerIpc() {
     "arknights:prepare-loader": prepareLoader,
     "arknights:reload-mod": reloadMod,
     "arknights:set-system-cursor": args => cursorService.setEnabled(args),
+    "arknights:set-resizable-window": args => windowService.setEnabled(args),
+    "arknights:set-mouse-coalescing": args => mouseService.setEnabled(args),
     "arknights:analyze": analyze,
     "arknights:create-copy": createCopy
   })) electron.ipcMain.handle(channel, async (_, args) => {
@@ -348,4 +431,4 @@ function registerIpc() {
   });
 }
 
-module.exports = { GAME, paths, enabledEntries, generatedFingerprint, componentFingerprint, validateLibrary, initialize, status, sync, onModsChanged, assertCanEnable, prepareImportedMod, prepareLoader, launch, runWorker, toggleMod, registerIpc };
+module.exports = { GAME, paths, enabledEntries, generatedFingerprint, componentFingerprint, validateLibrary, initialize, status, sync, onModsChanged, assertCanEnable, prepareImportedMod, prepareLoader, launch, runWorker, toggleMod, commitToggleBatch, registerIpc };

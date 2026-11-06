@@ -32,23 +32,27 @@ export function RenameModDialog({ mod, saving, onRename, onClose }) {
           }
         }}
       >
-        <h3 id="mod-rename-title">{t("mods.actions.rename")}</h3>
-        <input
-          className="input"
-          aria-label={t("common.fields.name")}
-          type="text"
-          autoFocus={true}
-          value={draft}
-          disabled={saving}
-          onFocus={(e) => e.currentTarget.select()}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && e.nativeEvent.isComposing)
-              e.preventDefault();
-          }}
-        />
-        <div className="mod-rename-dialog-actions">
-          <button type="button" className="btn btn-secondary" disabled={saving} onClick={onClose}>
+        <h2 id="mod-rename-title" className="dialog-title">
+          {t("mods.actions.rename")}
+        </h2>
+        <div className="dialog-body">
+          <input
+            className="input"
+            aria-label={t("common.fields.name")}
+            type="text"
+            autoFocus={true}
+            value={draft}
+            disabled={saving}
+            onFocus={(e) => e.currentTarget.select()}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && e.nativeEvent.isComposing)
+                e.preventDefault();
+            }}
+          />
+        </div>
+        <div className="dialog-actions">
+          <button type="button" className="btn" disabled={saving} onClick={onClose}>
             {t("common.actions.cancel")}
           </button>
           <button type="submit" className="btn btn-primary" disabled={saving || !draft.trim()}>

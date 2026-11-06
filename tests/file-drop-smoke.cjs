@@ -85,7 +85,7 @@ module.exports = async ({ electron, window, evaluate, waitFor, captureUI, root, 
     await captureUI('file-drop-preview.png');
     await closePreview();
     await drag([invalid]);
-    await waitFor(`document.body.innerText.includes('未识别到可导入的 Mod')`, 'unsupported-file feedback');
+    await waitFor(`document.body.innerText.includes('未找到可导入的 Mod')`, 'unsupported-file feedback');
     assert.equal(await evaluate(`!!document.querySelector('.batch-import-overlay')`), false);
     await drag([archive, cover], '.character-card:not(.add-card)');
     await waitFor(`!!document.querySelector('.batch-import-overlay')`, 'mixed image/archive routes to import');

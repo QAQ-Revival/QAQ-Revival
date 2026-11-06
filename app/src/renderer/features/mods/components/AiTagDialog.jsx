@@ -16,88 +16,71 @@ export function AiTagDialog({
   return (
     showAiTagModal &&
     ReactDOM.createPortal(
-      <div
-        onClick={() => setShowAiTagModal(false)}
-        className="ai-name-dialog-overlay"
-      >
+      <div className="modal-backdrop" onClick={() => setShowAiTagModal(false)}>
         <div
+          className="modal-content ai-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ai-tag-title"
           onClick={(e) => e.stopPropagation()}
-          className="ai-tag-dialog-panel"
         >
-          <div className="ai-tag-dialog-heading">{t("mods.ai.tagTitle")}</div>
+          <h2 id="ai-tag-title" className="dialog-title">
+            {t("mods.ai.tagTitle")}
+          </h2>
           {aiTagLoading ? (
-            <div className="ai-name-dialog-centered-content">
-              <div className="ai-tag-dialog-heading-emphasis">
-                {aiTagStage || t("mods.ai.analyzing")}
-              </div>
-              <div className="ai-tag-dialog-hint">
-                {t("mods.ai.tagElapsed", {
-                  aiTagElapsedSeconds,
-                })}
+            <div className="ai-dialog-waiting" role="status">
+              <span className="spinner" aria-hidden="true" />
+              <div className="ai-dialog-stage">{aiTagStage || t("mods.ai.analyzing")}</div>
+              <div className="ai-dialog-elapsed">
+                {t("mods.ai.tagElapsed", { aiTagElapsedSeconds })}
               </div>
               {aiTagElapsedSeconds >= 20 && (
-                <div className="ai-tag-dialog-slow-response-hint">
-                  {t("mods.ai.slowResponse")}
-                </div>
+                <div className="ai-dialog-elapsed">{t("mods.ai.slowResponse")}</div>
               )}
             </div>
           ) : (
             <React.Fragment>
-              <div className="ai-tag-dialog-row">
+              <p className="dialog-desc">{t("mods.ai.selectExistingTagsHint")}</p>
+              <div className="dialog-body ai-dialog-tags">
                 {aiTagSuggestions.map((s, i) => (
-                  <span
+                  <button
+                    type="button"
+                    className={`chip ${s.selected ? "active" : ""}`}
+                    aria-pressed={!!s.selected}
                     onClick={() =>
                       setAiTagSuggestions((prev) =>
                         prev.map((x, j) =>
-                          j === i
-                            ? {
-                                ...x,
-                                selected: !x.selected,
-                              }
-                            : x,
+                          j === i ? { ...x, selected: !x.selected } : x,
                         ),
                       )
                     }
-                    style={{
-                      fontSize: "12px",
-                      background: s.selected ? "#6366f1" : "#f3f4f6",
-                      color: s.selected ? "#fff" : "#374151",
-                      fontWeight: s.selected ? "600" : "400",
-                    }}
                     key={i}
-                    className="ai-tag-dialog-content"
                   >
                     {s.name}
-                  </span>
+                  </button>
                 ))}
                 {aiTagSuggestions.length === 0 && (
-                  <div
-                    style={{
-                      color: "#6b7280",
-                    }}
-                    className="ai-tag-dialog-empty-result-hint"
-                  >
+                  <div className="ai-dialog-elapsed">
                     {aiTagEmptyReason || t("mods.ai.noUsableTags")}
                   </div>
                 )}
               </div>
-              <div className="ai-tag-dialog-selection-hint">
-                {t("mods.ai.selectExistingTagsHint")}
-              </div>
-              <div className="ai-tag-dialog-actions">
+              <div className="dialog-actions">
                 <button
+                  type="button"
+                  className="btn"
                   onClick={() => setShowAiTagModal(false)}
-                  className="ai-name-dialog-close-ai-name-task-action"
                 >
                   {t("common.actions.cancel")}
                 </button>
                 <button
+                  type="button"
+                  className="btn btn-primary"
                   onClick={
                     aiTagSuggestions.length > 0
                       ? applyAiSuggestions
                       : handleAiSuggestTags
                   }
-                  className="ai-name-dialog-ai-suggest-name-action"
                 >
                   {aiTagSuggestions.length > 0
                     ? t("mods.ai.addSelected")

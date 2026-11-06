@@ -1,6 +1,162 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
-function PresetView({ activeGame }) {
+import { Icon } from "../../components/Icon.jsx";
+import { Menu, MenuItem } from "../../components/Menu.jsx";
+import { Dialog } from "../settings/SettingsControls.jsx";
+
+const presetName = (preset) =>
+  preset.isBuiltIn ? t("settings.presets.noModName") : preset.name;
+
+function groupMods(mods) {
+  const groups = {};
+  for (const m of mods) {
+    if (!groups[m.characterName]) groups[m.characterName] = [];
+    groups[m.characterName].push(m);
+  }
+  return groups;
+}
+
+function PresetRow({
+  preset,
+  isActive,
+  isActivating,
+  isExpanded,
+  onToggleExpand,
+  onActivate,
+  onSnapshot,
+  onEdit,
+  onDelete,
+}) {
+  const isBuiltIn = !!preset.isBuiltIn;
+  const modGroups = groupMods(preset.mods || []);
+  const charCount = Object.keys(modGroups).length;
+  const modCount = (preset.mods || []).length;
+  return (
+    <li
+      className={`preset-row${isActive ? " is-active" : ""}${isBuiltIn ? " is-builtin" : ""}${isExpanded ? " is-expanded" : ""}`}
+      data-preset-id={preset.id}
+    >
+      <div className="preset-row-main">
+        <button
+          type="button"
+          className="preset-row-summary"
+          disabled={isBuiltIn}
+          aria-expanded={isBuiltIn ? undefined : isExpanded}
+          onClick={onToggleExpand}
+        >
+          <Icon
+            name={isBuiltIn ? "ban" : isExpanded ? "chevron-down" : "chevron-right"}
+            size={14}
+            className="preset-row-chevron"
+          />
+          <span className="preset-row-copy">
+            <span className="preset-row-title">
+              <span className="preset-row-name">{presetName(preset)}</span>
+              {isActive && (
+                <span className="badge badge-accent">
+                  {t("settings.presets.active")}
+                </span>
+              )}
+            </span>
+            {(isBuiltIn || preset.description) && (
+              <span className="preset-row-desc">
+                {isBuiltIn ? t("settings.presets.noModHint") : preset.description}
+              </span>
+            )}
+          </span>
+          {!isBuiltIn && (
+            <span className="preset-row-stats">
+              {t("settings.presets.stats", {
+                modCount,
+                charCount,
+              })}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={isActivating}
+          onClick={onActivate}
+        >
+          {isActivating ? t("settings.presets.applying") : t("common.actions.apply")}
+        </button>
+        {isBuiltIn ? (
+          <span className="preset-row-menu-spacer" aria-hidden={true} />
+        ) : (
+          <Menu
+            label={t("common.actions.more")}
+            trigger={({ props }) => (
+              <button
+                type="button"
+                className="icon-btn"
+                title={t("common.actions.more")}
+                aria-label={t("settings.presets.moreNamed", {
+                  name: preset.name,
+                })}
+                {...props}
+              >
+                <Icon name="more" size={16} strokeWidth={2.4} />
+              </button>
+            )}
+          >
+            <MenuItem icon={<Icon name="refresh" size={15} />} onClick={onSnapshot}>
+              {t("settings.presets.updateSnapshot")}
+            </MenuItem>
+            <MenuItem icon={<Icon name="edit" size={15} />} onClick={onEdit}>
+              {t("common.actions.edit")}
+            </MenuItem>
+            <div className="menu-sep" />
+            <MenuItem
+              danger={true}
+              icon={<Icon name="trash" size={15} />}
+              onClick={onDelete}
+            >
+              {t("common.actions.delete")}
+            </MenuItem>
+          </Menu>
+        )}
+      </div>
+      {isExpanded && !isBuiltIn && (
+        <div className="preset-row-detail">
+          {preset.updatedAt && (
+            <div className="preset-row-updated">
+              {t("settings.presets.updatedAt", {
+                date: new Date(preset.updatedAt).toLocaleDateString("zh-CN", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+              })}
+            </div>
+          )}
+          {charCount === 0 ? (
+            <div className="preset-row-empty">{t("mods.presets.noMods")}</div>
+          ) : (
+            Object.entries(modGroups).map(([charName, mods]) => (
+              <div key={charName} className="preset-character">
+                <div className="preset-character-name">
+                  {charName}
+                  <span>{mods.length}</span>
+                </div>
+                <div className="preset-character-mods">
+                  {mods.map((m, i) => (
+                    <span key={i} className="chip" title={m.modName}>
+                      {m.modName}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+function PresetView() {
   const [presets, setPresets] = React.useState([]);
   const [activePresetId, setActivePresetId] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
@@ -10,9 +166,10 @@ function PresetView({ activeGame }) {
   const [newDesc, setNewDesc] = React.useState("");
   const [creating, setCreating] = React.useState(false);
   const [activatingId, setActivatingId] = React.useState(null);
-  const [editingId, setEditingId] = React.useState(null);
+  const [editing, setEditing] = React.useState(null);
   const [editName, setEditName] = React.useState("");
   const [editDesc, setEditDesc] = React.useState("");
+  const [deleting, setDeleting] = React.useState(null);
   const [expandedId, setExpandedId] = React.useState(null);
   React.useEffect(() => {
     loadPresets();
@@ -77,14 +234,7 @@ function PresetView({ activeGame }) {
     }
   }
   async function handleDelete(preset) {
-    if (
-      !confirm(
-        t("mods.presets.confirmDelete", {
-          name: preset.name,
-        }),
-      )
-    )
-      return;
+    setDeleting(null);
     try {
       const result = await window.api.presetDelete(preset.id);
       if (result.success) {
@@ -115,7 +265,7 @@ function PresetView({ activeGame }) {
       if (result.success) {
         const r = result.results;
         let msg = t("mods.presets.applied", {
-          name: preset.name,
+          name: presetName(preset),
         });
         if (r.enabled > 0 || r.disabled > 0) {
           msg += t("mods.presets.toggledCount", {
@@ -185,7 +335,7 @@ function PresetView({ activeGame }) {
           type: "success",
           message: t("common.status.changesSaved"),
         });
-        setEditingId(null);
+        setEditing(null);
         loadPresets();
       } else {
         setToast({
@@ -200,323 +350,280 @@ function PresetView({ activeGame }) {
       });
     }
   }
-  function formatDate(iso) {
-    if (!iso) return "";
-    const d = new Date(iso);
-    return d.toLocaleDateString("zh-CN", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-  function groupMods(mods) {
-    const groups = {};
-    for (const m of mods) {
-      if (!groups[m.characterName]) groups[m.characterName] = [];
-      groups[m.characterName].push(m);
+  async function handleImport() {
+    try {
+      const result = await window.api.configImport();
+      if (result.success) {
+        setToast({
+          type: "success",
+          message: result.message || t("mods.presets.imported"),
+        });
+        loadPresets();
+      } else if (result.error) {
+        setToast({
+          type: "error",
+          message: result.error,
+        });
+      }
+    } catch (e) {
+      setToast({
+        type: "error",
+        message: e.message,
+      });
     }
-    return groups;
+  }
+  async function handleExport() {
+    try {
+      const result = await window.api.configExport();
+      if (result.success) {
+        setToast({
+          type: "success",
+          message: t("mods.presets.exported", {
+            path: result.path,
+          }),
+        });
+      }
+    } catch (e) {
+      setToast({
+        type: "error",
+        message: e.message,
+      });
+    }
   }
   if (loading)
     return (
-      <div className="preset-view-centered-content">
-        {t("common.status.loading")}
+      <div className="app-page-loading">
+        <span className="spinner" />
       </div>
     );
+  const builtIn = presets.filter((preset) => preset.isBuiltIn);
+  const custom = presets.filter((preset) => !preset.isBuiltIn);
+  const renderRow = (preset) => (
+    <PresetRow
+      key={preset.id}
+      preset={preset}
+      isActive={preset.id === activePresetId}
+      isActivating={preset.id === activatingId}
+      isExpanded={preset.id === expandedId}
+      onToggleExpand={() =>
+        setExpandedId(preset.id === expandedId ? null : preset.id)
+      }
+      onActivate={() => handleActivate(preset)}
+      onSnapshot={() => handleSnapshot(preset)}
+      onEdit={() => {
+        setEditing(preset);
+        setEditName(preset.name);
+        setEditDesc(preset.description || "");
+      }}
+      onDelete={() => setDeleting(preset)}
+    />
+  );
   return (
-    <div className="preset-view">
-      <div className="page-header preset-view-page-header-layout">
-        <div className="preset-view-stack">
-          <span>{t("navigation.presetSettings")}</span>
-          <span className="preset-view-hint">
-            {t("mods.presets.gameDescription", {
-              name: activeGame?.name || t("navigation.currentGame"),
-            })}
-          </span>
+    <div className="page preset-view">
+      <div className="page-header">
+        <div className="page-heading">
+          <h1 className="page-title">{t("navigation.presetSettings")}</h1>
+          {custom.length > 0 && (
+            <span className="page-subtitle">
+              {t("settings.presets.count", {
+                count: custom.length,
+              })}
+            </span>
+          )}
         </div>
-        <div className="preset-view-row">
-          <button
-            className="btn preset-view-btn-layout"
-            onClick={async () => {
-              try {
-                const result = await window.api.configImport();
-                if (result.success) {
-                  setToast({
-                    type: "success",
-                    message: result.message || t("mods.presets.imported"),
-                  });
-                  loadPresets();
-                } else if (result.error) {
-                  setToast({
-                    type: "error",
-                    message: result.error,
-                  });
-                }
-              } catch (e) {
-                setToast({
-                  type: "error",
-                  message: e.message,
-                });
-              }
-            }}
-            title={t("mods.presets.import")}
+        <div className="page-actions">
+          <Menu
+            label={t("common.actions.more")}
+            trigger={({ props }) => (
+              <button
+                type="button"
+                className="icon-btn"
+                title={t("common.actions.more")}
+                aria-label={t("common.actions.more")}
+                {...props}
+              >
+                <Icon name="more" size={16} strokeWidth={2.4} />
+              </button>
+            )}
           >
-            {t("common.actions.import")}
-          </button>
+            <MenuItem
+              icon={<Icon name="download" size={15} />}
+              title={t("mods.presets.import")}
+              onClick={handleImport}
+            >
+              {t("common.actions.import")}
+            </MenuItem>
+            <MenuItem
+              icon={<Icon name="upload" size={15} />}
+              title={t("mods.presets.export")}
+              onClick={handleExport}
+            >
+              {t("common.actions.export")}
+            </MenuItem>
+          </Menu>
           <button
-            className="btn preset-view-btn-layout"
-            onClick={async () => {
-              try {
-                const result = await window.api.configExport();
-                if (result.success) {
-                  setToast({
-                    type: "success",
-                    message: t("mods.presets.exported", {
-                      path: result.path,
-                    }),
-                  });
-                }
-              } catch (e) {
-                setToast({
-                  type: "error",
-                  message: e.message,
-                });
-              }
-            }}
-            title={t("mods.presets.export")}
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setShowCreate(true)}
           >
-            {t("common.actions.export")}
-          </button>
-          <button
-            className="btn btn-primary preset-view-toggle-create"
-            onClick={() => setShowCreate(!showCreate)}
-          >
-            {showCreate ? t("common.actions.cancel") : t("mods.presets.create")}
+            <Icon name="plus" size={15} strokeWidth={2.2} />
+            {t("mods.presets.create")}
           </button>
         </div>
       </div>
+      <div className="page-body">
+        {custom.length > 0 && <ul className="preset-list">{custom.map(renderRow)}</ul>}
+        {custom.length === 0 && (
+          <div className="empty-state preset-empty">
+            <div className="empty-title">{t("mods.presets.empty")}</div>
+            <div className="empty-text">{t("settings.presets.emptyHint")}</div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setShowCreate(true)}
+            >
+              {t("mods.presets.createFirst")}
+            </button>
+          </div>
+        )}
+        {builtIn.length > 0 && (
+          <ul className="preset-list preset-list-builtin">
+            {builtIn.map(renderRow)}
+          </ul>
+        )}
+      </div>
       {showCreate && (
-        <div className="preset-create-panel">
-          <h3 className="preset-view-content">{t("mods.presets.create")}</h3>
-          <p className="preset-view-snapshot-hint">
-            {t("mods.presets.snapshotHint")}
-          </p>
-          <div className="preset-view-vertical-list">
+        <Dialog
+          title={t("mods.presets.create")}
+          description={t("mods.presets.snapshotHint")}
+          busy={creating}
+          onClose={() => setShowCreate(false)}
+          actions={
+            <React.Fragment>
+              <button
+                type="button"
+                className="btn"
+                disabled={creating}
+                onClick={() => setShowCreate(false)}
+              >
+                {t("common.actions.cancel")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={creating || !newName.trim()}
+                onClick={handleCreate}
+              >
+                {creating
+                  ? t("common.status.creating")
+                  : t("settings.presets.save")}
+              </button>
+            </React.Fragment>
+          }
+        >
+          <div className="preset-form">
             <input
               type="text"
+              className="input"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder={t("mods.presets.namePlaceholder")}
+              aria-label={t("mods.presets.namePlaceholder")}
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              autoFocus={true}
-              className="preset-view-input-field"
             />
             <input
               type="text"
+              className="input"
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
               placeholder={t("mods.presets.optionalNotes")}
-              className="preset-view-input-field"
+              aria-label={t("mods.presets.optionalNotes")}
             />
-            <button
-              className="btn btn-primary preset-view-create-snapshot"
-              onClick={handleCreate}
-              disabled={creating || !newName.trim()}
-            >
-              {creating
-                ? t("common.status.creating")
-                : t("mods.presets.createSnapshot")}
-            </button>
           </div>
-        </div>
+        </Dialog>
       )}
-      {presets.length === 0 && !showCreate && (
-        <div className="preset-view-centered-content-spaced">
-          <div className="preset-view-icon">{"📋"}</div>
-          <p className="preset-view-heading">{t("mods.presets.empty")}</p>
-          <p className="preset-view-empty-presets-hint">
-            {t("mods.presets.emptyHint")}
-          </p>
-          <button
-            className="btn btn-primary preset-view-create-first"
-            onClick={() => setShowCreate(true)}
-          >
-            {t("mods.presets.createFirst")}
-          </button>
-        </div>
-      )}
-      <div className="preset-view-vertical-list">
-        {presets.map((preset) => {
-          const isActive = preset.id === activePresetId;
-          const isActivating = preset.id === activatingId;
-          const isEditing = preset.id === editingId;
-          const isExpanded = preset.id === expandedId;
-          const isBuiltIn = !!preset.isBuiltIn;
-          const modGroups = groupMods(preset.mods || []);
-          const charCount = Object.keys(modGroups).length;
-          const modCount = (preset.mods || []).length;
-          return (
-            <div
-              style={{
-                borderRadius: "12px",
-                border: isActive
-                  ? "2px solid var(--color-accent-primary, #667eea)"
-                  : "1px solid #e8e8e8",
-              }}
-              key={preset.id}
-              className="preset-view-preset-card"
-            >
-              <div
-                style={{
-                  background: isActive
-                    ? "rgba(102, 126, 234, 0.04)"
-                    : "transparent",
-                }}
-                onClick={() => setExpandedId(isExpanded ? null : preset.id)}
-                className="preset-view-row-spaced"
+      {editing && (
+        <Dialog
+          title={t("common.actions.edit")}
+          onClose={() => setEditing(null)}
+          actions={
+            <React.Fragment>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setEditing(null)}
               >
-                <div className="preset-view-preset-info">
-                  {isEditing ? (
-                    <div
-                      onClick={(e) => e.stopPropagation()}
-                      className="preset-view-name-editor"
-                    >
-                      <input
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        autoFocus={true}
-                        className="preset-view-input-field-emphasis"
-                      />
-                      <button
-                        className="btn preset-view-save-name"
-                        onClick={() => handleSaveEdit(preset)}
-                      >
-                        {t("common.actions.save")}
-                      </button>
-                      <button
-                        className="btn preset-view-save-name"
-                        onClick={() => setEditingId(null)}
-                      >
-                        {t("common.actions.cancel")}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="preset-view-preset-heading">
-                      <span className="preset-view-heading-emphasis">
-                        {isActive ? "🟢" : "⚪"} {preset.name}
-                      </span>
-                      {isBuiltIn && (
-                        <span className="preset-view-built-in-badge">
-                          {t("mods.presets.fixed")}
-                        </span>
-                      )}
-                      {isActive && (
-                        <span className="preset-view-heading-spaced">
-                          {t("mods.presets.current")}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <div className="preset-view-preset-summary">
-                    {t("mods.presets.summary", {
-                      modCount,
-                      charCount,
-                      description:
-                        preset.description && ` · ${preset.description}`,
-                      status: preset.updatedAt
-                        ? t("mods.presets.updatedAtSuffix", {
-                            date: formatDate(preset.updatedAt),
-                          })
-                        : "",
-                    })}
-                  </div>
-                </div>
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  className="preset-view-activate-actions"
-                >
-                  <button
-                    className="btn btn-primary preset-view-btn-layout-spaced"
-                    onClick={() => handleActivate(preset)}
-                    disabled={isActivating}
-                  >
-                    {isActivating
-                      ? t("navigation.switchingGame")
-                      : t("common.actions.apply")}
-                  </button>
-                </div>
-              </div>
-              {isExpanded && (
-                <div className="preset-expanded-content">
-                  <div className="preset-view-preset-actions">
-                    {!isBuiltIn ? (
-                      <React.Fragment>
-                        <button
-                          className="btn preset-view-edit-action"
-                          onClick={() => handleSnapshot(preset)}
-                        >
-                          {t("mods.presets.updateSnapshot")}
-                        </button>
-                        <button
-                          className="btn preset-view-edit-action"
-                          onClick={() => {
-                            setEditingId(preset.id);
-                            setEditName(preset.name);
-                            setEditDesc(preset.description || "");
-                          }}
-                        >
-                          {t("mods.presets.editInfo")}
-                        </button>
-                        <button
-                          className="btn preset-view-delete-action"
-                          onClick={() => handleDelete(preset)}
-                        >
-                          {t("common.actions.delete")}
-                        </button>
-                      </React.Fragment>
-                    ) : (
-                      <div className="preset-view-built-in-hint">
-                        {t("mods.presets.fixedHint")}
-                      </div>
-                    )}
-                  </div>
-                  {Object.keys(modGroups).length === 0 ? (
-                    <div className="preset-view-empty-mods-hint">
-                      {t("mods.presets.noMods")}
-                    </div>
-                  ) : (
-                    <div className="preset-view-character-groups">
-                      {Object.entries(modGroups).map(([charName, mods]) => (
-                        <div key={charName}>
-                          <div className="preset-view-character-heading">
-                            {"👤 "}
-                            {charName}
-                            {" ("}
-                            {mods.length}
-                            {")"}
-                          </div>
-                          <div className="preset-view-mod-list">
-                            {mods.map((m, i) => (
-                              <span key={i} className="preset-view-panel">
-                                {m.modName}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-      {toast && (
-        <div className={`toast toast-${toast.type}`}>{toast.message}</div>
+                {t("common.actions.cancel")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!editName.trim()}
+                onClick={() => handleSaveEdit(editing)}
+              >
+                {t("common.actions.save")}
+              </button>
+            </React.Fragment>
+          }
+        >
+          <div className="preset-form">
+            <input
+              type="text"
+              className="input"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder={t("mods.presets.namePlaceholder")}
+              aria-label={t("mods.presets.namePlaceholder")}
+              onKeyDown={(e) =>
+                e.key === "Enter" && editName.trim() && handleSaveEdit(editing)
+              }
+            />
+            <input
+              type="text"
+              className="input"
+              value={editDesc}
+              onChange={(e) => setEditDesc(e.target.value)}
+              placeholder={t("mods.presets.optionalNotes")}
+              aria-label={t("mods.presets.optionalNotes")}
+            />
+          </div>
+        </Dialog>
       )}
-      {null}
+      {deleting && (
+        <Dialog
+          title={t("mods.presets.delete")}
+          description={t("mods.presets.confirmDelete", {
+            name: deleting.name,
+          })}
+          onClose={() => setDeleting(null)}
+          actions={
+            <React.Fragment>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setDeleting(null)}
+              >
+                {t("common.actions.cancel")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => handleDelete(deleting)}
+              >
+                {t("common.actions.delete")}
+              </button>
+            </React.Fragment>
+          }
+        />
+      )}
+      {toast && (
+        <div
+          className={`toast toast-${toast.type}`}
+          role={toast.type === "error" ? "alert" : "status"}
+        >
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

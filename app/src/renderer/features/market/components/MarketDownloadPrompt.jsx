@@ -11,24 +11,23 @@ export function MarketDownloadPrompt({
     isActive &&
     ReactDOM.createPortal(
       <div
-        className="market-download-prompt-overlay"
+        className="modal-backdrop market-stacked-backdrop"
         onClick={() => setDownloadPrompt(null)}
       >
-        <div
-          className="market-download-prompt-dialog"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="market-download-prompt-icon">{"↓"}</div>
-          <h3>{t("market.downloadPrompt.unavailableTitle")}</h3>
-          <p>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <h3 className="dialog-title">
+            {t("market.downloadPrompt.unavailableTitle")}
+          </h3>
+          <p className="dialog-desc">
             {downloadPrompt.type === "login_required"
               ? downloadPrompt.sessionExpired
                 ? t("market.downloadPrompt.sessionExpired")
                 : t("market.downloadPrompt.loginRequired")
               : t("market.downloadPrompt.sourceUnavailable")}
           </p>
-          <div className="market-download-prompt-actions">
+          <div className="dialog-actions">
             <button
+              type="button"
               className="btn btn-primary"
               onClick={() => setDownloadPrompt(null)}
             >

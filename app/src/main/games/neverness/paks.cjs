@@ -678,7 +678,7 @@ function getNevernessDx12Mods(characterName) {
     characterAliases: charactersCatalog.getCharacterAliasCandidates(characterName, gameId2)
   };
 }
-function toggleNevernessDx12PakMod(characterName, modName, enable) {
+function toggleNevernessDx12PakMod(characterName, modName, enable, { notify = true } = {}) {
   const gameId2 = gamesSettings.getActiveGameScopeId();
   if (enable && charactersHidden.isCharacterHidden(characterName, gameId2)) return {
     error: i18n.t("backend.mods.nevernessPaks.characterHidden")
@@ -736,7 +736,7 @@ function toggleNevernessDx12PakMod(characterName, modName, enable) {
     total: 1,
     message: enable ? i18n.t("backend.mods.nevernessPaks.pakEnabled") : i18n.t("backend.mods.nevernessPaks.pakDisabled")
   });
-  desktopNotifications.notifyCharacterListChanged(characterName, {
+  if (notify) desktopNotifications.notifyCharacterListChanged(characterName, {
     modName,
     reason: "neverness-toggle"
   });

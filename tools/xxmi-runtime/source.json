@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/QAQ-Revival/XXMI-Libs-Package",
+  "license": "GPL-3.0",
+  "activityProtocol": 1,
+  "changes": [
+    "Preserve upstream COPY fixes with QAQR boundary guards and legacy REF compatibility",
+    "Track net changes and append only changed persistent values",
+    "Atomically compact the journal during configuration reload",
+    "Publish activity through CPU shared memory without persistent variables"
+  ],
+  "upstream": "https://github.com/SpectrumQT/XXMI-Libs-Package",
+  "branch": "master"
+}

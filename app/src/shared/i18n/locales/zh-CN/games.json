@@ -1,19 +1,20 @@
 {
   "launch": {
-    "direct": "直接启动",
-    "directDx12": "直接启动 · DX12",
+    "direct": "启动游戏",
+    "directDx12": "启动 · DX12",
     "xxmi": "XXMI 启动",
     "official": "官方启动",
     "xxmiCompact": "XXMI 启动",
     "officialCompact": "官方启动",
     "launching": "启动中...",
-    "directHint": "加载 Mod 并直接启动游戏",
-    "dx12Hint": "使用 wwmi-dx12 加载 Mod 并启动 DX12",
+    "directHint": "加载 Mod 并启动",
+    "dx12Hint": "用 wwmi-dx12 加载 Mod 并启动",
     "xxmiHint": "打开 XXMI 启动器",
-    "officialHint": "打开官方启动器，不加载 Mod",
-    "nteHint": "异环请使用直接启动",
+    "officialHint": "不加载 Mod",
+    "nteHint": "异环不支持，请用“启动游戏”",
     "failed": "启动失败",
-    "checkPaths": "启动失败，请检查游戏和加载器路径"
+    "checkPaths": "启动失败，请检查游戏和加载器路径",
+    "moreOptions": "更多启动方式"
   },
-  "settingsLabel": "{{name}} · 游戏设置"
+  "settingsLabel": "{{name}}设置"
 }

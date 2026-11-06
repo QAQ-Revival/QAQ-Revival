@@ -19,6 +19,7 @@ const gamesSettings = require("../settings.cjs");
 const installPaths = require("../../install/paths.cjs");
 const runtimePaths = require("../../runtime/paths.cjs");
 const systemWindows = require("../../system/windows.cjs");
+const { loadBundle } = require("../../install/mi-forks.cjs");
 const wuwaDx12StateDir = path.join(electron.app.getPath("userData"), "wuwa-dx12");
 let wuwaDx12Packages;
 let wuwaDx12Components;
@@ -28,7 +29,14 @@ function initialize() {
   wuwaDx12Packages = createWuwaDx12Packages({
     bundledDir: path.join(electron.app.isPackaged ? path.dirname(process.execPath) : path.resolve(runtimePaths.mainDir, "../../.."), "local-components", "wwmi-dx12"),
     cacheDir: path.join(wuwaDx12StateDir, "packages"),
-    fetch: (...args) => electron.net.fetch(...args)
+    fetch: (...args) => electron.net.fetch(...args),
+    loadFork: () => {
+      try {
+        return loadBundle([electron.app.isPackaged ? path.dirname(process.execPath) : path.resolve(runtimePaths.mainDir, "../../..")], "wwmi-dx12-qaqr", "wwmi-dx12");
+      } catch {
+        return null;
+      }
+    }
   });
   wuwaDx12Components = createWuwaDx12Components({
     stateDir: path.join(wuwaDx12StateDir, "components"),
@@ -105,6 +113,7 @@ function registerIpc() {
   for (const [channel, action] of Object.entries({
     "wuwa:dx12-status": () => wuwaDx12Service.status(),
     "wuwa:dx12-set-enabled": enabled => wuwaDx12Service.setEnabled(enabled),
+    "wuwa:dx12-set-channel": target => wuwaDx12Service.setChannel(target),
     "wuwa:dx12-check-updates": () => wuwaDx12Service.checkUpdates(),
     "wuwa:dx12-update-component": kind => wuwaDx12Service.updateComponent(kind)
   })) {

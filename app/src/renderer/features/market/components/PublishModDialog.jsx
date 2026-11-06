@@ -2,6 +2,7 @@ import { t } from "../../../../shared/i18n/index.mjs";
 import React from "react";
 import { fetchWithDirectFallback } from "../../../lib/marketApi.js";
 import ReactDOM from "react-dom";
+import { Icon } from "../../../components/Icon.jsx";
 const SERVER_URL_DEFAULT = "https://qaqm.top";
 const PUBLISH_PREFS_PREFIX = "qaqm-dev-publish-prefs";
 const MAX_AUTHOR_PREFS = 30;
@@ -533,7 +534,7 @@ function PublishModDialog({
       }));
       setPhase("done");
     } else if (msg.type === "error") {
-      addLog(`❌ ${msg.message}`, "error");
+      addLog(`${msg.message}`, "error");
       setResultMessage(msg.message);
       setPhase("error");
     }
@@ -606,7 +607,7 @@ function PublishModDialog({
       scriptPath: devConfig.scriptPath,
     });
     if (!result.success) {
-      addLog(`❌ 启动失败: ${result.error}`, "error");
+      addLog(`启动失败: ${result.error}`, "error");
       setResultMessage(result.error);
       setPhase("error");
       cleanupRef.current?.();
@@ -643,7 +644,7 @@ function PublishModDialog({
       scriptPath: devConfig.scriptPath,
     });
     if (!result.success) {
-      addLog(`❌ 启动失败: ${result.error}`, "error");
+      addLog(`启动失败: ${result.error}`, "error");
       setResultMessage(result.error);
       setPhase("error");
       cleanupRef.current?.();
@@ -659,7 +660,7 @@ function PublishModDialog({
           taskId: previousTaskId,
         })
         .catch(() => {});
-      addLog("⏹️ 已请求停止当前发布进程，准备只重传 R2", "warn");
+      addLog("已请求停止当前发布进程，准备只重传 R2", "warn");
     }
     await window.api.devSavePublishConfig(devConfig);
     persistPublishPrefs();
@@ -693,32 +694,26 @@ function PublishModDialog({
       scriptPath: devConfig.scriptPath,
     });
     if (!result.success) {
-      addLog(`❌ 启动失败: ${result.error}`, "error");
+      addLog(`启动失败: ${result.error}`, "error");
       setResultMessage(result.error);
       setPhase("error");
       cleanupRef.current?.();
       cleanupRef.current = null;
     }
   }
-  const logColor = {
-    info: "#d1d5db",
-    warn: "#fbbf24",
-    error: "#f87171",
-    progress: "#818cf8",
-  };
   if (!visible) return null;
   return ReactDOM.createPortal(
-    <div
-      onClick={handleRequestClose}
-      className="publish-mod-dialog-request-close-action"
-    >
+    <div className="modal-backdrop" onClick={handleRequestClose}>
       <div
+        className="dev-panel dev-panel-lg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="publish-title"
         onClick={(e) => e.stopPropagation()}
-        className="publish-mod-dialog-stack"
       >
-        <div className="publish-mod-dialog-row">
-          <div>
-            <div className="publish-mod-dialog-heading">
+        <header className="dev-panel-head">
+          <div className="dev-panel-heading">
+            <h2 id="publish-title" className="dev-panel-title">
               {phase === "form"
                 ? t("market.publish.title")
                 : phase === "publishing"
@@ -726,140 +721,95 @@ function PublishModDialog({
                   : phase === "done"
                     ? t("market.publish.success")
                     : t("market.publish.failed")}
-            </div>
-            <div className="publish-mod-dialog-hint">
+            </h2>
+            <span className="dev-panel-sub">
               {characterName}
               {" · "}
               {modName}
-            </div>
+            </span>
           </div>
           <button
+            type="button"
+            className="icon-btn icon-btn-sm"
             onClick={handleRequestClose}
-            className="publish-mod-dialog-close-icon"
+            aria-label={t("common.actions.close")}
+            title={t("common.actions.close")}
           >
-            {"✕"}
+            <Icon name="x" size={15} />
           </button>
-        </div>
-        <div className="publish-mod-dialog-content">
+        </header>
+        <div className="dev-panel-body">
           {phase === "form" && (
-            <div>
-              <div className="publish-mod-dialog-preview-and-options">
-                <div className="publish-mod-dialog-preview-frame">
+            <React.Fragment>
+              <div className="publish-form">
+                <div className="publish-preview">
                   {previewDataUrl ? (
-                    <img
-                      src={previewDataUrl}
-                      alt=""
-                      className="publish-mod-dialog-preview-image"
-                    />
+                    <img src={previewDataUrl} alt="" />
                   ) : (
-                    <div className="publish-mod-dialog-preview-placeholder">
-                      {"🖼️"}
-                    </div>
+                    <Icon name="image" size={24} />
                   )}
                 </div>
-                <div className="publish-mod-dialog-flex-content">
-                  <div className="publish-mod-dialog-option-field">
-                    <label className="publish-mod-dialog-field-label">
-                      {t("market.publish.gameVersion")}
-                    </label>
-                    {gameVersions.length > 0 ? (
-                      <div className="publish-mod-dialog-game-version-options">
-                        {gameVersions.map((gv) => (
-                          <button
-                            onClick={() => selectGameVersion(gv.version)}
-                            style={{
-                              borderRadius: "10px",
-                              border:
-                                gameVersion === gv.version
-                                  ? "none"
-                                  : "1px solid #e5e7eb",
-                              background:
-                                gameVersion === gv.version ? "#6366f1" : "#fff",
-                              color:
-                                gameVersion === gv.version ? "#fff" : "#6b7280",
-                            }}
-                            key={gv.id}
-                            className="publish-mod-dialog-action"
-                          >
-                            {gv.version}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="publish-mod-dialog-mod-version-options">
-                        {["v1.0", "v1.1", "v1.2", "v2.0"].map((v) => (
-                          <button
-                            onClick={() => selectGameVersion(v)}
-                            style={{
-                              borderRadius: "10px",
-                              border:
-                                version === v ? "none" : "1px solid #e5e7eb",
-                              background: version === v ? "#6366f1" : "#fff",
-                              color: version === v ? "#fff" : "#6b7280",
-                            }}
-                            key={v}
-                            className="publish-mod-dialog-version-option"
-                          >
-                            {v}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                <div className="publish-fields">
+                  <div className="dev-field">
+                    <span>{t("market.publish.gameVersion")}</span>
+                    <div className="dev-chips">
+                      {gameVersions.length > 0
+                        ? gameVersions.map((gv) => (
+                            <button
+                              type="button"
+                              className={`chip ${gameVersion === gv.version ? "active" : ""}`}
+                              aria-pressed={gameVersion === gv.version}
+                              onClick={() => selectGameVersion(gv.version)}
+                              key={gv.id}
+                            >
+                              {gv.version}
+                            </button>
+                          ))
+                        : ["v1.0", "v1.1", "v1.2", "v2.0"].map((v) => (
+                            <button
+                              type="button"
+                              className={`chip ${version === v ? "active" : ""}`}
+                              aria-pressed={version === v}
+                              onClick={() => selectGameVersion(v)}
+                              key={v}
+                            >
+                              {v}
+                            </button>
+                          ))}
+                    </div>
                     <input
                       type="text"
+                      className="input"
                       value={gameVersion || version}
                       onChange={(e) => selectGameVersion(e.target.value)}
                       placeholder={t("market.publish.customVersion")}
-                      className="publish-mod-dialog-input-field"
                     />
                   </div>
-                  <div className="publish-mod-dialog-option-field">
-                    <label className="publish-mod-dialog-field-label">
-                      {t("characters.mode.title")}
-                    </label>
-                    <div className="publish-mod-dialog-mod-mode-options">
+                  <div className="dev-field">
+                    <span>{t("characters.mode.title")}</span>
+                    <div className="segmented">
                       {[
-                        {
-                          value: "d3d",
-                          label: "3dm",
-                        },
-                        {
-                          value: "pak",
-                          label: "Pak",
-                        },
+                        { value: "d3d", label: "3dm" },
+                        { value: "pak", label: "Pak" },
                       ].map((item) => (
                         <button
+                          type="button"
+                          className={modMode === item.value ? "active" : ""}
                           onClick={() => {
                             setModMode(item.value);
                             setUserDirty(true);
                           }}
-                          style={{
-                            borderRadius: "10px",
-                            border:
-                              modMode === item.value
-                                ? "none"
-                                : "1px solid #e5e7eb",
-                            background:
-                              modMode === item.value
-                                ? item.value === "pak"
-                                  ? "#dc2626"
-                                  : "#6366f1"
-                                : "#fff",
-                            color: modMode === item.value ? "#fff" : "#6b7280",
-                          }}
                           key={item.value}
-                          className="publish-mod-dialog-action-spaced"
                         >
                           {item.label}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <div>
-                    <label className="publish-mod-dialog-field-label">
-                      {t("market.publish.optionalDescription")}
-                    </label>
+                  <label className="dev-field">
+                    <span>{t("market.publish.optionalDescription")}</span>
                     <textarea
+                      className="textarea"
                       value={description}
                       onChange={(e) => {
                         setDescription(e.target.value);
@@ -867,39 +817,34 @@ function PublishModDialog({
                       }}
                       placeholder={`${characterName} - ${modName}`}
                       rows={2}
-                      className="publish-mod-dialog-textarea-field"
                     />
-                  </div>
-                  <div className="publish-mod-dialog-author-fields">
-                    <div>
-                      <label className="publish-mod-dialog-field-label">
-                        {t("market.publish.optionalAuthor")}
-                      </label>
+                  </label>
+                  <div className="dev-field-pair">
+                    <label className="dev-field">
+                      <span>{t("market.publish.optionalAuthor")}</span>
                       <input
                         type="text"
+                        className="input"
                         value={author}
                         list={authorDatalistId}
                         onChange={(e) => handleAuthorChange(e.target.value)}
                         placeholder={t("market.publish.authorName")}
-                        className="publish-mod-dialog-input-field"
                       />
                       <datalist id={authorDatalistId}>
                         {publishPrefs.authors.map((item) => (
                           <option value={item.name} key={item.name} />
                         ))}
                       </datalist>
-                    </div>
-                    <div>
-                      <label className="publish-mod-dialog-field-label">
-                        {t("market.publish.optionalSource")}
-                      </label>
+                    </label>
+                    <label className="dev-field">
+                      <span>{t("market.publish.optionalSource")}</span>
                       <input
                         type="url"
+                        className="input"
                         value={sourceUrl}
                         list={sourceDatalistId}
                         onChange={(e) => handleSourceUrlChange(e.target.value)}
                         placeholder="https://..."
-                        className="publish-mod-dialog-input-field"
                       />
                       <datalist id={sourceDatalistId}>
                         {sourceOptions.map((item) => (
@@ -910,140 +855,106 @@ function PublishModDialog({
                           />
                         ))}
                       </datalist>
-                    </div>
+                    </label>
                   </div>
                 </div>
               </div>
-              <div className="publish-mod-dialog-section">
-                <label className="publish-mod-dialog-tags-heading">
-                  {t("market.fields.tags")}
+              <section className="dev-section">
+                <div className="dev-section-title">
+                  <span>{t("market.fields.tags")}</span>
                   {localTags.length > 0 && (
-                    <span className="publish-mod-dialog-selected-tag-count">
+                    <em>
                       {t("market.publish.localTagsSelected", {
                         localTagsCount: localTags.length,
                       })}
-                    </span>
+                    </em>
                   )}
                   <button
+                    type="button"
+                    className="link-btn dev-section-action"
                     onClick={loadTagsAndLocalTags}
-                    className="publish-mod-dialog-load-tags-and-local-tags-action"
                   >
                     {t("common.actions.refresh")}
                   </button>
-                </label>
+                </div>
                 {tagsLoading ? (
-                  <div className="publish-mod-dialog-tags-status">
+                  <div className="dev-note">
+                    <span className="spinner" aria-hidden="true" />
                     {t("market.publish.connectingTagServer")}
                   </div>
                 ) : tagsError ? (
-                  <div className="publish-mod-dialog-tag-error">
+                  <div className="notice notice-danger" role="alert">
+                    <Icon name="alert" size={14} />
                     <span>{tagsError}</span>
-                    <button
-                      onClick={loadTagsAndLocalTags}
-                      className="publish-mod-dialog-retry-tags"
-                    >
+                    <button type="button" className="btn btn-sm" onClick={loadTagsAndLocalTags}>
                       {t("common.actions.retry")}
                     </button>
                   </div>
                 ) : availableTags.length === 0 ? (
-                  <div className="publish-mod-dialog-tags-status">
-                    {t("market.publish.noServerTags")}
-                  </div>
+                  <div className="dev-note">{t("market.publish.noServerTags")}</div>
                 ) : (
-                  <div className="publish-mod-dialog-tag-options">
+                  <div className="dev-chips">
                     {availableTags.map((tag) => {
                       const sel = selectedTags.includes(tag.id || tag.name);
                       return (
                         <button
+                          type="button"
+                          className={`chip ${sel ? "active" : ""}`}
+                          aria-pressed={sel}
                           onClick={() => toggleTag(tag.id || tag.name)}
-                          style={{
-                            borderRadius: "10px",
-                            border: sel ? "none" : "1px solid #e5e7eb",
-                            background: sel ? tag.color || "#6366f1" : "#fff",
-                            color: sel ? "#fff" : "#6b7280",
-                          }}
                           key={tag.id || tag.name}
-                          className="publish-mod-dialog-tag-option"
                         >
-                          {sel ? "✓ " : ""}
                           {tag.name}
                         </button>
                       );
                     })}
                   </div>
                 )}
+              </section>
+              <div className="publish-switches">
+                <div className="publish-switch">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isNsfw}
+                    aria-label={t("market.publish.adultOnly")}
+                    className={`toggle-switch-refined ${isNsfw ? "active" : ""}`}
+                    onClick={() => {
+                      setIsNsfw(!isNsfw);
+                      setUserDirty(true);
+                    }}
+                  />
+                  <span>{t("market.publish.adultOnly")}</span>
+                </div>
+                <div className="publish-switch">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={useAdultImageHost}
+                    aria-label={t("market.publish.adultImage")}
+                    className={`toggle-switch-refined ${useAdultImageHost ? "active" : ""}`}
+                    onClick={() => {
+                      setUseAdultImageHost(!useAdultImageHost);
+                      setUserDirty(true);
+                    }}
+                  />
+                  <span>{t("market.publish.adultImage")}</span>
+                </div>
               </div>
-              <label className="publish-mod-dialog-content-option">
-                <div
-                  onClick={() => {
-                    setIsNsfw(!isNsfw);
-                    setUserDirty(true);
-                  }}
-                  style={{
-                    background: isNsfw ? "#ef4444" : "#d1d5db",
-                  }}
-                  className="publish-mod-dialog-option-switch"
-                >
-                  <div
-                    style={{
-                      left: isNsfw ? 18 : 2,
-                    }}
-                    className="publish-mod-dialog-option-switch-thumb"
-                  />
-                </div>
-                <span
-                  style={{
-                    color: isNsfw ? "#ef4444" : "#6b7280",
-                  }}
-                  className="publish-mod-dialog-content-option-label"
-                >
-                  {t("market.publish.adultOnly")}
-                </span>
-              </label>
-              <label className="publish-mod-dialog-content-option">
-                <div
-                  onClick={() => {
-                    setUseAdultImageHost(!useAdultImageHost);
-                    setUserDirty(true);
-                  }}
-                  style={{
-                    background: useAdultImageHost ? "#ef4444" : "#d1d5db",
-                  }}
-                  className="publish-mod-dialog-option-switch"
-                >
-                  <div
-                    style={{
-                      left: useAdultImageHost ? 18 : 2,
-                    }}
-                    className="publish-mod-dialog-option-switch-thumb"
-                  />
-                </div>
-                <span
-                  style={{
-                    color: useAdultImageHost ? "#ef4444" : "#6b7280",
-                  }}
-                  className="publish-mod-dialog-content-option-label"
-                >
-                  {t("market.publish.adultImage")}
-                </span>
-              </label>
-              <div className="publish-mod-dialog-developer-settings">
+              <section className="dev-section">
                 <button
+                  type="button"
+                  className="dev-log-toggle"
+                  aria-expanded={showDevConfig}
                   onClick={() => setShowDevConfig(!showDevConfig)}
-                  className="publish-mod-dialog-developer-settings-toggle"
                 >
-                  {t("settings.developer.expandHeading", {
-                    status: showDevConfig ? "▼" : "▶",
-                  })}
+                  <Icon name={showDevConfig ? "chevron-down" : "chevron-right"} size={14} />
+                  {t("settings.developer.expandHeading", { status: "" })}
                 </button>
                 {showDevConfig && (
-                  <div className="publish-mod-dialog-tool-path-list">
+                  <div className="dev-rows">
                     {[
-                      {
-                        key: "pythonPath",
-                        label: "Python",
-                        placeholder: "python",
-                      },
+                      { key: "pythonPath", label: "Python", placeholder: "python" },
                       {
                         key: "winrarPath",
                         label: "WinRAR",
@@ -1055,15 +966,11 @@ function PublishModDialog({
                         placeholder: t("market.publish.scriptPath"),
                       },
                     ].map(({ key, label, placeholder }) => (
-                      <div
-                        key={key}
-                        className="publish-mod-dialog-tool-path-row"
-                      >
-                        <span className="publish-mod-dialog-tool-path-label">
-                          {label}
-                        </span>
+                      <div key={key} className="dev-row">
+                        <span className="dev-row-meta publish-tool-label">{label}</span>
                         <input
                           type="text"
+                          className="input dev-row-input"
                           value={devConfig[key] || ""}
                           onChange={(e) =>
                             setDevConfig((prev) => ({
@@ -1072,9 +979,12 @@ function PublishModDialog({
                             }))
                           }
                           placeholder={placeholder}
-                          className="publish-mod-dialog-tool-path-input"
                         />
                         <button
+                          type="button"
+                          className="icon-btn icon-btn-sm"
+                          aria-label={t("common.actions.selectNamed", { label })}
+                          title={t("common.actions.selectNamed", { label })}
                           onClick={async () => {
                             const r = await window.api.selectFile({
                               title: t("common.actions.selectNamed", {
@@ -1093,103 +1003,86 @@ function PublishModDialog({
                                 [key]: r.filePath,
                               }));
                           }}
-                          className="publish-mod-dialog-browse-tool-path"
                         >
-                          {"..."}
+                          <Icon name="folder" size={14} />
                         </button>
                       </div>
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
+              </section>
+            </React.Fragment>
           )}
-          {(phase === "publishing" ||
-            phase === "done" ||
-            phase === "error") && (
-            <div>
+          {(phase === "publishing" || phase === "done" || phase === "error") && (
+            <React.Fragment>
               {phase === "publishing" && (
-                <div className="publish-mod-dialog-section">
-                  <div className="publish-mod-dialog-progress-status">
+                <section className="dev-section">
+                  <div className="dev-progress-head">
                     <span>{progressMessage}</span>
-                    <span>
+                    <em>
                       {progressStep}
                       {"/"}
                       {progressTotal}
-                    </span>
+                    </em>
                   </div>
                   {uploadMetrics?.speed && (
-                    <div className="publish-mod-dialog-upload-metrics">
+                    <div className="dev-progress-head">
                       <span>
                         {t("market.publish.r2UploadSpeed", {
                           speed: uploadMetrics.speed,
                         })}
                       </span>
                       {uploadMetrics.percent && (
-                        <span>
+                        <em>
                           {uploadMetrics.percent}
                           {"% · "}
                           {uploadMetrics.transferred}
                           {"/"}
                           {uploadMetrics.total}
-                        </span>
+                        </em>
                       )}
                     </div>
                   )}
-                  <div className="publish-mod-dialog-progress-track">
+                  <div className="progress-track">
                     <div
+                      className="progress-fill"
                       style={{
                         width: `${progressTotal > 0 ? (progressStep / progressTotal) * 100 : 0}%`,
                       }}
-                      className="publish-mod-dialog-progress-fill"
                     />
                   </div>
                   {resultLinks.modId && progressStep >= 4 && (
-                    <button
-                      onClick={handleRetryR2}
-                      className="publish-mod-dialog-retry-r2-action"
-                    >
-                      {t("market.publish.stopAndRetryR2")}
-                    </button>
+                    <div>
+                      <button type="button" className="btn btn-sm" onClick={handleRetryR2}>
+                        {t("market.publish.stopAndRetryR2")}
+                      </button>
+                    </div>
                   )}
-                </div>
+                </section>
               )}
               {phase === "done" && (
-                <div className="publish-mod-dialog-heading-emphasis">
-                  {resultMessage}
-                  {resultLinks.modId && (
-                    <div className="publish-mod-dialog-content-emphasis">
-                      {t("market.publish.marketId", {
-                        modId: resultLinks.modId,
-                      })}
-                    </div>
-                  )}
-                  {resultLinks.quark && (
-                    <div className="publish-mod-dialog-quark-result">
-                      {t("market.publish.quarkLinkSaved")}
-                    </div>
-                  )}
-                  {resultLinks.baidu && (
-                    <div className="publish-mod-dialog-baidu-result">
-                      {t("market.publish.baiduLinkSaved")}
-                    </div>
-                  )}
-                  {uploadMetrics?.speed && (
-                    <div className="publish-mod-dialog-upload-speed-result">
-                      {t("market.publish.r2Speed", {
-                        speed: uploadMetrics.speed,
-                      })}
-                    </div>
-                  )}
+                <div className="notice notice-success">
+                  <Icon name="check" size={14} />
+                  <div className="dev-notice-body">
+                    <div>{resultMessage}</div>
+                    {resultLinks.modId && (
+                      <div>{t("market.publish.marketId", { modId: resultLinks.modId })}</div>
+                    )}
+                    {resultLinks.quark && <div>{t("market.publish.quarkLinkSaved")}</div>}
+                    {resultLinks.baidu && <div>{t("market.publish.baiduLinkSaved")}</div>}
+                    {uploadMetrics?.speed && (
+                      <div>{t("market.publish.r2Speed", { speed: uploadMetrics.speed })}</div>
+                    )}
+                  </div>
                 </div>
               )}
               {phase === "error" && (
-                <div className="publish-mod-dialog-error-result">
-                  <div className="publish-mod-dialog-flex-content">
-                    {"❌ "}
-                    {resultMessage}
-                  </div>
+                <div className="notice notice-danger" role="alert">
+                  <Icon name="alert" size={14} />
+                  <span className="dev-notice-body selectable">{resultMessage}</span>
                   <button
+                    type="button"
+                    className="btn btn-sm"
                     onClick={() => {
                       navigator.clipboard.writeText(
                         resultMessage +
@@ -1197,135 +1090,97 @@ function PublishModDialog({
                           logs.map((l) => l.message).join("\n"),
                       );
                     }}
-                    className="publish-mod-dialog-danger-action"
                   >
                     {t("market.cloud.copyLogs")}
                   </button>
                 </div>
               )}
               {logs.length > 0 && (
-                <div>
+                <section className="dev-section">
                   <button
+                    type="button"
+                    className="dev-log-toggle"
+                    aria-expanded={!logsCollapsed}
                     onClick={() => setLogsCollapsed(!logsCollapsed)}
-                    className="publish-mod-dialog-logs-toggle"
                   >
-                    {t("market.cloud.logsHeading", {
-                      status: logsCollapsed ? "▶" : "▼",
-                      logsCount: logs.length,
-                    })}
+                    <Icon name={logsCollapsed ? "chevron-right" : "chevron-down"} size={14} />
+                    {t("market.cloud.logsHeading", { logsCount: logs.length })}
                   </button>
                   {!logsCollapsed && (
-                    <div
-                      data-log-content={true}
-                      className="publish-mod-dialog-panel"
-                    >
+                    <div data-log-content={true} className="dev-log selectable">
                       {logs.map((log, i) => (
-                        <div
-                          style={{
-                            color: logColor[log.level] || "#d1d5db",
-                          }}
-                          key={i}
-                          className="publish-mod-dialog-log-entry"
-                        >
+                        <div key={i} className={`dev-log-line is-${log.level}`}>
                           {log.message}
                         </div>
                       ))}
-                      {phase === "publishing" && (
-                        <div className="publish-mod-dialog-log-cursor">
-                          {"▋"}
-                        </div>
-                      )}
                       <div ref={logEndRef} />
                     </div>
                   )}
-                </div>
+                </section>
               )}
-            </div>
+            </React.Fragment>
           )}
         </div>
-        <div className="publish-mod-dialog-actions">
+        <footer className="dev-panel-foot">
           {phase === "form" && (
             <React.Fragment>
-              <button
-                onClick={handleRequestClose}
-                className="publish-mod-dialog-cancel-button"
-              >
+              <button type="button" className="btn" onClick={handleRequestClose}>
                 {t("common.actions.cancel")}
               </button>
-              <button
-                onClick={() => handleSupplementLink(["baidu"])}
-                className="publish-mod-dialog-action-emphasis"
-              >
+              <span className="dev-panel-foot-spacer" />
+              <button type="button" className="btn" onClick={() => handleSupplementLink(["baidu"])}>
                 {t("market.publish.fillBaidu")}
               </button>
-              <button
-                onClick={() => handleSupplementLink(["quark"])}
-                className="publish-mod-dialog-supplement-link"
-              >
+              <button type="button" className="btn" onClick={() => handleSupplementLink(["quark"])}>
                 {t("market.publish.fillQuark")}
               </button>
-              <button
-                onClick={handleRetryR2}
-                className="publish-mod-dialog-retry-r2-action-emphasis"
-              >
+              <button type="button" className="btn" onClick={handleRetryR2}>
                 {t("market.publish.fillR2")}
               </button>
               <button
+                type="button"
+                className="btn"
                 onClick={() => handleSupplementLink(["baidu", "quark"])}
-                className="publish-mod-dialog-primary-action"
               >
                 {t("market.publish.fillBothClouds")}
               </button>
-              <button
-                onClick={handlePublish}
-                className="publish-mod-dialog-publish-action"
-              >
+              <button type="button" className="btn btn-primary" onClick={handlePublish}>
                 {t("market.publish.publish")}
               </button>
             </React.Fragment>
           )}
           {phase === "publishing" && (
-            <button
-              onClick={handleRequestClose}
-              className="publish-mod-dialog-cancel-button"
-            >
+            <button type="button" className="btn" onClick={handleRequestClose}>
               {t("common.actions.minimize")}
             </button>
           )}
           {(phase === "done" || phase === "error") && (
             <React.Fragment>
-              <button
-                onClick={() => window.api.devOpenLogsFolder()}
-                className="publish-mod-dialog-open-logs"
-              >
+              <button type="button" className="btn btn-ghost" onClick={() => window.api.devOpenLogsFolder()}>
                 {t("market.publish.openLogs")}
               </button>
-              <button
-                onClick={handleRetryR2}
-                className="publish-mod-dialog-retry-upload"
-              >
+              <span className="dev-panel-foot-spacer" />
+              <button type="button" className="btn" onClick={handleRetryR2}>
                 {t("market.publish.retryR2Only")}
               </button>
               {phase === "error" && (
                 <button
+                  type="button"
+                  className="btn"
                   onClick={() => {
                     setPhase("form");
                     setLogs([]);
                   }}
-                  className="publish-mod-dialog-cancel-button"
                 >
                   {t("common.actions.retry")}
                 </button>
               )}
-              <button
-                onClick={onClose}
-                className="publish-mod-dialog-close-action"
-              >
+              <button type="button" className="btn btn-primary" onClick={onClose}>
                 {t("common.actions.finish")}
               </button>
             </React.Fragment>
           )}
-        </div>
+        </footer>
       </div>
     </div>,
     document.body,
