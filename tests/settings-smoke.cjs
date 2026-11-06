@@ -124,14 +124,13 @@ module.exports = async function testSettings({ evaluate, waitFor, captureUI, win
   assert.deepEqual(await evaluate(`[...document.querySelectorAll('#settings-theme .segmented button')].map(e => e.textContent.trim())`), ['深色', '浅色', '跟随系统']);
   assert.equal(await evaluate(`document.documentElement.dataset.theme`), 'dark', 'dark is the default theme');
   await evaluate(`[...document.querySelectorAll('#settings-theme .segmented button')].find(e => e.textContent.trim() === '浅色').click()`);
-  await waitFor(`document.documentElement.dataset.theme === 'light'`, 'light theme applies');
-  assert.equal(await evaluate(`getComputedStyle(document.body).backgroundColor`), 'rgb(243, 242, 245)');
+  await waitFor(`document.documentElement.dataset.theme === 'light' && getComputedStyle(document.body).backgroundColor === 'rgb(243, 242, 245)'`, 'light theme styles apply');
   await window.loadFile(path.join(process.resourcesPath, 'app/out/renderer/index.html'));
   await waitFor(`!!document.querySelector('.topbar-settings') && document.documentElement.dataset.theme === 'light'`, 'theme survives reload');
   await click('.topbar-settings');
   await waitFor(`!!document.querySelector('#settings-theme .segmented button')`, 'return to appearance');
   await evaluate(`[...document.querySelectorAll('#settings-theme .segmented button')].find(e => e.textContent.trim() === '深色').click()`);
-  await waitFor(`document.documentElement.dataset.theme === 'dark'`, 'dark theme restores');
+  await waitFor(`document.documentElement.dataset.theme === 'dark' && getComputedStyle(document.body).backgroundColor === 'rgb(17, 16, 21)'`, 'dark theme styles restore');
   passed('Theme mode is offline, survives a reload and has no entitlement records');
   // Electron 28's hidden offscreen compositor needs a resize after a same-size reload.
   const [surfaceWidth, surfaceHeight] = window.getSize();
