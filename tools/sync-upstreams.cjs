@@ -38,10 +38,10 @@ function assertPublished(git, directory, remoteRef) {
 
 // A fork that moves faster than the rest stays where it is when a merge does not go through,
 // so one conflict cannot hold up every other component and the release.
-function mergeOptional(git, directory, upstreamRef, verify) {
+function mergeOptional(git, directory, upstreamRef, verify, message) {
   const before = git(directory, ['rev-parse', 'HEAD']).stdout;
   try {
-    return { changed: mergeUpstream(git, directory, upstreamRef, verify) };
+    return { changed: mergeUpstream(git, directory, upstreamRef, verify, message) };
   } catch (error) {
     git(directory, ['merge', '--abort'], { allowed: [0, 128] });
     // A fast-forward has already moved HEAD by the time its check fails.
@@ -50,13 +50,13 @@ function mergeOptional(git, directory, upstreamRef, verify) {
   }
 }
 
-function mergeUpstream(git, directory, upstreamRef, verify = () => {}) {
+function mergeUpstream(git, directory, upstreamRef, verify = () => {}, message = 'Merge ' + upstreamRef) {
   if (git(directory, ['merge-base', '--is-ancestor', upstreamRef, 'HEAD'], { allowed: [0, 1] }).status === 0) { verify(false); return false; }
   const result = git(directory, ['merge', '--no-commit', upstreamRef], { allowed: [0, 1] });
   if (result.status) throw Error('Upstream merge conflict; the review checkout is preserved at ' + directory);
   git(directory, ['diff', '--check']);
   verify(true);
-  if (git(directory, ['rev-parse', '-q', '--verify', 'MERGE_HEAD'], { allowed: [0, 1, 128] }).status === 0) git(directory, ['commit', '--no-gpg-sign', '-m', '[P] update']);
+  if (git(directory, ['rev-parse', '-q', '--verify', 'MERGE_HEAD'], { allowed: [0, 1, 128] }).status === 0) git(directory, ['commit', '--no-gpg-sign', '-m', message]);
   return true;
 }
 
@@ -101,8 +101,9 @@ async function syncUpstreams({ client } = {}) {
     let changed = false, skipped = null;
     for (const ref of [`upstream/${upstreamBranch}`, ...(item.also || []).map(branch => `origin/${branch}`)]) {
       if (ref.startsWith('origin/')) git(directory, ['fetch', '--no-tags', 'origin', `${ref.slice(7)}:refs/remotes/${ref}`]);
-      if (!item.optional) { changed = mergeUpstream(git, directory, ref, verify) || changed; continue; }
-      const result = mergeOptional(git, directory, ref, verify);
+      const message = ref.startsWith('origin/') ? `Merge ${ref.slice(7)} into ${item.branch}` : `Merge upstream ${item.upstream} into ${item.branch}`;
+      if (!item.optional) { changed = mergeUpstream(git, directory, ref, verify, message) || changed; continue; }
+      const result = mergeOptional(git, directory, ref, verify, message);
       changed = result.changed || changed;
       skipped ||= result.skipped;
     }

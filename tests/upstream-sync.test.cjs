@@ -29,7 +29,7 @@ function fixture(t) {
   };
   const run = args => git(directory, args).stdout;
   const save = (file, text) => fs.writeFileSync(path.join(directory, file), text);
-  const commit = () => { run(['add', '--all']); run(['commit', '-m', '[P] update']); return run(['rev-parse', 'HEAD']); };
+  const commit = () => { run(['add', '--all']); run(['commit', '-m', 'Add fixture state']); return run(['rev-parse', 'HEAD']); };
   run(['init', '--initial-branch=main']);
   save('shared.txt', 'original\n'); commit(); run(['branch', 'upstream']);
   t.after(() => { assert.equal(path.dirname(fs.realpathSync(directory)), temporary); clearReadOnly(directory); fs.rmSync(directory, { recursive: true, force: true }); });
@@ -44,7 +44,7 @@ test('upstream synchronization merges new work and retains downstream fix histor
   f.run(['merge-base', '--is-ancestor', repair, 'HEAD']);
   f.run(['merge-base', '--is-ancestor', 'upstream', 'HEAD']);
   assert.equal(fs.readFileSync(path.join(f.directory, 'downstream.txt'), 'utf8'), 'local repair\n');
-  assert.equal(f.run(['show', '-s', '--format=%an|%cn|%s']), 'qaq-revival-publisher[bot]|qaq-revival-publisher[bot]|[P] update');
+  assert.equal(f.run(['show', '-s', '--format=%an|%cn|%s']), 'qaq-revival-publisher[bot]|qaq-revival-publisher[bot]|Merge upstream');
   assert.equal(mergeUpstream(f.git, f.directory, 'upstream'), false);
 });
 
