@@ -53,6 +53,10 @@ function ComponentRow({ component, locked, onChoose, onUpdate }) {
           {component.reason && (
             <p className="settings-warning-text">{component.reason}</p>
           )}
+          {component.updates?.latest && <p className={component.updates.updateAvailable ? "settings-warning-text" : ""}>
+            {t(component.updates.updateAvailable ? "settings.mi.available" : "settings.mi.latest", { version: component.updates.latest })}
+          </p>}
+          {component.updates?.error && <p className="settings-error">{t("games.updates.failed")}</p>}
           {component.canUpdateOfficial && (
             <p>{t(`settings.mi.fork.${id}.${component.switchable === false && id === "core" ? "officialUpdateHint" : "updateHint"}`)}</p>
           )}

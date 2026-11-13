@@ -23,7 +23,8 @@ module.exports = async ({ electron, handlers, root, evaluate, waitFor, captureUI
   const state = await call('xxmi:status', 'wuthering-waves');
   assert.equal(state.success, true, JSON.stringify(state));
   assert.equal(state.root, xxmi);
-  assert.equal(state.components.length, 1);
+  assert.equal(state.components.length, 3);
+  assert.deepEqual(state.components.map(item => item.id), ['Launcher', 'XXMI', 'WWMI']);
   assert.equal(state.components[0].id, 'Launcher');
   assert.ok(state.components[0].installed);
   assert.equal(state.fork.ready, true);

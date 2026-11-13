@@ -5,6 +5,7 @@ import os
 import ctypes
 import io
 import zipfile
+from types import SimpleNamespace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,6 +13,27 @@ import worker
 
 
 class InstallerTests(unittest.TestCase):
+    def test_component_checks_keep_failures_separate_and_do_not_install(self):
+        from unittest.mock import Mock
+        packages = []
+        for name, installed, latest in [("XXMI", "1.2.2", "1.2.3"), ("WWMI", "1.1.0", "1.1.0"), ("GIMI", "", "1.0.0")]:
+            packages.append(SimpleNamespace(metadata=SimpleNamespace(package_name=name, github_repo_owner="SpectrumQT", github_repo_name=name + "-Package"),
+                                            get_installed_version=Mock(return_value=installed), cfg=SimpleNamespace(latest_version=latest),
+                                            detect_latest_version=Mock(), update=Mock(side_effect=AssertionError("check must not install"))))
+        states = worker.component_states(None, packages, check=True)
+        self.assertEqual([item["updateAvailable"] for item in states], [True, False, False])
+        packages[1].detect_latest_version.side_effect = ValueError("offline")
+        states = worker.component_states(None, packages, check=True)
+        self.assertTrue(states[0]["updateAvailable"])
+        self.assertEqual(states[1]["error"], "offline")
+        self.assertEqual(states[2]["latest"], "1.0.0")
+        for package in packages:
+            package.detect_latest_version.reset_mock()
+        worker.component_states(None, packages, check=False)
+        for package in packages:
+            package.detect_latest_version.assert_not_called()
+            package.update.assert_not_called()
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)

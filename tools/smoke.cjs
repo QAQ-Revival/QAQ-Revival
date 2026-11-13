@@ -30,7 +30,7 @@ const scopes = [
   'steam-bridge', 'hidden-characters', 'character-images', 'character-skins',
   'skin-cover-live', 'file-drop', 'persist', 'mod-sites', 'card-images',
   'overlay-activity', 'mod-layout', 'window-layout', 'post-links', 'market-scope',
-  'imports', 'sources', 'sorting', 'settings', 'wuwa-gacha', 'arknights', 'xxmi'
+  'imports', 'sources', 'sorting', 'settings', 'wuwa-gacha', 'arknights', 'xxmi', 'game-updates'
 ];
 const scope = scopes.find(name => process.argv.includes('--' + name));
 if (scope) env.QAQR_SMOKE_SCOPE = scope;

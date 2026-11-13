@@ -303,7 +303,7 @@
       "quit": "彻底退出",
       "cancel": "取消",
       "showWindow": "显示窗口",
-      "quitApplication": "完全退出",
+      "quitApplication": "退出",
       "mainWindowUnavailable": "主窗口不可用",
       "unknownWindowAction": "未知窗口操作",
       "rememberCloseChoice": "记住我的选择，不再提示"

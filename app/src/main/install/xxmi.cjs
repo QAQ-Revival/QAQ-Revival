@@ -47,7 +47,7 @@ function paths(gameId) {
   const game = settings.getGameById(gameId);
   if (!importer || !game) throw Error(i18n.t("settings.mi.unsupported"));
   const root = installPaths.deriveXxmiRootFromLoaderPath(game.modLoaderPath) || config.currentConfig.managedXxmiRoot || path.join(getDataRoot(), "XXMI");
-  return { root, workRoot: path.join(root, ".installer-work") };
+  return { root, workRoot: path.join(root, ".installer-work"), importer };
 }
 function runWorker(payload, onProgress = () => {}) {
   const built = component();
@@ -100,6 +100,21 @@ async function status(gameId, action = "status") {
   // In DX12 mode the game loads the ReShade add-on, so this DLL only applies once it is back on DX11.
   const fork = { ...maintained.status(gameId), runtimeInactive: settings.getGameById(gameId)?.wuwaDx12Enabled === true };
   const result = { ...await runWorker({ ...resolved, action }), fork };
+  if (action === "status") {
+    const previous = cache.get(gameId);
+    for (const component of result.components || []) {
+      const checked = previous?.components?.find(item => item.id === component.id);
+      if (checked?.latest) {
+        component.latest = checked.latest;
+        component.updateAvailable = !!component.installed && require("../games/update-versions.cjs").compareVersions(component.latest, component.installed) > 0;
+        component.error = checked.error;
+      }
+    }
+  }
+  for (const component of fork.components || []) {
+    const checked = result.components?.find(item => item.id === (component.id === "runtime" ? "XXMI" : resolved.importer));
+    if (checked) component.updates = checked;
+  }
   cache.set(gameId, result);
   return { ...result, ...resolved, busy: false };
 }
@@ -123,6 +138,7 @@ async function install({ gameId } = {}) {
   } finally {
     operation = null;
     cache.clear();
+    require("../games/updates.cjs").invalidate(gameId);
     for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId, root: resolved.root });
   }
 }
@@ -133,6 +149,7 @@ async function changeFork({ gameId, component, target, confirmed } = {}) {
   finally {
     operation = null;
     cache.clear();
+    require("../games/updates.cjs").invalidate(gameId);
     for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId });
   }
 }
@@ -155,6 +172,7 @@ async function updateOfficial({ gameId, component } = {}) {
   } finally {
     operation = null;
     cache.clear();
+    require("../games/updates.cjs").invalidate(gameId);
     changed();
   }
 }

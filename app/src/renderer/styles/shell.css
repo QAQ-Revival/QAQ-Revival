@@ -341,6 +341,14 @@
 .launch-actions {
   position: relative;
   margin-left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.game-update-notice {
+  white-space: nowrap;
+  color: var(--accent);
 }
 
 .launch-split {

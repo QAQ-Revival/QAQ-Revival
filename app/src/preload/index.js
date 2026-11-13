@@ -465,6 +465,14 @@ const api = {
   },
   // Autoinstall (Setup Wizard)
   xxmiStatus: (gameId) => electron.ipcRenderer.invoke("xxmi:status", gameId),
+  gameUpdateState: (gameId) => electron.ipcRenderer.invoke("game-updates:state", gameId),
+  gameUpdateCheck: (options) => electron.ipcRenderer.invoke("game-updates:check", options),
+  gameUpdateConfigure: (options) => electron.ipcRenderer.invoke("game-updates:configure", options),
+  onGameUpdatesChanged: (callback) => {
+    const handler = (_, value) => callback(value);
+    electron.ipcRenderer.on("game-updates:changed", handler);
+    return () => electron.ipcRenderer.removeListener("game-updates:changed", handler);
+  },
   xxmiCheck: (gameId) => electron.ipcRenderer.invoke("xxmi:check", gameId),
   xxmiInstall: (opts) => electron.ipcRenderer.invoke("xxmi:install", opts),
   xxmiForkSwitch: (opts) => electron.ipcRenderer.invoke("xxmi:fork-switch", opts),

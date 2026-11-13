@@ -16,5 +16,46 @@
     "checkPaths": "启动失败，请检查游戏和加载器路径",
     "moreOptions": "更多启动方式"
   },
-  "settingsLabel": "{{name}}设置"
+  "settingsLabel": "{{name}}设置",
+  "updates": {
+    "title": "游戏与组件更新",
+    "check": "检查游戏与组件更新",
+    "checking": "正在检查更新…",
+    "automatic": "自动检查游戏与组件更新",
+    "automaticHint": "每小时检查当前游戏，发现更新后在启动区提示。",
+    "region": "游戏版本来源",
+    "regionHint": "按安装信息自动识别；无法识别时请选择对应的服务器。",
+    "regions": {
+      "auto": "自动识别",
+      "cn": "国服官服",
+      "global": "国际服",
+      "bilibili": "哔哩哔哩服"
+    },
+    "client": "游戏客户端",
+    "unknown": "未识别",
+    "versions": "本机 {{installed}} · 最新 {{latest}}",
+    "preDownload": "可预下载 {{version}}（尚未作为正式更新提示）",
+    "openOfficial": "打开官方启动器",
+    "manageComponent": "管理组件",
+    "componentAvailable": "有官方更新，可在下方组件设置中更新。",
+    "notInstalled": "尚未安装，请先在组件设置中完成安装。",
+    "availableCount": "{{count}} 项更新",
+    "lastChecked": "上次检查：{{time}}",
+    "failed": "检查更新失败，请稍后重试。",
+    "miFailed": "XXMI 组件检查未完成，可重新检查或打开 XXMI 启动器。",
+    "storageError": "无法读取更新设置，原文件已保留。",
+    "states": {
+      "unchecked": "尚未检查",
+      "unconfigured": "请先设置有效的游戏路径。",
+      "regionRequired": "无法识别服务器，请选择游戏版本来源。",
+      "unsupported": "该渠道暂不支持在线版本比较，请用官方启动器检查。",
+      "incomplete": "官方启动器的更新尚未完成，请先完成更新。",
+      "current": "已是最新版本",
+      "available": "有游戏更新，请通过官方启动器安装。",
+      "ahead": "本机版本高于此来源公布的版本，请核对服务器。",
+      "unknown": "已获取官方版本；本机版本未识别，请用官方启动器核对。",
+      "verify": "本机安装清单与官方版本不同，请用官方启动器检查更新或校验。",
+      "error": "无法连接官方版本来源，请稍后重试。"
+    }
+  }
 }

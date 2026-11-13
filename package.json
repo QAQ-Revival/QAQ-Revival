@@ -1,6 +1,6 @@
 {
   "name": "qaq-revival",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "private": true,
   "license": "MIT",
   "description": "QAQ-Revival — locally maintained Mod manager",
@@ -13,6 +13,7 @@
     "test:genshin": "node --test tests/genshin.test.cjs tests/windows-launch.test.cjs && node tools/smoke.cjs --genshin",
     "test:random-launch": "node --test tests/random-executable.test.cjs tests/single-instance.test.cjs tests/windows-launch.test.cjs && node tests/random-runtime-smoke.cjs",
     "test:game-settings": "node --test tests/wuwa-tuning.test.cjs tests/wuwa-dx12.test.cjs tests/random-executable.test.cjs && node tools/smoke.cjs --game-settings",
+    "test:game-updates": "node --test tests/game-updates.test.cjs && node tools/smoke.cjs --game-updates",
     "test:electron": "node tools/smoke.cjs",
     "test:translation": "node --test tests/hotkey-translation.test.cjs && node tools/smoke.cjs --translation",
     "test:hidden-characters": "node --test tests/hidden-characters.test.cjs && node tools/smoke.cjs --hidden-characters",

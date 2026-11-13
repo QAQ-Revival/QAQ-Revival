@@ -71,6 +71,11 @@ fs.writeFileSync(path.join(profile, 'config.json'), JSON.stringify({
   ]
 }));
 if (process.env.QAQR_SMOKE_SCOPE === 'persist') require('./persist-smoke.cjs').prepare({ profile, mods, endfield });
+// Background checks are covered by game-updates-smoke; other smoke scopes stay offline,
+// including the Python component worker, which does not use global.fetch.
+fs.writeFileSync(path.join(profile, 'game-updates.json'), JSON.stringify({ games: Object.fromEntries(
+  ['wuthering-waves', 'endfield', 'genshin-impact', 'zzz', 'honkai-star-rail', 'arknights', 'neverness-to-everness'].map(id => [id, { enabled: false, region: 'auto' }])
+) }));
 if (process.env.QAQR_SMOKE_SCOPE === 'translation') {
   fs.writeFileSync(path.join(profile, 'hotkeys.json'), JSON.stringify({
     '安可/GroupedMod': { version: 8, scanned: true, hotkeys: [{ description: 'old merged cache', keys: ['8'] }] }
@@ -404,6 +409,11 @@ async function main() {
   if (process.env.QAQR_SMOKE_SCOPE === 'game-settings') {
     await require('./game-settings-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, handlers, passed, launchRequests,
       setSelection: result => { nextFixerSelection = result; } });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQR_SMOKE_SCOPE === 'game-updates') {
+    await require('./game-updates-smoke.cjs')({ electron, evaluate, waitFor, captureUI, root, handlers, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }

@@ -2,6 +2,7 @@ import { t } from "../../shared/i18n/index.mjs";
 import React from "react";
 import { Icon } from "./Icon.jsx";
 import { Menu, MenuItem } from "./Menu.jsx";
+import { useGameUpdates } from "../hooks/useGameUpdates.js";
 
 function LaunchIcon({ kind, launching }) {
   if (launching) return <span className="spinner launch-spinner" aria-hidden="true" />;
@@ -9,6 +10,7 @@ function LaunchIcon({ kind, launching }) {
 }
 
 function LaunchControls({ activeGame, settingsActive, onOpenSettings }) {
+  const updates = useGameUpdates(activeGame?.id);
   const [launching, setLaunching] = React.useState(null);
   const [error, setError] = React.useState("");
   const [notice, setNotice] = React.useState("");
@@ -114,6 +116,13 @@ function LaunchControls({ activeGame, settingsActive, onOpenSettings }) {
           </MenuItem>
           <div className="menu-sep" />
           <MenuItem
+            icon={<Icon name="refresh" />}
+            disabled={!activeGame?.id || updates.state?.checking}
+            onClick={() => { updates.check(true); onOpenSettings(); }}
+          >
+            {t(updates.state?.checking ? "games.updates.checking" : "games.updates.check")}
+          </MenuItem>
+          <MenuItem
             className={`game-settings-button${settingsActive ? " active" : ""}`}
             aria-label={t("navigation.gameSettings")}
             aria-current={settingsActive ? "page" : void 0}
@@ -127,6 +136,9 @@ function LaunchControls({ activeGame, settingsActive, onOpenSettings }) {
           </MenuItem>
         </Menu>
       </div>
+      {updates.count > 0 && <button type="button" className="btn btn-sm game-update-notice" onClick={onOpenSettings}>
+        {t("games.updates.availableCount", { count: updates.count })}
+      </button>}
       {(error || notice) && (
         <div
           className={`launch-popover ${error ? "launch-error" : "launch-notice"}`}

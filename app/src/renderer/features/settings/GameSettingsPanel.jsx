@@ -10,6 +10,7 @@ import { GenshinAntiErrorSettings } from "./GenshinAntiErrorSettings.jsx";
 import PersistStateManager from "./PersistStateBrowser.jsx";
 import { ArknightsSettings } from "../arknights/ArknightsTools.jsx";
 import { XxmiSettings } from "./XxmiSettings.jsx";
+import { GameUpdateSettings } from "./GameUpdateSettings.jsx";
 import {
   check,
   Button,
@@ -166,6 +167,7 @@ function GameSettings({ gameId, notify }) {
           </Notice>
         )}
       </Section>
+      <GameUpdateSettings key={game.id} gameId={game.id} notify={notify} />
       {game.id === "arknights" && (
         <ArknightsSettings notify={notify} gamePath={game.gamePath} />
       )}

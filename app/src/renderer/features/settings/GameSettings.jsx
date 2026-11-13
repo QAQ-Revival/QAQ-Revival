@@ -7,6 +7,7 @@ import { SettingsFrame } from "./SettingsControls.jsx";
 function getSections(gameId) {
   return [
     ["game-paths", "folder", t("settings.game.pathAndLaunch")],
+    ["game-updates", "refresh", t("games.updates.title")],
     ...(["endfield", "genshin-impact", "zzz", "wuthering-waves", "honkai-star-rail"].includes(gameId)
       ? [["xxmi-installer", "box", t("settings.mi.navigation")]]
       : []),

@@ -123,7 +123,7 @@ export function XxmiSettings({ gameId, notify, onPathsChanged }) {
         )}
         {state && (
           <React.Fragment>
-            {(state.components || []).map((component) => (
+            {(state.components || []).filter(component => component.id === "Launcher").map((component) => (
               <Row
                 key={component.id}
                 title={

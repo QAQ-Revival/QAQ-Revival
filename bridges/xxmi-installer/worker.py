@@ -158,6 +158,26 @@ def newer(candidate, installed):
         return all(part.isdigit() for part in candidate.split("."))
 
 
+def component_states(manager, packages, check=False):
+    """Read official release metadata without installing or saving configuration."""
+    states = []
+    for package in packages:
+        name = package.metadata.package_name
+        installed, latest, failure = "", "", ""
+        try:
+            installed = package.get_installed_version()
+            if check:
+                package.detect_latest_version()
+                latest = package.cfg.latest_version
+        except Exception as error:
+            failure = str(error)
+        states.append({"id": name, "installed": installed, "latest": latest,
+                       "updateAvailable": bool(installed) and newer(latest, installed),
+                       "error": failure,
+                       "source": f"https://github.com/{package.metadata.github_repo_owner}/{package.metadata.github_repo_name}"})
+    return states
+
+
 def execute(payload):
     if payload.get("action") == "update-component":
         return update_component(payload)
@@ -239,7 +259,23 @@ def execute(payload):
                 error = str(failure)
         state = {"id": "Launcher", "installed": installed, "latest": latest, "updateAvailable": newer(latest, installed), "error": error, "source": "https://github.com/SpectrumQT/XXMI-Launcher"}
         if action != "install":
-            return {"success": True, "components": [state]}
+            states = [state]
+            importer = payload.get("importer")
+            if importer in {"EFMI", "GIMI", "SRMI", "WWMI", "ZZMI"}:
+                from core.packages.migoto_package import MigotoPackage
+                from core.packages.model_importers.efmi_package import EFMIPackage
+                from core.packages.model_importers.gimi_package import GIMIPackage
+                from core.packages.model_importers.srmi_package import SRMIPackage
+                from core.packages.model_importers.wwmi_package import WWMIPackage
+                from core.packages.model_importers.zzmi_package import ZZMIPackage
+                factories = {"EFMI": EFMIPackage, "GIMI": GIMIPackage, "SRMI": SRMIPackage,
+                             "WWMI": WWMIPackage, "ZZMI": ZZMIPackage}
+                Config.Active = getattr(Config.Importers, importer)
+                packages = [MigotoPackage(), factories[importer]()]
+                for package in packages:
+                    manager.register_package(package)
+                states += component_states(manager, packages, check=action == "check")
+            return {"success": True, "components": states}
         installed_packages = []
         if state["updateAvailable"] or not installed:
             emit({"type": "progress", "stage": "install", "package": "XXMI Launcher"})

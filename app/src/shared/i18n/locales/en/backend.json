@@ -224,7 +224,7 @@
       "quit": "Quit",
       "cancel": "Cancel",
       "showWindow": "Show window",
-      "quitApplication": "Quit application",
+      "quitApplication": "Quit",
       "mainWindowUnavailable": "The main window is unavailable",
       "unknownWindowAction": "Unknown window action",
       "rememberCloseChoice": "Remember my choice"

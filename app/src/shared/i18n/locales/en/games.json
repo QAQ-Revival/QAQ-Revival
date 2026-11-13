@@ -16,5 +16,46 @@
     "checkPaths": "Launch failed. Check the game and loader paths.",
     "moreOptions": "More launch options"
   },
-  "settingsLabel": "{{name}} · Game settings"
+  "settingsLabel": "{{name}} · Game settings",
+  "updates": {
+    "title": "Game and component updates",
+    "check": "Check game and component updates",
+    "checking": "Checking for updates…",
+    "automatic": "Automatically check game and component updates",
+    "automaticHint": "Check the current game hourly and show available updates beside the launch button.",
+    "region": "Game version source",
+    "regionHint": "Detect the server from the installation, or select it when detection is unavailable.",
+    "regions": {
+      "auto": "Detect automatically",
+      "cn": "China official",
+      "global": "Global",
+      "bilibili": "Bilibili"
+    },
+    "client": "Game client",
+    "unknown": "Unknown",
+    "versions": "Installed {{installed}} · Latest {{latest}}",
+    "preDownload": "Pre-download {{version}} available (not counted as a live update)",
+    "openOfficial": "Open official launcher",
+    "manageComponent": "Manage component",
+    "componentAvailable": "An official update is available. Install it in the component settings below.",
+    "notInstalled": "Not installed. Complete installation in the component settings first.",
+    "availableCount": "{{count}} updates",
+    "lastChecked": "Last checked: {{time}}",
+    "failed": "Could not check for updates. Try again later.",
+    "miFailed": "The XXMI component check did not finish. Retry or open XXMI Launcher.",
+    "storageError": "Could not read update preferences. The original file was preserved.",
+    "states": {
+      "unchecked": "Not checked yet",
+      "unconfigured": "Set a valid game path first.",
+      "regionRequired": "Select the game version source to identify the server.",
+      "unsupported": "Online comparison is not supported for this channel. Check in the official launcher.",
+      "incomplete": "Finish the pending update in the official launcher first.",
+      "current": "Up to date",
+      "available": "A game update is available. Install it through the official launcher.",
+      "ahead": "The installed version is newer than this source. Check the selected server.",
+      "unknown": "Official version retrieved; installed version unknown. Verify in the official launcher.",
+      "verify": "The installed manifest differs from the official release. Check or repair in the official launcher.",
+      "error": "Could not reach the official version source. Try again later."
+    }
+  }
 }

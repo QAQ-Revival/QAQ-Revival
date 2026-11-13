@@ -60,6 +60,7 @@ function startApplication(runtimeIdentity) {
   require("./install/managed.cjs").registerIpc();
   require("./install/setup.cjs").registerIpc();
   require("./install/xxmi.cjs").registerIpc();
+  require("./games/updates.cjs").registerIpc();
   require("./fixes/service.cjs").registerIpc();
   require("./market/downloads.cjs").registerIpc();
   require("./market/install.cjs").registerIpc();
