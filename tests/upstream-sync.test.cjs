@@ -133,3 +133,18 @@ test('a fork allowed to fall behind is held back on a conflict or a failed check
   assert.equal(f.run(['status', '--porcelain']), '');
   assert.equal(mergeOptional(f.git, f.directory, 'clean-upstream', () => {}).changed, true);
 });
+
+test('a fork may keep submodules from outside the organization only when they are never checked out', t => {
+  const { verifyDownstream } = require('../tools/verify-downstream.cjs');
+  const directory = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'qaqr-downstream-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const modules = body => fs.writeFileSync(path.join(directory, '.gitmodules'), body.replace(/\n/g, '\r\n'));
+  const organization = '[submodule "deps/a"]\n\tpath = deps/a\n\turl = https://github.com/QAQ-Revival/a.git\n';
+  const tool = '[submodule "tools/Blender"]\n\tpath = tools/Blender\n\turl = https://github.com/ssice-a/EFF-blender.git\n\tbranch = main\n';
+  modules(organization + tool.replace('main\n', 'main\n\tupdate = none\n'));
+  verifyDownstream(directory, 'EFF');
+  modules(organization + tool);
+  assert.throws(() => verifyDownstream(directory, 'EFF'), /unmanaged submodule/);
+  modules(tool.replace('main\n', 'main\n\tupdate = checkout\n'));
+  assert.throws(() => verifyDownstream(directory, 'EFF'), /unmanaged submodule/);
+});

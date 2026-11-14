@@ -5,7 +5,10 @@ function verifyDownstream(directory, name) {
   const read = file => fs.readFileSync(path.join(directory, file), 'utf8');
   const modules = path.join(directory, '.gitmodules');
   if (fs.existsSync(modules)) {
-    for (const [, url] of read('.gitmodules').matchAll(/^\s*url\s*=\s*(\S+)/gm)) {
+    // A submodule marked update = none is never checked out, so nothing builds from it.
+    for (const [, body] of read('.gitmodules').matchAll(/^\s*\[submodule\s+"[^"]*"\]([^[]*)/gm)) {
+      const url = /^\s*url\s*=\s*(\S+)/m.exec(body)?.[1] || '';
+      if (/^\s*update\s*=\s*none\s*$/m.test(body)) continue;
       if (!/^https:\/\/github\.com\/QAQ-Revival\/[\w.-]+\.git$/.test(url)) throw Error(`${name} introduces an unmanaged submodule; create and review its organization fork first`);
     }
   }

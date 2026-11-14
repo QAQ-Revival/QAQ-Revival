@@ -63,7 +63,9 @@ async function createAppClient({ permissions = { contents: 'read' }, names = rep
     '-c', 'filter.lfs.process=git-lfs filter-process', '-c', 'filter.lfs.required=true'];
   function git(directory, args, { allowed = [0], skipLfs = false } = {}) {
     if (args[0] === 'push' || (args[0] === 'lfs' && args[1] === 'push')) {
-      if (args[args[0] === 'lfs' ? 2 : 1] !== 'origin' || args.some(arg => /^--force|^\+/.test(arg))) throw Error('Only non-forced pushes to a registered organization origin are allowed');
+      // A rewrite goes through only with a lease on the exact commit it replaces.
+      const lease = /^--force-with-lease=[\w./-]+:[0-9a-f]{40}$/;
+      if (args[args[0] === 'lfs' ? 2 : 1] !== 'origin' || args.some(arg => /^--force|^\+/.test(arg) && !lease.test(arg))) throw Error('Only non-forced or lease-protected pushes to a registered organization origin are allowed');
       const remote = git(directory, ['remote', 'get-url', '--push', 'origin']).stdout;
       if (!repositories.some(repository => remote.replace(/\.git$/, '') === `https://github.com/${repository}`)) throw Error('Refusing to push to upstream or an unregistered repository');
     }

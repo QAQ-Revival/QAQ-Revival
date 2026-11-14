@@ -89,7 +89,7 @@ async function syncUpstreams({ client } = {}) {
     const previous = git(directory, ['rev-parse', 'HEAD']).stdout;
     const verify = changed => {
       verifyDownstream(directory, item.name);
-      if (changed && ['XXMI-Libs-Package', 'XXMI-Libs-Vulkan', 'EFMI-Package', 'wwmi-dx12'].includes(item.name)) {
+      if (changed && ['XXMI-Libs-Package', 'XXMI-Libs-Vulkan', 'EFMI-Package', 'wwmi-dx12', 'EFF'].includes(item.name)) {
         // wwmi-dx12 builds its engine and SDK from submodules, all in the organization by now.
         if (fs.existsSync(path.join(directory, '.gitmodules'))) git(directory, ['submodule', 'update', '--init', '--recursive']);
         const env = { ...process.env };

@@ -13,6 +13,7 @@
     { "name": "wwmi-dx12", "upstream": "lekarsenten/wwmi-dx12", "branch": "main", "optional": true, "versionTags": "upstream", "path": "native/wwmi-dx12" },
     { "name": "reshade", "upstream": "crosire/reshade", "branch": "wwmi-dx12-sdk", "pinned": true, "path": "native/wwmi-dx12/reshade_addon/sdk" },
     { "name": "imgui", "upstream": "ocornut/imgui", "branch": "wwmi-dx12-sdk", "pinned": true, "path": "native/wwmi-dx12/reshade_addon/sdk/deps/imgui" },
-    { "name": "WWMI-Package", "upstream": "SpectrumQT/WWMI-Package", "branch": "main", "path": "native/wwmi-package" }
+    { "name": "WWMI-Package", "upstream": "SpectrumQT/WWMI-Package", "branch": "main", "path": "native/wwmi-package" },
+    { "name": "EFF", "upstream": "ssice-a/EFF", "branch": "main", "optional": true, "path": "native/eff" }
   ]
 }

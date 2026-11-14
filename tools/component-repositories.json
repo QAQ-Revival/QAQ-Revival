@@ -178,5 +178,16 @@
         "shader": "native/efmi-package/EFMI/Core/EFMI/Shaders/MergedSkeleton_InstanceConfigOverrider_ConstantBuffer.hlsl"
       }
     }
+  },
+  "eff": {
+    "source": "native/eff",
+    "repository": "QAQ-Revival/EFF",
+    "branch": "main",
+    "build": "qaqr/build.cjs",
+    "targets": {
+      "eff": {
+        "output": "local-components/eff"
+      }
+    }
   }
 }
