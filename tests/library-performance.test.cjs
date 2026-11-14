@@ -33,6 +33,59 @@ test('large appearance manifests are read once and ancestor checks scale with fi
   } finally { fs.readFileSync = originalRead; fs.lstatSync = originalStat; }
 });
 
+test('appearance listing enumerates each directory once without statting texture files', t => {
+  const f = fixture(t);
+  const nested = path.join(f.root, 'nested');
+  fs.mkdirSync(nested);
+  fs.writeFileSync(path.join(nested, 'voice.wav'), 'voice');
+  const originals = Object.fromEntries(['readdirSync', 'statSync', 'lstatSync'].map(name => [name, fs[name]]));
+  const directories = [], resourceStats = [];
+  for (const name of Object.keys(originals)) fs[name] = function(file, ...args) {
+    if (name === 'readdirSync') directories.push(file);
+    else if (/\.(png|wav)$/i.test(String(file))) resourceStats.push(file);
+    return originals[name].call(this, file, ...args);
+  };
+  try {
+    assert.deepEqual(inspectAppearance(f.root, []).contentTypes, ['dynamic', 'voice']);
+    assert.deepEqual(directories.sort(), [f.root, nested].sort());
+    assert.deepEqual(resourceStats, []);
+    files.assertLoadable(f.root);
+    assert.ok(resourceStats.length >= f.resources.length, 'Loading still validates each resource');
+  } finally { Object.assign(fs, originals); }
+});
+
+test('appearance refreshes observe added, removed and disabled nested resources', t => {
+  const f = fixture(t, 1);
+  const nested = path.join(f.root, 'nested');
+  fs.mkdirSync(nested);
+  const voice = path.join(nested, 'voice.wav');
+  assert.deepEqual(inspectAppearance(f.root, []).contentTypes, ['dynamic']);
+  fs.writeFileSync(voice, 'voice');
+  assert.deepEqual(inspectAppearance(f.root, []).contentTypes, ['dynamic', 'voice']);
+  fs.renameSync(nested, path.join(f.root, 'DISABLED_nested'));
+  assert.deepEqual(inspectAppearance(f.root, []).contentTypes, ['dynamic']);
+  fs.renameSync(path.join(f.root, 'DISABLED_nested'), nested);
+  fs.unlinkSync(voice);
+  assert.deepEqual(inspectAppearance(f.root, []).contentTypes, ['dynamic']);
+});
+
+test('appearance manifest reuse still rejects missing, directory and linked resource targets', t => {
+  const f = fixture(t, 1);
+  const resource = path.join(f.root, f.resources[0].file);
+  fs.unlinkSync(resource);
+  assert.throws(() => inspectAppearance(f.root, []));
+  fs.mkdirSync(resource);
+  assert.throws(() => inspectAppearance(f.root, []));
+  fs.rmdirSync(resource);
+  const nested = path.join(f.root, '.hidden');
+  const target = path.join(f.root, 'original');
+  fs.mkdirSync(target);
+  fs.writeFileSync(path.join(target, 'page.png'), 'fixture');
+  fs.symlinkSync(target, nested, 'junction');
+  fs.writeFileSync(f.manifest, JSON.stringify({ schemaVersion: 1, resources: [{ file: '.hidden/page.png', target: 'page.png', bundle: 'skinpack/char_1001_amiya2.ab' }] }));
+  assert.throws(() => inspectAppearance(f.root, []), /链接/);
+});
+
 test('background scans keep the main event loop responsive and read changed manifests on refresh', async t => {
   const f = fixture(t);
   let ticks = 0;

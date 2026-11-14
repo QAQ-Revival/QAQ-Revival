@@ -18,7 +18,7 @@ function inside(file, root) {
 function assertNoLinks(file) {
   let current = path.resolve(file);
   for (;;) {
-    if (fs.existsSync(current) && fs.lstatSync(current).isSymbolicLink()) throw Error(i18n.t("arknights.errors.link"));
+    if (fs.lstatSync(current, { throwIfNoEntry: false })?.isSymbolicLink()) throw Error(i18n.t("arknights.errors.link"));
     const parent = path.dirname(current);
     if (current === parent) break;
     current = parent;
@@ -28,22 +28,28 @@ function assertOutsideGame(file, gamePath) {
   assertNoLinks(file);
   if (gamePath && inside(file, path.dirname(gamePath))) throw Error(i18n.t("arknights.errors.gameWrite"));
 }
-function walk(root, { includeDisabled = false, maxBytes = 2 * 1024 * 1024 * 1024, maxFiles = 20000 } = {}) {
+function walk(root, { includeDisabled = false, maxBytes = 2 * 1024 * 1024 * 1024, maxFiles = 20000, includeStats = true, directoryEntries } = {}) {
   assertNoLinks(root);
   const files = [];
   let bytes = 0;
   function visit(directory, depth) {
     if (depth > 24) throw Error(i18n.t("arknights.errors.tooLarge"));
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const entries = fs.readdirSync(directory, { withFileTypes: true });
+    directoryEntries?.set(path.resolve(directory), entries);
+    for (const entry of entries) {
       if (ignored(entry.name) || (!includeDisabled && DISABLED.test(entry.name))) continue;
       if (entry.isSymbolicLink()) throw Error(i18n.t("arknights.errors.link"));
       const file = path.join(directory, entry.name);
       if (entry.isDirectory()) visit(file, depth + 1);
       else if (entry.isFile()) {
-        const stat = fs.statSync(file);
-        bytes += stat.size;
-        if (stat.size > 512 * 1024 * 1024 || bytes > maxBytes) throw Error(i18n.t("arknights.errors.tooLarge"));
-        files.push({ path: file, relative: path.relative(root, file), name: entry.name, ext: path.extname(entry.name).toLowerCase(), size: stat.size, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs });
+        // Appearance labels depend on names and bindings, not resource sizes.
+        // Loading, deployment and fingerprints keep the full stat/size checks.
+        const stat = includeStats ? fs.statSync(file) : null;
+        if (stat) {
+          bytes += stat.size;
+          if (stat.size > 512 * 1024 * 1024 || bytes > maxBytes) throw Error(i18n.t("arknights.errors.tooLarge"));
+        }
+        files.push({ path: file, relative: path.relative(root, file), name: entry.name, ext: path.extname(entry.name).toLowerCase(), ...(stat ? { size: stat.size, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs } : {}) });
       }
       if (files.length > maxFiles) throw Error(i18n.t("arknights.errors.tooLarge"));
     }
@@ -54,21 +60,27 @@ function walk(root, { includeDisabled = false, maxBytes = 2 * 1024 * 1024 * 1024
 function resourceKey(name) {
   return name.toLowerCase().replace(/[\x23@]/g, "_").replace(/(?:\[alphe?\]|_alpha)(?=\.png$)/, "[alpha]").replace(/^illust_(?=char_)/, "");
 }
-function readBindings(root) {
+function readBindings(root, { directoryEntries } = {}) {
   const bindings = new Map();
   const manifests = [];
   // A manifest can bind thousands of files in the same directory. Verify each
   // ancestor once per scan, while still checking every resource for links.
-  assertNoLinks(root);
-  const checkedDirectories = new Set([path.resolve(root)]);
-  function checkedStat(file) {
+  if (!directoryEntries?.has(path.resolve(root))) assertNoLinks(root);
+  // Reuse Dirents only from the walk performed in this synchronous scan. Never
+  // retain them between requests: a rename or junction replacement must be seen.
+  const checkedDirectories = new Set([path.resolve(root), ...(directoryEntries?.keys() || [])]);
+  const scannedEntries = new Map();
+  for (const [directory, entries] of directoryEntries || []) {
+    for (const entry of entries) scannedEntries.set(path.join(directory, entry.name), entry);
+  }
+  function checkedStat(file, requireSize = false) {
     const parent = path.dirname(path.resolve(file));
     if (!checkedDirectories.has(parent)) {
       assertNoLinks(parent);
       checkedDirectories.add(parent);
     }
     try {
-      const stat = fs.lstatSync(file);
+      const stat = (!requireSize && scannedEntries.get(path.resolve(file))) || fs.lstatSync(file);
       if (stat.isSymbolicLink()) throw Error(i18n.t("arknights.errors.link"));
       return stat;
     } catch (error) {
@@ -82,10 +94,10 @@ function readBindings(root) {
   };
   function visit(directory, depth = 0) {
     if (depth > 24) throw Error(i18n.t("arknights.errors.tooLarge"));
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    for (const entry of directoryEntries?.get(path.resolve(directory)) || fs.readdirSync(directory, { withFileTypes: true })) {
       const file = path.join(directory, entry.name);
       if (entry.name === RESOURCE_MANIFEST) {
-        const stat = checkedStat(file);
+        const stat = checkedStat(file, true);
         if (!entry.isFile() || !stat?.isFile() || stat.size > 8 * 1024 * 1024) throw Error(i18n.t("arknights.errors.invalidManifest"));
         const data = JSON.parse(fs.readFileSync(file, "utf8"));
         if (data.schemaVersion !== 1 || !Array.isArray(data.resources) || data.resources.length > 20000) throw Error(i18n.t("arknights.errors.invalidManifest"));

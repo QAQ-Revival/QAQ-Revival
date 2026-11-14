@@ -59,8 +59,9 @@ function classifyResources(resources, sections) {
 }
 
 function inspectAppearance(modDir, sections) {
-  const entries = files.walk(modDir);
-  const { bindings } = files.readBindings(modDir);
+  const directoryEntries = new Map();
+  const entries = files.walk(modDir, { includeStats: false, directoryEntries });
+  const { bindings } = files.readBindings(modDir, { directoryEntries });
   const names = [...entries.filter(file => files.RESOURCES.has(file.ext) && ![".txt", ".ini"].includes(file.ext)).map(file => {
     const binding = bindings.get(file.path.toLowerCase());
     return binding ? { resource: binding.target, bundle: binding.bundle, appearanceAliases: binding.appearanceAliases } : file.name;
