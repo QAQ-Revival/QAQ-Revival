@@ -53,6 +53,22 @@ test('managed components install on enable, persist provenance across restart, a
   await f.service.setEnabled(true);
   assert.equal((await f.service.status()).sources.addon.active, true);
 });
+
+test('a new DX12 add-on installation prefers the bundled QAQR build', async t => {
+  const f = fixture(t), requests = [];
+  const fork = new Map(f.bundles.addon);
+  fork.version = '2026.11.1.2';
+  const bytes = Buffer.concat([pe(), Buffer.from('preferred QAQR build')]);
+  fork.set('wwmi_dx12.addon64', bytes);
+  const getPackage = Object.assign(async kind => { requests.push(kind); return f.bundles[kind]; }, { fork: () => fork });
+  const components = createWuwaDx12Components({ stateDir: path.join(f.root, 'preferred-state'), getPackage });
+  await components.toggle(f.paths, true);
+  assert.deepEqual(requests, ['reshade']);
+  assert.deepEqual(fs.readFileSync(path.join(f.paths.win64, 'wwmi_dx12.addon64')), bytes);
+  assert.equal(components.describe(f.paths, 'addon').version, fork.version);
+  await components.toggle(f.paths, false);
+  assert.equal(components.describe(f.paths, 'addon').active, false);
+});
 test('user ReShade and a custom add-on folder take priority; turning off only disables QAQR files', async t => {
   const f = fixture(t), custom = path.join(f.root, 'Custom Addons');
   const userDll = f.write(path.join(f.paths.win64, 'dxgi.dll'), Buffer.concat([pe(), Buffer.from('user')]));

@@ -4,20 +4,19 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { createEffService } = require('../app/src/main/games/endfield/eff.cjs');
-const { PROXY_MARK } = require('../app/src/main/games/endfield/eff-packages.cjs');
 function fixture(t, { installed = true } = {}) {
   const temporary = fs.realpathSync(os.tmpdir()), root = fs.mkdtempSync(path.join(temporary, 'qaqr-eff-mods-'));
   t.after(() => { assert.equal(path.dirname(fs.realpathSync(root)), temporary); fs.rmSync(root, { recursive: true, force: true }); });
   const write = (file, value) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, value); return file; };
-  const game = path.join(root, 'game');
+  const game = path.join(root, 'game'), storage = path.join(root, 'data/EFF');
   const gamePath = write(path.join(game, 'Endfield.exe'), 'Synthetic game, never executed');
   if (installed) {
-    write(path.join(game, 'plugin/eff.dll'), 'eff runtime');
-    write(path.join(game, 'd3dcompiler_47.dll'), Buffer.concat([Buffer.from('proxy '), PROXY_MARK]));
+    write(path.join(storage, 'eff.dll'), 'eff runtime EFF_ExternalData_v1');
   }
   const trashed = [];
   const service = createEffService({
     resolveGame: () => ({ gamePath }),
+    storageRoot: storage,
     packages: { selected: () => ({ version: '2.0.12', sha256: 'a'.repeat(64) }), pending: () => null, state: () => ({}) },
     assertStopped: async () => {},
     stateFile: path.join(root, 'state/state.json'),
@@ -26,10 +25,16 @@ function fixture(t, { installed = true } = {}) {
     extract: async () => {},
     systemRoot: 'C:\\Windows'
   });
-  return { root, game, write, service, trashed, mods: path.join(game, 'plugin/mods') };
+  return { root, game, write, service, trashed, mods: path.join(storage, 'Mods') };
 }
 
-test('a character lists the EFF Mods in its own folder of plugin/mods', t => {
+test('an unused EFF service does not block the normal launcher before the game is configured', async t => {
+  const f = fixture(t, { installed: false });
+  fs.unlinkSync(path.join(f.game, 'Endfield.exe'));
+  assert.deepEqual(await f.service.prepareLaunch(), { changed: false });
+});
+
+test('a character lists the EFF Mods in its own folder of data/EFF/Mods', t => {
   const f = fixture(t);
   f.write(path.join(f.mods, '佩丽卡/泳装/mod.ini'), '[Mod]\nformat=3\nid=Swim\n[KeyStyle]\nkey=F7\n');
   f.write(path.join(f.mods, '佩丽卡/泳装/preview.png'), 'png');

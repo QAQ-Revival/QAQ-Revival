@@ -230,7 +230,19 @@ function createMiForksService({ bundleRoots, resolveInstallation, userName } = {
     if (officialBytes) return { channel: "official", bytes: officialBytes };
     throw error("officialMissing");
   }
-  return { status, change, dx11Runtime };
+  // New installations prefer compatible QAQR builds. Consent and unknown local edits still apply.
+  function preferForks(gameId, { runtimeEnabled = true } = {}) {
+    const state = status(gameId), changed = [], pending = [];
+    for (const entry of state.components || []) {
+      if (!entry.fork || entry.local.kind === "fork" || entry.id === "runtime" && !runtimeEnabled) continue;
+      if (entry.canUseFork && !entry.confirmReplace) {
+        change(gameId, entry.id, "fork");
+        changed.push(entry.id);
+      } else pending.push({ component: entry.id, reason: entry.needsApproval ? error("approvalRequired").message : entry.reason });
+    }
+    return { changed, pending };
+  }
+  return { status, change, dx11Runtime, preferForks };
 }
 
 module.exports = { createMiForksService, hasUnsafeApproval, loadBundle, replaceFiles, FORK_MARK, VULKAN_MARK };

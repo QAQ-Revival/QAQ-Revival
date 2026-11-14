@@ -59,6 +59,23 @@ test('only the custom DLL needs Launcher consent, and QAQR never creates it', t 
   assert.deepEqual(fs.readFileSync(f.configFile), before);
 });
 
+test('default installation uses available fixes without enabling an inactive runtime or creating consent', t => {
+  const f = fixture(t), before = fs.readFileSync(f.configFile);
+  assert.deepEqual(f.service.preferForks('endfield', { runtimeEnabled: false }).changed, ['core']);
+  assert.equal(f.component('runtime').local.kind, 'official');
+  assert.deepEqual(f.service.preferForks('endfield').changed, ['runtime']);
+  assert.deepEqual(f.service.preferForks('endfield').changed, []);
+  assert.deepEqual(fs.readFileSync(f.configFile), before);
+  f.service.change('endfield', 'runtime', 'official');
+  f.configuration.Importers.EFMI.Migoto.unsafe_mode = false;
+  f.write(f.configFile, JSON.stringify(f.configuration));
+  const result = f.service.preferForks('endfield');
+  assert.deepEqual(result.changed, []);
+  assert.equal(result.pending[0].component, 'runtime');
+  assert.match(result.pending[0].reason, /Unsafe Mode/);
+  assert.equal(f.component('runtime').local.kind, 'official');
+});
+
 test('the two forks switch independently, keep settings and Mods, and leave no backups behind', t => {
   const f = fixture(t), configuration = fs.readFileSync(f.configFile);
   assert.deepEqual(f.component('runtime').local, { kind: 'official', version: '1.2.2' });

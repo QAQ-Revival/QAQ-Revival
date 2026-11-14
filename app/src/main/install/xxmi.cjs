@@ -133,6 +133,7 @@ async function install({ gameId } = {}) {
     next.managedXxmiRoot = resolved.root;
     if (!config.saveConfig(next)) throw Error(i18n.t("settings.mi.saveFailed"));
     config.currentConfig = next;
+    result.preferredForks = maintained.preferForks(gameId, { runtimeEnabled: game.wuwaDx12Enabled !== true });
     settings.notifyGamesChanged();
     cache.delete(gameId);
     return result;

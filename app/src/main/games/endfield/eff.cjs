@@ -7,10 +7,13 @@ const crypto = require("node:crypto");
 const { readJsonFileSync, writeJsonFileSync } = require("../../core/json-store.cjs");
 const { loadBundle, replaceFiles } = require("../../install/mi-forks.cjs");
 const { PROXIES, PLUGIN_FILES, SETTINGS_FILE, PROXY_MARK } = require("./eff-packages.cjs");
-const [COMPILER_PROXY, VULKAN_PROXY] = PROXIES;
+const { stageLegacyFiles } = require("./eff-storage.cjs");
+const { getLoaderDataRoot } = require("../../runtime/data-paths.cjs");
+const EXTERNAL_MARK = Buffer.from("EFF_ExternalData_v1");
+const LOADER = "EFFLoader.exe";
 const RUNTIME = "plugin/eff.dll";
 const LOADER_CONFIG = "plugin/applepie_manager_config.txt";
-const MODS = "plugin/mods";
+const LEGACY_MODS = "plugin/mods";
 const MOD_FILE = "mod.ini";
 // EFF Mod Manager's suffix, written by QAQR too; the community's ".disable" is read as disabled as well.
 const DISABLED_SUFFIXES = [".effmm-disabled", ".disable"];
@@ -138,30 +141,34 @@ function createEffService({
   packages,
   bundleRoots = [],
   assertStopped,
-  stateFile,
-  backupDir,
+  storageRoot = getLoaderDataRoot("EFF"),
+  stateFile = path.join(storageRoot, "state.json"),
+  legacyStateFile,
+  backupDir = path.join(storageRoot, "backup"),
+  legacyBackupDir,
+  startLoader,
   trash,
   extract,
-  notifyChanged = () => {},
-  systemRoot = process.env.SystemRoot || "C:\\Windows"
+  notifyChanged = () => {}
 }) {
+  storageRoot = path.resolve(storageRoot);
   let busy = false;
+  const at = name => path.join(storageRoot, name);
   const roots = () => typeof bundleRoots === "function" ? bundleRoots() : bundleRoots;
   const tryFork = () => {
     try {
       const bundle = loadBundle(roots(), "eff", "EFF");
-      return bundle.files[RUNTIME] && PROXIES.every(name => bundle.files[name]) ? bundle : null;
-    } catch {
-      return null;
-    }
+      return bundle.files[RUNTIME] && bundle.files[LOADER] && read(bundle.files[RUNTIME])?.includes(EXTERNAL_MARK) ? bundle : null;
+    } catch { return null; }
   };
   function readState() {
-    try {
-      const saved = readJsonFileSync(stateFile);
-      return saved && typeof saved.games === "object" ? saved : { games: {} };
-    } catch {
-      return { games: {} };
+    for (const file of [stateFile, legacyStateFile].filter(Boolean)) {
+      try {
+        const saved = readJsonFileSync(file);
+        if (saved && typeof saved.games === "object") return saved;
+      } catch { /* No saved installation yet. */ }
     }
+    return { games: {} };
   }
   const gameKey = root => hash(Buffer.from(path.resolve(root).toLowerCase())).slice(0, 16);
   function record(root, change) {
@@ -171,228 +178,176 @@ function createEffService({
   }
   function gameRoot() {
     const gamePath = resolveGame()?.gamePath || "";
-    return { gamePath, root: isFile(gamePath) ? path.dirname(gamePath) : "" };
+    const root = isFile(gamePath) ? path.dirname(gamePath) : "";
+    if (root && (storageRoot.toLowerCase() === root.toLowerCase() || storageRoot.toLowerCase().startsWith(root.toLowerCase() + path.sep))) throw fail("dataInsideGame");
+    return { gamePath, root };
+  }
+  function legacy(root) {
+    if (!root) return false;
+    return [RUNTIME, LEGACY_MODS, SETTINGS_FILE, ...PROXIES].some(name => {
+      const file = path.join(root, name);
+      return PROXIES.includes(name) ? isProxy(read(file)) : fs.existsSync(file);
+    });
   }
   function inspect(root) {
-    const at = relative => path.join(root, relative);
-    const runtime = read(at(RUNTIME));
-    const proxies = Object.fromEntries(PROXIES.map(name => {
-      const bytes = read(at(name));
-      return [name, !bytes ? "missing" : isProxy(bytes) ? "eff" : "original"];
-    }));
-    const saved = readState().games[gameKey(root)] || {};
-    const fork = tryFork();
+    const runtime = read(at("eff.dll")), fork = tryFork();
+    const saved = root ? readState().games[gameKey(root)] || {} : {};
     const current = runtime ? hash(runtime) : null;
-    const channel = !runtime ? null : fork && hash(fs.readFileSync(fork.files[RUNTIME])) === current ? "fork"
+    const channel = !runtime ? null : fork && hash(read(fork.files[RUNTIME])) === current ? "fork"
       : saved.installed?.sha256 === current ? saved.installed.channel : "other";
-    const pluginDir = at("plugin");
-    let others = [];
-    try {
-      others = fs.readdirSync(pluginDir).filter(name => /\.dll$/i.test(name) && name.toLowerCase() !== "eff.dll");
-    } catch { /* no plugin directory yet */ }
-    return {
-      installed: !!runtime,
-      enabled: !!runtime && !loaderDisabled(read(at(LOADER_CONFIG))?.toString("utf8")),
-      version: runtime ? peVersion(runtime) : null,
-      channel,
-      proxies,
-      others,
-      saved,
-      fork
-    };
-  }
-  // With the Vulkan runtime of EFMI, a vulkan-1.dll proxy hides the real loader from its export hooks;
-  // its d3d11.dll imports d3dcompiler_47.dll, which then brings EFF in on its own.
-  const wantVulkanProxy = () => !efmiVulkanActive();
-  function proxiesInPlace(local) {
-    return local.proxies[COMPILER_PROXY] === "eff" && (local.proxies[VULKAN_PROXY] === "eff") === wantVulkanProxy();
+    return { installed: !!runtime, enabled: !!runtime && !fs.existsSync(at("disabled")),
+      external: !!runtime?.includes(EXTERNAL_MARK), version: peVersion(runtime), channel, saved, fork };
   }
   async function status() {
-    const { gamePath, root } = gameRoot();
+    const { gamePath, root } = gameRoot(), local = inspect(root), pending = legacy(root);
     const checks = [];
     const check = (id, title, ok, message) => checks.push({ id, title, ok: !!ok, message });
     check("game", i18n.t("backend.eff.gameTitle"), !!root, root ? gamePath : i18n.t("backend.eff.gameRequired"));
-    const systemOk = path.resolve(systemRoot).toLowerCase() === "c:\\windows";
-    check("system", i18n.t("backend.eff.systemTitle"), systemOk, i18n.t(systemOk ? "backend.eff.systemOk" : "backend.eff.systemUnsupported", { path: systemRoot }));
-    const local = root ? inspect(root) : null;
-    const vulkan = efmiVulkanActive();
-    if (local?.installed) {
-      check("loader", i18n.t("backend.eff.loaderTitle"), proxiesInPlace(local), i18n.t(proxiesInPlace(local) ? (vulkan ? "backend.eff.loaderCompilerOnly" : "backend.eff.loaderBoth") : "backend.eff.loaderRepair"));
-      check("backend", i18n.t("backend.eff.backendTitle"), !vulkan, i18n.t(vulkan ? "backend.eff.backendVulkan" : "backend.eff.backendDx11"));
-      if (local.others.some(name => name.toLowerCase() === "applepie_manager.dll")) check("applepie", "ApplePie Manager", false, i18n.t("backend.eff.applepieOld"));
+    check("storage", i18n.t("backend.eff.storageTitle"), !pending, i18n.t(pending ? "backend.eff.migrationPending" : "backend.eff.storageReady", { path: storageRoot }));
+    if (local.installed) {
+      check("loader", i18n.t("backend.eff.loaderTitle"), local.external && isFile(at(LOADER)), i18n.t(local.external && isFile(at(LOADER)) ? "backend.eff.externalLoader" : "backend.eff.externalRequired"));
+      if (efmiVulkanActive()) check("backend", i18n.t("backend.eff.backendTitle"), false, i18n.t("backend.eff.backendVulkan"));
     }
-    const fork = local?.fork || tryFork();
-    return {
-      success: true,
-      installed: !!local?.installed,
-      enabled: !!local?.enabled,
-      version: local?.version || null,
-      channel: local?.channel || null,
-      ready: checks.every(item => item.ok),
-      checks,
-      otherPlugins: local?.others || [],
-      // Mods outside a character folder load in game but have no place on the Mods page.
-      unassignedMods: local?.installed ? unassignedMods().map(mod => mod.id) : [],
-      sources: {
-        official: { version: packages.selected().version },
-        fork: fork ? { version: fork.manifest.version || null, build: fork.manifest.sourceCommit.slice(0, 12) } : null
-      },
-      updates: packages.state(),
-      paths: { game: root, plugin: root ? path.join(root, "plugin") : "", mods: root ? path.join(root, MODS) : "" }
-    };
+    let loaderStatus = null;
+    try { loaderStatus = readJsonFileSync(at("loader-status.json")); } catch { /* No launch yet. */ }
+    if (local.enabled && ["error", "timeout"].includes(loaderStatus?.state)) check("lastLaunch", i18n.t("backend.eff.loaderTitle"), false, i18n.t("backend.eff.loaderFailed", { code: loaderStatus.error }));
+    return { success: true, installed: local.installed, enabled: local.enabled, version: local.version,
+      channel: local.channel, ready: checks.every(item => item.ok), checks, migrationPending: pending,
+      otherPlugins: [], unassignedMods: local.installed ? unassignedMods().map(mod => mod.id) : [],
+      sources: { official: { version: packages.selected().version, externalData: false },
+        fork: local.fork ? { version: local.fork.manifest.version || null, build: local.fork.manifest.sourceCommit.slice(0, 12), localBuild: !!local.fork.manifest.localBuild } : null },
+      updates: packages.state(), paths: { game: root, plugin: storageRoot, mods: modsDir() }, loaderStatus };
   }
   async function locked(action) {
     if (busy) throw fail("operationInProgress");
     busy = true;
-    try {
-      const result = await action();
-      notifyChanged();
-      return result;
-    } finally {
-      busy = false;
+    try { const result = await action(); notifyChanged(); return result; }
+    finally { busy = false; }
+  }
+  function requireGame() {
+    const { root } = gameRoot();
+    if (!root) throw fail("gameRequired");
+    return root;
+  }
+  function restoreProxy(root, name, backups) {
+    // A compiler shipped with the game must never disappear just because its backup is missing.
+    if (!backups[name]) {
+      if (name === PROXIES[0]) throw fail("backupInvalid", { name });
+      return null;
     }
-  }
-  function requireReady(state, ids) {
-    const blocked = state.checks.filter(item => ids.includes(item.id) && !item.ok);
-    if (blocked.length) throw Error(blocked.map(item => `${item.title}：${item.message}`).join("\n"));
-  }
-  async function sourceFiles(channel, info) {
-    if (channel === "fork") {
-      const fork = tryFork();
-      if (!fork) throw fail("forkMissing");
-      return new Map(Object.keys(fork.files).map(relative => [relative.replace(/\\/g, "/"), fs.readFileSync(fork.files[relative])]));
+    for (const directory of [backupDir, legacyBackupDir].filter(Boolean)) {
+      const file = path.join(directory, gameKey(root), name), bytes = read(file);
+      if (bytes && hash(bytes) === backups[name]) return bytes;
     }
-    return packages.ensure(info);
+    throw fail("backupInvalid", { name });
   }
-  function backupFile(root, name) {
-    return path.join(backupDir, gameKey(root), name);
+  function migration(root) {
+    if (!legacy(root)) return () => {};
+    const plugin = path.join(root, "plugin"), saved = readState().games[gameKey(root)] || {};
+    const backups = saved.backups || {};
+    const plans = PROXIES.filter(name => isProxy(read(path.join(root, name)))).map(name => ({ relative: name, bytes: restoreProxy(root, name, backups) }));
+    const others = fs.existsSync(plugin) ? fs.readdirSync(plugin).filter(name => /\.dll$/i.test(name) && name.toLowerCase() !== "eff.dll") : [];
+    if (others.length && plans.length) throw fail("legacyOtherPlugins", { names: others.join(", ") });
+    const archive = path.join(storageRoot, "Legacy", gameKey(root));
+    const destinations = { mods: modsDir(), "eff.ini": at("eff.ini"), "eff_log.txt": at("eff_log.txt") };
+    for (const name of ["resource-input-diagnostics", "resource-adaptation-probe", "resource-reload-cache", "resource-export-staging", "catalog-survey.json"]) destinations[name] = at(name);
+    for (const name of PLUGIN_FILES) destinations[path.basename(name)] = path.join(archive, path.basename(name));
+    const loader = path.join(root, LOADER_CONFIG), before = read(loader)?.toString("utf8");
+    if (before !== undefined) destinations[path.basename(LOADER_CONFIG)] = path.join(archive, path.basename(LOADER_CONFIG));
+    const clean = stageLegacyFiles(plugin, destinations);
+    return () => {
+      replaceFiles(root, plans);
+      clean();
+      // A shared configuration belongs to the remaining plugins. Only the EFF switch is removed.
+      const remaining = before === undefined ? "" : loaderConfig(before, true);
+      if (remaining) replaceFiles(root, [{ relative: LOADER_CONFIG, bytes: Buffer.from(remaining) }]);
+    };
   }
-  // A file EFF did not put there is kept aside before the first proxy replaces it, and put back when the proxy goes.
-  function proxyPlans(root, files, local, backups) {
-    const plans = [];
-    for (const name of PROXIES) {
-      const want = name === COMPILER_PROXY || wantVulkanProxy();
-      const current = read(path.join(root, name));
-      if (want) {
-        // A game update may have put a newer original back since the last backup.
-        if (current && !isProxy(current) && backups[name] !== hash(current)) {
-          fs.mkdirSync(path.dirname(backupFile(root, name)), { recursive: true });
-          fs.writeFileSync(backupFile(root, name), current);
-          backups[name] = hash(current);
-        }
-        if (!current || !current.equals(files.get(name))) plans.push({ relative: name, bytes: files.get(name) });
-      } else if (local.proxies[name] === "eff") {
-        plans.push({ relative: name, bytes: restored(root, name, backups) });
-      }
-    }
-    return plans;
+  function enabledMarker(enabled) {
+    fs.mkdirSync(storageRoot, { recursive: true });
+    if (enabled) fs.rmSync(at("disabled"), { force: true });
+    else fs.writeFileSync(at("disabled"), "EFF is disabled by QAQR.\n");
   }
-  function restored(root, name, backups) {
-    if (!backups[name]) return null;
-    const bytes = read(backupFile(root, name));
-    if (!bytes || hash(bytes) !== backups[name]) throw fail("backupInvalid", { name });
-    return bytes;
-  }
-  function commit(root, plans, installed, backups) {
-    fs.mkdirSync(path.join(root, MODS), { recursive: true });
-    if (plans.length) replaceFiles(root, plans);
-    record(root, saved => ({ ...saved, backups, ...(installed ? { installed } : {}) }));
-  }
-  async function install(channel = "official", info) {
-    const state = await status();
-    requireReady(state, ["game", "system"]);
-    const root = state.paths.game, local = inspect(root);
-    const files = await sourceFiles(channel, info);
+  function cancelLaunch() { fs.rmSync(at(".launch-request"), { force: true }); }
+  async function install(channel = "fork", info) {
+    const root = requireGame(), local = inspect(root);
+    const fork = tryFork();
+    if (!fork) throw fail("forkMissing");
+    const files = channel === "fork" ? new Map(Object.keys(fork.files).map(name => [name, read(fork.files[name])])) : await packages.ensure(info);
+    if (!files.get(RUNTIME)?.includes(EXTERNAL_MARK)) throw fail("externalRequired");
     await assertStopped();
-    const backups = { ...(local.saved.backups || {}) };
-    const plans = proxyPlans(root, files, local, backups);
-    for (const relative of PLUGIN_FILES) if (files.has(relative)) plans.push({ relative, bytes: files.get(relative) });
-    if (files.has(SETTINGS_FILE) && !isFile(path.join(root, SETTINGS_FILE))) plans.push({ relative: SETTINGS_FILE, bytes: files.get(SETTINGS_FILE) });
-    const version = channel === "fork" ? tryFork()?.manifest.version || null : (info || packages.selected()).version;
-    commit(root, plans, { sha256: hash(files.get(RUNTIME)), channel, version }, backups);
+    cancelLaunch();
+    const enabled = local.installed ? local.enabled : !loaderDisabled(read(path.join(root, LOADER_CONFIG))?.toString("utf8"));
+    const clean = migration(root);
+    fs.mkdirSync(modsDir(), { recursive: true });
+    const plans = PLUGIN_FILES.filter(name => files.has(name)).map(name => ({ relative: path.basename(name), bytes: files.get(name) }));
+    plans.push({ relative: LOADER, bytes: read(fork.files[LOADER]) });
+    if (files.has(SETTINGS_FILE) && !isFile(at("eff.ini"))) plans.push({ relative: "eff.ini", bytes: files.get(SETTINGS_FILE) });
+    replaceFiles(storageRoot, plans);
+    enabledMarker(enabled);
+    const version = channel === "fork" ? fork.manifest.version : (info || packages.selected()).version;
+    record(root, saved => ({ ...saved, installed: { sha256: hash(files.get(RUNTIME)), channel, version } }));
+    clean();
     return { success: true, channel, restartRequired: true };
   }
   async function uninstall() {
-    const state = await status();
-    requireReady(state, ["game"]);
-    const root = state.paths.game, local = inspect(root);
-    if (!local.installed && PROXIES.every(name => local.proxies[name] !== "eff")) return { success: true };
+    const root = requireGame();
     await assertStopped();
-    const backups = { ...(local.saved.backups || {}) };
-    const plans = PROXIES.filter(name => local.proxies[name] === "eff").map(name => ({ relative: name, bytes: restored(root, name, backups) }));
-    for (const relative of PLUGIN_FILES) if (isFile(path.join(root, relative))) plans.push({ relative, bytes: null });
-    replaceFiles(root, plans);
-    for (const name of PROXIES) if (plans.some(plan => plan.relative === name)) {
-      delete backups[name];
-      fs.rmSync(backupFile(root, name), { force: true });
-    }
-    record(root, saved => ({ root, backups }));
+    cancelLaunch();
+    const clean = migration(root);
+    clean();
+    replaceFiles(storageRoot, [...PLUGIN_FILES.map(name => path.basename(name)), LOADER].filter(name => isFile(at(name))).map(relative => ({ relative, bytes: null })));
+    record(root, saved => { delete saved.installed; return saved; });
     return { success: true, restartRequired: true };
   }
-  // The proxies follow the EFMI runtime on disk, and come back after a game update put the original files back.
-  async function syncLoaders() {
+  async function syncStorage() {
     const { root } = gameRoot();
-    if (!root) return { changed: false };
-    const local = inspect(root);
-    if (!local.installed || proxiesInPlace(local)) return { changed: false };
-    const channel = local.channel === "fork" && local.fork ? "fork" : "official";
-    const files = await sourceFiles(channel);
-    await assertStopped();
-    const backups = { ...(local.saved.backups || {}) };
-    const plans = proxyPlans(root, files, local, backups);
-    commit(root, plans, null, backups);
-    return { changed: plans.length > 0 };
+    if (!root || !legacy(root)) return { changed: false };
+    // Legacy EFF cannot run outside the game, so migration installs the compatible fork.
+    if (isFile(path.join(root, RUNTIME)) || installed()) await install("fork");
+    else { await assertStopped(); migration(root)(); }
+    return { changed: true };
   }
-  async function setEnabled(enabled) {
-    if (typeof enabled !== "boolean") throw fail("invalidValue");
-    return locked(async () => {
-      const state = await status();
-      requireReady(state, ["game"]);
-      if (!state.installed) throw fail("notInstalled");
-      const file = path.join(state.paths.game, LOADER_CONFIG);
-      const before = read(file)?.toString("utf8") || "";
-      const next = loaderConfig(before, enabled);
-      if (next !== before) {
-        if (next) replaceFiles(state.paths.game, [{ relative: LOADER_CONFIG, bytes: Buffer.from(next, "utf8") }]);
-        else fs.rmSync(file, { force: true });
-      }
-      return { success: true, enabled, restartRequired: true };
-    });
-  }
+  const sync = () => locked(syncStorage);
   const setInstalled = installed => locked(() => installed ? install() : uninstall());
-  async function setChannel(target) {
-    if (!["official", "fork"].includes(target)) throw fail("invalidValue");
-    return locked(async () => {
-      const state = await status();
-      if (!state.installed) throw fail("notInstalled");
-      if (state.channel === target) return { success: true, channel: target };
-      return install(target);
-    });
-  }
-  const checkUpdates = () => locked(async () => {
-    await packages.checkUpdates();
-    return status();
+  const setEnabled = enabled => locked(async () => {
+    if (typeof enabled !== "boolean") throw fail("invalidValue");
+    await syncStorage();
+    if (!installed()) throw fail("notInstalled");
+    cancelLaunch();
+    enabledMarker(enabled);
+    return { success: true, enabled, restartRequired: true };
   });
+  const setChannel = target => locked(async () => {
+    if (!["official", "fork"].includes(target)) throw fail("invalidValue");
+    if (!installed() && !legacy(requireGame())) throw fail("notInstalled");
+    return install(target);
+  });
+  const checkUpdates = () => locked(async () => { await packages.checkUpdates(); return status(); });
   const update = () => locked(async () => {
-    const state = await status();
     const info = packages.pending();
-    if (!state.updates.updateAvailable || !info) throw fail("alreadyCurrent");
+    if (!packages.state().updateAvailable || !info) throw fail("alreadyCurrent");
     await packages.ensure(info);
-    if (state.installed && state.channel === "official") await install("official", info);
+    if (inspect(gameRoot().root).channel === "official") await install("official", info);
     packages.commit(info);
     return status();
   });
-  const sync = () => locked(syncLoaders);
   async function prepareLaunch() {
-    if (busy) return { changed: false };
-    return sync();
+    return locked(async () => {
+      const result = await syncStorage();
+      const { root } = gameRoot(), local = inspect(root);
+      if (!local.enabled) return result;
+      requireGame();
+      if (!local.external || !isFile(at(LOADER)) || !startLoader) throw fail("externalRequired");
+      await assertStopped();
+      const request = crypto.randomUUID();
+      fs.writeFileSync(at(".launch-request"), request);
+      try { await startLoader({ executable: at(LOADER), gamePath: gameRoot().gamePath, dll: at("eff.dll"), request, storageRoot }); }
+      catch (error) { cancelLaunch(); throw error; }
+      return { ...result, watching: true };
+    });
   }
-  // Mods are addressed by their path under plugin/mods, which never leaves it.
-  function modsDir() {
-    const { root } = gameRoot();
-    if (!root) throw fail("gameRequired");
-    return path.join(root, MODS);
-  }
+  function modsDir() { return at("Mods"); }
   function modPath(id) {
     const base = modsDir(), full = path.resolve(base, String(id || ""));
     if (!id || !full.startsWith(base + path.sep)) throw fail("modMissing");
@@ -429,7 +384,7 @@ function createEffService({
     return candidate;
   }
   const hasMod = dir => isFile(path.join(dir, MOD_FILE)) || findMods(dir).length > 0;
-  // A folder or an archive is staged inside plugin under a dot name, which EFF never reads, and moved in once it holds a Mod.
+  // Imports are staged beside Mods under data/EFF, then published once validated.
   async function importMod(source) {
     const dir = modsDir();
     if (!source || !fs.existsSync(source)) throw fail("importMissing");
@@ -461,7 +416,7 @@ function createEffService({
     notifyChanged();
     return { success: true };
   }
-  // The Mods page keeps EFF Mods per character as plugin/mods/<character>/<Mod>, as EFMI keeps Mods/<character>/<Mod>;
+  // The Mods page keeps EFF Mods per character as data/EFF/Mods/<character>/<Mod>, as EFMI keeps Mods/<character>/<Mod>;
   // EFF finds them there on its own.
   const SEGMENT = /^(?!\.)[^<>:"/\\|?*\u0000-\u001f]+(?<![. ])$/;
   function characterDir(characterName) {
@@ -469,8 +424,7 @@ function createEffService({
     return path.join(modsDir(), characterName);
   }
   function installed() {
-    const { root } = gameRoot();
-    return !!root && isFile(path.join(root, RUNTIME));
+    return isFile(at("eff.dll"));
   }
   function readCharacterMod(dir) {
     const enabledFile = path.join(dir, MOD_FILE);
@@ -579,6 +533,7 @@ function createEffService({
     update,
     sync,
     prepareLaunch,
+    cancelLaunch,
     listMods,
     setModEnabled,
     importMod,

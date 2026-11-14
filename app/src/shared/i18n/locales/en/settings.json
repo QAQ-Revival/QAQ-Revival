@@ -225,15 +225,15 @@
   "eff": {
     "summary": "Resource replacement framework for Endfield that works alongside EFMI. It swaps models, materials and textures as the game loads them.",
     "checkUpdates": "Check for updates",
-    "openGameDirectory": "Open game folder",
+    "openGameDirectory": "Open EFF data directory",
     "upstreamInfo": "Upstream project",
     "modManager": "EFF Mod Manager (repairs older Mods)",
     "uninstall": "Uninstall EFF",
     "toggle": "Enable EFF",
-    "description": "When off, the loaders skip eff.dll; files and Mods stay. Takes effect after restarting the game.",
+    "description": "When off, EFF is not loaded. Settings and Mods remain in data\\EFF. Restart the game to apply.",
     "toggleLabel": "Endfield EFF",
     "install": "Install EFF",
-    "installDescription": "Puts the loaders and plugin\\eff.dll in the game folder, backing up any game file they replace.",
+    "installDescription": "Keeps the runtime, settings and logs in data\\EFF and Mods in data\\EFF\\Mods. The game directory stays clean.",
     "installAction": "Install",
     "notInstalledHint": "EFF is not installed",
     "disabledHint": "EFF is disabled",
@@ -243,12 +243,12 @@
     "detectAgain": "Check again",
     "limits": "Do not use EFMI and EFF Mods on the same character. With EFMI loaded, the EFF Ins panel may not open and EFMI Mod menus may appear oversized. Enabling or disabling Mods takes effect at the next game start: with the official EFF, enabling a Mod mid-game and pressing F10 corrupts the character. EFF and EFMI both reload on F10 by default.",
     "installed": "EFF installed. Restart the game to apply.",
-    "uninstalled": "EFF uninstalled. plugin\\eff.ini and the Mods were kept.",
+    "uninstalled": "EFF uninstalled. Settings and Mods were kept in data\\EFF.",
     "enabled": "EFF enabled. Restart the game to apply.",
     "disabled": "EFF disabled. Restart the game to apply.",
     "switched": "Switched to {{target}}. Restart the game to apply.",
     "runtimeTag": "Resource replacement",
-    "runtimeDescription": "eff.dll and its two proxy loaders. The fixed build adds QAQR fixes on top of the upstream release.",
+    "runtimeDescription": "Loads eff.dll externally from data\\EFF. The QAQR build supports a separate data directory.",
     "kinds": {
       "off": "Disabled",
       "other": "Unrecognized build"
@@ -256,11 +256,12 @@
     "updateAria": "Update the official EFF",
     "forkMissing": "This build of QAQR does not bundle a fixed build",
     "uninstallTitle": "Uninstall EFF",
-    "uninstallDescription": "Removes the loaders and eff.dll and puts back the game files backed up at install. plugin\\eff.ini and plugin\\mods are kept.",
+    "uninstallDescription": "Removes the runtime and loader from data\\EFF, keeping settings and Mods.",
     "uninstallOthers": "plugin also holds {{names}}, which start through the same loader and will stop loading too.",
     "pathsTitle": "Folders",
     "modsFolder": "Mods folder",
-    "modsFolderHint": "One folder per character: plugin\\mods\\<character>\\<Mod>. The Mods page follows this layout and imports go here.",
-    "unassigned": "{{count}} Mods are not in a character folder. They load in game but the Mods page cannot show them: {{names}}"
+    "modsFolderHint": "Organize by character: data\\EFF\\Mods\\<character>\\<Mod>. The Mods page and imports use this directory.",
+    "unassigned": "{{count}} Mods are not in a character folder. They load in game but the Mods page cannot show them: {{names}}",
+    "externalRequired": "The upstream build still uses the game directory, so switching to it is unavailable. The QAQR build supports external data."
   }
 }

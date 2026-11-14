@@ -83,15 +83,17 @@ test('turning Vulkan on and off follows the channel, touches only its files, and
   assert.equal(f.downloads(), 0, 'reading the state never downloads');
 
   await f.service.setEnabled(true);
-  assert.deepEqual(f.onDisk(), f.upstreamDll, 'the official DX11 build maps to the upstream Vulkan build');
+  assert.deepEqual(f.onDisk(), f.forkDll, 'enabling Vulkan prefers the available QAQR build');
   assert.equal(f.argumentNow(), '');
   let state = await f.service.status();
-  assert.equal(state.enabled, true); assert.equal(state.channel, 'official');
-  assert.equal(fs.readFileSync(path.join(f.miRoot, 'dxcompiler.dll'), 'utf8'), 'upstream dxc');
+  assert.equal(state.enabled, true); assert.equal(state.channel, 'fork');
+  assert.equal(fs.readFileSync(path.join(f.miRoot, 'dxcompiler.dll'), 'utf8'), 'fork dxc');
   assert.equal(f.launcher().Launcher.customPreference, 'keep');
   assert.equal(f.launcher().Importers.EFMI.Importer.launch_count, 7);
   assert.equal(f.launcher().Importers.WWMI.Importer.d3d11_mode_cmd_args, '-dx11');
 
+  await f.service.setChannel('official');
+  assert.deepEqual(f.onDisk(), f.upstreamDll, 'an explicit official selection remains available');
   await f.service.setChannel('fork');
   assert.deepEqual(f.onDisk(), f.forkDll);
   assert.equal((await f.service.status()).channel, 'fork');
@@ -120,7 +122,7 @@ test('the DX11 switch hands over to the Vulkan switch instead of leaving the arg
   assert.equal(f.runtime().canUseOfficial, false);
   assert.equal(f.runtime().canUseFork, false);
   assert.throws(() => f.miForks.change('endfield', 'runtime', 'official'), { code: 'vulkanActive' });
-  assert.deepEqual(f.onDisk(), f.upstreamDll);
+  assert.deepEqual(f.onDisk(), f.forkDll);
 });
 
 test('Unsafe Mode, a running game and an unknown DLL all stop the switch before anything changes', async t => {
@@ -135,14 +137,14 @@ test('Unsafe Mode, a running game and an unknown DLL all stop the switch before 
   await assert.rejects(f.service.setEnabled(true));
   assert.equal(fs.readFileSync(custom, 'utf8'), 'hand placed');
   await f.service.setEnabled(true, { confirmed: true });
-  assert.deepEqual(f.onDisk(), f.upstreamDll);
+  assert.deepEqual(f.onDisk(), f.forkDll);
   await f.service.setEnabled(false);
 
   const config = f.launcher();
   config.Importers.EFMI.Migoto.unsafe_mode = false;
   f.write(f.configFile, JSON.stringify(config));
   await assert.rejects(f.service.setEnabled(true), /Unsafe Mode/);
-  assert.deepEqual(f.onDisk(), f.official);
+  assert.deepEqual(f.onDisk(), f.dx11Fork);
   assert.equal((await f.service.status()).checks.find(item => item.id === 'approval').ok, false);
 });
 

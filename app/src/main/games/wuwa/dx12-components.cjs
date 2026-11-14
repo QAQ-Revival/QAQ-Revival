@@ -418,7 +418,7 @@ function createWuwaDx12Components({
       }
       const bundleNeeded = !exists(activeTargets[1]) || ['IbVbHash.cso', 'BufCopy.cso', 'dxc/dxcompiler.dll', 'dxc/dxil.dll'].some(name => !exists(path.join(paths.win64, 'wwmi_dx12', name)));
       if (bundleNeeded) {
-        const bundle = await getPackage('addon');
+        const bundle = getPackage.fork?.() || await getPackage('addon');
         for (const [name, bytes] of bundle) add(name === 'wwmi_dx12.addon64' ? activeTargets[1] : path.join(paths.win64, name), bytes, 'addon', name === 'wwmi_dx12.addon64', bundle.version);
       }
     }

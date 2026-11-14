@@ -117,5 +117,6 @@ module.exports = async ({ electron, handlers, root, evaluate, waitFor, captureUI
   assert.equal(await detect('neverness-to-everness'), nevernessMods);
   passed('Every XXMI game detects its Mods from a custom root; default folders holding Mods and chosen folders are kept; aliases are reused; non-XXMI games are unaffected');
   await require('./efmi-vulkan-smoke.cjs')({ handlers, root, evaluate, waitFor, captureUI, passed });
+  await require('./eff-smoke.cjs')({ handlers, evaluate, waitFor, captureUI, passed });
   await require('./mi-official-update-smoke.cjs')({ electron, handlers, root, evaluate, waitFor, captureUI, passed });
 };

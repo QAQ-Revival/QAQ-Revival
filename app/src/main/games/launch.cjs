@@ -37,6 +37,7 @@ function registerIpc() {
     gameLaunchInProgress = true;
     let genshinPreparation = null,
       genshinLaunched = false;
+    let effPrepared = false, effLaunched = false;
     try {
       const activeGame = gamesSettings.getActiveGame();
       const {
@@ -48,6 +49,7 @@ function registerIpc() {
         error: i18n.t("backend.games.launch.gameChanged")
       };
       if (launchMode === "OFFICIAL") {
+        if (activeGame?.id === "endfield") gamesEndfieldServices.effService.cancelLaunch();
         const launcherPath = resolveOfficialLauncherPath(activeGame, { gamePath });
         if (!launcherPath) return {
           success: false,
@@ -115,7 +117,12 @@ function registerIpc() {
           }
         }
         coreLogger.logger.info("Launching Game (Vanilla):", vanillaGamePath);
+        if (activeGame?.id === "endfield") {
+          await gamesEndfieldServices.effService.prepareLaunch();
+          effPrepared = true;
+        }
         systemWindows.launchWindowsExecutableViaStart(vanillaGamePath);
+        effLaunched = effPrepared;
         return {
           success: true
         };
@@ -144,13 +151,15 @@ function registerIpc() {
         }
         if (activeGame?.id === "endfield") {
           await gamesEndfieldServices.efmiVulkanService.prepareLaunch();
-          // Puts the EFF loaders in step with that runtime, or back after a game update replaced them.
+          // EFF watches this executable and loads its DLL directly from data/EFF.
           await gamesEndfieldServices.effService.prepareLaunch();
+          effPrepared = true;
         }
         const args = resolvedLaunchMode === "XXMI" ? [] : ["--nogui", "--xxmi", resolvedLaunchMode];
         args.push(...systemWindows.parseLaunchArgs(customLaunchArgs));
         coreLogger.logger.info("Launching Mod loader:", modLoaderPath, resolvedLaunchMode);
         const launchResult = await (genshinPreparation?.launcherPath ? systemWindows.launchElevated(genshinPreparation.launcherPath, path.dirname(modLoaderPath), args) : getRandomLaunchSettings(configStore.currentConfig).xxmi ? launchRandomExecutable(modLoaderPath, path.dirname(modLoaderPath), args, systemWindows.launchElevated) : systemWindows.launchElevated(modLoaderPath, path.dirname(modLoaderPath), args));
+        effLaunched = effPrepared && !!launchResult?.success;
         if (launchResult?.success && genshinPreparation) {
           genshinLaunched = true;
           gamesGenshinServices.genshinAntiCrash.watchGameExit(genshinPreparation);
@@ -268,6 +277,7 @@ function registerIpc() {
         error: error.message
       };
     } finally {
+      if (effPrepared && !effLaunched) gamesEndfieldServices.effService.cancelLaunch();
       if (genshinPreparation && !genshinLaunched) {
         try {
           const result = await gamesGenshinServices.genshinAntiCrash.cleanup({

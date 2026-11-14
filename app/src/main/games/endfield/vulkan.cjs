@@ -181,8 +181,7 @@ function createEfmiVulkanService({
       if (enabled) {
         requireReady(state, ['game', 'mi', 'approval']);
         if (state.confirmReplace && !confirmed) throw Error(i18n.t("backend.efmiVulkan.confirmRequired"));
-        const dx11 = miForks.status('endfield').components?.find(item => item.id === 'runtime');
-        const channel = dx11?.local.kind === 'fork' && fork ? 'fork' : 'official';
+        const channel = fork ? 'fork' : 'official';
         const files = await vulkanFiles(channel, fork);
         await assertStopped(state.paths);
         apply(root, launcherRoot, files, true);

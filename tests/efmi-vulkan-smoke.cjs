@@ -26,6 +26,7 @@ module.exports = async ({ handlers, root, evaluate, waitFor, captureUI, passed }
   }));
   const argument = () => JSON.parse(fs.readFileSync(configFile, 'utf8')).Importers.EFMI.Importer.d3d11_mode_cmd_args;
   const bundle = path.join(root, 'vulkan-release-fixture/1.2.2-nhd.27');
+  const forkDir = path.join(path.dirname(process.execPath), 'local-components/xxmi-runtime-vulkan');
   assert.equal((await call('game:update', { gameId: 'endfield', updates: { modLoaderPath: loader, modFolderPath: path.join(efmi, 'Mods'), gamePath } })).success, true);
   await call('game:switch', 'endfield');
   await evaluate(`window.dispatchEvent(new CustomEvent('qaqm-navigate', { detail: { tab: 'characters' } }))`);
@@ -45,14 +46,14 @@ module.exports = async ({ handlers, root, evaluate, waitFor, captureUI, passed }
 
   await evaluate(`${toggle}.click()`);
   await waitFor(`${toggle}.checked && !${toggle}.disabled`, 'Vulkan turns on');
-  assert.deepEqual(fs.readFileSync(path.join(efmi, 'd3d11.dll')), fs.readFileSync(path.join(bundle, 'd3d11.dll')));
+  assert.deepEqual(fs.readFileSync(path.join(efmi, 'd3d11.dll')), fs.readFileSync(path.join(forkDir, 'd3d11.dll')));
   assert.equal(argument(), '');
-  for (const name of ['dxcompiler.dll', 'dxil.dll', 'SPIRV-Tools-shared.dll']) assert.deepEqual(fs.readFileSync(path.join(efmi, name)), fs.readFileSync(path.join(bundle, name)));
+  for (const name of ['dxcompiler.dll', 'dxil.dll', 'SPIRV-Tools-shared.dll']) if (fs.existsSync(path.join(forkDir, name))) assert.deepEqual(fs.readFileSync(path.join(efmi, name)), fs.readFileSync(path.join(forkDir, name)));
   assert.equal(JSON.parse(fs.readFileSync(configFile, 'utf8')).Launcher.customPreference, 'keep');
   assert.equal(fs.readFileSync(path.join(efmi, 'Mods/kept.ini'), 'utf8'), 'keep mod');
   const variant = channel => `document.querySelector('[data-vulkan-component="runtime"] [data-channel="${channel}"]')`;
   const useButton = channel => `document.querySelector('[data-vulkan-component="runtime"] [data-channel="${channel}"] [data-action="use"]')`;
-  await waitFor(`${variant('official')}?.classList.contains('is-active') && !!${useButton('fork')} && !${useButton('fork')}.disabled`, 'the upstream build is the active channel');
+  await waitFor(`${variant('fork')}?.classList.contains('is-active') && !!${useButton('official')} && !${useButton('official')}.disabled`, 'the QAQR build is the default channel');
   await page('game-updates');
   await waitFor(`document.querySelector('#settings-mi-forks [data-component="runtime"] [data-channel="vulkan"]')?.classList.contains('is-active') && document.querySelector('#settings-mi-forks').textContent.includes('Vulkan 运行库')`, 'the DX11 switch names the Vulkan runtime and steps aside');
   await page('efmi-vulkan');
@@ -60,6 +61,9 @@ module.exports = async ({ handlers, root, evaluate, waitFor, captureUI, passed }
   await captureUI('efmi-vulkan-on.png');
 
   const forkDll = path.join(path.dirname(process.execPath), 'local-components/xxmi-runtime-vulkan/d3d11.dll');
+  await evaluate(`${useButton('official')}.click()`);
+  await waitFor(`${variant('official')}.classList.contains('is-active')`, 'an explicit upstream choice remains available');
+  assert.deepEqual(fs.readFileSync(path.join(efmi, 'd3d11.dll')), fs.readFileSync(path.join(bundle, 'd3d11.dll')));
   await evaluate(`${useButton('fork')}.click()`);
   await waitFor(`${variant('fork')}.classList.contains('is-active')`, 'the QAQR build becomes active');
   assert.deepEqual(fs.readFileSync(path.join(efmi, 'd3d11.dll')), fs.readFileSync(forkDll));

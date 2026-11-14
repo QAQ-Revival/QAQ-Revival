@@ -58,6 +58,7 @@ test('OFFICIAL opens only the official launcher without arguments or any Mod pre
   let activeGame;
   let launchResult = { success: true };
   const requests = [];
+  let cancelledEffWatchers = 0;
   let handler;
   const unexpected = () => assert.fail('Official launch must not prepare or start a Mod component');
   const dependencies = {
@@ -68,6 +69,7 @@ test('OFFICIAL opens only the official launcher without arguments or any Mod pre
     '../core/logger.cjs': { logger: { error() {}, warn() {}, info() {} } },
     './official-launcher.cjs': { resolveOfficialLauncherPath },
     './settings.cjs': { getActiveGame: () => activeGame, getResolvedActiveGamePaths: () => ({ gamePath: activeGame?.gamePath }) },
+    './endfield/service.cjs': { effService: { cancelLaunch: () => { cancelledEffWatchers++; }, prepareLaunch: unexpected } },
     '../system/windows.cjs': { windowsLauncher: { launch: async (file, cwd, args, options) => { requests.push({ file, cwd, args: Array.from(args), options }); return launchResult; } } }
   };
   const module = { exports: {} };
@@ -86,6 +88,7 @@ test('OFFICIAL opens only the official launcher without arguments or any Mod pre
     assert.equal(request.options.requireElevation, false);
   }
   const count = requests.length;
+  assert.equal(cancelledEffWatchers, 1, 'an official Endfield launch cancels a pending external EFF watcher');
   assert.equal((await handler({}, { launchMode: 'OFFICIAL', gameId: 'endfield' })).success, false, 'reject stale game requests');
   assert.equal(requests.length, count);
   activeGame.officialLauncherPath = launcher;

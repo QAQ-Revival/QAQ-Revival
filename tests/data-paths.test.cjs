@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { resolveDataRoot, getDefaultModsPath, isUnusedDefaultModsPath, migrateLegacyArknights, resolveDisabledModsDirectory } = require('../app/src/main/runtime/data-paths.cjs');
+const { resolveDataRoot, getLoaderDataRoot, getDefaultModsPath, isUnusedDefaultModsPath, migrateLegacyArknights, resolveDisabledModsDirectory } = require('../app/src/main/runtime/data-paths.cjs');
 
 test('installed default Mods directories follow the executable, including randomized manager names', () => {
   const install = path.resolve('test-results/portable-install');
@@ -11,6 +11,10 @@ test('installed default Mods directories follow the executable, including random
   for (const [game, importer] of [['endfield', 'EFMI'], ['wuthering-waves', 'WWMI'], ['genshin-impact', 'GIMI'], ['zzz', 'ZZMI'], ['honkai-star-rail', 'SRMI']]) assert.equal(getDefaultModsPath(game, data), path.join(data, 'XXMI', importer, 'Mods'));
   assert.equal(getDefaultModsPath('arknights', data), path.join(data, 'Arknights/Mods'));
   assert.equal(getDefaultModsPath('neverness-to-everness', data), path.join(data, 'NEMI/Mods'));
+  assert.equal(getDefaultModsPath('eff', data), path.join(data, 'EFF/Mods'));
+  assert.equal(getLoaderDataRoot('FutureLoader', data), path.join(data, 'FutureLoader'));
+  assert.throws(() => getLoaderDataRoot('../game', data));
+  assert.throws(() => getLoaderDataRoot('D:\\game', data));
 });
 
 test('only the default Mods folder without files counts as unused, so detection never hides existing Mods', t => {

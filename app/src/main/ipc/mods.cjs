@@ -111,7 +111,7 @@ async function listMods(characterName) {
           })
         };
       });
-      // EFF Mods of the character sit in the same list, from the game's plugin/mods.
+      // EFF Mods of the character sit in the same list, from data/EFF/Mods.
       mods = mods.concat(modsEffRoutes.entries({
         gameId: gameId2,
         characterName,

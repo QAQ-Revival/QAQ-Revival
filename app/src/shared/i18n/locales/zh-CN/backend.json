@@ -1369,7 +1369,7 @@
     "loaderRepair": "和当前的 EFMI 后端对不上，或者被游戏更新还原了，启动前会自动校正",
     "backendTitle": "EFMI 后端",
     "backendDx11": "DX11：已有玩家验证可以共存",
-    "backendVulkan": "Vulkan：vulkan-1.dll 代理会让 EFMI 的钩子失效，所以只放 d3dcompiler_47.dll。这个组合还没在游戏里验证过",
+    "backendVulkan": "外部加载不使用 Vulkan 代理；EFF 与 EFMI Vulkan 的组合仍待游戏内验证",
     "applepieOld": "plugin 里有旧版 applepie_manager.dll，它的窗口会改乱 EFMI Mod 菜单的分辨率，建议移走",
     "operationInProgress": "另一个 EFF 操作正在进行",
     "forkMissing": "这个版本没有打包 QAQR 修复版 EFF",
@@ -1388,6 +1388,14 @@
     "importMissing": "找不到要导入的文件",
     "importNoMod": "里面没有 mod.ini，不是 EFF Mod",
     "modExists": "已经有叫 {{name}} 的 Mod",
-    "importNeedsEff": "这是 EFF Mod，先到 设置 → EFF 安装 EFF 再导入"
+    "importNeedsEff": "这是 EFF Mod，先到 设置 → EFF 安装 EFF 再导入",
+    "storageTitle": "数据目录",
+    "storageReady": "{{path}}",
+    "migrationPending": "游戏目录中还有旧 EFF 文件，将在游戏关闭后迁移到 data\\EFF",
+    "externalLoader": "从 data\\EFF 加载，不向游戏目录放入文件",
+    "externalRequired": "这个 EFF 版本不支持外部数据目录，请使用 QAQR 修复版",
+    "dataInsideGame": "EFF 数据目录不能放在游戏目录内",
+    "legacyOtherPlugins": "旧加载器还供 {{names}} 使用，请先迁走这些插件再迁移 EFF",
+    "loaderFailed": "EFF 外部加载器未能完成启动（{{code}}）"
   }
 }

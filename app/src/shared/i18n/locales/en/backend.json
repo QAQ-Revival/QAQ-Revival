@@ -302,7 +302,7 @@
     "loaderRepair": "Out of step with the current EFMI backend, or reverted by a game update. Fixed automatically before launch.",
     "backendTitle": "EFMI backend",
     "backendDx11": "DX11: players have confirmed the two work together",
-    "backendVulkan": "Vulkan: a vulkan-1.dll proxy breaks the EFMI hooks, so only d3dcompiler_47.dll is placed. This combination has not been tested in game yet.",
+    "backendVulkan": "External loading uses no Vulkan proxy. EFF with EFMI Vulkan still needs in-game verification.",
     "applepieOld": "plugin holds an old applepie_manager.dll whose window breaks the resolution of EFMI Mod menus. Move it out.",
     "operationInProgress": "Another EFF operation is in progress",
     "forkMissing": "This build of QAQR does not bundle the QAQR fixed EFF",
@@ -321,6 +321,14 @@
     "importMissing": "The file to import was not found",
     "importNoMod": "It contains no mod.ini, so it is not an EFF Mod",
     "modExists": "A Mod named {{name}} already exists",
-    "importNeedsEff": "This is an EFF Mod. Install EFF under Settings > EFF before importing it."
+    "importNeedsEff": "This is an EFF Mod. Install EFF under Settings > EFF before importing it.",
+    "storageTitle": "Data directory",
+    "storageReady": "{{path}}",
+    "migrationPending": "Legacy EFF files remain in the game directory. They will move to data\\EFF after the game closes.",
+    "externalLoader": "Loads from data\\EFF without placing files in the game directory",
+    "externalRequired": "This EFF version does not support external data. Use the QAQR fixed build.",
+    "dataInsideGame": "The EFF data directory must be outside the game directory",
+    "legacyOtherPlugins": "The legacy loader also loads {{names}}. Move those plugins before migrating EFF.",
+    "loaderFailed": "The external EFF loader could not complete startup ({{code}})"
   }
 }

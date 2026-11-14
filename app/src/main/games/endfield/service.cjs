@@ -16,6 +16,9 @@ const fs = require("fs");
 const gamesSettings = require("../settings.cjs");
 const installXxmi = require("../../install/xxmi.cjs");
 const runtimePaths = require("../../runtime/paths.cjs");
+const { getLoaderDataRoot } = require("../../runtime/data-paths.cjs");
+const systemWindows = require("../../system/windows.cjs");
+const { logger } = require("../../core/logger.cjs");
 let efmiVulkanService, effService;
 function runPowerShell(script) {
   const powershell = path.join(process.env.SystemRoot || "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe");
@@ -48,8 +51,10 @@ function initialize() {
     resolveInstallation,
     notifyChanged: notify
   });
-  const effRoot = path.join(electron.app.getPath("userData"), "eff");
+  const effRoot = getLoaderDataRoot("EFF");
+  const legacyEffRoot = path.join(electron.app.getPath("userData"), "eff");
   effService = createEffService({
+    storageRoot: effRoot,
     packages: createEffPackages({
       cacheDir: path.join(effRoot, "packages"),
       fetch: (...args) => electron.net.fetch(...args)
@@ -68,18 +73,34 @@ function initialize() {
     assertStopped: () => assertStopped({ launcher: resolveInstallation().launcherRoot }),
     stateFile: path.join(effRoot, "state.json"),
     backupDir: path.join(effRoot, "backup"),
+    legacyStateFile: path.join(legacyEffRoot, "state.json"),
+    legacyBackupDir: path.join(legacyEffRoot, "backup"),
+    startLoader: async ({ executable, gamePath, dll, request, storageRoot }) => {
+      const result = await systemWindows.launchElevated(executable, storageRoot, ["--game", gamePath, "--dll", dll, "--request", request]);
+      if (!result?.success) throw Error(result?.error || i18n.t("backend.eff.loaderFailed", { code: "start" }));
+      const deadline = Date.now() + 8000;
+      while (Date.now() < deadline) {
+        let state;
+        try { state = JSON.parse(fs.readFileSync(path.join(storageRoot, "loader-status.json"), "utf8")); } catch { /* The helper has not published readiness yet. */ }
+        if (state?.request === request) {
+          if (["waiting", "loaded"].includes(state.state)) return;
+          throw Error(i18n.t("backend.eff.loaderFailed", { code: state.error }));
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      throw Error(i18n.t("backend.eff.loaderFailed", { code: "timeout" }));
+    },
     trash: target => systemFiles.movePathToRecycleBin(target, "eff-mod"),
     extract: (archive, target) => archivesExtract.extractArchiveWithExternalTool(archive, target, { flatten: false }),
     notifyChanged: notify
   });
+  effService.sync().catch(error => logger.warn("[EFF] Managed data migration pending:", error.message));
 }
 function registerIpc() {
   for (const [channel, action] of Object.entries({
     "efmi:vulkan-status": () => efmiVulkanService.status(),
     "efmi:vulkan-set-enabled": async ({ enabled, confirmed } = {}) => {
       const result = await efmiVulkanService.setEnabled(enabled, { confirmed: confirmed === true });
-      // The EFF loaders follow the runtime; a failure here is repaired before the next launch.
-      await effService.sync().catch(() => {});
       return result;
     },
     "efmi:vulkan-set-channel": target => efmiVulkanService.setChannel(target),

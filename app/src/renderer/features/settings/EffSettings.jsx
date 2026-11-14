@@ -94,6 +94,7 @@ function EffSettings({ part = "overview" }) {
       );
     const useButton = (target) =>
       data?.installed &&
+      (target !== "official" || data.sources.official.externalData) &&
       channel !== target && (
         <Button
           small={true}
@@ -207,6 +208,7 @@ function EffSettings({ part = "overview" }) {
                 </React.Fragment>
               }
             >
+              {!data.sources.official.externalData && <p className="settings-footnote">{t("settings.eff.externalRequired")}</p>}
               {!fork && <p className="settings-warning-text">{t("settings.eff.forkMissing")}</p>}
               {updates?.error && (
                 <p className="settings-error" role="status">
@@ -243,8 +245,8 @@ function EffSettings({ part = "overview" }) {
           >
             <MenuItem
               icon={<Icon name="folder" size={15} />}
-              disabled={busy || !data?.paths.game}
-              onClick={() => window.api.openPathInExplorer(data.paths.game)}
+              disabled={busy || !data?.paths.plugin}
+              onClick={() => window.api.openPathInExplorer(data.paths.plugin)}
             >
               {t("settings.eff.openGameDirectory")}
             </MenuItem>
@@ -321,7 +323,7 @@ function EffSettings({ part = "overview" }) {
         {messages}
         <p className="settings-footnote">{t("settings.eff.limits")}</p>
       </Section>
-      {data?.installed && (
+      {data && (
         <Section id="eff-paths" title={t("settings.eff.pathsTitle")}>
           <Row title={t("settings.eff.modsFolder")} hint={t("settings.eff.modsFolderHint")} path={true}>
             <PathControl label={t("settings.eff.modsFolder")} value={data.paths.mods} disabled={busy} />

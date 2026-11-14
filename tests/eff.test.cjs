@@ -22,11 +22,12 @@ function releaseFiles(tag = 'one') {
 function fixture(t) {
   const temporary = fs.realpathSync(os.tmpdir()), root = fs.mkdtempSync(path.join(temporary, 'qaqr-eff-'));
   t.after(() => { assert.equal(path.dirname(fs.realpathSync(root)), temporary); fs.rmSync(root, { recursive: true, force: true }); });
-  const game = path.join(root, 'game'), state = path.join(root, 'state');
+  const game = path.join(root, 'game'), state = path.join(root, 'state'), storage = path.join(root, 'data/EFF');
   const write = (file, value) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, value); return file; };
   const gamePath = write(path.join(game, 'Endfield.exe'), 'Synthetic game, never executed');
   const original = write(path.join(game, 'd3dcompiler_47.dll'), 'the original compiler shipped with the game');
   let vulkan = false, running = false, files = releaseFiles(), trashed = [];
+  const launches = [];
   const packages = {
     selected: () => ({ version: '2.0.12', sha256: 'a'.repeat(64) }),
     pending: () => null,
@@ -37,6 +38,8 @@ function fixture(t) {
   };
   const service = createEffService({
     resolveGame: () => ({ gamePath }),
+    storageRoot: storage,
+    startLoader: async info => launches.push(info),
     efmiVulkanActive: () => vulkan,
     packages,
     bundleRoots: [root],
@@ -47,14 +50,17 @@ function fixture(t) {
     extract: async (archive, target) => new AdmZip(archive).extractAllTo(target, true),
     systemRoot: 'C:\\Windows'
   });
-  return {
-    root, game, gamePath, service, write, original: fs.readFileSync(original),
-    at: relative => path.join(game, relative),
+  const f = {
+    root, game, gamePath, storage, service, write, launches, original: fs.readFileSync(original),
+    at: relative => path.join(storage, relative),
+    gameAt: relative => path.join(game, relative),
     setVulkan: value => { vulkan = value; },
     setRunning: value => { running = value; },
     setFiles: value => { files = value; },
     trashed: () => trashed
   };
+  writeForkBundle(f);
+  return f;
 }
 
 test('the loader switch only moves the eff.dll line of [plugins]', () => {
@@ -90,74 +96,106 @@ test('Mods are found the way EFF finds them, with both disabled spellings', t =>
   assert.deepEqual(parseModIni('\uFEFF[Mod]\r\nformat = 3\r\n'), { id: null, format: '3', keySwitch: true, keys: [] });
 });
 
-test('installing backs up the game compiler, keeps the player settings and follows the EFMI backend', async t => {
+test('install, launch, toggle and uninstall keep all EFF files outside the game', async t => {
   const f = fixture(t);
-  f.write(f.at('plugin/eff.ini'), 'player settings');
-  f.write(f.at('plugin/hide_uid.dll'), 'another plugin');
-  let state = await f.service.status();
-  assert.equal(state.installed, false);
-  assert.deepEqual(state.checks.map(item => [item.id, item.ok]), [['game', true], ['system', true]]);
+  const before = fs.readdirSync(f.game);
   f.setRunning(true);
   await assert.rejects(f.service.setInstalled(true), /game running/);
-  assert.deepEqual(fs.readFileSync(f.at('d3dcompiler_47.dll')), f.original);
   f.setRunning(false);
-  assert.equal((await f.service.setInstalled(true)).success, true);
-  assert.ok(fs.readFileSync(f.at('d3dcompiler_47.dll')).includes(PROXY_MARK));
-  assert.ok(fs.readFileSync(f.at('vulkan-1.dll')).includes(PROXY_MARK));
-  assert.equal(fs.readFileSync(f.at('plugin/eff.ini'), 'utf8'), 'player settings');
-  assert.ok(fs.statSync(f.at('plugin/mods')).isDirectory());
-  state = await f.service.status();
+  await f.service.setInstalled(true);
+  let state = await f.service.status();
   assert.equal(state.installed, true);
-  assert.equal(state.enabled, true);
-  assert.equal(state.channel, 'official');
+  assert.equal(state.channel, 'fork');
   assert.equal(state.ready, true);
-  assert.deepEqual(state.otherPlugins, ['hide_uid.dll']);
-
-  // With the Vulkan runtime of EFMI, only the compiler proxy may stay.
-  f.setVulkan(true);
-  state = await f.service.status();
-  assert.equal(state.checks.find(item => item.id === 'loader').ok, false);
-  assert.equal((await f.service.prepareLaunch()).changed, true);
-  assert.equal(fs.existsSync(f.at('vulkan-1.dll')), false);
-  assert.ok(fs.readFileSync(f.at('d3dcompiler_47.dll')).includes(PROXY_MARK));
-  state = await f.service.status();
-  assert.equal(state.checks.find(item => item.id === 'loader').ok, true);
-  assert.equal(state.checks.find(item => item.id === 'backend').ok, false);
-  assert.equal((await f.service.prepareLaunch()).changed, false);
-
-  // A game update that put the original back is repaired before launch, and the newer original is the one kept.
-  f.setVulkan(false);
-  f.write(f.at('d3dcompiler_47.dll'), 'a newer original compiler');
-  assert.equal((await f.service.prepareLaunch()).changed, true);
-  assert.ok(fs.existsSync(f.at('vulkan-1.dll')));
-  assert.ok(fs.readFileSync(f.at('d3dcompiler_47.dll')).includes(PROXY_MARK));
-
-  assert.equal((await f.service.setEnabled(false)).success, true);
-  assert.equal(loaderDisabled(fs.readFileSync(f.at('plugin/applepie_manager_config.txt'), 'utf8')), true);
-  assert.equal((await f.service.status()).enabled, false);
+  assert.equal(state.paths.mods, f.at('Mods'));
+  assert.deepEqual(fs.readdirSync(f.game), before);
+  assert.deepEqual(fs.readFileSync(f.gameAt('d3dcompiler_47.dll')), f.original);
+  assert.ok(fs.existsSync(f.at('EFFLoader.exe')));
+  assert.ok(fs.existsSync(f.at('eff.ini')));
+  assert.equal((await f.service.prepareLaunch()).watching, true);
+  assert.equal(f.launches[0].dll, f.at('eff.dll'));
+  assert.equal(f.launches[0].gamePath, f.gamePath);
+  assert.equal(fs.readFileSync(f.at('.launch-request'), 'utf8'), f.launches[0].request);
+  await f.service.setEnabled(false);
+  assert.equal(fs.existsSync(f.at('.launch-request')), false);
+  await f.service.prepareLaunch();
+  assert.equal(f.launches.length, 1);
   await f.service.setEnabled(true);
-  assert.equal(fs.existsSync(f.at('plugin/applepie_manager_config.txt')), false);
-
+  f.setVulkan(true);
+  await f.service.prepareLaunch();
+  assert.equal(f.launches.length, 2, 'the external loader is independent of the EFMI backend');
+  assert.deepEqual(fs.readdirSync(f.game), before);
   await f.service.setInstalled(false);
-  assert.equal(fs.readFileSync(f.at('d3dcompiler_47.dll'), 'utf8'), 'a newer original compiler');
-  assert.equal(fs.existsSync(f.at('vulkan-1.dll')), false);
-  assert.equal(fs.existsSync(f.at('plugin/eff.dll')), false);
-  assert.equal(fs.readFileSync(f.at('plugin/eff.ini'), 'utf8'), 'player settings');
-  assert.equal(fs.readFileSync(f.at('plugin/hide_uid.dll'), 'utf8'), 'another plugin');
-  assert.ok(fs.existsSync(f.at('plugin/mods')));
-  assert.equal((await f.service.status()).installed, false);
+  assert.equal(fs.existsSync(f.at('eff.dll')), false);
+  assert.equal(fs.existsSync(f.at('EFFLoader.exe')), false);
+  assert.equal(fs.existsSync(f.at('eff.ini')), true);
+  assert.equal(fs.existsSync(f.at('Mods')), true);
+  assert.deepEqual(fs.readdirSync(f.game), before);
 });
 
-test('a build installed elsewhere is reported as unrecognized and the missing settings file is written', async t => {
+function legacyInstall(f, { backup = true } = {}) {
+  for (const [name, bytes] of releaseFiles()) f.write(f.gameAt(name), bytes);
+  f.write(f.gameAt('plugin/applepie_manager_config.txt'), '[plugins]\neff.dll=0\n');
+  f.write(f.gameAt('plugin/mods/佩丽卡/礼服/mod.ini.disable'), '[Mod]\nformat=3\n');
+  f.write(f.gameAt('plugin/mods/佩丽卡/礼服/body.effres'), 'mesh payload');
+  const key = sha(Buffer.from(path.resolve(f.game).toLowerCase())).slice(0, 16);
+  f.write(path.join(f.root, 'state/state.json'), JSON.stringify({ games: { [key]: { backups: { 'd3dcompiler_47.dll': sha(f.original) } } } }));
+  if (backup) f.write(path.join(f.root, 'state/backup', key, 'd3dcompiler_47.dll'), f.original);
+}
+
+test('legacy Mods, settings and disabled state migrate and original game files are restored', async t => {
+  const f = fixture(t);
+  legacyInstall(f);
+  assert.equal((await f.service.status()).migrationPending, true);
+  f.setRunning(true);
+  await assert.rejects(f.service.sync(), /game running/);
+  assert.ok(fs.existsSync(f.gameAt('plugin/mods/佩丽卡/礼服/mod.ini.disable')));
+  f.setRunning(false);
+  await f.service.sync();
+  const state = await f.service.status();
+  assert.equal(state.enabled, false);
+  assert.equal(state.installed, true);
+  assert.equal(state.migrationPending, false);
+  assert.deepEqual(fs.readdirSync(f.game).sort(), ['Endfield.exe', 'd3dcompiler_47.dll']);
+  assert.deepEqual(fs.readFileSync(f.gameAt('d3dcompiler_47.dll')), f.original);
+  assert.equal(fs.readFileSync(f.at('Mods/佩丽卡/礼服/body.effres'), 'utf8'), 'mesh payload');
+  assert.equal(f.service.characterMods('佩丽卡')[0].enabled, false);
+  assert.equal((await f.service.sync()).changed, false);
+});
+
+test('migration refuses conflicting Mods or invalid game-file backups before changing the game', async t => {
+  for (const conflict of [false, true]) {
+    const f = fixture(t);
+    legacyInstall(f, { backup: conflict });
+    if (conflict) f.write(f.at('Mods/佩丽卡/礼服/body.effres'), 'newer mesh');
+    await assert.rejects(f.service.sync(), conflict ? /conflicts/ : /备份/);
+    assert.ok(fs.existsSync(f.gameAt('plugin/mods/佩丽卡/礼服/mod.ini.disable')));
+    assert.ok(fs.readFileSync(f.gameAt('d3dcompiler_47.dll')).includes(PROXY_MARK));
+    assert.equal(fs.existsSync(f.at('eff.dll')), false);
+    if (conflict) assert.equal(fs.readFileSync(f.at('Mods/佩丽卡/礼服/body.effres'), 'utf8'), 'newer mesh');
+  }
+});
+
+test('shared third-party proxies are not silently removed during EFF migration', async t => {
+  const f = fixture(t);
+  legacyInstall(f);
+  f.write(f.gameAt('plugin/other.dll'), 'another plugin');
+  await assert.rejects(f.service.sync(), /other.dll/);
+  assert.ok(fs.readFileSync(f.gameAt('d3dcompiler_47.dll')).includes(PROXY_MARK));
+  assert.ok(fs.existsSync(f.gameAt('plugin/other.dll')));
+});
+
+test('incompatible upstream runtimes are refused without changing the managed installation', async t => {
   const f = fixture(t);
   await f.service.setInstalled(true);
-  assert.equal(fs.readFileSync(f.at('plugin/eff.ini'), 'utf8'), '[Hotkeys]\nreload=F10\n');
-  f.write(f.at('plugin/eff.dll'), 'a hotfix dropped in by hand');
+  const before = fs.readFileSync(f.at('eff.dll'));
+  await assert.rejects(f.service.setChannel('official'), /外部数据目录/);
+  assert.deepEqual(fs.readFileSync(f.at('eff.dll')), before);
+  f.write(f.at('eff.dll'), 'an unrecognized build');
   assert.equal((await f.service.status()).channel, 'other');
-  // Reinstalling the official build brings the recognized runtime back.
-  await f.service.setChannel('official');
-  assert.equal((await f.service.status()).channel, 'official');
-  await assert.rejects(f.service.setChannel('fork'), /修复版/);
+  assert.equal((await f.service.status()).checks.find(item => item.id === 'loader').ok, false);
+  await f.service.setChannel('fork');
+  assert.equal((await f.service.status()).channel, 'fork');
 });
 
 test('Mods are switched by renaming mod.ini, imported from folders and archives, and removed to the bin', async t => {
@@ -185,24 +223,24 @@ test('Mods are switched by renaming mod.ini, imported from folders and archives,
   empty.writeZip(emptyArchive);
   await assert.rejects(f.service.importMod(emptyArchive), /mod\.ini/);
   // Nothing of a failed import is left where EFF or the next import would see it.
-  assert.deepEqual(fs.readdirSync(f.at('plugin')).filter(name => name.startsWith('.')), []);
+  assert.deepEqual(fs.readdirSync(f.storage).filter(name => name.startsWith('.')), []);
 
   let list = f.service.listMods();
   assert.deepEqual(list.mods.map(mod => [mod.id, mod.enabled]), [['Flat Mod', true], ['Perlica', true], ['Perlica (2)', true], ['Wrapped', true]]);
   f.service.setModEnabled('Perlica', false);
-  assert.ok(fs.existsSync(f.at('plugin/mods/Perlica/mod.ini.effmm-disabled')));
-  assert.equal(fs.existsSync(f.at('plugin/mods/Perlica/mod.ini')), false);
+  assert.ok(fs.existsSync(f.at('Mods/Perlica/mod.ini.effmm-disabled')));
+  assert.equal(fs.existsSync(f.at('Mods/Perlica/mod.ini')), false);
   f.service.setModEnabled('Perlica', true);
-  assert.ok(fs.existsSync(f.at('plugin/mods/Perlica/mod.ini')));
-  fs.renameSync(f.at('plugin/mods/Wrapped/mod.ini'), f.at('plugin/mods/Wrapped/mod.ini.disable'));
+  assert.ok(fs.existsSync(f.at('Mods/Perlica/mod.ini')));
+  fs.renameSync(f.at('Mods/Wrapped/mod.ini'), f.at('Mods/Wrapped/mod.ini.disable'));
   assert.equal(f.service.listMods().mods.find(mod => mod.id === 'Wrapped').enabled, false);
   f.service.setModEnabled('Wrapped', true);
-  assert.ok(fs.existsSync(f.at('plugin/mods/Wrapped/mod.ini')));
+  assert.ok(fs.existsSync(f.at('Mods/Wrapped/mod.ini')));
   assert.throws(() => f.service.setModEnabled('../../Endfield.exe', false), /Mod/);
   assert.throws(() => f.service.setModEnabled('Missing', true), /Mod/);
 
   await f.service.removeMod('Perlica (2)');
-  assert.deepEqual(f.trashed(), [f.at('plugin/mods/Perlica (2)')]);
+  assert.deepEqual(f.trashed(), [f.at('Mods/Perlica (2)')]);
   list = f.service.listMods();
   assert.equal(list.mods.length, 3);
 });
@@ -244,7 +282,8 @@ function versionResource(file, product = file) {
 function writeForkBundle(f, { source = 'https://github.com/QAQ-Revival/EFF', commit = 'c'.repeat(40) } = {}) {
   const directory = path.join(f.root, 'local-components/eff');
   const files = releaseFiles('fork');
-  files.set('plugin/eff.dll', Buffer.concat([Buffer.from('eff runtime fork '), versionResource([2, 0, 12, 6])]));
+  files.set('plugin/eff.dll', Buffer.concat([Buffer.from('eff runtime fork EFF_ExternalData_v1 '), versionResource([2, 0, 12, 6])]));
+  files.set('EFFLoader.exe', Buffer.from('synthetic external loader'));
   files.set('plugin/THIRD_PARTY_NOTICES', Buffer.from('notices'));
   const digests = {};
   for (const [relative, bytes] of files) {
@@ -255,44 +294,17 @@ function writeForkBundle(f, { source = 'https://github.com/QAQ-Revival/EFF', com
   return { directory, files };
 }
 
-test('the QAQR fork build is offered from its bundle and switched to and from, keeping the player settings', async t => {
-  const f = fixture(t);
-  const fork = writeForkBundle(f);
-  let state = await f.service.status();
-  assert.deepEqual(state.sources.fork, { version: '2.0.12.6', build: 'c'.repeat(12) });
+test('the managed fork is validated, repairable and keeps player settings', async t => {
+  const f = fixture(t), fork = writeForkBundle(f);
+  assert.deepEqual((await f.service.status()).sources.fork, { version: '2.0.12.6', build: 'c'.repeat(12), localBuild: false });
   await f.service.setInstalled(true);
-  f.write(f.at('plugin/eff.ini'), 'player settings');
-  assert.equal((await f.service.status()).channel, 'official');
-
-  assert.equal((await f.service.setChannel('fork')).channel, 'fork');
-  state = await f.service.status();
-  assert.equal(state.channel, 'fork');
-  assert.equal(state.version, '2.0.12.6');
-  for (const relative of ['d3dcompiler_47.dll', 'vulkan-1.dll', 'plugin/eff.dll', 'plugin/THIRD_PARTY_NOTICES']) assert.deepEqual(fs.readFileSync(f.at(relative)), fork.files.get(relative));
-  assert.equal(fs.readFileSync(f.at('plugin/eff.ini'), 'utf8'), 'player settings');
-
-  // The proxies follow the EFMI backend from the fork's own files.
-  f.setVulkan(true);
-  assert.equal((await f.service.prepareLaunch()).changed, true);
-  assert.equal(fs.existsSync(f.at('vulkan-1.dll')), false);
-  f.setVulkan(false);
-  assert.equal((await f.service.prepareLaunch()).changed, true);
-  assert.deepEqual(fs.readFileSync(f.at('vulkan-1.dll')), fork.files.get('vulkan-1.dll'));
-  assert.equal((await f.service.status()).channel, 'fork');
-
-  await f.service.setChannel('official');
-  state = await f.service.status();
-  assert.equal(state.channel, 'official');
-  assert.deepEqual(fs.readFileSync(f.at('plugin/eff.dll')), releaseFiles().get('plugin/eff.dll'));
-  assert.equal(fs.readFileSync(f.at('plugin/eff.ini'), 'utf8'), 'player settings');
-
-  // A bundle whose files no longer match its manifest is not offered, and what it installed is still known.
+  f.write(f.at('eff.ini'), 'player settings');
   await f.service.setChannel('fork');
+  assert.equal(fs.readFileSync(f.at('eff.ini'), 'utf8'), 'player settings');
+  assert.equal((await f.service.status()).version, '2.0.12.6');
   fs.appendFileSync(path.join(fork.directory, 'plugin/eff.dll'), 'tampered');
-  state = await f.service.status();
-  assert.equal(state.sources.fork, null);
-  assert.equal(state.channel, 'fork');
-  await f.service.setChannel('official');
+  assert.equal((await f.service.status()).sources.fork, null);
+  assert.equal((await f.service.status()).channel, 'fork');
   await assert.rejects(f.service.setChannel('fork'), /修复版/);
 });
 
@@ -312,5 +324,5 @@ test('the EFF version shows the QAQR revision as a fourth part only when there i
 
 test('the fork build packages exactly the files QAQR installs', () => {
   const { LAYOUT } = require('../native/eff/qaqr/build.cjs');
-  assert.deepEqual(Object.keys(LAYOUT).sort(), [...PROXIES, ...PLUGIN_FILES, SETTINGS_FILE].sort());
+  assert.deepEqual(Object.keys(LAYOUT).sort(), ['EFFLoader.exe', ...PROXIES, ...PLUGIN_FILES, SETTINGS_FILE].sort());
 });

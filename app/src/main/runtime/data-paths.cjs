@@ -11,9 +11,15 @@ function getDataRoot() {
   return resolveDataRoot({ isPackaged: app.isPackaged, execPath: process.execPath, appPath: app.getAppPath(), override: process.env.QAQR_DATA_DIR });
 }
 const IMPORTERS = Object.freeze({ endfield: "EFMI", "genshin-impact": "GIMI", "zzz": "ZZMI", "wuthering-waves": "WWMI", "honkai-star-rail": "SRMI" });
+// Loader-owned files belong under data, independently of the game's installation.
+function getLoaderDataRoot(type, dataRoot = getDataRoot()) {
+  const parts = String(type || "").split("/");
+  if (parts.some(part => !/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(part))) throw Error("Invalid loader type");
+  return path.join(dataRoot, ...parts);
+}
 function getDefaultModsPath(gameId, dataRoot = getDataRoot()) {
-  if (IMPORTERS[gameId]) return path.join(dataRoot, "XXMI", IMPORTERS[gameId], "Mods");
-  return path.join(dataRoot, gameId === "arknights" ? "Arknights" : gameId === "neverness-to-everness" ? "NEMI" : gameId, "Mods");
+  const type = IMPORTERS[gameId] ? `XXMI/${IMPORTERS[gameId]}` : gameId === "arknights" ? "Arknights" : gameId === "neverness-to-everness" ? "NEMI" : gameId === "eff" ? "EFF" : gameId;
+  return path.join(getLoaderDataRoot(type, dataRoot), "Mods");
 }
 // The default folder is pre-filled and pre-created, so only its contents can show that the user adopted it.
 function isUnusedDefaultModsPath(modsPath, gameId, dataRoot = getDataRoot()) {
@@ -91,4 +97,4 @@ function resolveDisabledModsDirectory({ configured, preferred, legacyDirectories
   }
   return preferred;
 }
-module.exports = { resolveDataRoot, getDataRoot, getDefaultModsPath, isUnusedDefaultModsPath, migrateLegacyDirectory, migrateLegacyArknights, resolveDisabledModsDirectory, IMPORTERS };
+module.exports = { resolveDataRoot, getDataRoot, getLoaderDataRoot, getDefaultModsPath, isUnusedDefaultModsPath, migrateLegacyDirectory, migrateLegacyArknights, resolveDisabledModsDirectory, IMPORTERS };
