@@ -1,4 +1,9 @@
 {
+  "preview": {
+    "previous": "Previous image and use as default",
+    "next": "Next image and use as default",
+    "saveFailed": "Could not save preview: {{error}}"
+  },
   "actions": {
     "rename": "Rename Mod",
     "copyPath": "Copy path"

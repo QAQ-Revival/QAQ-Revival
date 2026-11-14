@@ -263,6 +263,9 @@
     "renamedMod": "Mod 已重命名为: {{newName}}"
   },
   "preview": {
+    "previous": "上一张，并设为默认预览",
+    "next": "下一张，并设为默认预览",
+    "saveFailed": "预览图保存失败：{{error}}",
     "updated": "预览图已更新",
     "imageRequired": "请拖入图片文件",
     "dropHint": "拖入图片作为预览",

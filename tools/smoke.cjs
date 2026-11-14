@@ -29,7 +29,7 @@ const scopes = [
   'translation', 'genshin', 'genshin-check', 'genshin-anticrash', 'game-settings',
   'steam-bridge', 'hidden-characters', 'character-images', 'character-skins',
   'skin-cover-live', 'file-drop', 'persist', 'mod-sites', 'card-images',
-  'overlay-activity', 'mod-layout', 'window-layout', 'post-links', 'market-scope',
+  'overlay-activity', 'mod-layout', 'mod-preview', 'window-layout', 'post-links', 'market-scope',
   'imports', 'sources', 'sorting', 'settings', 'wuwa-gacha', 'arknights', 'xxmi', 'game-updates'
 ];
 const scope = scopes.find(name => process.argv.includes('--' + name));

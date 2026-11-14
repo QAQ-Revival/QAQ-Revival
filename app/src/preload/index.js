@@ -159,7 +159,8 @@ const api = {
   pinMod: (characterName, modName, pinned) => electron.ipcRenderer.invoke("pin-mod", { characterName, modName, pinned }),
   openExternalUrl: (url) => electron.ipcRenderer.invoke("open-external-url", url),
   openPathInExplorer: (targetPath) => electron.ipcRenderer.invoke("open-path-in-explorer", targetPath),
-  getModDetails: (characterName, modName, refresh = false) => electron.ipcRenderer.invoke("get-mod-details", { characterName, modName, refresh }),
+  getModDetails: (characterName, modName, refresh = false, gameId) => electron.ipcRenderer.invoke("get-mod-details", { characterName, modName, refresh, gameId }),
+  selectModPreview: (characterName, modName, imageId, gameId) => electron.ipcRenderer.invoke("select-mod-preview", { characterName, modName, imageId, gameId }),
   setModPreview: (characterName, modName, imagePath) => electron.ipcRenderer.invoke("set-mod-preview", { characterName, modName, imagePath }),
   setModPreviewFromData: (characterName, modName, dataUrl) => electron.ipcRenderer.invoke("set-mod-preview-from-data", { characterName, modName, dataUrl }),
   // Mod Market APIs (with local cache support)

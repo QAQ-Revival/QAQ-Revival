@@ -5,6 +5,7 @@ import ModPersistSummary from "./ModPersistSummary.jsx";
 import { getModAppearanceSectionId, previewAspectRatioCache, getPreviewAspectRatioStyle, dataTransferIncludesImage } from "../model/modHelpers.js";
 import { getSectionId, getSectionName } from "../model/appearanceSections.js";
 import { LocalCollectionVariantStrip } from "./LocalCollectionVariants.jsx";
+import { ModPreviewNavigation } from "./ModPreviewNavigation.jsx";
 // EFF binds keys in its own Ins panel and rejects files it was not told about, so notes and hotkey edits stay off.
 function EffModInfo({ mod }) {
   const info = mod.eff || {};
@@ -33,6 +34,7 @@ export function ModDetailsPanel({
   setIsRenamingMod,
   renameModSaving,
   previewImage,
+  modPreview,
   isDragging,
   previewImageAspectRatio,
   setIsDragging,
@@ -206,6 +208,7 @@ export function ModDetailsPanel({
                   {t("mods.preview.pasteHint")}
                 </span>
               </div>}
+            <ModPreviewNavigation count={modPreview.images.length} index={modPreview.index} onChange={modPreview.changePreview} />
             {isDragging && <div className="mod-preview-drop-hint">
                 {t("mods.preview.releaseHint")}
               </div>}

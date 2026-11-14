@@ -1160,6 +1160,46 @@
   cursor: zoom-in;
 }
 
+.mod-preview-arrow,
+.mod-preview-counter {
+  position: absolute;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  color: #fff;
+  background: rgb(0 0 0 / 55%);
+  border-radius: 8px;
+}
+
+.mod-preview-arrow {
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 20%);
+  cursor: pointer;
+  pointer-events: none;
+}
+
+.mod-preview-arrow.previous { left: 10px; }
+.mod-preview-arrow.next { right: 10px; }
+.mod-preview-arrow:hover { background: rgb(0 0 0 / 78%); }
+.mod-preview-arrow:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mod-preview-counter { bottom: 10px; left: 50%; transform: translateX(-50%); padding: 3px 9px; font-size: var(--text-xs); pointer-events: none; }
+
+:is(.mod-detail-preview, .mod-view-preview-lightbox):is(:hover, :focus-within) :is(.mod-preview-arrow, .mod-preview-counter) {
+  opacity: 1;
+}
+:is(.mod-detail-preview, .mod-view-preview-lightbox):is(:hover, :focus-within) .mod-preview-arrow { pointer-events: auto; }
+
+@media (hover: none) {
+  .mod-preview-arrow { opacity: 1; pointer-events: auto; }
+  .mod-preview-counter { opacity: 1; }
+}
+
 .mod-preview-placeholder {
   display: flex;
   flex-direction: column;

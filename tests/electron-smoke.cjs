@@ -434,6 +434,11 @@ async function main() {
     app.exit(0); return;
   }
   assert.ok(await evaluate(`!('getDisclaimerDismissed' in window.api) && !('setDisclaimerDismissed' in window.api)`));
+  if (process.env.QAQR_SMOKE_SCOPE === 'mod-preview') {
+    await require('./mod-preview-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, mods, handlers, passed });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
   if (process.env.QAQR_SMOKE_SCOPE === 'mod-layout') {
     await require('./mod-layout-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, mods, handlers, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));

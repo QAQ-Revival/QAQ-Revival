@@ -22,6 +22,7 @@ const modsConflicts = require("../mods/conflicts.cjs");
 const modsHotkeys = require("../mods/hotkeys.cjs");
 const modsIniFiles = require("../mods/ini-files.cjs");
 const modsMetadata = require("../mods/metadata.cjs");
+const modPreviews = require("../mods/preview-gallery.cjs");
 const modsNevernessPaks = require("../games/neverness/paks.cjs");
 const modsEffRoutes = require("../mods/eff-routes.cjs");
 // The EFF Mod an action on the Mods page addresses, if that is what it names.
@@ -31,6 +32,28 @@ const persistService = require("../persist/service.cjs");
 const persistTracking = require("../persist/tracking.cjs");
 const systemFiles = require("../system/files.cjs");
 const systemPaths = require("../system/paths.cjs");
+function resolvePreviewMod(characterName, modName, gameId = gamesSettings.getActiveGameScopeId()) {
+  charactersSkins.assertSafeAppearancePathSegment(characterName, i18n.t("backend.validation.characterName"));
+  charactersSkins.assertSafeAppearancePathSegment(modName, i18n.t("backend.validation.modName"));
+  const eff = effRoute(gameId, characterName, modName);
+  const modPath = eff?.mod.path || modsAppearance.resolveExistingModDirectoryAnyMode(characterName, modName, gameId)?.modPath;
+  if (!modPath) throw Error(i18n.t("backend.ipc.mods.modFolderNotFound"));
+  return { modPath, eff, options: eff ? modsEffRoutes.previewOptions(eff.mod) : undefined };
+}
+async function getPreviewGallery(modPath, options) {
+  const gallery = await modPreviews.listImages(modPath, options);
+  const previewImages = gallery.images.flatMap(image => {
+    try { return [{ id: image.id, url: charactersImages.getLocalImageUrl(image.path) }]; }
+    catch { return []; }
+  });
+  const selected = previewImages.find(image => image.id === gallery.selectedImageId) || previewImages[0];
+  return { previewImages, previewImageId: selected?.id || null, previewUrl: selected?.url || null };
+}
+function notifyPreviewChanged(characterName, modName, gameId, file, imageId, galleryChanged = false) {
+  const result = { success: true, previewUrl: charactersImages.getLocalImageUrl(file), previewImageId: imageId };
+  desktopNotifications.notifyAllModWindowsChanged(characterName, { gameId, modName, ...result, reason: "mod-preview-changed", resourcesChanged: false, galleryChanged });
+  return result;
+}
 async function listMods(characterName) {
     try {
       const gameId2 = gamesSettings.getActiveGameScopeId();
@@ -422,54 +445,24 @@ function registerIpc() {
   electron.ipcMain.handle("get-mod-details", async (_, {
     characterName,
     modName,
-    refresh = false
+    refresh = false,
+    gameId
   }) => {
     try {
-      const gameId2 = gamesSettings.getActiveGameScopeId();
+      const gameId2 = gameId || gamesSettings.getActiveGameScopeId();
+      const previewContext = resolvePreviewMod(characterName, modName, gameId2);
+      const gallery = await getPreviewGallery(previewContext.modPath, previewContext.options);
       // EFF keys are bound in its own Ins panel; the page shows them from the Mod entry.
-      const eff = effRoute(gameId2, characterName, modName);
-      if (eff) return { success: true, previewUrl: eff.mod.preview ? charactersImages.getLocalImageUrl(eff.mod.preview) : null, hotkeys: [], hotkeyGroups: [] };
+      if (previewContext.eff) return { success: true, ...gallery, hotkeys: [], hotkeyGroups: [] };
       if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
-        const paths = gamesNevernessLoader.getNevernessDx12Paths();
-        const charPath2 = modsNevernessPaks.getNevernessDx12CharacterPath(characterName, {
-          ensure: true
-        }) || charactersDirectories.resolveCharacterPath(characterName, gameId2);
-        if (!charPath2) return {
-          error: i18n.t("backend.imports.local.characterFolderNotFound")
-        };
-        const disabledCharPath = modsNevernessPaks.getNevernessDx12DisabledCharacterPath(characterName, paths);
-        const candidates = [path.join(charPath2, modName), path.join(charPath2, `DISABLED_${modName}`), disabledCharPath ? path.join(disabledCharPath, modName) : "", disabledCharPath ? path.join(disabledCharPath, `DISABLED_${modName}`) : ""].filter(Boolean);
-        const modPath2 = candidates.find(candidate => fs.existsSync(candidate));
-        let imagePath2 = null;
-        if (modPath2 && fs.existsSync(modPath2)) {
-          imagePath2 = charactersImages.findModPreviewImageFile(modPath2);
-        }
-        let previewUrl2 = null;
-        if (imagePath2 && fs.existsSync(imagePath2)) {
-          previewUrl2 = charactersImages.getLocalImageUrl(imagePath2);
-        }
         return {
           success: true,
-          previewUrl: previewUrl2,
+          ...gallery,
           hotkeys: [],
           hotkeyGroups: []
         };
       }
-      charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
-      let actualModName = modName;
-      const charPath = charactersDirectories.resolveCharacterPath(characterName, gameId2);
-      if (!charPath) {
-        return {
-          error: i18n.t("backend.imports.local.characterFolderNotFound")
-        };
-      }
-      let modPath = path.join(charPath, modName);
-      if (!fs.existsSync(modPath)) {
-        if (fs.existsSync(path.join(charPath, `DISABLED_${modName}`))) {
-          actualModName = `DISABLED_${modName}`;
-          modPath = path.join(charPath, actualModName);
-        }
-      }
+      const modPath = previewContext.modPath;
       let imagePath = null;
       const canonicalCharacterName = charactersDirectories.getCanonicalCharacterConfigKey(characterName, gameId2);
       const charImagesPath = path.join(charactersImages.IMAGES_PATH, canonicalCharacterName);
@@ -481,20 +474,7 @@ function registerIpc() {
           imagePath = path.join(charImagesPath, previewFile);
         }
       }
-      if (!imagePath && fs.existsSync(modPath)) {
-        const files = fs.readdirSync(modPath);
-        let imageFile = files.find(f => f.startsWith("preview.") && /\.(png|jpg|jpeg|webp|gif)$/i.test(f));
-        if (!imageFile) {
-          imageFile = files.find(f => /\.(png|jpg|jpeg|webp|gif)$/i.test(f));
-        }
-        if (imageFile) {
-          imagePath = path.join(modPath, imageFile);
-        }
-      }
-      let previewUrl = null;
-      if (imagePath && fs.existsSync(imagePath)) {
-        previewUrl = charactersImages.getLocalImageUrl(imagePath);
-      }
+      const previewUrl = gallery.previewUrl || (imagePath && fs.existsSync(imagePath) ? charactersImages.getLocalImageUrl(imagePath) : null);
       const cacheKey = modsHotkeys.getPrimaryHotkeysCacheKey(characterName, modName, gameId2);
       const iniFiles = fs.existsSync(modPath) ? modsIniFiles.getIniFiles(modPath) : [];
       let hotkeys = [];
@@ -556,6 +536,8 @@ function registerIpc() {
       if (refresh) modsHotkeys.notifyHotkeysChanged(characterName, modName, gameId2, _?.sender?.id);
       return {
         success: true,
+        previewImages: gallery.previewImages,
+        previewImageId: gallery.previewImageId,
         previewUrl,
         hotkeys,
         hotkeyGroups
@@ -566,6 +548,14 @@ function registerIpc() {
         error: error.message
       };
     }
+  });
+  electron.ipcMain.handle("select-mod-preview", (_, { characterName, modName, imageId, gameId }) => {
+    try {
+      const scope = gameId || gamesSettings.getActiveGameScopeId();
+      const { modPath, options } = resolvePreviewMod(characterName, modName, scope);
+      const file = modPreviews.selectImage(modPath, imageId, options);
+      return notifyPreviewChanged(characterName, modName, scope, file, imageId);
+    } catch (error) { return { success: false, error: error.message }; }
   });
   electron.ipcMain.handle("set-mod-preview", async (_, {
     characterName,
@@ -584,7 +574,8 @@ function registerIpc() {
       const eff = effRoute(gameId2, characterName, modName);
       if (eff) {
         const file = eff.eff.setCharacterModPreview(eff.mod, modsEffRoutes.pngBytes(fs.readFileSync(imagePath)));
-        return { success: true, newPath: file, previewUrl: charactersImages.getLocalImageUrl(file) };
+        modPreviews.selectImage(eff.mod.path, path.basename(file), modsEffRoutes.previewOptions(eff.mod));
+        return { ...notifyPreviewChanged(characterName, modName, gameId2, file, path.basename(file), true), newPath: file };
       }
       charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
       let actualModName = modName;
@@ -612,6 +603,7 @@ function registerIpc() {
       const ext = path.extname(imagePath).toLowerCase();
       const targetFilename = `preview${ext}`;
       const targetPath = path.join(targetModPath, targetFilename);
+      const sourceBuffer = fs.readFileSync(imagePath);
       const files = fs.readdirSync(targetModPath);
       for (const file of files) {
         if (file.startsWith("preview.") && /\.(png|jpg|jpeg|webp|gif|bmp|svg|ico|tiff|tif)$/i.test(file)) {
@@ -622,8 +614,9 @@ function registerIpc() {
           }
         }
       }
-      const sourceBuffer = fs.readFileSync(imagePath);
       fs.writeFileSync(targetPath, sourceBuffer);
+      modPreviews.selectImage(targetModPath, targetFilename);
+      notifyPreviewChanged(characterName, modName, gameId2, targetPath, targetFilename, true);
       console.log(`Image saved to: ${targetPath}`);
       const targetExt = path.extname(targetPath).toLowerCase();
       const mimeType = {
@@ -683,7 +676,9 @@ function registerIpc() {
       const eff = effRoute(gameId2, characterName, modName);
       if (eff) {
         const png = modsEffRoutes.pngBytes(Buffer.from(base64, "base64"));
-        return { success: true, newPath: eff.eff.setCharacterModPreview(eff.mod, png), previewUrl: `data:image/png;base64,${png.toString("base64")}` };
+        const file = eff.eff.setCharacterModPreview(eff.mod, png);
+        modPreviews.selectImage(eff.mod.path, path.basename(file), modsEffRoutes.previewOptions(eff.mod));
+        return { ...notifyPreviewChanged(characterName, modName, gameId2, file, path.basename(file), true), newPath: file };
       }
       charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
       const charPath = gamesNevernessLoader.isNevernessDx12Mode(gameId2) ? modsNevernessPaks.getNevernessDx12CharacterPath(characterName, {
@@ -708,6 +703,8 @@ function registerIpc() {
       }
       const targetPath = path.join(targetModPath, `preview${ext}`);
       fs.writeFileSync(targetPath, Buffer.from(base64, "base64"));
+      modPreviews.selectImage(targetModPath, path.basename(targetPath));
+      notifyPreviewChanged(characterName, modName, gameId2, targetPath, path.basename(targetPath), true);
       const imageBuffer = fs.readFileSync(targetPath);
       const previewUrl = `data:${mime};base64,${imageBuffer.toString("base64")}`;
       return {
@@ -735,6 +732,7 @@ function registerIpc() {
       const eff = effRoute(gameId2, characterName, oldName);
       if (eff) {
         const renamed = eff.eff.renameCharacterMod(eff.mod, newName);
+        modsEffRoutes.movePreviewSelection(eff.mod.path, renamed.path);
         const currentPinned = modsMetadata.getPinnedModsForCharacter(characterName);
         if (currentPinned.includes(oldName)) modsMetadata.setPinnedModsForCharacter(characterName, currentPinned.map(name => name === oldName ? newName : name));
         desktopNotifications.notifyCharacterListChanged(characterName, { modName: newName, previousModName: oldName, reason: "mod-renamed" });

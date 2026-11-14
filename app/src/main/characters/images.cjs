@@ -40,13 +40,7 @@ function findImageFileInDir(dirPath, {
   return targetFile ? path.join(dirPath, targetFile) : null;
 }
 function findModPreviewImageFile(dirPath) {
-  if (!dirPath || !fs.existsSync(dirPath)) return null;
-  const files = fs.readdirSync(dirPath);
-  let imageFile = files.find(fileName => fileName.startsWith("preview.") && /\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(fileName));
-  if (!imageFile) {
-    imageFile = files.find(fileName => /\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(fileName));
-  }
-  return imageFile ? path.join(dirPath, imageFile) : null;
+  return require("../mods/preview-gallery.cjs").findPreviewImageFile(dirPath);
 }
 function getImageMimeTypeFromExt(ext) {
   return {

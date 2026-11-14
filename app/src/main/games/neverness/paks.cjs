@@ -649,7 +649,7 @@ function getNevernessDx12Mods(characterName) {
       originalName,
       enabled: source.enabled && !isDisabled,
       path: metaDir,
-      previewUrl: previewImagePath ? "file:///" + previewImagePath.replace(/\\/g, "/") : null,
+      previewUrl: previewImagePath ? charactersImages.getLocalImageUrl(previewImagePath) : null,
       addedAt,
       addedAtMs,
       tags,

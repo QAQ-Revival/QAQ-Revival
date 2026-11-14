@@ -36,7 +36,11 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, mods, 
   assert(fs.existsSync(path.join(mods, '安可', first)) && fs.existsSync(path.join(mods, '安可', 'DISABLED_' + second)), 'Choosing a version preserves its enable state');
 
   const overlay = new electron.BrowserWindow({ width: 480, height: 760, show: false, webPreferences: { preload: path.join(process.resourcesPath, 'app/out/preload/overlay.js'), sandbox: false, contextIsolation: true, offscreen: true } });
-  const run = code => overlay.webContents.executeJavaScript(code, true);
+  const runIn = async (contents, code) => {
+    try { return await contents.executeJavaScript(code, true); }
+    catch (error) { throw Error(error.message + '\nEvaluated: ' + code); }
+  };
+  const run = code => runIn(overlay.webContents, code);
   // Strong compatibility mode renders inline version chips instead of a gallery dropdown.
   const openVersions = name => run(`document.querySelector(${JSON.stringify(item(name))})?.querySelector('[data-collection-trigger]')?.click()`);
   const versionOptions = '#overlayCollectionFloatingMenu [data-collection-option], .overlay-collection-chip';
@@ -57,7 +61,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, mods, 
       await new Promise(resolve => setTimeout(resolve, 50));
     }
     assert.ok(side);
-    const runSide = code => side.webContents.executeJavaScript(code, true);
+    const runSide = code => runIn(side.webContents, code);
     await runSide(`[...document.querySelectorAll('[data-version-mod]')].find(button => button.dataset.versionMod === ${JSON.stringify(first)}).click()`);
     await until(`!!document.querySelector(${JSON.stringify(item(first))})`);
     await until(`document.querySelector('[data-version-mod].active')?.dataset.versionMod === ${JSON.stringify(first)} && document.querySelector('#detailToggleBtn')?.textContent.includes('禁用')`, runSide);

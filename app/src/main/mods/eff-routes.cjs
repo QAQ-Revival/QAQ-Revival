@@ -3,6 +3,17 @@
 const electron = require("electron");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("node:crypto");
+const previews = require("./preview-gallery.cjs");
+// EFF validates the files beside mod.ini; keep manager preferences outside it.
+function previewOptions(mod) {
+  const key = crypto.createHash("sha256").update(path.resolve(mod.path).toLowerCase()).digest("hex");
+  return { stateFile: path.join(electron.app.getPath("userData"), "mod-previews", "eff", key + ".json") };
+}
+function movePreviewSelection(from, to) {
+  const source = previewOptions({ path: from }).stateFile;
+  if (fs.existsSync(source)) fs.renameSync(source, previewOptions({ path: to }).stateFile);
+}
 // An EFF Mod named like an EFMI Mod of the same character is listed with this suffix.
 const EFF_SUFFIX = " (EFF)";
 function service() {
@@ -45,12 +56,13 @@ function entries({ gameId, characterName, efmiCharacterPath, taken, addedAtAcces
   const pins = pinnedState(listed.map(item => ({ name: item.name })));
   return listed.map(({ mod, name }, index) => {
     const { addedAt, addedAtMs } = addedAtAccessor.get(characterName, name, mod.path);
+    const preview = previews.findPreviewImageFile(mod.path, previewOptions(mod));
     return {
       name,
       originalName: name,
       enabled: mod.enabled,
       path: mod.path,
-      previewUrl: mod.preview ? imageUrl(mod.preview) : null,
+      previewUrl: preview ? imageUrl(preview) : null,
       addedAt,
       addedAtMs,
       tags: [],
@@ -70,4 +82,4 @@ function pngBytes(bytes) {
   if (image.isEmpty()) throw Error("Unsupported image");
   return image.toPNG();
 }
-module.exports = { EFF_SUFFIX, route, entries, pngBytes };
+module.exports = { EFF_SUFFIX, route, entries, pngBytes, previewOptions, movePreviewSelection };

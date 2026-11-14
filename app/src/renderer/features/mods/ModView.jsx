@@ -1,6 +1,8 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import { getCharacterUsageStorageKey } from "../../lib/batchImportPlan.js";
 import { useModGallery, DEFAULT_DETAIL_WIDTH } from "./hooks/useModGallery.js";
+import { useModPreview } from "./hooks/useModPreview.js";
+import { ModPreviewNavigation } from "./components/ModPreviewNavigation.jsx";
 import { useModOrdering } from "./hooks/useModOrdering.js";
 import { useModFocus } from "./hooks/useModFocus.js";
 import { useModContextActions } from "./hooks/useModContextActions.js";
@@ -81,6 +83,9 @@ function ModView({
   const [previewImageAspectRatio, setPreviewImageAspectRatio] = React.useState(DEFAULT_PREVIEW_ASPECT_RATIO);
   const [imageKey, setImageKey] = React.useState(Date.now());
   const [toast, setToast] = React.useState(null);
+  const modPreview = useModPreview({ activeGameId, characterName, selectedMod, selectedModRef, setMods, setPreviewImage, loadModDetails, setToast });
+  const modPreviewRef = React.useRef(modPreview);
+  modPreviewRef.current = modPreview;
   const {
     modSearchQuery,
     setModSearchQuery,
@@ -585,6 +590,10 @@ function ModView({
     });
     const cleanup = window.api.onModsChanged?.(data => {
       if (data.gameId && data.gameId !== activeGameId) return;
+      if (data.reason === "mod-preview-changed" && data.characterName === characterName) {
+        modPreviewRef.current.onPreviewChanged(data);
+        return;
+      }
       if (data.characterName === characterName || data.characterName === "__all__") {
         loadMods({
           syncCharacterCache: true,
@@ -715,6 +724,7 @@ function ModView({
   }, [selectedMod?.path]);
   React.useEffect(() => {
     if (selectedMod) {
+      setPreviewImage(selectedMod.previewUrl || null);
       const cachedAspectRatio = previewAspectRatioCache.get(selectedMod.path || selectedMod.name);
       if (cachedAspectRatio) setPreviewImageAspectRatio(cachedAspectRatio);
       loadModDetails(selectedMod.name);
@@ -911,15 +921,16 @@ function ModView({
   }
   async function loadModDetails(name, refresh = false) {
     const requestId = ++detailRequestRef.current;
+    const previewRevision = modPreview.revision.current;
     const isCurrent = () => requestId === detailRequestRef.current && !modViewUnmountedRef.current && characterNameRef.current === characterName && selectedModRef.current?.name === name;
     setIsRefreshingHotkeys(refresh);
     setEditingHotkey(null);
     setEditingAliasSection(null);
     try {
-      const result = await window.api.getModDetails(characterName, name, refresh);
+      const result = await window.api.getModDetails(characterName, name, refresh, activeGameId);
       if (!isCurrent()) return;
       if (result.success) {
-        setPreviewImage(result.previewUrl);
+        modPreview.acceptDetails(result, previewRevision);
         setHotkeyGroups((Array.isArray(result.hotkeyGroups) ? result.hotkeyGroups : [{
           name,
           hotkeys: result.hotkeys || []
@@ -1279,7 +1290,7 @@ function ModView({
       }}>
           </div>
         </div>}
-      <ModDetailsPanel viewMode={viewMode} selectedMod={liveSelectedMod} queuedToggles={queuedToggles} detailCollapsed={detailCollapsed} visibleDetailWidth={visibleDetailWidth} isRenamingMod={isRenamingMod} renameModDraft={renameModDraft} setRenameModDraft={setRenameModDraft} handleSaveModRename={handleSaveModRename} setIsRenamingMod={setIsRenamingMod} renameModSaving={renameModSaving} previewImage={previewImage} isDragging={isDragging} previewImageAspectRatio={previewImageAspectRatio} setIsDragging={setIsDragging} characterName={characterName} setImageKey={setImageKey} setPreviewImage={setPreviewImage} loadModDetails={loadModDetails} setToast={setToast} setShowImageLightbox={setShowImageLightbox} setPreviewImageAspectRatio={setPreviewImageAspectRatio} imageKey={imageKey} handleAssignSelectedModAppearanceSection={handleAssignSelectedModAppearanceSection} appearanceSectionBusy={appearanceSectionBusy} appearanceSectionsWithStats={appearanceSectionsWithStats} selectedLocalCollection={selectedLocalCollection} selectLocalCollectionVariant={selectLocalCollectionVariant} selectedTagFilters={selectedTagFilters} toggleTagFilter={toggleTagFilter} activeGameId={activeGameId} isEditingNotes={isEditingNotes} setNotesDraft={setNotesDraft} setIsEditingNotes={setIsEditingNotes} notesDraft={notesDraft} notesSaving={notesSaving} handleSaveModNotes={handleSaveModNotes} isRefreshingHotkeys={isRefreshingHotkeys} hotkeyGroups={hotkeyGroups} editingAliasSection={editingAliasSection} aliasDraft={aliasDraft} setAliasDraft={setAliasDraft} handleSaveHotkeyAlias={handleSaveHotkeyAlias} setEditingAliasSection={setEditingAliasSection} aliasSaving={aliasSaving} editingHotkey={editingHotkey} capturedKey={capturedKey} handleKeyCapture={handleKeyCapture} saveHotkeyEdit={saveHotkeyEdit} cancelHotkeyEdit={cancelHotkeyEdit} startHotkeyEdit={startHotkeyEdit} devMode={devMode} setShowTagManagerModal={setShowTagManagerModal} reloadServerTags={reloadServerTags} modTags={modTags} setModTags={setModTags} tagInput={tagInput} setTagInput={setTagInput} setShowTagSuggestions={setShowTagSuggestions} addTagFromInput={addTagFromInput} handleAiSuggestTags={handleAiSuggestTags} aiTagLoading={aiTagLoading} saveModTags={saveModTags} tagSaving={tagSaving} showTagSuggestions={showTagSuggestions} serverTags={serverTags} aiNameResult={aiNameResult} clearAiSuggestions={clearAiSuggestions} handleAiSuggestName={handleAiSuggestName} aiNameLoading={aiNameLoading} applyAiName={applyAiName} applyAiTags={applyAiTags} aiNameStage={aiNameStage} aiNameElapsedSeconds={aiNameElapsedSeconds} handlePinMod={handlePinMod} openModSourceFolder={openModSourceFolder} isDx12PakMod={isDx12PakMod} handleFixMod={handleGameModTools} fixRunning={fixRunning} confirmDelete={confirmDelete} handleToggle={handleToggle} onOpenPublishMod={onOpenPublishMod} handleCopyDevModInfo={handleCopyDevModInfo} devInfoBusy={devInfoBusy} handleImportDevModInfo={handleImportDevModInfo} />
+      <ModDetailsPanel viewMode={viewMode} selectedMod={liveSelectedMod} queuedToggles={queuedToggles} detailCollapsed={detailCollapsed} visibleDetailWidth={visibleDetailWidth} isRenamingMod={isRenamingMod} renameModDraft={renameModDraft} setRenameModDraft={setRenameModDraft} handleSaveModRename={handleSaveModRename} setIsRenamingMod={setIsRenamingMod} renameModSaving={renameModSaving} previewImage={previewImage} modPreview={modPreview} isDragging={isDragging} previewImageAspectRatio={previewImageAspectRatio} setIsDragging={setIsDragging} characterName={characterName} setImageKey={setImageKey} setPreviewImage={setPreviewImage} loadModDetails={loadModDetails} setToast={setToast} setShowImageLightbox={setShowImageLightbox} setPreviewImageAspectRatio={setPreviewImageAspectRatio} imageKey={imageKey} handleAssignSelectedModAppearanceSection={handleAssignSelectedModAppearanceSection} appearanceSectionBusy={appearanceSectionBusy} appearanceSectionsWithStats={appearanceSectionsWithStats} selectedLocalCollection={selectedLocalCollection} selectLocalCollectionVariant={selectLocalCollectionVariant} selectedTagFilters={selectedTagFilters} toggleTagFilter={toggleTagFilter} activeGameId={activeGameId} isEditingNotes={isEditingNotes} setNotesDraft={setNotesDraft} setIsEditingNotes={setIsEditingNotes} notesDraft={notesDraft} notesSaving={notesSaving} handleSaveModNotes={handleSaveModNotes} isRefreshingHotkeys={isRefreshingHotkeys} hotkeyGroups={hotkeyGroups} editingAliasSection={editingAliasSection} aliasDraft={aliasDraft} setAliasDraft={setAliasDraft} handleSaveHotkeyAlias={handleSaveHotkeyAlias} setEditingAliasSection={setEditingAliasSection} aliasSaving={aliasSaving} editingHotkey={editingHotkey} capturedKey={capturedKey} handleKeyCapture={handleKeyCapture} saveHotkeyEdit={saveHotkeyEdit} cancelHotkeyEdit={cancelHotkeyEdit} startHotkeyEdit={startHotkeyEdit} devMode={devMode} setShowTagManagerModal={setShowTagManagerModal} reloadServerTags={reloadServerTags} modTags={modTags} setModTags={setModTags} tagInput={tagInput} setTagInput={setTagInput} setShowTagSuggestions={setShowTagSuggestions} addTagFromInput={addTagFromInput} handleAiSuggestTags={handleAiSuggestTags} aiTagLoading={aiTagLoading} saveModTags={saveModTags} tagSaving={tagSaving} showTagSuggestions={showTagSuggestions} serverTags={serverTags} aiNameResult={aiNameResult} clearAiSuggestions={clearAiSuggestions} handleAiSuggestName={handleAiSuggestName} aiNameLoading={aiNameLoading} applyAiName={applyAiName} applyAiTags={applyAiTags} aiNameStage={aiNameStage} aiNameElapsedSeconds={aiNameElapsedSeconds} handlePinMod={handlePinMod} openModSourceFolder={openModSourceFolder} isDx12PakMod={isDx12PakMod} handleFixMod={handleGameModTools} fixRunning={fixRunning} confirmDelete={confirmDelete} handleToggle={handleToggle} onOpenPublishMod={onOpenPublishMod} handleCopyDevModInfo={handleCopyDevModInfo} devInfoBusy={devInfoBusy} handleImportDevModInfo={handleImportDevModInfo} />
       {toast && ReactDOM.createPortal(<div className={`toast toast-${toast.type}`}>{toast.message}</div>, document.body)}
       {showDeleteModal && <div className="modal-backdrop">
           <div className="modal-content">
@@ -1323,6 +1334,7 @@ function ModView({
       <AiNameProgress aiNameTaskTarget={aiNameTaskTarget} aiNameModalMinimized={aiNameModalMinimized} aiNameTaskError={aiNameTaskError} aiNameLoading={aiNameLoading} expandAiNameModal={expandAiNameModal} aiNameStage={aiNameStage} aiNameElapsedSeconds={aiNameElapsedSeconds} closeAiNameTask={closeAiNameTask} />
       {showImageLightbox && previewImage && ReactDOM.createPortal(<div onClick={() => setShowImageLightbox(false)} className="mod-view-preview-lightbox">
             <img src={previewImage} alt="Preview" onClick={e => e.stopPropagation()} className="mod-view-lightbox-image" />
+            <ModPreviewNavigation count={modPreview.images.length} index={modPreview.index} onChange={modPreview.changePreview} />
             <button onClick={() => setShowImageLightbox(false)} aria-label={t("common.actions.close")} className="icon-btn mod-view-action">
               <Icon name="x" size={18} />
             </button>
