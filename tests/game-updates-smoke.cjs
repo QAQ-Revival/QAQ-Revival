@@ -41,7 +41,8 @@ module.exports = async ({ electron, handlers, root, evaluate, waitFor, captureUI
   const text = await evaluate(`document.querySelector('#settings-game-updates').textContent`);
   assert.match(text, /3\.7\.0/);
   assert.match(text, /3\.8\.0/);
-  assert.equal(await evaluate(`document.querySelector('[data-section="game-updates"][aria-current="page"] .settings-category-count')?.textContent`), '2', 'the page link carries the update count');
+  assert.equal(await evaluate(`document.querySelector('[data-section="game-updates"][aria-current="page"] .settings-category-count')?.textContent`), '1', 'the game page link carries the client update');
+  assert.equal(await evaluate(`document.querySelector('[data-section="loader-components"] .settings-category-count')?.textContent`), '1', 'the loader components link carries the MI update');
   assert.equal(await evaluate(`document.querySelector('#settings-game-updates [data-channel="client"]').dataset.status`), 'update');
   assert.equal(requests, 1, 'opening details reuses the completed check');
   await evaluate(`document.querySelector('#settings-game-updates').scrollIntoView({ block: 'start' })`);

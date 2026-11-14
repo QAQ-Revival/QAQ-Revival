@@ -222,6 +222,15 @@ async function importModFromLocalPath({
       }
     }
     systemFiles.assertDirectoryHasAnyFile(targetPath, "Mod import");
+    // An EFF Mod dropped on an Endfield character goes to EFF's folder for that character instead.
+    if (gameId2 === "endfield") {
+      const adopted = require("../games/endfield/service.cjs").effService?.adoptImported(canonicalCharacterName, targetPath, availableTarget.name);
+      if (adopted) {
+        targetPath = null;
+        desktopNotifications.notifyCharacterListChanged(canonicalCharacterName, { gameId: gameId2, modName: adopted.name, reason: "mod-import" });
+        return { success: true, modMode: "eff", framework: "eff", characterName: canonicalCharacterName, modName: adopted.name, targetPath: adopted.path, renamedDueToDuplicate: adopted.name !== availableTarget.name, duplicateOf: null };
+      }
+    }
     coreLogger.logger.info(`Mod added successfully: ${targetPath}`);
     const restoredBakCount = modsBackups.restorePersistBakFiles(targetPath);
     if (restoredBakCount > 0) {

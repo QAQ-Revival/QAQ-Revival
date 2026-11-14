@@ -292,7 +292,13 @@
     "versions": "版本与组件",
     "gameUpdate": "游戏更新",
     "gameSection": "游戏",
-    "updateOptions": "更新检查"
+    "updateOptions": "更新检查",
+    "gameModule": "游戏",
+    "loaderModule": "Mod 加载器",
+    "overview": "概览",
+    "components": "组件",
+    "componentsTitle": "{{name}} 组件",
+    "loaderSummary": "Mod 加载器的位置和它读取的 Mods 文件夹"
   },
   "range": {
     "valueLabel": "{{label}}数值",
@@ -593,5 +599,46 @@
     "updateNamedFork": "更新 {{name}} 修复版",
     "updateForkHint": "换成 QAQR 内置的最新修复版",
     "forkUpdated": "{{name}} 修复版已更新，重启游戏生效"
+  },
+  "eff": {
+    "summary": "终末地资源替换框架，可以和 EFMI 同时用。它在游戏加载模型、材质和贴图时替换",
+    "checkUpdates": "检查更新",
+    "openGameDirectory": "打开游戏目录",
+    "upstreamInfo": "上游项目",
+    "modManager": "EFF Mod Manager（修复旧 Mod）",
+    "uninstall": "卸载 EFF",
+    "toggle": "启用 EFF",
+    "description": "关掉后加载器跳过 eff.dll，文件和 Mod 都保留。重启游戏生效",
+    "toggleLabel": "终末地 EFF",
+    "install": "安装 EFF",
+    "installDescription": "把加载器和 plugin\\eff.dll 放进游戏目录，被替换的游戏文件先备份",
+    "installAction": "安装",
+    "notInstalledHint": "EFF 未安装",
+    "disabledHint": "EFF 已停用",
+    "ready": "EFF 已就绪",
+    "needsCheck": "EFF 待检查",
+    "processing": "正在处理…",
+    "detectAgain": "重新检测",
+    "limits": "同一个角色不要同时用 EFMI 和 EFF 的 Mod。EFMI 加载后，EFF 的 Ins 面板可能打不开，EFMI Mod 的菜单也可能被放大。Mod 的启停在下次启动游戏后生效：官方版 EFF 在游戏中途启用 Mod 再按 F10，人物画面会错乱。EFF 和 EFMI 默认都用 F10 重载",
+    "installed": "EFF 已安装，重启游戏生效",
+    "uninstalled": "EFF 已卸载，plugin\\eff.ini 和 Mod 都保留",
+    "enabled": "已启用 EFF，重启游戏生效",
+    "disabled": "已停用 EFF，重启游戏生效",
+    "switched": "已切换到{{target}}，重启游戏生效",
+    "runtimeTag": "资源替换",
+    "runtimeDescription": "eff.dll 和两个代理加载器，修复版在上游发布之上合入 QAQR 修复",
+    "kinds": {
+      "off": "已停用",
+      "other": "未识别的版本"
+    },
+    "updateAria": "更新 EFF 官方版",
+    "forkMissing": "这个版本没有打包修复版",
+    "uninstallTitle": "卸载 EFF",
+    "uninstallDescription": "移除加载器和 eff.dll，放回安装前备份的游戏文件。plugin\\eff.ini 和 plugin\\mods 保留",
+    "uninstallOthers": "plugin 里还有 {{names}}，它们靠同一个加载器启动，卸载后也不会再加载",
+    "pathsTitle": "目录",
+    "modsFolder": "Mod 目录",
+    "modsFolderHint": "按角色分文件夹存放：plugin\\mods\\<角色>\\<Mod>。Mod 页按这个结构显示，导入时也放到这里",
+    "unassigned": "{{count}} 个 Mod 没放在角色文件夹里，游戏照常加载，但 Mod 页看不到：{{names}}"
   }
 }

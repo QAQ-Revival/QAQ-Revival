@@ -40,5 +40,12 @@
   "collections": {
     "versionHeading": "Version",
     "selectionFailed": "Could not save the version selection. Please retry."
+  },
+  "eff": {
+    "title": "EFF",
+    "oldFormat": "Format {{format}}: migrate it with EFF Mod Manager first",
+    "keysOff": "Keys are turned off in the EFF panel",
+    "noKeys": "No keys",
+    "hint": "Adjust keys and styles in game from the EFF panel (Ins). Enabling or disabling takes effect at the next game start."
   }
 }

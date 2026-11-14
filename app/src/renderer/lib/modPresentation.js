@@ -1,6 +1,7 @@
 import { t } from "../../shared/i18n/index.mjs";
 
 export function getModTypeLabels(mod) {
+  if (mod.framework === "eff") return ["EFF"];
   if (!mod.arknightsScope) return [];
   const labels = [];
   if (mod.appearanceSectionId === "base") labels.push(t("mods.types.base"));

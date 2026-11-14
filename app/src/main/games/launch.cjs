@@ -142,7 +142,11 @@ function registerIpc() {
             error: installAdvice.buildMissingXxmiLauncherLaunchError(resolvedLaunchMode, modLoaderPath)
           };
         }
-        if (activeGame?.id === "endfield") await gamesEndfieldServices.efmiVulkanService.prepareLaunch();
+        if (activeGame?.id === "endfield") {
+          await gamesEndfieldServices.efmiVulkanService.prepareLaunch();
+          // Puts the EFF loaders in step with that runtime, or back after a game update replaced them.
+          await gamesEndfieldServices.effService.prepareLaunch();
+        }
         const args = resolvedLaunchMode === "XXMI" ? [] : ["--nogui", "--xxmi", resolvedLaunchMode];
         args.push(...systemWindows.parseLaunchArgs(customLaunchArgs));
         coreLogger.logger.info("Launching Mod loader:", modLoaderPath, resolvedLaunchMode);

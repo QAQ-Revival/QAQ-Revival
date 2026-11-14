@@ -5,6 +5,21 @@ import ModPersistSummary from "./ModPersistSummary.jsx";
 import { getModAppearanceSectionId, previewAspectRatioCache, getPreviewAspectRatioStyle, dataTransferIncludesImage } from "../model/modHelpers.js";
 import { getSectionId, getSectionName } from "../model/appearanceSections.js";
 import { LocalCollectionVariantStrip } from "./LocalCollectionVariants.jsx";
+// EFF binds keys in its own Ins panel and rejects files it was not told about, so notes and hotkey edits stay off.
+function EffModInfo({ mod }) {
+  const info = mod.eff || {};
+  return <div className="hotkey-section" data-eff-mod-info="">
+      <div className="mod-detail-section-head">
+        <span>{t("mods.eff.title")}</span>
+      </div>
+      {info.format !== "3" && <p className="settings-warning-text">{t("mods.eff.oldFormat", { format: info.format || "?" })}</p>}
+      {info.keys?.length ? <div className="mod-detail-tags">
+          {info.keys.map(key => <span className="kbd-key" key={key}>{key}</span>)}
+          {!info.keySwitch && <span className="mod-detail-empty">{t("mods.eff.keysOff")}</span>}
+        </div> : <div className="mod-detail-empty">{t("mods.eff.noKeys")}</div>}
+      <p className="mod-detail-empty">{t("mods.eff.hint")}</p>
+    </div>;
+}
 export function ModDetailsPanel({
   viewMode,
   selectedMod,
@@ -94,6 +109,7 @@ export function ModDetailsPanel({
 }) {
   const selectedQueued = selectedMod ? queuedToggles[selectedMod.name] : undefined;
   const selectedLit = selectedQueued ?? !!(selectedMod?.enabled || selectedMod?.pendingEnabled);
+  const isEff = selectedMod?.framework === "eff";
   return <div id="mod-detail-panel" className={`mod-detail-panel ${viewMode === "gallery" ? "gallery-mode" : ""} ${!selectedMod || detailCollapsed ? "collapsed" : ""}`} aria-hidden={!selectedMod || detailCollapsed} inert={!selectedMod || detailCollapsed ? "" : void 0} style={{
     "--mod-detail-width": selectedMod && !detailCollapsed ? `${visibleDetailWidth}px` : "0px"
   }}>
@@ -194,7 +210,7 @@ export function ModDetailsPanel({
                 {t("mods.preview.releaseHint")}
               </div>}
           </div>
-          <div className="mod-appearance-assignment">
+          {!isEff && <div className="mod-appearance-assignment">
             <div className="mod-appearance-assignment-copy">
               <span>{t("mods.sections.title")}</span>
               <em>{t("mods.sections.movePreservesState")}</em>
@@ -206,7 +222,7 @@ export function ModDetailsPanel({
                   {getSectionName(section)}
                 </option>)}
             </select>
-          </div>
+          </div>}
           {activeGameId === "arknights" && selectedMod.arknightsScope && <p className="arknights-scope-note">{t("arknights.affectedAppearances", { names: selectedMod.arknightsScope.sectionIds.map(id => getSectionName(appearanceSectionsWithStats.find(section => getSectionId(section) === id))).join("、") })}</p>}
           {selectedLocalCollection && <div className="local-collection-detail-panel">
               <div className="local-collection-detail-head">
@@ -236,7 +252,8 @@ export function ModDetailsPanel({
                   </button>;
         })}
             </div>}
-          {activeGameId !== "arknights" && <ModPersistSummary gameId={activeGameId} characterName={characterName} modName={selectedMod.name} key={`${activeGameId}/${characterName}/${selectedMod.name}`} />}
+          {activeGameId !== "arknights" && !isEff && <ModPersistSummary gameId={activeGameId} characterName={characterName} modName={selectedMod.name} key={`${activeGameId}/${characterName}/${selectedMod.name}`} />}
+          {isEff ? <EffModInfo mod={selectedMod} /> : <React.Fragment>
           <div className="mod-detail-notes">
             <div className="mod-detail-section-head">
               <span>{t("mods.notes.title")}</span>
@@ -361,7 +378,8 @@ export function ModDetailsPanel({
                   </section>)}
             </div>
           </div>
-          {devMode && <div className="mod-details-panel-panel">
+          </React.Fragment>}
+          {devMode && !isEff && <div className="mod-details-panel-panel">
               <div className="mod-details-panel-row-emphasis">
                 <span>{"DEV · TAGS"}</span>
                 <button onClick={() => {
@@ -415,7 +433,7 @@ export function ModDetailsPanel({
                     </div>}
               </div>
             </div>}
-          {devMode && <div className="mod-details-panel-panel-spaced">
+          {devMode && !isEff && <div className="mod-details-panel-panel-spaced">
               <div className="mod-details-panel-ai-section-heading">
                 <span>{t("mods.ai.developerLabel")}</span>
                 <div className="mod-details-panel-inline-actions">
@@ -482,15 +500,15 @@ export function ModDetailsPanel({
               <Icon name="folder" size={13} />
               {isDx12PakMod(selectedMod) ? t("mods.actions.open") : t("mods.actions.openSource")}
             </button>
-            <button className="btn btn-sm" onClick={() => handleFixMod(selectedMod)} disabled={fixRunning}>
+            {!isEff && <button className="btn btn-sm" onClick={() => handleFixMod(selectedMod)} disabled={fixRunning}>
               <Icon name="wrench" size={13} />
               {fixRunning ? t("common.status.opening") : t("characters.fixer.title")}
-            </button>
+            </button>}
             <span className="mod-detail-actions-spacer" />
             <button className="btn btn-sm btn-danger" onClick={e => confirmDelete(selectedMod.name, e)}>
               {t("common.actions.delete")}
             </button>
-            {devMode && <React.Fragment>
+            {devMode && !isEff && <React.Fragment>
                 <button className="btn btn-sm mod-details-panel-btn-layout-emphasis" onClick={() => onOpenPublishMod?.({
             characterName,
             modName: selectedMod.name,

@@ -62,10 +62,9 @@ export function useGameUpdates(gameId) {
       if (current.current === gameId) setError(failure.message);
     }
   }
-  const count =
-    (state?.client?.updateAvailable ? 1 : 0) +
-    (state?.components || []).filter(
-      (item) => item.installed && item.updateAvailable,
-    ).length;
-  return { state, error, check, configure, count };
+  const clientCount = state?.client?.updateAvailable ? 1 : 0;
+  const componentCount = (state?.components || []).filter(
+    (item) => item.installed && item.updateAvailable,
+  ).length;
+  return { state, error, check, configure, count: clientCount + componentCount, clientCount, componentCount };
 }

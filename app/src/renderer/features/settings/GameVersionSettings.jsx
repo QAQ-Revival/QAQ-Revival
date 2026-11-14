@@ -18,8 +18,10 @@ const CLIENT_STATUS = { current: "current", available: "update", error: "error" 
 // States that need the user to do something read as warnings; the rest are plain notes.
 const CLIENT_WARNINGS = ["available", "incomplete", "verify", "regionRequired", "unconfigured"];
 
-// Everything with a version in one place: the game client, the Launcher and the MI components.
+// Versions of one module: `game` is the client and its update checks, `loader` the Launcher and the MI components.
+// Both share one check, which reads the client and the components together.
 export function GameVersionSettings({
+  part = "game",
   gameId,
   gameName,
   updates,
@@ -29,7 +31,8 @@ export function GameVersionSettings({
   const { state, error, check, configure } = updates;
   const [opening, setOpening] = React.useState(false);
   const [checkedTick, setCheckedTick] = React.useState(0);
-  const hasXxmi = usesXxmi(gameId);
+  const loader = part === "loader";
+  const hasXxmi = usesXxmi(gameId) && loader;
   const client = state?.client;
   const clientState = client?.state || "unchecked";
   async function openOfficial() {
@@ -52,7 +55,9 @@ export function GameVersionSettings({
     <React.Fragment>
       <PageHead
         title={
-          hasXxmi ? t("settings.game.versions") : t("settings.game.gameUpdate")
+          loader
+            ? t("settings.game.componentsTitle", { name: gameName })
+            : t("settings.game.gameUpdate")
         }
         description={
           state?.lastCheckedAt > 0
@@ -73,7 +78,7 @@ export function GameVersionSettings({
           </Button>
         }
       />
-      <Section id="game-updates" title={t("settings.game.gameSection")} plain>
+      {!loader && <Section id="game-updates" title={t("settings.game.gameSection")} plain>
         {(error || state?.storageError) && (
           <Notice kind="danger" role="alert">
             {error || t("games.updates.storageError")}
@@ -125,7 +130,7 @@ export function GameVersionSettings({
             </p>
           )}
         </ComponentCard>
-      </Section>
+      </Section>}
       {hasXxmi && (
         <XxmiSettings
           gameId={gameId}
@@ -136,7 +141,7 @@ export function GameVersionSettings({
           checkFailed={!!state?.miError}
         />
       )}
-      <Section id="update-options" title={t("settings.game.updateOptions")}>
+      {!loader && <Section id="update-options" title={t("settings.game.updateOptions")}>
         <Row
           title={t("games.updates.automatic")}
           description={t("games.updates.automaticHint")}
@@ -166,7 +171,7 @@ export function GameVersionSettings({
             ))}
           </select>
         </Row>
-      </Section>
+      </Section>}
     </React.Fragment>
   );
 }

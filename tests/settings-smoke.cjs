@@ -55,8 +55,11 @@ module.exports = async function testSettings({ evaluate, waitFor, captureUI, win
   assert.equal((await evaluate(`window.api.gameGetSettings('endfield')`)).game.gamePath, editedExe);
   const newMods = path.join(root, 'settings-endfield', 'Mods');
   fs.mkdirSync(newMods, { recursive: true });
+  // The Mods folder and the loader belong to the loader module of the game.
+  await click('[data-section="loader-overview"]');
+  await waitFor(`!!document.querySelector('.settings-page[data-page="loader-overview"]:not([hidden]) [aria-label="选择 Mods 文件夹"]')`, 'loader overview page');
   setSelection({ canceled: false, filePaths: [newMods] });
-  await click('[aria-label="选择 Mods 文件夹"]');
+  await click('.settings-page[data-page="loader-overview"] [aria-label="选择 Mods 文件夹"]');
   await waitFor(`document.querySelector('[aria-label="Mods 文件夹"]')?.value === ${JSON.stringify(newMods)}`, 'scoped Mods path saved');
   setSelection({ canceled: false, filePaths: [editedExe] });
   await click('[aria-label="选择 XXMI 启动器"]');

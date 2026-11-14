@@ -34,10 +34,10 @@ module.exports = async ({ electron, handlers, root, evaluate, waitFor, captureUI
   assert.equal((await call('xxmi:status', 'arknights')).success, false);
   const page = async id => { await waitFor(`!!document.querySelector('[data-section="${id}"]')`, 'settings page link ' + id); await evaluate(`document.querySelector('[data-section="${id}"]').click()`); await waitFor(`!!document.querySelector('.settings-page[data-page="${id}"]:not([hidden])')`, 'settings page ' + id); };
   await evaluate(`document.querySelector('.game-settings-button').click()`);
-  await page('game-updates');
+  await page('loader-components');
   await waitFor(`document.querySelector('#settings-xxmi-installer')?.textContent.includes('打开 Launcher')`, 'Launcher settings renders its installed version and open action');
   assert.equal(await evaluate(`!!document.querySelector('[aria-label="更新 WWMI-Package 本地原版"]') && !!document.querySelector('[aria-label="更新 XXMI-Libs 本地原版"]')`), true);
-  assert.equal(await evaluate(`document.querySelector('.settings-page[data-page="game-updates"] [data-action="check-updates"]').textContent`), '检查更新');
+  assert.equal(await evaluate(`document.querySelector('.settings-page[data-page="loader-components"] [data-action="check-updates"]').textContent`), '检查更新');
   await evaluate(`document.querySelector('#settings-xxmi-installer').scrollIntoView({ block: 'start' })`);
   await captureUI('xxmi-settings.png');
   const variant = channel => `document.querySelector('#settings-mi-forks [data-component="runtime"] [data-channel="${channel}"]')`;

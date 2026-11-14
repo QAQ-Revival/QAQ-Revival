@@ -46,6 +46,19 @@
   text-overflow: ellipsis;
 }
 
+/* A game's peer modules (the game, its Mod loader, EFF): a quiet label over each list of pages. */
+.settings-module + .settings-module {
+  margin-top: 10px;
+}
+
+.settings-module-head {
+  padding: 2px 8px 4px;
+  color: var(--fg-3);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .settings-categories {
   display: flex;
   flex-direction: column;

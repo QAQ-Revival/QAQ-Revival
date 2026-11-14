@@ -137,7 +137,7 @@ function LaunchControls({ activeGame, settingsActive, onOpenSettings }) {
           </MenuItem>
         </Menu>
       </div>
-      {updates.count > 0 && <button type="button" className="btn btn-sm game-update-notice" onClick={() => openSettings({ section: "game-updates" })}>
+      {updates.count > 0 && <button type="button" className="btn btn-sm game-update-notice" onClick={() => openSettings({ section: updates.clientCount ? "game-updates" : "loader-components" })}>
         {t("games.updates.availableCount", { count: updates.count })}
       </button>}
       {(error || notice) && (

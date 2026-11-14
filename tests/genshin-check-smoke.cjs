@@ -37,7 +37,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   await textButton('备份并同步');
   await waitFor(`document.querySelector('.compatibility-summary')?.textContent.includes('0 项需处理')`, 'paths synchronized');
   assert.equal(JSON.parse(fs.readFileSync(config)).Importers.WWMI.keep, true);
-  await waitFor(`!document.querySelector('#settings-game-paths .system-notice')`, 'path consistency notice refreshed');
+  await waitFor(`!document.querySelector('#settings-loader-paths .system-notice')`, 'path consistency notice refreshed');
   await click('[aria-label="启动游戏"]');
   await waitFor(`!document.querySelector('[aria-label="启动游戏"]').disabled`, 'validated GIMI launch');
   assert.deepEqual(launchRequests.at(-1).args, ['--nogui', '--xxmi', 'GIMI']);

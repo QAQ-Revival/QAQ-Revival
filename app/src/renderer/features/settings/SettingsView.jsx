@@ -5,7 +5,7 @@ import { GameTile } from "../../components/GameSelector.jsx";
 import { useGameUpdates } from "../../hooks/useGameUpdates.js";
 import { GameSettingsPanel } from "./GameSettingsPanel.jsx";
 import { GeneralSettings, getCategories } from "./SystemSettings.jsx";
-import { getGamePages } from "./gamePages.js";
+import { getGameModules } from "./gamePages.js";
 import {
   CATEGORY_KEY,
   GAME_PAGE_KEY,
@@ -19,7 +19,8 @@ function SettingsView({ scope, activeGame, devMode = false, games = [], allGames
   const gameId = activeGame?.id;
   const isGame = scope === "game";
   const categories = getCategories();
-  const pages = gameId ? getGamePages(gameId) : [];
+  const modules = gameId ? getGameModules(gameId) : [];
+  const pages = modules.flatMap((module) => module.pages);
   const [categoryId, setCategoryId] = React.useState(() =>
     remembered(CATEGORY_KEY, "general"),
   );
@@ -87,31 +88,51 @@ function SettingsView({ scope, activeGame, devMode = false, games = [], allGames
               <GameTile game={activeGame} />
               <span>{activeGame.name}</span>
             </div>
-            <div className="settings-categories">
-              {pages.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="settings-category"
-                  data-section={item.id}
-                  aria-current={isGame && page.id === item.id ? "page" : undefined}
-                  onClick={() => choosePage(item.id)}
-                >
-                  <Icon name={item.icon} size={15} />
-                  <span>{item.label}</span>
-                  {item.id === "game-updates" && updates.count > 0 && (
-                    <span
-                      className="settings-category-count"
-                      title={t("games.updates.availableCount", {
-                        count: updates.count,
-                      })}
-                    >
-                      {updates.count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
+            {modules.map((module) => (
+              <div
+                key={module.id}
+                className="settings-module"
+                data-module={module.id}
+                role="group"
+                aria-label={module.label}
+              >
+                <div className="settings-module-head" aria-hidden="true">
+                  {module.label}
+                </div>
+                <div className="settings-categories">
+                  {module.pages.map((item) => {
+                    // The client's update shows on the game's page, the loader's components on its own.
+                    const count =
+                      item.id === "game-updates"
+                        ? updates.clientCount
+                        : item.id === "loader-components"
+                          ? updates.componentCount
+                          : 0;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="settings-category"
+                        data-section={item.id}
+                        aria-current={isGame && page.id === item.id ? "page" : undefined}
+                        onClick={() => choosePage(item.id)}
+                      >
+                        <Icon name={item.icon} size={15} />
+                        <span>{item.label}</span>
+                        {count > 0 && (
+                          <span
+                            className="settings-category-count"
+                            title={t("games.updates.availableCount", { count })}
+                          >
+                            {count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
         )}
         <nav

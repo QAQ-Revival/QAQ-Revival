@@ -22,6 +22,7 @@ export function ModContextMenu({
   setToast,
   confirmDelete,
 }) {
+  const isEff = modContextMenu?.mod?.framework === "eff";
   return (
     modContextMenu &&
     ReactDOM.createPortal(
@@ -105,21 +106,22 @@ export function ModContextMenu({
           >
             {t("mods.actions.copyPath")}
           </button>
-          <button
+          {/* EFF Mods live in the game's plugin folder; moving, fixing and INI rollback are EFMI tools. */}
+          {!isEff && <button
             onClick={() => handleRequestMoveMod(modContextMenu.mod)}
             className="mod-context-menu-action-emphasis"
           >
             {t("common.actions.move")}
-          </button>
-          <div className="mod-context-menu-content" />
-          <button
+          </button>}
+          {!isEff && <div className="mod-context-menu-content" />}
+          {!isEff && <button
             onClick={() => handleFixMod(modContextMenu.mod, "external")}
             disabled={fixRunning}
             className="mod-context-menu-fixer-action"
           >
             {t(isArknights ? "arknights.tools" : "characters.fixer.title")}
-          </button>
-          {!isArknights && <><div
+          </button>}
+          {!isArknights && !isEff && <><div
             className="qaqm-context-submenu-wrap"
             onMouseEnter={() => loadModIniBackups(modContextMenu.mod.name)}
           >

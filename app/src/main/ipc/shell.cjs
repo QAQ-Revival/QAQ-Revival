@@ -81,6 +81,11 @@ function registerIpc() {
   }) => {
     try {
       const gameId2 = gamesSettings.getActiveGameScopeId();
+      const eff = require("../mods/eff-routes.cjs").route(gameId2, characterName, modName, charactersDirectories.resolveCharacterPath(characterName, gameId2));
+      if (eff) {
+        const openError = await electron.shell.openPath(eff.mod.path);
+        return openError ? { error: openError } : { success: true };
+      }
       if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
         const charPath2 = modsNevernessPaks.getNevernessDx12CharacterPath(characterName, {
           ensure: true

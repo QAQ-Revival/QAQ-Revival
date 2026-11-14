@@ -433,5 +433,12 @@
     "static": "静态",
     "dynamic": "动态",
     "voice": "语音"
+  },
+  "eff": {
+    "title": "EFF",
+    "oldFormat": "Format {{format}}，要先用 EFF Mod Manager 迁移",
+    "keysOff": "按键已在 EFF 面板停用",
+    "noKeys": "没有按键",
+    "hint": "按键和款式在游戏里按 Ins 打开 EFF 面板调整。启用或停用在下次启动游戏后生效"
   }
 }

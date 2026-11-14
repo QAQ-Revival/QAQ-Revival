@@ -3,6 +3,7 @@ import React from "react";
 import { evaluateXxmiImporterPathConsistency } from "../../lib/xxmiPaths.js";
 import { WuwaTuningSettings } from "./WuwaTuningSettings.jsx";
 import { EfmiVulkanSettings } from "./EfmiVulkanSettings.jsx";
+import { EffSettings } from "./EffSettings.jsx";
 import { WuwaDx12Settings } from "./WuwaDx12Settings.jsx";
 import { SteamBridgeSettings } from "./SteamBridgeSettings.jsx";
 import { GenshinCompatibilitySettings } from "./GenshinCompatibilitySettings.jsx";
@@ -12,6 +13,7 @@ import {
   ArknightsSettings,
 } from "../arknights/ArknightsTools.jsx";
 import { GameVersionSettings } from "./GameVersionSettings.jsx";
+import { loaderName } from "./gamePages.js";
 import {
   check,
   Button,
@@ -137,14 +139,6 @@ function GameSettings({ gameId, page, active = true, updates, notify }) {
           />
           <Section id="game-paths">
             {pathRow(
-              t("settings.game.modsFolder"),
-              game.id === "arknights"
-                ? t("arknights.settings.libraryHint")
-                : t("settings.game.modsFolderHint"),
-              game.modFolderPath,
-              () => window.api.selectModsFolder(game.id),
-            )}
-            {pathRow(
               t("settings.game.executable"),
               isNte
                 ? t("settings.game.nteExecutableHint")
@@ -161,6 +155,24 @@ function GameSettings({ gameId, page, active = true, updates, notify }) {
               game.officialLauncherPath,
               () => window.api.selectOfficialLauncherPath(game.id),
             )}
+          </Section>
+        </React.Fragment>
+      ))}
+      {pageOf("loader-overview", () => (
+        <React.Fragment>
+          <PageHead
+            title={loaderName(game.id)}
+            description={t("settings.game.loaderSummary")}
+            actions={
+              <Button
+                disabled={busy}
+                onClick={() => act(() => window.api.autoDetectPaths(game.id))}
+              >
+                {t("settings.game.detectPaths")}
+              </Button>
+            }
+          />
+          <Section id="loader-paths">
             {game.id !== "arknights" &&
               pathRow(
                 isNte
@@ -170,6 +182,14 @@ function GameSettings({ gameId, page, active = true, updates, notify }) {
                 game.modLoaderPath,
                 () => window.api.selectXxmiPath(game.id),
               )}
+            {pathRow(
+              t("settings.game.modsFolder"),
+              game.id === "arknights"
+                ? t("arknights.settings.libraryHint")
+                : t("settings.game.modsFolderHint"),
+              game.modFolderPath,
+              () => window.api.selectModsFolder(game.id),
+            )}
             {consistency && consistency.status !== "match" && (
               <Notice kind="warning" role="status">
                 {consistency.status === "unconfigured"
@@ -199,8 +219,19 @@ function GameSettings({ gameId, page, active = true, updates, notify }) {
       ))}
       {pageOf("game-updates", () => (
         <GameVersionSettings
+          part="game"
           gameId={game.id}
           gameName={game.name}
+          updates={updates}
+          notify={notify}
+          onPathsChanged={reload}
+        />
+      ))}
+      {pageOf("loader-components", () => (
+        <GameVersionSettings
+          part="loader"
+          gameId={game.id}
+          gameName={loaderName(game.id)}
           updates={updates}
           notify={notify}
           onPathsChanged={reload}
@@ -221,6 +252,8 @@ function GameSettings({ gameId, page, active = true, updates, notify }) {
       {pageOf("efmi-vulkan", () => (
         <EfmiVulkanSettings />
       ))}
+      {pageOf("eff", () => <EffSettings part="overview" />)}
+      {pageOf("eff-components", () => <EffSettings part="components" />)}
       {pageOf("wuwa-dx12", () => (
         <WuwaDx12Settings />
       ))}

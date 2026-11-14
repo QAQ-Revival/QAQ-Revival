@@ -23,6 +23,9 @@ const modsHotkeys = require("../mods/hotkeys.cjs");
 const modsIniFiles = require("../mods/ini-files.cjs");
 const modsMetadata = require("../mods/metadata.cjs");
 const modsNevernessPaks = require("../games/neverness/paks.cjs");
+const modsEffRoutes = require("../mods/eff-routes.cjs");
+// The EFF Mod an action on the Mods page addresses, if that is what it names.
+const effRoute = (gameId, characterName, modName) => modsEffRoutes.route(gameId, characterName, modName, charactersDirectories.resolveCharacterPath(characterName, gameId));
 const overlayWindow = require("../overlay/window.cjs");
 const persistService = require("../persist/service.cjs");
 const persistTracking = require("../persist/tracking.cjs");
@@ -108,6 +111,16 @@ async function listMods(characterName) {
           })
         };
       });
+      // EFF Mods of the character sit in the same list, from the game's plugin/mods.
+      mods = mods.concat(modsEffRoutes.entries({
+        gameId: gameId2,
+        characterName,
+        efmiCharacterPath: charPath,
+        taken: mods.map(mod => mod.name),
+        addedAtAccessor,
+        pinnedState: list => modsMetadata.applyPinnedStateToMods(characterName, list),
+        imageUrl: file => charactersImages.getLocalImageUrl(file)
+      }));
       const modOrders = configStore.currentConfig.modOrders || {};
       const {
         value: customOrder
@@ -261,6 +274,13 @@ async function toggleMod(characterName, modName, enable, overlay = false) {
     modName = charactersSkins.assertSafeAppearancePathSegment(modName, i18n.t("backend.validation.modName"));
     if (typeof enable !== "boolean") throw Error("Invalid Mod state");
     if (enable) charactersHidden.assertCharacterVisible(context.characterName, context.gameId);
+    // EFF reads its Mods at game start, so there is nothing to queue, check for hash conflicts or reload.
+    const eff = effRoute(context.gameId, context.characterName, modName);
+    if (eff) {
+      eff.eff.setCharacterModEnabled(eff.mod, enable);
+      desktopNotifications.notifyAllModWindowsChanged(context.characterName, { modName, reason: "toggle" });
+      return { success: true, enabled: enable, framework: "eff" };
+    }
     const result = await require("../mods/selection.cjs").request({ ...context, modName, enable });
     if (result.busy) return { ...result, error: i18n.t(result.enable ? "backend.ipc.mods.enableQueued" : "backend.ipc.mods.disableQueued") };
     return result;
@@ -406,6 +426,9 @@ function registerIpc() {
   }) => {
     try {
       const gameId2 = gamesSettings.getActiveGameScopeId();
+      // EFF keys are bound in its own Ins panel; the page shows them from the Mod entry.
+      const eff = effRoute(gameId2, characterName, modName);
+      if (eff) return { success: true, previewUrl: eff.mod.preview ? charactersImages.getLocalImageUrl(eff.mod.preview) : null, hotkeys: [], hotkeyGroups: [] };
       if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
         const paths = gamesNevernessLoader.getNevernessDx12Paths();
         const charPath2 = modsNevernessPaks.getNevernessDx12CharacterPath(characterName, {
@@ -558,6 +581,11 @@ function registerIpc() {
         };
       }
       const gameId2 = gamesSettings.getActiveGameScopeId();
+      const eff = effRoute(gameId2, characterName, modName);
+      if (eff) {
+        const file = eff.eff.setCharacterModPreview(eff.mod, modsEffRoutes.pngBytes(fs.readFileSync(imagePath)));
+        return { success: true, newPath: file, previewUrl: charactersImages.getLocalImageUrl(file) };
+      }
       charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
       let actualModName = modName;
       const charPath = gamesNevernessLoader.isNevernessDx12Mode(gameId2) ? modsNevernessPaks.getNevernessDx12CharacterPath(characterName, {
@@ -652,6 +680,11 @@ function registerIpc() {
       };
       const ext = extMap[mime] || ".png";
       const gameId2 = gamesSettings.getActiveGameScopeId();
+      const eff = effRoute(gameId2, characterName, modName);
+      if (eff) {
+        const png = modsEffRoutes.pngBytes(Buffer.from(base64, "base64"));
+        return { success: true, newPath: eff.eff.setCharacterModPreview(eff.mod, png), previewUrl: `data:image/png;base64,${png.toString("base64")}` };
+      }
       charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
       const charPath = gamesNevernessLoader.isNevernessDx12Mode(gameId2) ? modsNevernessPaks.getNevernessDx12CharacterPath(characterName, {
         ensure: true
@@ -699,6 +732,14 @@ function registerIpc() {
       characterName = charactersSkins.assertSafeAppearancePathSegment(characterName, i18n.t("backend.validation.characterName"));
       oldName = charactersSkins.assertSafeAppearancePathSegment(oldName, i18n.t("backend.validation.oldModName"));
       newName = charactersSkins.assertSafeAppearancePathSegment(newName, i18n.t("backend.validation.newModName"));
+      const eff = effRoute(gameId2, characterName, oldName);
+      if (eff) {
+        const renamed = eff.eff.renameCharacterMod(eff.mod, newName);
+        const currentPinned = modsMetadata.getPinnedModsForCharacter(characterName);
+        if (currentPinned.includes(oldName)) modsMetadata.setPinnedModsForCharacter(characterName, currentPinned.map(name => name === oldName ? newName : name));
+        desktopNotifications.notifyCharacterListChanged(characterName, { modName: newName, previousModName: oldName, reason: "mod-renamed" });
+        return { success: true, newName, newPath: renamed.path };
+      }
       charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
       const charPath = charactersDirectories.resolveCharacterPath(characterName, gameId2);
       if (!charPath) return {
@@ -871,6 +912,14 @@ function registerIpc() {
       modName = charactersSkins.assertSafeAppearancePathSegment(modName, i18n.t("backend.validation.modName"));
       if (gamesNevernessLoader.isNevernessDx12Mode(gameId2)) {
         return await modsNevernessPaks.deleteNevernessDx12PakMod(characterName, modName);
+      }
+      const eff = effRoute(gameId2, characterName, modName);
+      if (eff) {
+        await eff.eff.removeCharacterMod(eff.mod);
+        const currentPinned = modsMetadata.getPinnedModsForCharacter(characterName);
+        if (currentPinned.includes(modName)) modsMetadata.setPinnedModsForCharacter(characterName, currentPinned.filter(name => name !== modName));
+        desktopNotifications.notifyCharacterListChanged(characterName, { modName, reason: "mod-deleted" });
+        return { success: true, recycled: true };
       }
       charactersOrganization.organizeLegacyCharacterFoldersIfNeeded(gameId2);
       const env = gamesEnvironment.resolveActiveGameEnvRoot(gameId2);
