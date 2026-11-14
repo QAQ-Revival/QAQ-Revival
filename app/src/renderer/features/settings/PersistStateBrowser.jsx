@@ -9,6 +9,7 @@ import {
   Switch,
   check,
 } from "./SettingsControls.jsx";
+import { openSettings } from "./settingsPreferences.js";
 const UNKNOWN = "__unlinked__";
 function openPersistManager(gameId, characterName, modName) {
   sessionStorage.setItem(
@@ -19,27 +20,9 @@ function openPersistManager(gameId, characterName, modName) {
       modName,
     }),
   );
-  sessionStorage.setItem("qaqm.settings.category", "persist");
-  window.dispatchEvent(
-    new CustomEvent("qaqm:settings-section", {
-      detail: {
-        category: "persist",
-      },
-    }),
-  );
-  window.dispatchEvent(
-    new CustomEvent("qaqm-navigate", {
-      detail: {
-        tab: "settings",
-      },
-    }),
-  );
+  openSettings({ category: "persist" });
 }
-function initialLocation(gameId) {
-  if (gameId)
-    return {
-      gameId,
-    };
+function initialLocation() {
   try {
     const saved = sessionStorage.getItem("qaqm.persist.target");
     sessionStorage.removeItem("qaqm.persist.target");
@@ -96,8 +79,8 @@ function PersistVariables({ entries }) {
     </div>
   );
 }
-function PersistStateBrowser({ gameId = null, games = [] }) {
-  const [at, setAt] = React.useState(() => initialLocation(gameId));
+function PersistStateBrowser({ games = [] }) {
+  const [at, setAt] = React.useState(initialLocation);
   const [data, setData] = React.useState(null),
     [error, setError] = React.useState(""),
     [message, setMessage] = React.useState("");
@@ -109,7 +92,7 @@ function PersistStateBrowser({ gameId = null, games = [] }) {
   const lock = React.useRef(false),
     isMod = !!at.modName;
   const gameAvailable =
-    !at.gameId || !!gameId || games.some((game) => game.id === at.gameId);
+    !at.gameId || games.some((game) => game.id === at.gameId);
   const visibleGameKey = games
     .map((game) => game.id)
     .sort()
@@ -314,7 +297,6 @@ function PersistStateBrowser({ gameId = null, games = [] }) {
       label,
       count: ids?.length ?? entries.length,
     });
-  const showCrumbs = !gameId || !!at.characterName;
   return (
     <div
       className="persist-manager"
@@ -324,66 +306,60 @@ function PersistStateBrowser({ gameId = null, games = [] }) {
       }
       aria-busy={busy}
     >
-      {showCrumbs && (
-        <nav
-          className="persist-breadcrumbs"
-          aria-label={t("settings.persist.storagePath")}
+      <nav
+        className="persist-breadcrumbs"
+        aria-label={t("settings.persist.storagePath")}
+      >
+        <button
+          type="button"
+          className="link-btn"
+          disabled={busy}
+          onClick={() => navigate({})}
         >
-          {!gameId && (
-            <React.Fragment>
-              <button
-                type="button"
-                className="link-btn"
-                disabled={busy}
-                onClick={() => navigate({})}
-              >
-                {t("settings.persist.allGames")}
-              </button>
-              <Icon name="chevron-right" size={12} />
-            </React.Fragment>
-          )}
-          <button
-            type="button"
-            className="link-btn"
-            disabled={busy || !at.characterName}
-            aria-current={at.characterName ? undefined : "page"}
-            onClick={() =>
-              navigate({
-                gameId: at.gameId,
-              })
-            }
-          >
-            {data?.game?.name || t("settings.persist.game")}
-          </button>
-          {at.characterName && (
-            <React.Fragment>
-              <Icon name="chevron-right" size={12} />
-              <button
-                type="button"
-                className="link-btn"
-                disabled={busy || !isMod}
-                aria-current={isMod ? undefined : "page"}
-                onClick={() =>
-                  navigate({
-                    gameId: at.gameId,
-                    characterName: at.characterName,
-                  })
-                }
-              >
-                {at.characterName === UNKNOWN
-                  ? t("settings.persist.unlinked")
-                  : at.characterName}
-              </button>
-            </React.Fragment>
-          )}
-          {isMod && (
-            <React.Fragment>
-              <Icon name="chevron-right" size={12} />
-              <span aria-current="page">{at.modName}</span>
-            </React.Fragment>
-          )}
-        </nav>
-      )}
+          {t("settings.persist.allGames")}
+        </button>
+        <Icon name="chevron-right" size={12} />
+        <button
+          type="button"
+          className="link-btn"
+          disabled={busy || !at.characterName}
+          aria-current={at.characterName ? undefined : "page"}
+          onClick={() =>
+            navigate({
+              gameId: at.gameId,
+            })
+          }
+        >
+          {data?.game?.name || t("settings.persist.game")}
+        </button>
+        {at.characterName && (
+          <React.Fragment>
+            <Icon name="chevron-right" size={12} />
+            <button
+              type="button"
+              className="link-btn"
+              disabled={busy || !isMod}
+              aria-current={isMod ? undefined : "page"}
+              onClick={() =>
+                navigate({
+                  gameId: at.gameId,
+                  characterName: at.characterName,
+                })
+              }
+            >
+              {at.characterName === UNKNOWN
+                ? t("settings.persist.unlinked")
+                : at.characterName}
+            </button>
+          </React.Fragment>
+        )}
+        {isMod && (
+          <React.Fragment>
+            <Icon name="chevron-right" size={12} />
+            <span aria-current="page">{at.modName}</span>
+          </React.Fragment>
+        )}
+      </nav>
       {notices}
       {data?.game && (
         <React.Fragment>

@@ -28,7 +28,10 @@ function build({ output = path.join(root, 'local-components/xxmi-installer'), te
   requirements.push('pyinstaller==6.16.0');
   const requirementFile = path.join(work, 'requirements.txt');
   fs.writeFileSync(requirementFile, requirements.join('\n') + '\n');
-  const fingerprint = crypto.createHash('sha256').update(requirements.join('\n')).digest('hex');
+  // Compiled packages such as pywin32 only load in the Python version they were installed for.
+  const interpreter = spawnSync(python, ['-c', 'import sys; print(sys.version)'], { encoding: 'utf8', windowsHide: true }).stdout.trim();
+  if (!interpreter) throw Error('Python is required to build the XXMI installer');
+  const fingerprint = crypto.createHash('sha256').update(requirements.join('\n') + '\n' + interpreter).digest('hex');
   const fingerprintFile = path.join(packages, '.qaqr-requirements');
   if (!fs.existsSync(fingerprintFile) || fs.readFileSync(fingerprintFile, 'utf8') !== fingerprint) {
     run(python, ['-m', 'pip', 'install', '--disable-pip-version-check', '--upgrade', '--target', packages, '-r', requirementFile]);

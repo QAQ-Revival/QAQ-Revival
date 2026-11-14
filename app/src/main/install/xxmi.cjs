@@ -101,9 +101,10 @@ async function status(gameId, action = "status") {
   const fork = { ...maintained.status(gameId), runtimeInactive: settings.getGameById(gameId)?.wuwaDx12Enabled === true };
   const result = { ...await runWorker({ ...resolved, action }), fork };
   if (action === "status") {
-    const previous = cache.get(gameId);
+    // After a restart nothing has been checked in this run yet, so fall back to what the last saved check found.
+    const previous = cache.get(gameId)?.components || require("../games/updates.cjs").checkedComponents(gameId);
     for (const component of result.components || []) {
-      const checked = previous?.components?.find(item => item.id === component.id);
+      const checked = previous.find(item => item.id === component.id);
       if (checked?.latest) {
         component.latest = checked.latest;
         component.updateAvailable = !!component.installed && require("../games/update-versions.cjs").compareVersions(component.latest, component.installed) > 0;

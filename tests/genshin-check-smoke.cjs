@@ -17,6 +17,8 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   await call('game:switch', 'genshin-impact');
   await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('原神')`, 'Genshin selected');
   await click('[aria-label="游戏设置"]');
+  await waitFor(`!!document.querySelector('[data-section="genshin-compatibility"]')`, 'compatibility page link');
+  await click('[data-section="genshin-compatibility"]');
   await waitFor(`document.querySelectorAll('.compatibility-repairs input').length === 2`, 'diagnostics and repair preview');
   assert.ok(fs.readFileSync(config).equals(original), 'Opening diagnostics is read-only');
   assert.equal(await evaluate(`document.querySelector('[aria-label="原神启动前检查"]').checked`), false);
@@ -61,11 +63,11 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   const current = await call('get-config');
   assert.equal(current.config.games.find(g => g.id === 'genshin-impact').genshinPreflightEnabled, true);
   assert.notEqual(current.config.games.find(g => g.id === 'wuthering-waves').genshinPreflightEnabled, true);
-  await evaluate(`(() => { const pane = document.querySelector('.system-settings-pane'), section = document.querySelector('#settings-genshin-compatibility'); pane.style.scrollBehavior = 'auto'; pane.scrollTop += section.getBoundingClientRect().top - pane.getBoundingClientRect().top; })()`);
+  await evaluate(`document.querySelector('.system-settings-pane').scrollTo(0, 0)`);
   await evaluate('new Promise(resolve => setTimeout(resolve, 250))'); await captureUI('genshin-compatibility-checks.png');
   await call('game:switch', 'wuthering-waves');
   await waitFor(`document.querySelector('.game-settings-view')?.dataset.gameId === 'wuthering-waves'`, 'other game scope');
-  assert.equal(await evaluate(`!!document.querySelector('#settings-genshin-compatibility')`), false);
+  assert.equal(await evaluate(`!!document.querySelector('#settings-genshin-compatibility, [data-section="genshin-compatibility"]')`), false);
   assert.equal((await call('launch-game', { launchMode: 'DIRECT', gameId: 'wuthering-waves' })).success, true);
   passed('Report exports omit raw logs and paths; path restore is exact; argument checks and preflight persist only for Genshin and do not block other games');
 };

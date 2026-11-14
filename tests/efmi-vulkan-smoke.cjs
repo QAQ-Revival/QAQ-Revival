@@ -29,7 +29,9 @@ module.exports = async ({ handlers, root, evaluate, waitFor, captureUI, passed }
   assert.equal((await call('game:update', { gameId: 'endfield', updates: { modLoaderPath: loader, modFolderPath: path.join(efmi, 'Mods'), gamePath } })).success, true);
   await call('game:switch', 'endfield');
   await evaluate(`window.dispatchEvent(new CustomEvent('qaqm-navigate', { detail: { tab: 'characters' } }))`);
+  const page = async id => { await waitFor(`!!document.querySelector('[data-section="${id}"]')`, 'settings page link ' + id); await evaluate(`document.querySelector('[data-section="${id}"]').click()`); await waitFor(`!!document.querySelector('.settings-page[data-page="${id}"]:not([hidden])')`, 'settings page ' + id); };
   await evaluate(`document.querySelector('.game-settings-button').click()`);
+  await page('efmi-vulkan');
   const toggle = `document.querySelector('[aria-label="终末地 Vulkan Mod"]')`;
   await waitFor(`!!${toggle} && !${toggle}.disabled`, 'the Vulkan section reads its state');
   assert.equal(await evaluate(`${toggle}.checked`), false);
@@ -48,15 +50,18 @@ module.exports = async ({ handlers, root, evaluate, waitFor, captureUI, passed }
   for (const name of ['dxcompiler.dll', 'dxil.dll', 'SPIRV-Tools-shared.dll']) assert.deepEqual(fs.readFileSync(path.join(efmi, name)), fs.readFileSync(path.join(bundle, name)));
   assert.equal(JSON.parse(fs.readFileSync(configFile, 'utf8')).Launcher.customPreference, 'keep');
   assert.equal(fs.readFileSync(path.join(efmi, 'Mods/kept.ini'), 'utf8'), 'keep mod');
-  const channel = label => `[...document.querySelectorAll('#settings-efmi-vulkan .segmented button')].find(button => button.textContent === '${label}')`;
-  await waitFor(`${channel('原版')}.getAttribute('aria-pressed') === 'true' && !${channel('QAQR 修复版')}.disabled`, 'the upstream build is the active channel');
-  await waitFor(`document.querySelector('#settings-mi-forks')?.textContent.includes('Vulkan 运行库')`, 'the DX11 switch names the Vulkan runtime and steps aside');
+  const variant = channel => `document.querySelector('[data-vulkan-component="runtime"] [data-channel="${channel}"]')`;
+  const useButton = channel => `document.querySelector('[data-vulkan-component="runtime"] [data-channel="${channel}"] [data-action="use"]')`;
+  await waitFor(`${variant('official')}?.classList.contains('is-active') && !!${useButton('fork')} && !${useButton('fork')}.disabled`, 'the upstream build is the active channel');
+  await page('game-updates');
+  await waitFor(`document.querySelector('#settings-mi-forks [data-component="runtime"] [data-channel="vulkan"]')?.classList.contains('is-active') && document.querySelector('#settings-mi-forks').textContent.includes('Vulkan 运行库')`, 'the DX11 switch names the Vulkan runtime and steps aside');
+  await page('efmi-vulkan');
   await evaluate(moveTo);
   await captureUI('efmi-vulkan-on.png');
 
   const forkDll = path.join(path.dirname(process.execPath), 'local-components/xxmi-runtime-vulkan/d3d11.dll');
-  await evaluate(`${channel('QAQR 修复版')}.click()`);
-  await waitFor(`${channel('QAQR 修复版')}.getAttribute('aria-pressed') === 'true'`, 'the QAQR build becomes active');
+  await evaluate(`${useButton('fork')}.click()`);
+  await waitFor(`${variant('fork')}.classList.contains('is-active')`, 'the QAQR build becomes active');
   assert.deepEqual(fs.readFileSync(path.join(efmi, 'd3d11.dll')), fs.readFileSync(forkDll));
   assert.equal((await call('efmi:vulkan-status')).channel, 'fork');
   assert.equal(argument(), '');

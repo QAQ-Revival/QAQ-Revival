@@ -7,8 +7,6 @@ import { WindowControls } from "./WindowControls.jsx";
 import { Icon } from "./Icon.jsx";
 import { useSortableOrder } from "../hooks/useSortableOrder.js";
 
-const SETTINGS_TABS = ["settings", "game-settings"];
-
 const TopBar = React.memo(function TopBar({
   activeTab,
   setActiveTab,
@@ -38,7 +36,7 @@ const TopBar = React.memo(function TopBar({
       : []),
   ];
   const sorting = useSortableOrder(menuItems, "qaqm.navigationOrder", true, void 0, "x");
-  const settingsActive = SETTINGS_TABS.includes(activeTab);
+  const gameSettingsActive = activeTab === "game-settings";
   return (
     <header className="app-topbar">
       <div className="window-drag-region" aria-hidden={true} />
@@ -61,6 +59,18 @@ const TopBar = React.memo(function TopBar({
             setActiveTab("characters");
         }}
       />
+      {activeGame?.id && (
+        <button
+          type="button"
+          className={`icon-btn topbar-game-settings ${gameSettingsActive ? "is-active" : ""}`}
+          aria-label={t("games.settingsLabel", { name: activeGame.name })}
+          aria-current={gameSettingsActive ? "page" : void 0}
+          title={t("games.settingsLabel", { name: activeGame.name })}
+          onClick={() => setActiveTab("game-settings")}
+        >
+          <Icon name="sliders" size={16} />
+        </button>
+      )}
       <span className="topbar-divider" aria-hidden={true} />
       <nav className="nav-menu" aria-label={t("navigation.mainNavigation")}>
         {sorting.items.map((item) => (
@@ -91,9 +101,9 @@ const TopBar = React.memo(function TopBar({
         <DownloadManagerButton />
         <button
           type="button"
-          className={`icon-btn topbar-settings ${settingsActive ? "is-active" : ""}`}
+          className={`icon-btn topbar-settings ${activeTab === "settings" ? "is-active" : ""}`}
           aria-label={t("navigation.systemSettings")}
-          aria-current={settingsActive ? "page" : void 0}
+          aria-current={activeTab === "settings" ? "page" : void 0}
           title={t("navigation.systemSettings")}
           onClick={() => setActiveTab("settings")}
         >
@@ -101,7 +111,7 @@ const TopBar = React.memo(function TopBar({
         </button>
         <LaunchControls
           activeGame={activeGame}
-          settingsActive={activeTab === "game-settings"}
+          settingsActive={gameSettingsActive}
           onOpenSettings={() => setActiveTab("game-settings")}
         />
       </div>

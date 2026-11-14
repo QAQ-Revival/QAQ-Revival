@@ -6,6 +6,7 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, handlers, 
   const click = selector => evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
   const button = text => evaluate(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(text)}).click()`);
   const write = (file, text) => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, text); };
+  const page = async id => { await waitFor(`!!document.querySelector('[data-section="${id}"]')`, 'settings page link ' + id); await evaluate(`document.querySelector('[data-section="${id}"]').click()`); await waitFor(`!!document.querySelector('.settings-page[data-page="${id}"]:not([hidden])')`, 'settings page ' + id); };
   await click('.topbar-settings');
   await waitFor(`!!document.querySelector('[aria-label="管理器随机名"]')`, 'global random settings');
   assert.equal(await evaluate(`!!document.querySelector('[data-category="games"]')`), false);
@@ -33,6 +34,7 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, handlers, 
   const initial = [user, engine, launcher].map(file => fs.readFileSync(file));
   await call('game:update', { gameId: 'wuthering-waves', updates: { gamePath: path.join(gameRoot, 'Wuthering Waves.exe'), modLoaderPath: loader } });
   await click('[aria-label="游戏设置"]');
+  await page('wuwa-tuning');
   await waitFor(`document.querySelector('.game-settings-view')?.dataset.gameId === 'wuthering-waves' && !!document.querySelector('[data-wuwa-preset="community36"][aria-pressed="true"]')`, 'existing WuWa scheme detected');
   [user, engine, launcher].forEach((file, i) => assert.ok(fs.readFileSync(file).equals(initial[i]), 'Opening settings is read-only'));
   await click('[data-wuwa-preset="legacy2024"]');
@@ -45,8 +47,8 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, handlers, 
   await waitFor(`document.querySelector('#settings-wuwa-tuning')?.textContent.includes('已恢复到上次应用前')`, 'WuWa restore');
   [user, engine, launcher].forEach((file, i) => assert.ok(fs.readFileSync(file).equals(initial[i])));
   await captureUI('wuwa-game-settings.png');
-  await evaluate(`(() => { const pane = document.querySelector('.game-settings-view .system-settings-pane'), section = document.querySelector('#settings-wuwa-tuning'); pane.style.scrollBehavior = 'auto'; pane.scrollTop += section.getBoundingClientRect().top - pane.getBoundingClientRect().top; })()`);
-  await waitFor(`document.querySelector('#settings-wuwa-tuning').getBoundingClientRect().top < document.querySelector('.system-settings-pane').getBoundingClientRect().top + 80`, 'WuWa section navigation');
+  assert.equal(await evaluate(`document.querySelector('[data-section="wuwa-tuning"]').getAttribute('aria-current')`), 'page');
+  assert.equal(await evaluate(`document.querySelector('.settings-page[data-page="game-paths"]')?.hidden ?? true`), true, 'only the chosen page is showing');
   await evaluate('new Promise(resolve => setTimeout(resolve, 250))');
   await captureUI('wuwa-tuning-presets.png');
   await click('[aria-label="启动游戏"]');
@@ -58,12 +60,14 @@ module.exports = async ({ evaluate, waitFor, captureUI, window, root, handlers, 
   assert.notEqual(launchRequests.at(-1).file, loader); assert.match(path.basename(launchRequests.at(-1).file), /^r[a-f0-9]{24}\.exe$/);
   passed('WuWa schemes read current files without changing them, explicitly apply with backup, restore byte-for-byte, and XXMI obeys the global switch');
 
+  await page('wuwa-dx12');
   await require('./wuwa-dx12-smoke.cjs')({ call, click, evaluate, waitFor, captureUI, root, launchRequests, passed, gameRoot, xxmi });
 
   await click('.game-selector-trigger');
   await waitFor(`!!document.querySelector('.game-selector-option[data-sort-id="genshin-impact"]')`, 'Genshin choice');
   await click('.game-selector-option[data-sort-id="genshin-impact"]');
-  await waitFor(`document.querySelector('.game-settings-view')?.dataset.gameId === 'genshin-impact' && !!document.querySelector('#settings-genshin-compatibility')`, 'game-specific settings follow selection');
+  await waitFor(`document.querySelector('.game-settings-view')?.dataset.gameId === 'genshin-impact' && !!document.querySelector('[data-section="genshin-compatibility"]') && !document.querySelector('[data-section="wuwa-tuning"]')`, 'game-specific settings follow selection');
+  await page('genshin-compatibility');
   assert.equal(await evaluate(`!!document.querySelector('#settings-wuwa-tuning')`), false);
   await waitFor(`document.querySelector('#settings-genshin-compatibility').textContent.includes('检查结果')`, 'Genshin built-in diagnostics');
   await captureUI('genshin-game-settings.png');

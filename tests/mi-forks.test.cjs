@@ -39,7 +39,7 @@ function fixture(t) {
     compatibleFiles[relative] = [sha('earlier fix ' + index), null];
     if (index !== 2) { core['official/' + relative] = crlf(index); write(path.join(miRoot, relative), crlf(index)); }
   }
-  bundle('efmi-core', 'EFMI-Package', core, { compatibleFiles, official: { version: '1.4.8', commit: 'b'.repeat(40), files: files.slice(0, 2) } });
+  bundle('efmi-core', 'EFMI-Package', core, { compatibleFiles, version: '1.4.8.2', official: { version: '1.4.8', commit: 'b'.repeat(40), files: files.slice(0, 2) } });
   const service = createMiForksService({ bundleRoots: [app], resolveInstallation: () => ({ launcherRoot, miRoot }), userName });
   const component = (id, gameId = 'endfield') => service.status(gameId).components.find(item => item.id === id);
   return { root, app, launcherRoot, miRoot, service, component, configFile, configuration, write };
@@ -71,6 +71,8 @@ test('the two forks switch independently, keep settings and Mods, and leave no b
 
   f.service.change('endfield', 'core', 'fork');
   assert.equal(f.component('core').local.build, 'a'.repeat(12));
+  assert.equal(f.component('core').local.version, '1.4.8.2', 'the fix is numbered upstream version plus QAQR patch');
+  assert.equal(f.component('core').official.version, '1.4.8');
   for (const [index, relative] of files.entries()) assert.equal(fs.readFileSync(path.join(f.miRoot, relative), 'utf8'), 'repaired core ' + index);
 
   f.service.change('endfield', 'runtime', 'official');

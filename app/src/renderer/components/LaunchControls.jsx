@@ -3,6 +3,7 @@ import React from "react";
 import { Icon } from "./Icon.jsx";
 import { Menu, MenuItem } from "./Menu.jsx";
 import { useGameUpdates } from "../hooks/useGameUpdates.js";
+import { openSettings } from "../features/settings/settingsPreferences.js";
 
 function LaunchIcon({ kind, launching }) {
   if (launching) return <span className="spinner launch-spinner" aria-hidden="true" />;
@@ -118,7 +119,7 @@ function LaunchControls({ activeGame, settingsActive, onOpenSettings }) {
           <MenuItem
             icon={<Icon name="refresh" />}
             disabled={!activeGame?.id || updates.state?.checking}
-            onClick={() => { updates.check(true); onOpenSettings(); }}
+            onClick={() => { updates.check(true); openSettings({ section: "game-updates" }); }}
           >
             {t(updates.state?.checking ? "games.updates.checking" : "games.updates.check")}
           </MenuItem>
@@ -136,7 +137,7 @@ function LaunchControls({ activeGame, settingsActive, onOpenSettings }) {
           </MenuItem>
         </Menu>
       </div>
-      {updates.count > 0 && <button type="button" className="btn btn-sm game-update-notice" onClick={onOpenSettings}>
+      {updates.count > 0 && <button type="button" className="btn btn-sm game-update-notice" onClick={() => openSettings({ section: "game-updates" })}>
         {t("games.updates.availableCount", { count: updates.count })}
       </button>}
       {(error || notice) && (

@@ -29,11 +29,12 @@ const exists = file => fs.existsSync(file);
 const newer = (a, b) => {
   const left = a.split('.').map(Number),
     right = b.split('.').map(Number);
-  for (let i = 0; i < 3; i++) if (left[i] !== right[i]) return left[i] > right[i];
+  // wwmi-dx12 numbers some releases with a fourth part (2026.11.0.5)
+  for (let i = 0; i < Math.max(left.length, right.length); i++) if ((left[i] || 0) !== (right[i] || 0)) return (left[i] || 0) > (right[i] || 0);
   return false;
 };
 function validatePackageInfo(kind, info) {
-  if (!info || !/^\d+\.\d+\.\d+$/.test(info.version) || !info.file || path.basename(info.file) !== info.file) throw Error(i18n.t("backend.wuwaDx12Components.invalidVersionInfo"));
+  if (!info || !/^\d+(?:\.\d+){2,3}$/.test(info.version) || !info.file || path.basename(info.file) !== info.file) throw Error(i18n.t("backend.wuwaDx12Components.invalidVersionInfo"));
   const url = new URL(info.url);
   if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash) throw Error(i18n.t("backend.wuwaDx12Components.invalidDownloadUrl"));
   if (kind === 'reshade') {
@@ -61,7 +62,9 @@ function releasePackage(kind, data) {
       url: `https://reshade.me/downloads/${file}`
     });
   }
-  if (!data || data.draft || data.prerelease || !/^v\d+\.\d+\.\d+$/.test(data.tag_name)) throw Error(i18n.t("backend.wuwaDx12Components.invalidWwmiReleaseInfo"));
+  // The release list, newest first: a pre-release counts as the latest, as QAQR takes it as soon as it is out.
+  if (Array.isArray(data)) data = data.find(item => !item?.draft && /^v\d+(?:\.\d+){2,3}$/.test(item?.tag_name || ''));
+  if (!data || data.draft || !/^v\d+(?:\.\d+){2,3}$/.test(data.tag_name)) throw Error(i18n.t("backend.wuwaDx12Components.invalidWwmiReleaseInfo"));
   const version = data.tag_name.slice(1),
     file = `wwmi-dx12-${version}.zip`;
   const asset = data.assets?.find(item => item.name === file);
@@ -91,8 +94,9 @@ async function githubReleasePage(fetchImpl) {
       clearTimeout(timer);
     }
   }
-  const latest = await text('https://github.com/lekarsenten/wwmi-dx12/releases/latest');
-  const version = /https:\/\/github\.com\/lekarsenten\/wwmi-dx12\/releases\/expanded_assets\/v(\d+\.\d+\.\d+)["']/.exec(latest)?.[1];
+  // Newest first, pre-releases included
+  const latest = await text('https://github.com/lekarsenten/wwmi-dx12/releases');
+  const version = /https:\/\/github\.com\/lekarsenten\/wwmi-dx12\/releases\/expanded_assets\/v(\d+(?:\.\d+){2,3})["']/.exec(latest)?.[1];
   if (!version) throw Error(i18n.t("backend.wuwaDx12Components.releaseVersionMissing"));
   const assets = await text(`https://github.com/lekarsenten/wwmi-dx12/releases/expanded_assets/v${version}`);
   const file = `wwmi-dx12-${version}.zip`,
@@ -242,7 +246,7 @@ function createWuwaDx12Packages({
   // The add-on built from the organization fork. It ships with QAQR, so it has nothing to download.
   getPackage.fork = () => {
     const bundle = loadFork();
-    if (!bundle?.files['wwmi_dx12.addon64'] || !/^\d+\.\d+\.\d+$/.test(bundle.manifest.version || '')) return null;
+    if (!bundle?.files['wwmi_dx12.addon64'] || !/^\d+(?:\.\d+){2,4}$/.test(bundle.manifest.version || '')) return null;
     const entries = new Map();
     for (const [name, file] of Object.entries(bundle.files)) if (name === 'wwmi_dx12.addon64' || name.startsWith('wwmi_dx12/')) entries.set(name, fs.readFileSync(file));
     entries.version = bundle.manifest.version;
@@ -271,7 +275,7 @@ function createWuwaDx12Packages({
       const controller = new AbortController(),
         timer = setTimeout(() => controller.abort(), 20000);
       try {
-        const response = await fetchImpl(kind === 'reshade' ? 'https://reshade.me/' : 'https://api.github.com/repos/lekarsenten/wwmi-dx12/releases/latest', {
+        const response = await fetchImpl(kind === 'reshade' ? 'https://reshade.me/' : 'https://api.github.com/repos/lekarsenten/wwmi-dx12/releases?per_page=10', {
           signal: controller.signal,
           headers: {
             Accept: kind === 'reshade' ? 'text/html' : 'application/vnd.github+json'

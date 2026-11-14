@@ -7,26 +7,32 @@ import { WuwaDx12Settings } from "./WuwaDx12Settings.jsx";
 import { SteamBridgeSettings } from "./SteamBridgeSettings.jsx";
 import { GenshinCompatibilitySettings } from "./GenshinCompatibilitySettings.jsx";
 import { GenshinAntiErrorSettings } from "./GenshinAntiErrorSettings.jsx";
-import PersistStateManager from "./PersistStateBrowser.jsx";
-import { ArknightsSettings } from "../arknights/ArknightsTools.jsx";
-import { XxmiSettings } from "./XxmiSettings.jsx";
-import { GameUpdateSettings } from "./GameUpdateSettings.jsx";
+import {
+  ArknightsInputSettings,
+  ArknightsSettings,
+} from "../arknights/ArknightsTools.jsx";
+import { GameVersionSettings } from "./GameVersionSettings.jsx";
 import {
   check,
   Button,
   Notice,
   Row,
   PathControl,
+  Page,
+  PageHead,
   Section,
 } from "./SettingsControls.jsx";
-function GameSettings({ gameId, notify }) {
+
+function GameSettings({ gameId, page, active = true, updates, notify }) {
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [revision, setRevision] = React.useState(0);
+  // A page mounts on its first visit and is only hidden afterwards.
+  const visited = React.useRef(new Set());
+  visited.current.add(page);
   React.useEffect(() => {
     let canceled = false;
-    setData(null);
     setError("");
     Promise.all([
       window.api.gameGetSettings(gameId),
@@ -51,6 +57,13 @@ function GameSettings({ gameId, notify }) {
       canceled = true;
     };
   }, [gameId, revision]);
+  const reload = React.useCallback(() => setRevision((v) => v + 1), []);
+  // The general pages can change what is shown here, so read again when coming back from them.
+  const wasActive = React.useRef(active);
+  React.useEffect(() => {
+    if (active && !wasActive.current) reload();
+    wasActive.current = active;
+  }, [active, reload]);
   async function act(action, message) {
     if (busy) return;
     setBusy(true);
@@ -58,7 +71,7 @@ function GameSettings({ gameId, notify }) {
       const result = await action();
       if (result?.canceled) return;
       check(result);
-      setRevision((v) => v + 1);
+      reload();
       notify("success", result.message || message || t("common.status.saved"));
     } catch (e) {
       notify("error", e.message);
@@ -66,13 +79,11 @@ function GameSettings({ gameId, notify }) {
       setBusy(false);
     }
   }
-  if (error)
+  if (error && !data)
     return (
       <div className="settings-state" role="alert">
         {error}
-        <Button onClick={() => setRevision((v) => v + 1)}>
-          {t("common.actions.reload")}
-        </Button>
+        <Button onClick={reload}>{t("common.actions.reload")}</Button>
       </div>
     );
   if (!data)
@@ -103,194 +114,196 @@ function GameSettings({ gameId, notify }) {
       </PathControl>
     </Row>
   );
+  const pageOf = (id, render) =>
+    visited.current.has(id) && (
+      <Page key={id} id={id} active={page === id}>
+        {render()}
+      </Page>
+    );
   return (
     <div className="system-game-detail" data-game-id={game.id} aria-busy={busy}>
-      <Section
-        id="game-paths"
-        title={t("settings.game.pathAndLaunch")}
-        actions={
-          <Button
-            small={true}
-            disabled={busy}
-            onClick={() => act(() => window.api.autoDetectPaths(game.id))}
-          >
-            {t("settings.game.detectPaths")}
-          </Button>
-        }
-      >
-        {pathRow(
-          t("settings.game.modsFolder"),
-          game.id === "arknights"
-            ? t("arknights.settings.libraryHint")
-            : t("settings.game.modsFolderHint"),
-          game.modFolderPath,
-          () => window.api.selectModsFolder(game.id),
-        )}
-        {pathRow(
-          t("settings.game.executable"),
-          isNte
-            ? t("settings.game.nteExecutableHint")
-            : t("settings.game.executableHint", {
-                executableHint:
-                  game.executableHint || t("settings.game.mainExecutable"),
-              }),
-          game.gamePath,
-          () => window.api.selectGamePath(game.id),
-        )}
-        {pathRow(
-          t("settings.game.officialLauncher"),
-          t("settings.game.officialLauncherHint"),
-          game.officialLauncherPath,
-          () => window.api.selectOfficialLauncherPath(game.id),
-        )}
-        {game.id !== "arknights" &&
-          pathRow(
-            isNte
-              ? t("settings.game.nemiLoader")
-              : t("settings.game.xxmiLauncher"),
-            isNte ? t("settings.game.nemiHint") : t("settings.game.xxmiHint"),
-            game.modLoaderPath,
-            () => window.api.selectXxmiPath(game.id),
-          )}
-        {consistency && consistency.status !== "match" && (
-          <Notice kind="warning" role="status">
-            {consistency.status === "unconfigured"
-              ? t("settings.game.xxmiUnconfigured")
-              : t("settings.game.xxmiPathMismatch")}
-            {data.xxmiImporterInfo.importerPath && (
-              <div className="settings-mono-line">
-                {t("settings.game.xxmiImporterPath", {
-                  importerPath: data.xxmiImporterInfo.importerPath,
-                })}
-              </div>
+      {pageOf("game-paths", () => (
+        <React.Fragment>
+          <PageHead
+            title={t("settings.game.pathAndLaunch")}
+            actions={
+              <Button
+                disabled={busy}
+                onClick={() => act(() => window.api.autoDetectPaths(game.id))}
+              >
+                {t("settings.game.detectPaths")}
+              </Button>
+            }
+          />
+          <Section id="game-paths">
+            {pathRow(
+              t("settings.game.modsFolder"),
+              game.id === "arknights"
+                ? t("arknights.settings.libraryHint")
+                : t("settings.game.modsFolderHint"),
+              game.modFolderPath,
+              () => window.api.selectModsFolder(game.id),
             )}
-          </Notice>
-        )}
-      </Section>
-      <GameUpdateSettings key={game.id} gameId={game.id} notify={notify} />
-      {game.id === "arknights" && (
-        <ArknightsSettings notify={notify} gamePath={game.gamePath} />
-      )}
-      {["endfield", "genshin-impact", "zzz", "wuthering-waves", "honkai-star-rail"].includes(game.id) && (
-        <XxmiSettings
+            {pathRow(
+              t("settings.game.executable"),
+              isNte
+                ? t("settings.game.nteExecutableHint")
+                : t("settings.game.executableHint", {
+                    executableHint:
+                      game.executableHint || t("settings.game.mainExecutable"),
+                  }),
+              game.gamePath,
+              () => window.api.selectGamePath(game.id),
+            )}
+            {pathRow(
+              t("settings.game.officialLauncher"),
+              t("settings.game.officialLauncherHint"),
+              game.officialLauncherPath,
+              () => window.api.selectOfficialLauncherPath(game.id),
+            )}
+            {game.id !== "arknights" &&
+              pathRow(
+                isNte
+                  ? t("settings.game.nemiLoader")
+                  : t("settings.game.xxmiLauncher"),
+                isNte ? t("settings.game.nemiHint") : t("settings.game.xxmiHint"),
+                game.modLoaderPath,
+                () => window.api.selectXxmiPath(game.id),
+              )}
+            {consistency && consistency.status !== "match" && (
+              <Notice kind="warning" role="status">
+                {consistency.status === "unconfigured"
+                  ? t("settings.game.xxmiUnconfigured")
+                  : t("settings.game.xxmiPathMismatch")}
+                {data.xxmiImporterInfo.importerPath && (
+                  <div className="settings-mono-line">
+                    {t("settings.game.xxmiImporterPath", {
+                      importerPath: data.xxmiImporterInfo.importerPath,
+                    })}
+                  </div>
+                )}
+              </Notice>
+            )}
+          </Section>
+          {game.id !== "arknights" && (
+            <Section id="fixer" title={t("settings.game.fixer")}>
+              {pathRow(
+                t("settings.game.fixerExecutable"),
+                t("settings.game.fixerHint"),
+                data.fixer,
+                () => window.api.fixSelectCustomExe(game.id),
+              )}
+            </Section>
+          )}
+        </React.Fragment>
+      ))}
+      {pageOf("game-updates", () => (
+        <GameVersionSettings
           gameId={game.id}
+          gameName={game.name}
+          updates={updates}
           notify={notify}
-          onPathsChanged={() => setRevision((value) => value + 1)}
+          onPathsChanged={reload}
         />
-      )}
-      {game.id === "genshin-impact" && <GenshinAntiErrorSettings />}
-      {game.id === "genshin-impact" && (
-        <GenshinCompatibilitySettings
-          onPathsChanged={() => {
-            window.api
-              .gameGetSettings(game.id)
-              .then((result) => {
-                check(result);
-                setData((previous) =>
-                  previous
-                    ? {
-                        ...previous,
-                        ...result,
-                      }
-                    : previous,
-                );
-              })
-              .catch((e) => notify("error", e.message));
-          }}
-        />
-      )}
-      {game.id === "endfield" && <EfmiVulkanSettings />}
-      {game.id === "wuthering-waves" && <WuwaDx12Settings />}
-      {game.id === "wuthering-waves" && <WuwaTuningSettings />}
-      {["endfield", "wuthering-waves"].includes(game.id) && (
+      ))}
+      {pageOf("arknights-input", () => (
+        <ArknightsInputSettings notify={notify} gamePath={game.gamePath} />
+      ))}
+      {pageOf("arknights-tools", () => (
+        <ArknightsSettings notify={notify} gamePath={game.gamePath} />
+      ))}
+      {pageOf("genshin-anticrash", () => (
+        <GenshinAntiErrorSettings />
+      ))}
+      {pageOf("genshin-compatibility", () => (
+        <GenshinCompatibilitySettings onPathsChanged={reload} />
+      ))}
+      {pageOf("efmi-vulkan", () => (
+        <EfmiVulkanSettings />
+      ))}
+      {pageOf("wuwa-dx12", () => (
+        <WuwaDx12Settings />
+      ))}
+      {pageOf("wuwa-tuning", () => (
+        <WuwaTuningSettings />
+      ))}
+      {pageOf("steam-bridge", () => (
         <SteamBridgeSettings
           key={`${game.id}:${game.gamePath}`}
           gameId={game.id}
         />
-      )}
-      {isNte && (
-        <Section id="pak" title={t("settings.game.pakMode")}>
-          {pathRow(
-            t("settings.game.pakModsFolder"),
-            t("settings.game.pakModsFolderHint"),
-            data.pak?.paths?.pakModsDir,
-          )}
-          {pathRow(
-            t("settings.game.disabledPakFolder"),
-            t("settings.game.disabledPakFolderHint"),
-            data.pak?.paths?.disabledModsDir,
-            () => window.api.nevernessDx12SelectDisabledModsDir(),
-            <Button
-              disabled={busy}
-              onClick={() =>
-                act(() => window.api.nevernessDx12ResetDisabledModsDir())
-              }
-            >
-              {t("common.actions.restoreDefault")}
-            </Button>,
-          )}
-          {pathRow(
-            t("settings.game.pakLauncher"),
-            t("settings.game.pakLauncherHint"),
-            game.dx12LauncherPath || data.pak?.paths?.dx12LoaderExe,
-            async () => {
-              const r = await window.api.gameSelectExe(
-                t("settings.game.selectPakLauncher"),
-              );
-              if (r.canceled) return r;
-              check(r);
-              return window.api.gameUpdate(game.id, {
-                dx12LauncherPath: r.path,
-              });
-            },
-            game.dx12LauncherPath && (
+      ))}
+      {pageOf("pak", () => (
+        <React.Fragment>
+          <PageHead title={t("settings.game.pakMode")} />
+          <Section id="pak">
+            {pathRow(
+              t("settings.game.pakModsFolder"),
+              t("settings.game.pakModsFolderHint"),
+              data.pak?.paths?.pakModsDir,
+            )}
+            {pathRow(
+              t("settings.game.disabledPakFolder"),
+              t("settings.game.disabledPakFolderHint"),
+              data.pak?.paths?.disabledModsDir,
+              () => window.api.nevernessDx12SelectDisabledModsDir(),
               <Button
                 disabled={busy}
                 onClick={() =>
-                  act(() =>
-                    window.api.gameUpdate(game.id, {
-                      dx12LauncherPath: "",
-                    }),
+                  act(() => window.api.nevernessDx12ResetDisabledModsDir())
+                }
+              >
+                {t("common.actions.restoreDefault")}
+              </Button>,
+            )}
+            {pathRow(
+              t("settings.game.pakLauncher"),
+              t("settings.game.pakLauncherHint"),
+              game.dx12LauncherPath || data.pak?.paths?.dx12LoaderExe,
+              async () => {
+                const r = await window.api.gameSelectExe(
+                  t("settings.game.selectPakLauncher"),
+                );
+                if (r.canceled) return r;
+                check(r);
+                return window.api.gameUpdate(game.id, {
+                  dx12LauncherPath: r.path,
+                });
+              },
+              game.dx12LauncherPath && (
+                <Button
+                  disabled={busy}
+                  onClick={() =>
+                    act(() =>
+                      window.api.gameUpdate(game.id, {
+                        dx12LauncherPath: "",
+                      }),
+                    )
+                  }
+                >
+                  {t("settings.game.useBundled")}
+                </Button>
+              ),
+            )}
+            <Row
+              title={t("settings.game.repairPakLauncher")}
+              hint={t("settings.game.repairPakLauncherHint")}
+            >
+              <Button
+                disabled={busy}
+                onClick={() =>
+                  act(
+                    () => window.api.nevernessDx12ReinstallLoader(),
+                    t("settings.game.pakLauncherReinstalled"),
                   )
                 }
               >
-                {t("settings.game.useBundled")}
+                {t("common.actions.reinstall")}
               </Button>
-            ),
-          )}
-          <Row
-            title={t("settings.game.repairPakLauncher")}
-            hint={t("settings.game.repairPakLauncherHint")}
-          >
-            <Button
-              disabled={busy}
-              onClick={() =>
-                act(
-                  () => window.api.nevernessDx12ReinstallLoader(),
-                  t("settings.game.pakLauncherReinstalled"),
-                )
-              }
-            >
-              {t("common.actions.reinstall")}
-            </Button>
-          </Row>
-        </Section>
-      )}
-      {game.id !== "arknights" && (
-        <Section id="fixer" title={t("settings.game.fixer")}>
-          {pathRow(
-            t("settings.game.fixerExecutable"),
-            t("settings.game.fixerHint"),
-            data.fixer,
-            () => window.api.fixSelectCustomExe(game.id),
-          )}
-        </Section>
-      )}
-      {game.id !== "arknights" && (
-        <Section id="game-persist" title={t("settings.categories.persist")}>
-          <PersistStateManager key={game.id} gameId={game.id} />
-        </Section>
-      )}
+            </Row>
+          </Section>
+        </React.Fragment>
+      ))}
     </div>
   );
 }

@@ -33,7 +33,9 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   await call('game:switch', 'genshin-impact');
   await waitFor(`document.querySelector('.game-selector-trigger')?.textContent.includes('原神')`, 'Genshin selected');
   await click('[aria-label="游戏设置"]');
-  await waitFor(`!!document.querySelector('#settings-genshin-anticrash')`, 'anti-error section visible');
+  await waitFor(`!!document.querySelector('[data-section="genshin-anticrash"]')`, 'anti-error page link');
+  await click('[data-section="genshin-anticrash"]');
+  await waitFor(`!!document.querySelector('#settings-genshin-anticrash [aria-label="原神双生启动"]')`, 'anti-error section visible');
   assert.equal(await evaluate(`document.querySelector('[aria-label="原神双生启动"]').checked`), false);
   assert.equal(await evaluate(`document.querySelector('[aria-label="原神不启用主方案"]').checked`), true);
   assert.equal(await evaluate(`document.querySelector('.anticrash-advanced').open`), false, 'troubleshooting is collapsed by default');
@@ -45,7 +47,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
   const primaryTopBeforeSave = await evaluate(`document.querySelector('.anticrash-primary').getBoundingClientRect().top`);
   await click('[aria-label="原神双生启动"]');
   await waitFor(`document.querySelector('[aria-label="原神双生启动"]').checked`, 'twin enabled');
-  assert.match(await evaluate(`document.querySelector('#heading-genshin-anticrash [role="status"]').textContent`), /已保存/);
+  assert.match(await evaluate(`document.querySelector('.settings-page[data-page="genshin-anticrash"] .settings-save-status').textContent`), /已保存/);
   assert.equal(await evaluate(`document.querySelector('#settings-genshin-anticrash > [role="status"]')`), null, 'saving does not add a banner inside the card');
   assert.ok(Math.abs(await evaluate(`document.querySelector('.anticrash-primary').getBoundingClientRect().top`) - primaryTopBeforeSave) < 1, 'save feedback does not move the controls');
   const stored = (await call('get-config')).config.games.find(g => g.id === 'genshin-impact').genshinAntiError;
@@ -216,8 +218,8 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
     assert.equal(layout.overflow, false, 'grouped settings fit the available width');
     assert.ok(Math.max(...layout.right) - Math.min(...layout.right) < 2, 'all switches align on the right');
     assert.equal(layout.besideCopy, true, 'switches stay beside the text instead of wrapping below it');
-    await evaluate(`document.querySelector('#settings-genshin-anticrash').scrollIntoView({ block: 'start', behavior: 'instant' })`);
-    await waitFor(`Math.abs(document.querySelector('#settings-genshin-anticrash').getBoundingClientRect().top - document.querySelector('.system-settings-pane').getBoundingClientRect().top) < 40`, 'anti-error section scrolled into view');
+    await evaluate(`document.querySelector('.system-settings-pane').scrollTo(0, 0)`);
+    assert.ok(await evaluate(`document.querySelector('.system-settings-pane').scrollWidth <= document.querySelector('.system-settings-pane').clientWidth + 1`), 'the page does not scroll sideways');
     await captureUI('genshin-anticrash-layout-' + width + '.png');
     await click('.anticrash-advanced summary');
     await waitFor(`!document.querySelector('.anticrash-advanced').open`, 'troubleshooting collapsed');
@@ -230,7 +232,7 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, window, root, 
 
   await call('game:switch', 'wuthering-waves');
   await waitFor(`document.querySelector('.game-settings-view')?.dataset.gameId === 'wuthering-waves'`, 'other game scope');
-  assert.equal(await evaluate(`!!document.querySelector('#settings-genshin-anticrash')`), false);
+  assert.equal(await evaluate(`!!document.querySelector('#settings-genshin-anticrash, [data-section="genshin-anticrash"]')`), false);
   assert.equal((await call('launch-game', { launchMode: 'DIRECT', gameId: 'wuthering-waves' })).success, true);
   assert.equal(antiCrashRequests.length, netshCount, 'other games never touch anti-error machinery');
   passed('Anti-error stays scoped to Genshin and leaves other games untouched');

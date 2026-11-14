@@ -4,11 +4,14 @@ import { Icon } from "../../components/Icon.jsx";
 import { Menu, MenuItem } from "../../components/Menu.jsx";
 import {
   Button,
-  Choices,
+  Checks,
+  ComponentCard,
   Notice,
+  PageHead,
   Section,
   Row,
   Switch,
+  VersionRow,
   check,
 } from "./SettingsControls.jsx";
 const sourceLabel = (item) =>
@@ -27,6 +30,10 @@ const sourceBadge = (item) =>
     : item?.source === "managed" && item.active
       ? "badge-success"
       : "";
+const SOURCES = {
+  reshade: "https://reshade.me/",
+  addon: "https://github.com/lekarsenten/wwmi-dx12",
+};
 function WuwaDx12Settings() {
   const [data, setData] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
@@ -87,192 +94,239 @@ function WuwaDx12Settings() {
     }
   }
   const open = (url) => window.api.openExternalUrl(url);
-  return (
-    <Section id="wuwa-dx12" title="DX12 Mod">
-      <Row
-        title={t("settings.wuwaDx12.toggle")}
-        description={t("settings.wuwaDx12.description")}
+  // Asks upstream first, so one press both finds and installs what is newer.
+  const update = (key) =>
+    act(async () => {
+      const checked = check(await window.api.wuwaDx12CheckUpdates());
+      if (checked.updates?.errors[key]) throw Error(checked.updates.errors[key]);
+      return checked.updates?.components[key]?.updateAvailable
+        ? window.api.wuwaDx12UpdateComponent(key)
+        : checked;
+    });
+  function card(key, name) {
+    const source = data?.sources[key];
+    const info = data?.updates?.components[key];
+    const failed = data?.updates?.errors[key];
+    const managed = source?.source === "managed";
+    const fork = key === "addon" ? data?.channel?.fork : null;
+    const onFork = !!fork && data.channel.current === "fork";
+    const useButton = (target) => (
+      <Button
+        small={true}
+        data-action="use"
+        disabled={busy || !managed}
+        aria-label={t("settings.versions.useNamed", {
+          name,
+          target: t(`settings.mi.fork.kinds.${target}`),
+        })}
+        onClick={() => act(() => window.api.wuwaDx12SetChannel(target))}
       >
-        <Switch
-          label={t("settings.wuwaDx12.toggleLabel")}
-          checked={!!data?.enabled}
-          disabled={busy || !data}
-          onChange={toggle}
-        />
-      </Row>
-      {[
-        ["reshade", "ReShade"],
-        ["addon", "wwmi-dx12"],
-      ].map(([key, name]) => {
-        const source = data?.sources[key];
-        const update = data?.updates?.components[key];
-        return (
-          <div key={key} data-dx12-component={key}>
-            <Row
-              title={
-                <React.Fragment>
-                  {name}
-                  <span className={`badge ${sourceBadge(source)}`.trim()}>
-                    {sourceLabel(source)}
-                  </span>
-                </React.Fragment>
-              }
-              description={
-                <React.Fragment>
-                  {source?.source === "user"
-                    ? t("settings.wuwaDx12.userComponentHint")
-                    : t("settings.wuwaDx12.bundledVersionHint", {
-                        version:
-                          source?.version ||
-                          (key === "reshade" ? "6.8.0" : "2026.10.3"),
-                      })}
-                  {" · "}
-                  {t("settings.wuwaDx12.componentVersion", {
-                    bundledVersion:
-                      update?.bundledVersion ||
-                      t("settings.wuwaDx12.awaitingCheck"),
-                    status: update?.availableVersion
-                      ? t("settings.wuwaDx12.officialVersionSuffix", {
-                          availableVersion: update.availableVersion,
-                        })
-                      : t("settings.wuwaDx12.uncheckedSuffix"),
-                  })}
-                </React.Fragment>
-              }
-              details={
-                <React.Fragment>
-                  {key === "addon" && data?.channel?.current === "fork" && <p>{t("settings.mi.fork.runtime.updateHint")}</p>}
-                  {data?.updates?.errors[key] && <p className="settings-error" role="status">{data.updates.errors[key]}</p>}
-                </React.Fragment>
-              }
-            >
+        {t("settings.versions.use")}
+      </Button>
+    );
+    const rows = [];
+    if (source?.source === "user")
+      rows.push(
+        <VersionRow
+          key="user"
+          channel="user"
+          name={t("settings.wuwaDx12.userSource")}
+          inUse={true}
+          local={t("settings.wuwaDx12.userComponentHint")}
+          latest="—"
+        />,
+      );
+    rows.push(
+      <VersionRow
+        key="official"
+        channel="official"
+        name={t(
+          fork ? "settings.mi.fork.kinds.official" : "settings.versions.official",
+        )}
+        inUse={!!fork && managed && !onFork}
+        local={
+          (managed && !onFork ? source.version : info?.bundledVersion) ||
+          source?.version
+        }
+        latest={info?.availableVersion}
+        status={
+          failed
+            ? "error"
+            : info?.updateAvailable
+              ? "update"
+              : info?.availableVersion
+                ? "current"
+                : undefined
+        }
+        actions={
+          <React.Fragment>
+            {onFork && useButton("official")}
+            {/* Nothing to update once the check found this version current */}
+            {(!info?.availableVersion || info.updateAvailable || failed) && (
               <Button
+                small={true}
+                data-action="update"
+                primary={!!info?.updateAvailable}
                 disabled={busy || !data}
-                aria-label={t("settings.mi.fork.updateNamedOfficial", {
-                  name,
-                })}
-                onClick={() =>
-                  act(async () => {
-                    const checked = check(await window.api.wuwaDx12CheckUpdates());
-                    if (checked.updates?.errors[key]) throw Error(checked.updates.errors[key]);
-                    return checked.updates?.components[key]?.updateAvailable ? window.api.wuwaDx12UpdateComponent(key) : checked;
-                  })
-                }
+                title={onFork ? t("settings.mi.fork.runtime.updateHint") : undefined}
+                aria-label={t("settings.mi.fork.updateNamedOfficial", { name })}
+                onClick={() => update(key)}
               >
-                {t("settings.mi.fork.updateOfficial")}
+                {t("settings.mi.update")}
               </Button>
-              {key === "addon" && (
-                <Choices
-                  label={t("settings.wuwaDx12.channelLabel")}
-                  value={data?.channel?.current}
-                  disabled={busy || source?.source !== "managed"}
-                  options={[
-                    {
-                      value: "official",
-                      label: t("settings.wuwaDx12.channelOfficial"),
-                    },
-                    {
-                      value: "fork",
-                      label: t("settings.wuwaDx12.channelFork"),
-                      disabled: !data?.channel?.fork,
-                    },
-                  ]}
-                  onChange={(target) => {
-                    if (target !== data?.channel?.current)
-                      act(() => window.api.wuwaDx12SetChannel(target));
-                  }}
-                />
+            )}
+          </React.Fragment>
+        }
+      />,
+    );
+    if (fork)
+      rows.push(
+        <VersionRow
+          key="fork"
+          channel="fork"
+          name={t("settings.mi.fork.kinds.fork")}
+          inUse={onFork}
+          local={fork.version}
+          build={fork.build}
+          latest={fork.version}
+          status="current"
+          actions={!onFork && useButton("fork")}
+        />,
+      );
+    return (
+      <ComponentCard
+        key={key}
+        data-dx12-component={key}
+        name={name}
+        description={t(`settings.wuwaDx12.${key}Description`)}
+        badge={
+          <span className={`badge ${sourceBadge(source)}`.trim()}>
+            {sourceLabel(source)}
+          </span>
+        }
+        actions={
+          <Button ghost={true} small={true} onClick={() => open(SOURCES[key])}>
+            <Icon name="external" size={13} />
+            {t(key === "addon" ? "settings.mi.fork.source" : "settings.mi.source")}
+          </Button>
+        }
+        rows={rows}
+      >
+        {failed && (
+          <p className="settings-error" role="status">
+            {failed}
+          </p>
+        )}
+      </ComponentCard>
+    );
+  }
+  return (
+    <React.Fragment>
+      <PageHead
+        title="DX12 Mod"
+        description={t("settings.wuwaDx12.description")}
+        actions={
+          <React.Fragment>
+            <Button
+              disabled={busy || !data}
+              onClick={() => act(() => window.api.wuwaDx12CheckUpdates())}
+            >
+              {t("settings.wuwaDx12.checkUpdates")}
+            </Button>
+            <Menu
+              label={t("common.actions.more")}
+              trigger={({ props }) => (
+                <button
+                  type="button"
+                  className="icon-btn"
+                  title={t("common.actions.more")}
+                  aria-label={t("common.actions.more")}
+                  {...props}
+                >
+                  <Icon name="more" size={16} strokeWidth={2.4} />
+                </button>
               )}
-            </Row>
-          </div>
-        );
-      })}
-      {data && (
-        <div className="settings-checks" role="status">
-          <div className="settings-checks-title">
-            {!data.enabled
-              ? t("settings.wuwaDx12.disabledHint")
-              : data.ready
-                ? t("settings.wuwaDx12.ready")
-                : t("settings.wuwaDx12.needsCheck")}
-          </div>
-          {data.checks.map((item) => (
-            <div
-              key={item.id}
-              className={`settings-check ${item.ok ? "ready" : "missing"}`}
             >
-              <Icon name={item.ok ? "check" : "minus"} size={13} />
-              <span>
-                {`${item.title}：${item.ok && ["wwmi", "addon"].includes(item.id) ? t("settings.steam.detected") : item.message}`}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="settings-actions">
-        <Button disabled={busy || !data?.enabled} onClick={() => toggle(true)}>
-          {t("settings.wuwaDx12.installMissing")}
-        </Button>
-        <Button
-          disabled={busy || !data}
-          onClick={() => act(() => window.api.wuwaDx12CheckUpdates())}
-        >
-          {t("settings.wuwaDx12.checkUpdates")}
-        </Button>
-        <Button ghost={true} disabled={busy} onClick={load}>
-          {t("settings.wuwaDx12.detectAgain")}
-        </Button>
-        <Menu
-          label={t("common.actions.more")}
-          trigger={({ props }) => (
-            <button
-              type="button"
-              className="icon-btn"
-              title={t("common.actions.more")}
-              aria-label={t("common.actions.more")}
-              {...props}
-            >
-              <Icon name="more" size={16} strokeWidth={2.4} />
-            </button>
-          )}
-        >
-          <MenuItem
-            icon={<Icon name="folder" size={15} />}
-            disabled={busy || !data?.paths.win64}
-            onClick={() => window.api.openPathInExplorer(data.paths.win64)}
-          >
-            {t("settings.wuwaDx12.openGameDirectory")}
-          </MenuItem>
-          <MenuItem
-            icon={<Icon name="external" size={15} />}
-            onClick={() => open("https://github.com/lekarsenten/wwmi-dx12")}
-          >
-            {t("settings.wuwaDx12.projectInfo")}
-          </MenuItem>
-          <MenuItem
-            icon={<Icon name="external" size={15} />}
-            onClick={() => open("https://reshade.me/")}
-          >
-            {t("settings.wuwaDx12.reshadeWebsite")}
-          </MenuItem>
-        </Menu>
-      </div>
-      {busy && (
-        <p className="settings-footnote" role="status">
-          {t("settings.wuwaDx12.processing")}
-        </p>
-      )}
-      {data?.updates?.errors.storage && (
-        <Notice kind="danger" role="alert">
-          {data.updates.errors.storage}
-        </Notice>
-      )}
-      {error && (
-        <Notice kind="danger" role="alert">
-          {error}
-        </Notice>
-      )}
-    </Section>
+              <MenuItem
+                icon={<Icon name="folder" size={15} />}
+                disabled={busy || !data?.paths.win64}
+                onClick={() => window.api.openPathInExplorer(data.paths.win64)}
+              >
+                {t("settings.wuwaDx12.openGameDirectory")}
+              </MenuItem>
+            </Menu>
+          </React.Fragment>
+        }
+      />
+      <Section id="wuwa-dx12">
+        <Row title={t("settings.wuwaDx12.toggle")}>
+          <Switch
+            label={t("settings.wuwaDx12.toggleLabel")}
+            checked={!!data?.enabled}
+            disabled={busy || !data}
+            onChange={toggle}
+          />
+        </Row>
+        {data && (
+          <Checks
+            title={
+              !data.enabled
+                ? t("settings.wuwaDx12.disabledHint")
+                : data.ready
+                  ? t("settings.wuwaDx12.ready")
+                  : t("settings.wuwaDx12.needsCheck")
+            }
+            items={data.checks.map((item) => ({
+              ...item,
+              message:
+                item.ok && ["wwmi", "addon"].includes(item.id)
+                  ? t("settings.steam.detected")
+                  : item.message,
+            }))}
+            actions={
+              <React.Fragment>
+                {busy && (
+                  <span className="settings-busy" role="status">
+                    <span className="spinner" />
+                    {t("settings.wuwaDx12.processing")}
+                  </span>
+                )}
+                {data.enabled && !data.ready && (
+                  <Button
+                    small={true}
+                    disabled={busy}
+                    onClick={() => toggle(true)}
+                  >
+                    {t("settings.wuwaDx12.installMissing")}
+                  </Button>
+                )}
+                <Button small={true} ghost={true} disabled={busy} onClick={load}>
+                  {t("settings.wuwaDx12.detectAgain")}
+                </Button>
+              </React.Fragment>
+            }
+          />
+        )}
+        {data?.updates?.errors.storage && (
+          <Notice kind="danger" role="alert">
+            {data.updates.errors.storage}
+          </Notice>
+        )}
+        {error && (
+          <Notice kind="danger" role="alert">
+            {error}
+          </Notice>
+        )}
+      </Section>
+      <Section
+        id="wuwa-dx12-components"
+        title={t("settings.versions.components")}
+        plain
+      >
+        {card("reshade", "ReShade")}
+        {card("addon", "wwmi-dx12")}
+      </Section>
+    </React.Fragment>
   );
 }
 export { WuwaDx12Settings };

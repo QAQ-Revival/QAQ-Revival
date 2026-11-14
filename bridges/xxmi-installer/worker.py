@@ -147,6 +147,22 @@ def promote(groups, work, config_file, config_data, extra_files=()):
     return len(changes)
 
 
+def prefer_pre_releases(client):
+    """QAQR takes an upstream pre-release as the latest version, as soon as it is out.
+
+    Only the rate-limited release list has pre-releases, so a check that cannot
+    read it falls back to the stable release instead of failing."""
+    fetch = client.fetch_latest_release
+
+    def latest(*args, pre_release=False, **kwargs):
+        try:
+            return fetch(*args, pre_release=True, **kwargs)
+        except Exception:
+            return fetch(*args, pre_release=False, **kwargs)
+
+    client.fetch_latest_release = latest
+
+
 def newer(candidate, installed):
     if not candidate:
         return False
@@ -246,6 +262,7 @@ def execute(payload):
         launcher = PortableLauncher()
         manager = PackageManager([launcher])
         manager.github_client.configure(access_token="", verify_ssl=True, proxy_config=Config.Launcher.proxy)
+        prefer_pre_releases(manager.github_client)
         Events.Subscribe(Events.PackageManager.UpdateDownloadProgress, lambda event: emit({"type": "progress", "stage": "download", "package": "XXMI Launcher", "downloaded": event.downloaded_bytes, "total": event.total_bytes}))
         installed = launcher.get_installed_version()
         latest, error = "", ""
@@ -388,6 +405,7 @@ def update_component(payload):
         package = StagedRuntime() if component == "runtime" else importers[importer]()
         manager = PackageManager([package])
         manager.github_client.configure(access_token="", verify_ssl=True, proxy_config=Config.Launcher.proxy)
+        prefer_pre_releases(manager.github_client)
         Events.Subscribe(Events.PackageManager.UpdateDownloadProgress, lambda event: emit({"type": "progress", "stage": "download", "package": package_name, "downloaded": event.downloaded_bytes, "total": event.total_bytes}))
         installed = package.get_installed_version()
         emit({"type": "progress", "stage": "check", "package": package_name})

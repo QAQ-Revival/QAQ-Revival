@@ -130,9 +130,11 @@ test('official update checks find new versions and verified downloads remain sel
   const options = { bundledDir: path.join(f.root, 'bundled'), cacheDir: path.join(f.root, 'packages'), fetch: async address => {
     if (address === 'https://reshade.me/') { if (failReShade) throw Error('offline'); return { ok: true, text: async () => '<a href="/downloads/ReShade_Setup_6.9.0_Addon.exe">Full add-on support</a>' }; }
     if (address === url) { downloads++; return { ok: true, body: [bytes] }; }
-    if (address === 'https://github.com/lekarsenten/wwmi-dx12/releases/latest') return { ok: true, text: async () => '<include-fragment src="https://github.com/lekarsenten/wwmi-dx12/releases/expanded_assets/v2026.11.1">' };
+    if (address === 'https://github.com/lekarsenten/wwmi-dx12/releases') return { ok: true, text: async () => '<include-fragment src="https://github.com/lekarsenten/wwmi-dx12/releases/expanded_assets/v2026.11.1">' };
     if (address.endsWith('/releases/expanded_assets/v2026.11.1')) return { ok: true, text: async () => `<li><a href="${new URL(url).pathname}">package</a><span>sha256:${digest}</span></li>` };
-    assert.equal(address, 'https://api.github.com/repos/lekarsenten/wwmi-dx12/releases/latest'); return failApi ? { ok: false, status: 403 } : { ok: true, json: async () => release };
+    // Newest first: a draft is skipped, a pre-release is taken
+    assert.equal(address, 'https://api.github.com/repos/lekarsenten/wwmi-dx12/releases?per_page=10');
+    return failApi ? { ok: false, status: 403 } : { ok: true, json: async () => [{ ...release, tag_name: 'v2026.12.0', draft: true }, { ...release, prerelease: true }, { ...release, tag_name: 'v2026.10.4' }] };
   } };
   const packages = createWuwaDx12Packages(options);
   const update = await packages.checkUpdates();
@@ -145,6 +147,8 @@ test('official update checks find new versions and verified downloads remain sel
   failReShade = true; failApi = true; const partial = await packages.checkUpdates();
   assert.match(partial.errors.reshade, /offline/); assert.equal(partial.components.addon.availableVersion, '2026.11.1');
   assert.throws(() => releasePackage('addon', { ...release, assets: [{ ...release.assets[0], browser_download_url: 'https://example.com/package.zip' }] }), /发布地址/);
+  const fourPart = 'https://github.com/lekarsenten/wwmi-dx12/releases/download/v2026.11.0.5/wwmi-dx12-2026.11.0.5.zip';
+  assert.equal(releasePackage('addon', { tag_name: 'v2026.11.0.5', assets: [{ name: 'wwmi-dx12-2026.11.0.5.zip', browser_download_url: fourPart, digest: `sha256:${digest}` }] }).version, '2026.11.0.5');
 });
 
 test('component upgrades preserve disabled state and user files, with a backup and rollback on failure', async t => {

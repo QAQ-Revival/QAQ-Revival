@@ -1,98 +1,156 @@
 import React from "react";
 import { t } from "../../../shared/i18n/index.mjs";
+import { Icon } from "../../components/Icon.jsx";
 import {
   Button,
-  Choices,
+  ComponentCard,
   Dialog,
   Notice,
-  PathControl,
-  Row,
   Section,
+  VersionRow,
   check,
 } from "./SettingsControls.jsx";
 
-function versionLabel(kind, version) {
-  return [t(`settings.mi.fork.kinds.${kind}`), version].filter(Boolean).join(" ");
-}
-
-// Reads the state of one component: what is on disk now, and what the other side would be.
-function ComponentRow({ component, locked, onChoose, onUpdate }) {
-  const { id, name, local, official, fork } = component;
-  const isFork = local.kind === "fork";
-  // A missing Launcher consent is one step away, so the fix stays listed; other blocks explain themselves.
-  const forkReachable =
-    !isFork &&
-    (component.canUseFork || (component.needsApproval && !component.reason));
-  const others = [
-    component.canUseOfficial && versionLabel("official", official.version),
-    forkReachable && `${versionLabel("fork", fork.version)} · ${fork.build}`,
-  ].filter(Boolean);
-  const unavailable = (target, allowed) =>
-    locked || (local.kind !== target && !allowed);
-  return (
-    <Row
-      title={
-        <React.Fragment>
-          {name}
-          <span className="badge">{t(`settings.mi.fork.${id}.tag`)}</span>
-        </React.Fragment>
-      }
-      description={t(component.switchable === false ? `settings.mi.fork.${id}.officialDescription` : `settings.mi.fork.${id}.description`)}
-      details={
-        <React.Fragment>
-          <p className="mi-fork-local">
-            {t("settings.mi.fork.local")}{" "}
-            <strong>{versionLabel(local.kind, local.version)}</strong>
-            {local.build && ` · ${local.build}`}
-          </p>
-          {others.length > 0 && (
-            <p>
-              {t("settings.mi.fork.switchTo")} {others.join("，")}
-            </p>
-          )}
-          {component.reason && (
-            <p className="settings-warning-text">{component.reason}</p>
-          )}
-          {component.updates?.latest && <p className={component.updates.updateAvailable ? "settings-warning-text" : ""}>
-            {t(component.updates.updateAvailable ? "settings.mi.available" : "settings.mi.latest", { version: component.updates.latest })}
-          </p>}
-          {component.updates?.error && <p className="settings-error">{t("games.updates.failed")}</p>}
-          {component.canUpdateOfficial && (
-            <p>{t(`settings.mi.fork.${id}.${component.switchable === false && id === "core" ? "officialUpdateHint" : "updateHint"}`)}</p>
-          )}
-        </React.Fragment>
-      }
-    >
-      {component.canUpdateOfficial && (
-        <Button disabled={locked} onClick={() => onUpdate(component)}
-          aria-label={t("settings.mi.fork.updateNamedOfficial", { name })}>
-          {t("settings.mi.fork.updateOfficial")}
-        </Button>
-      )}
-      {component.switchable !== false && <Choices
-        label={name}
-        value={local.kind}
-        options={[
-          {
-            value: "official",
-            label: t("settings.mi.fork.official"),
-            disabled: unavailable("official", component.canUseOfficial),
-          },
-          {
-            value: "fork",
-            label: t("settings.mi.fork.fork"),
-            disabled: unavailable("fork", component.canUseFork),
-          },
-        ]}
-        onChange={(target) => onChoose(component, target)}
-      />}
+// One component, one line per variant: both stay listed with their own version whichever is in use.
+function MiComponentCard({ component, locked, onChoose, onUpdate, onOpenLauncher }) {
+  const { id, name, local, official, fork, updates } = component;
+  const switchable = component.switchable !== false;
+  const outdated = local.kind === "outdated";
+  // Once a check found the official version current there is nothing for Update to do.
+  const current = !!updates?.latest && !updates.updateAvailable && !updates.error;
+  const useButton = (target, allowed) =>
+    local.kind !== target && (
       <Button
-        ghost={true}
-        onClick={() => window.api.openExternalUrl(component.source)}
+        small={true}
+        data-action="use"
+        disabled={locked || !allowed}
+        aria-label={t("settings.versions.useNamed", {
+          name,
+          target: t(`settings.mi.fork.kinds.${target}`),
+        })}
+        onClick={() => onChoose(component, target)}
       >
-        {t("settings.mi.fork.source")}
+        {t("settings.versions.use")}
       </Button>
-    </Row>
+    );
+  const rows = [];
+  // A file that is neither variant still gets its own line, so what is on disk is never hidden.
+  if (["other", "vulkan"].includes(local.kind))
+    rows.push(
+      <VersionRow
+        key="local"
+        channel={local.kind}
+        name={t(`settings.mi.fork.kinds.${local.kind}`)}
+        inUse={true}
+        local={local.version}
+        latest="—"
+      />,
+    );
+  rows.push(
+    <VersionRow
+      key="official"
+      channel="official"
+      name={t("settings.mi.fork.kinds.official")}
+      inUse={switchable && local.kind === "official"}
+      local={local.kind === "official" ? local.version : official?.version}
+      latest={updates?.latest}
+      status={
+        updates?.error
+          ? "error"
+          : updates?.updateAvailable
+            ? "update"
+            : updates?.latest
+              ? "current"
+              : undefined
+      }
+      actions={
+        <React.Fragment>
+          {switchable && useButton("official", component.canUseOfficial)}
+          {component.canUpdateOfficial && !current && (
+            <Button
+              small={true}
+              data-action="update"
+              primary={!!updates?.updateAvailable}
+              disabled={locked}
+              title={t(
+                `settings.mi.fork.${id}.${switchable ? "updateHint" : "officialUpdateHint"}`,
+              )}
+              aria-label={t("settings.mi.fork.updateNamedOfficial", { name })}
+              onClick={() => onUpdate(component)}
+            >
+              {t("settings.mi.update")}
+            </Button>
+          )}
+        </React.Fragment>
+      }
+    />,
+  );
+  if (switchable)
+    rows.push(
+      <VersionRow
+        key="fork"
+        channel="fork"
+        name={t("settings.mi.fork.kinds.fork")}
+        inUse={local.kind === "fork" || outdated}
+        local={outdated ? local.version : fork?.version}
+        build={outdated ? undefined : fork?.build}
+        latest={fork?.version || "—"}
+        status={!fork ? undefined : outdated ? "update" : "current"}
+        actions={
+          // An old fix on a Core the bundle does not match is brought up to date through the official line instead.
+          outdated ? (
+            component.canUseFork && <Button
+              small={true}
+              data-action="update"
+              primary={true}
+              disabled={locked}
+              title={t("settings.versions.updateForkHint")}
+              aria-label={t("settings.versions.updateNamedFork", { name })}
+              onClick={() => onChoose(component, "fork")}
+            >
+              {t("settings.mi.update")}
+            </Button>
+          ) : (
+            useButton("fork", component.canUseFork)
+          )
+        }
+      />,
+    );
+  return (
+    <ComponentCard
+      data-component={id}
+      name={name}
+      tag={t(`settings.mi.fork.${id}.tag`)}
+      description={t(
+        `settings.mi.fork.${id}.${switchable ? "description" : "officialDescription"}`,
+      )}
+      actions={
+        <Button
+          ghost={true}
+          small={true}
+          onClick={() => window.api.openExternalUrl(component.source)}
+        >
+          <Icon name="external" size={13} />
+          {t("settings.mi.fork.source")}
+        </Button>
+      }
+      rows={rows}
+    >
+      {component.reason && (
+        <p className="settings-warning-text">{component.reason}</p>
+      )}
+      {updates?.error && (
+        <p className="settings-error">{t("games.updates.failed")}</p>
+      )}
+      {component.needsApproval && (
+        <Notice kind="warning">
+          <p>{t("settings.mi.fork.approvalHint")}</p>
+          <Button small={true} disabled={locked} onClick={onOpenLauncher}>
+            {t("settings.mi.open")}
+          </Button>
+        </Notice>
+      )}
+    </ComponentCard>
   );
 }
 
@@ -125,10 +183,15 @@ export function MiForkSettings({
       await onChanged();
       notify(
         "success",
-        t("settings.mi.fork.switched", {
-          name: component.name,
-          target: t(`settings.mi.fork.${target}`),
-        }),
+        t(
+          component.local.kind === "outdated"
+            ? "settings.versions.forkUpdated"
+            : "settings.mi.fork.switched",
+          {
+            name: component.name,
+            target: t(`settings.mi.fork.${target}`),
+          },
+        ),
       );
     } catch (failure) {
       setError(failure.message);
@@ -159,12 +222,13 @@ export function MiForkSettings({
     <Section
       id="mi-forks"
       title={t("settings.mi.fork.title", { importer: state.importer })}
+      description={t("settings.mi.fork.scope")}
+      plain
     >
-      <p className="settings-section-note">{t("settings.mi.fork.scope")}</p>
       {state.runtimeInactive && (
-        <p className="settings-section-note">
+        <Notice kind="info">
           {t("settings.mi.fork.runtime.inactiveOnDx12")}
-        </p>
+        </Notice>
       )}
       {error && (
         <Notice kind="danger" role="alert">
@@ -173,37 +237,15 @@ export function MiForkSettings({
       )}
       {state.error && <Notice kind="warning">{state.error}</Notice>}
       {(state.components || []).map((component) => (
-        <React.Fragment key={component.id}>
-          <ComponentRow
-            component={component}
-            locked={locked}
-            onChoose={choose}
-            onUpdate={update}
-          />
-          {component.needsApproval && (
-            <Notice kind="warning">
-              <p>{t("settings.mi.fork.approvalHint")}</p>
-              <Button disabled={locked} onClick={onOpenLauncher}>
-                {t("settings.mi.open")}
-              </Button>
-            </Notice>
-          )}
-        </React.Fragment>
+        <MiComponentCard
+          key={component.id}
+          component={component}
+          locked={locked}
+          onChoose={choose}
+          onUpdate={update}
+          onOpenLauncher={onOpenLauncher}
+        />
       ))}
-      {state.root && (
-        <Row
-          title={t("settings.mi.fork.directory", { importer: state.importer })}
-          path={true}
-        >
-          <PathControl
-            label={t("settings.mi.fork.directory", {
-              importer: state.importer,
-            })}
-            value={state.root}
-            disabled={locked}
-          />
-        </Row>
-      )}
       {confirming && (
         <Dialog
           title={t("settings.mi.fork.confirmTitle")}

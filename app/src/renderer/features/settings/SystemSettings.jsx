@@ -1,14 +1,9 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
 import { ThemeContext } from "../../app/ThemeContext.js";
-import { Icon } from "../../components/Icon.jsx";
 import { SoftwareUpdateSettings } from "./SoftwareUpdates.jsx";
 import PersistStateManager from "./PersistStateBrowser.jsx";
-import {
-  remembered,
-  remember,
-  applyCompatibility,
-} from "./settingsPreferences.js";
+import { applyCompatibility } from "./settingsPreferences.js";
 import {
   check,
   Button,
@@ -19,7 +14,7 @@ import {
   PathControl,
   Switch,
   Notice,
-  SettingsFrame,
+  PageHead,
 } from "./SettingsControls.jsx";
 const DEFAULT_SERVER = "https://qaqm.top";
 const CARD_IMAGE_RATIOS = ["4:3", "16:9", "16:10", "1:1", "3:4"];
@@ -62,10 +57,16 @@ function getCategories() {
     },
   ];
 }
-function SettingsView({ devMode = false, games = [], allGames = [] }) {
-  const [categoryId, setCategoryId] = React.useState(() =>
-    remembered("qaqm.settings.category", "general"),
-  );
+// The pages that apply to every game. The shell owns which one is showing.
+function GeneralSettings({
+  category,
+  active = true,
+  devMode = false,
+  games = [],
+  allGames = [],
+  notify,
+  onBusyChange,
+}) {
   const [appVersion, setAppVersion] = React.useState("");
   const [config, setConfig] = React.useState(null);
   const [overlay, setOverlay] = React.useState({});
@@ -74,23 +75,22 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
   const [closeBehavior, setCloseBehavior] = React.useState("ask");
   const [server, setServer] = React.useState(DEFAULT_SERVER);
   const [loadError, setLoadError] = React.useState("");
-  const [toast, setToast] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
   const busyRef = React.useRef(false);
   const [recording, setRecording] = React.useState(false);
   const [draftHotkey, setDraftHotkey] = React.useState("");
   const [updateResult, setUpdateResult] = React.useState(null);
   const [loadTick, setLoadTick] = React.useState(0);
-  const pane = React.useRef(null);
   const theme = React.useContext(ThemeContext);
-  const category =
-    getCategories().find((item) => item.id === categoryId) ||
-    getCategories()[0];
-  const notify = (type, message) =>
-    setToast({
-      type,
-      message,
-    });
+  React.useEffect(() => {
+    onBusyChange?.(busy);
+  }, [busy, onBusyChange]);
+  // Hidden behind a game's pages, this view misses changes made elsewhere; read again on the way back.
+  const wasActive = React.useRef(active);
+  React.useEffect(() => {
+    if (active && !wasActive.current) setLoadTick((value) => value + 1);
+    wasActive.current = active;
+  }, [active]);
   React.useEffect(() => {
     window.api
       .getRuntimeInfo()
@@ -127,27 +127,8 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
     };
   }, [loadTick]);
   React.useEffect(() => {
-    const handle = (event) => {
-      if (getCategories().some((item) => item.id === event.detail?.category))
-        chooseCategory(event.detail.category);
-    };
-    window.addEventListener("qaqm:settings-section", handle);
-    return () => window.removeEventListener("qaqm:settings-section", handle);
-  }, []);
-  React.useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast]);
-  React.useEffect(() => {
-    pane.current?.scrollTo(0, 0);
     setRecording(false);
   }, [category.id]);
-  function chooseCategory(id) {
-    setCategoryId(id);
-    remember("qaqm.settings.category", id);
-  }
   async function run(action, message) {
     if (busyRef.current) return;
     busyRef.current = true;
@@ -382,7 +363,7 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
     );
   else if (category.id === "persist")
     content = (
-      <Section id="persist" title={t("settings.categories.persist")}>
+      <Section id="persist">
         <PersistStateManager games={games} />
       </Section>
     );
@@ -819,34 +800,10 @@ function SettingsView({ devMode = false, games = [], allGames = [] }) {
       </React.Fragment>
     );
   return (
-    <SettingsFrame
-      scope="general"
-      paneRef={pane}
-      toast={toast}
-      nav={
-        <nav
-          className="settings-categories"
-          aria-label={t("settings.about.categoryNavigation")}
-        >
-          {getCategories().map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className="settings-category"
-              data-category={item.id}
-              aria-current={category.id === item.id ? "page" : undefined}
-              disabled={busy}
-              onClick={() => chooseCategory(item.id)}
-            >
-              <Icon name={item.icon} size={15} />
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
-      }
-    >
+    <div className="settings-page" data-page={category.id}>
+      <PageHead title={category.label} />
       {content}
-    </SettingsFrame>
+    </div>
   );
 }
-export { SettingsView as default };
+export { GeneralSettings, getCategories };

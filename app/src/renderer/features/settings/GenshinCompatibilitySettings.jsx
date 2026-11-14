@@ -3,6 +3,7 @@ import React from "react";
 import {
   Button,
   Notice,
+  PageHead,
   Section,
   Row,
   Switch,
@@ -84,30 +85,29 @@ function GenshinCompatibilitySettings({ onPathsChanged }) {
   const passed = data?.checks.filter((item) => item.level === "ok") || [];
   const flagged = data?.checks.filter((item) => item.level !== "ok") || [];
   return (
-    <Section
-      id="genshin-compatibility"
-      title={t("settings.game.compatibility")}
-      actions={
-        <React.Fragment>
-          <Button
-            small={true}
-            disabled={busy || !data}
-            onClick={() => run(() => window.api.genshinExportCheck())}
-          >
-            {t("settings.genshin.check.exportReport")}
-          </Button>
-          <Button
-            small={true}
-            disabled={busy}
-            onClick={() => run(() => window.api.genshinCheckEnvironment())}
-          >
-            {busy
-              ? t("settings.updates.checking")
-              : t("settings.genshin.check.recheck")}
-          </Button>
-        </React.Fragment>
-      }
-    >
+    <React.Fragment>
+      <PageHead
+        title={t("settings.game.compatibility")}
+        actions={
+          <React.Fragment>
+            <Button
+              disabled={busy || !data}
+              onClick={() => run(() => window.api.genshinExportCheck())}
+            >
+              {t("settings.genshin.check.exportReport")}
+            </Button>
+            <Button
+              disabled={busy}
+              onClick={() => run(() => window.api.genshinCheckEnvironment())}
+            >
+              {busy
+                ? t("settings.updates.checking")
+                : t("settings.genshin.check.recheck")}
+            </Button>
+          </React.Fragment>
+        }
+      />
+      <Section id="genshin-compatibility">
       {error && (
         <Notice kind="danger" role="alert">
           {error}
@@ -297,7 +297,8 @@ function GenshinCompatibilitySettings({ onPathsChanged }) {
           </details>
         </React.Fragment>
       )}
-    </Section>
+      </Section>
+    </React.Fragment>
   );
 }
 export { GenshinCompatibilitySettings };

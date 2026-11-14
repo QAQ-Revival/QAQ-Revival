@@ -10,7 +10,7 @@ function verifyDownstream(directory, name) {
     }
   }
   if (name === 'UnityPy' && /AudioClipConverter/.test(read('UnityPy/export/__init__.py'))) throw Error('UnityPy audio exclusion needs review after the upstream merge');
-  if (name === 'XXMI-Libs-Package') {
+  if (name === 'XXMI-Libs-Package' || name === 'XXMI-Libs-Vulkan') {
     const command = read('DirectX11/CommandList.cpp');
     if (!/MarkPersistentVariableDirty\(var\)/.test(command) || !/source_desc\.ByteWidth/.test(command) || !/legacy REF views/.test(command) || !read('DirectX11/QaqrRuntime.inc').includes('QAQR.Activity.v1.')) throw Error('XXMI downstream persistence, activity or compatibility changes need review');
   }

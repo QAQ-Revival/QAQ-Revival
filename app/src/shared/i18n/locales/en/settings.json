@@ -1,16 +1,11 @@
 {
   "mi": {
-    "title": "XXMI Launcher",
-    "navigation": "XXMI Launcher",
     "directory": "Loader installation directory",
     "directoryHint": "Stored in data beside QAQR by default. Updates preserve Mods and existing settings.",
     "loading": "Reading component versions…",
     "check": "Check for updates",
     "working": "Working…",
-    "installed": "Installed {{version}}",
     "notInstalled": "Not installed",
-    "available": "Update available: {{version}}",
-    "latest": "Up to date: {{version}}",
     "install": "Install",
     "open": "Open Launcher",
     "update": "Update",
@@ -33,16 +28,12 @@
       "verify": "Verifying {{name}}"
     },
     "fork": {
-      "navigation": "MI components",
       "title": "{{importer}} components",
-      "scope": "Switch each component on its own. Only the files listed below are replaced; the Launcher, Mods and settings stay as they are. Restart the game to apply; F10 does not replace a loaded DLL.",
+      "scope": "Switching or updating replaces only the component’s own files; the Launcher, Mods and settings stay as they are. Restart the game to apply.",
       "directory": "{{importer}} folder",
       "official": "Official",
       "fork": "QAQR fix",
       "source": "Source",
-      "local": "Installed",
-      "switchTo": "Available",
-      "updateOfficial": "Update official files",
       "updateNamedOfficial": "Update official {{name}} files",
       "officialUpdated": "Official {{name}} updated to {{version}}",
       "kinds": {
@@ -84,7 +75,10 @@
       "coreMismatch": "The fix targets EFMI {{fork}}, but {{version}} is installed. Switching is unavailable.",
       "writeFailed": "Replacing the files failed and they were rolled back. Close the game and try again.",
       "vulkanActive": "The Vulkan runtime is in use. Switch it under Vulkan Mod"
-    }
+    },
+    "section": "Loader",
+    "launcherDescription": "Installs and starts the Mod loader of each game",
+    "directories": "Folders"
   },
   "language": {
     "unsupported": "This language is not available yet",
@@ -181,26 +175,19 @@
     "toggleLabel": "Endfield Vulkan Mods",
     "official": "Original",
     "fork": "QAQR fixed",
-    "channelLabel": "XXMI-Libs Vulkan build",
-    "runtimeDescription": "Original comes from upstream release {{official}} · The fixed build adds the QAQR fixes to it",
     "forkMissing": "This version does not include the fixed build",
     "kinds": {
       "off": "Not enabled",
-      "official": "Original",
-      "fork": "QAQR fixed",
       "outdated": "Older fixed build",
       "other": "Unrecognized file"
     },
-    "availableVersion": "Latest upstream {{version}}",
     "updateAria": "Update the upstream Vulkan runtime",
-    "update": "Update",
     "disabledHint": "Vulkan is off",
     "ready": "Vulkan is ready",
     "needsCheck": "Vulkan needs attention",
     "checkUpdates": "Check for updates",
     "detectAgain": "Detect again",
     "openMiDirectory": "Open the EFMI folder",
-    "projectInfo": "QAQR branch",
     "upstreamInfo": "Upstream project",
     "processing": "Working…",
     "limits": "Experimental: not every Mod works yet. Only a few DX11 ShaderRegex material patches convert automatically, and RabbitFX needs its Vulkan build. Restart the game to apply",
@@ -210,5 +197,23 @@
     "enabled": "Vulkan is on. Restart the game to apply",
     "disabled": "Back on DX11. Restart the game to apply",
     "switched": "Switched to {{target}}. Restart the game to apply"
+  },
+  "versions": {
+    "variant": "Variant",
+    "local": "Installed",
+    "latest": "Latest",
+    "current": "Up to date",
+    "updateAvailable": "Update available",
+    "checkFailed": "Check failed",
+    "unchecked": "Not checked",
+    "inUse": "In use",
+    "build": "Build commit",
+    "official": "Official",
+    "components": "Components",
+    "use": "Use",
+    "useNamed": "Use {{target}} for {{name}}",
+    "updateNamedFork": "Update the {{name}} fix",
+    "updateForkHint": "Replace it with the latest fix bundled with QAQR",
+    "forkUpdated": "The {{name}} fix was updated. Restart the game to apply."
   }
 }

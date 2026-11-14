@@ -5,6 +5,7 @@ import { Icon } from "../../components/Icon.jsx";
 import {
   Button,
   Notice,
+  PageHead,
   Row,
   PathControl,
   Section,
@@ -12,6 +13,20 @@ import {
 } from "../settings/SettingsControls.jsx";
 import { ArknightsCursorSettings } from "./ArknightsCursorSettings.jsx";
 import { ArknightsLaunchOption } from "./ArknightsLaunchOption.jsx";
+
+export function ArknightsInputSettings({ notify, gamePath }) {
+  return (
+    <>
+      <PageHead title={t("arknights.settings.input")} />
+      <ArknightsCursorSettings key={gamePath || ""} notify={notify}>
+        <ArknightsLaunchOption key={`mouse:${gamePath || ""}`} name="mouse" notify={notify} />
+      </ArknightsCursorSettings>
+      <Section id="arknights-window" title={t("arknights.window.title")}>
+        <ArknightsLaunchOption key={`window:${gamePath || ""}`} name="window" notify={notify} />
+      </Section>
+    </>
+  );
+}
 
 export function ArknightsSettings({ notify, gamePath }) {
   const [state, setState] = React.useState(null);
@@ -36,13 +51,11 @@ export function ArknightsSettings({ notify, gamePath }) {
   }
   return (
     <>
-      <ArknightsCursorSettings key={gamePath || ""} notify={notify}>
-        <ArknightsLaunchOption key={`mouse:${gamePath || ""}`} name="mouse" notify={notify} />
-      </ArknightsCursorSettings>
-      <Section id="arknights-window" title={t("arknights.window.title")}>
-        <ArknightsLaunchOption key={`window:${gamePath || ""}`} name="window" notify={notify} />
-      </Section>
-      <Section id="arknights-tools" title={t("arknights.settings.title")}>
+      <PageHead
+        title={t("arknights.settings.title")}
+        description={t("arknights.settings.readOnly")}
+      />
+      <Section id="arknights-tools">
         {state?.migrationError && (
           <Notice kind="warning" role="alert">
             {t("settings.mi.legacyMigrationDeferred", {
@@ -120,7 +133,6 @@ export function ArknightsSettings({ notify, gamePath }) {
             {t("arknights.syncFailed", { error: state.sync.error })}
           </Notice>
         )}
-        <p className="settings-footnote">{t("arknights.settings.readOnly")}</p>
       </Section>
     </>
   );

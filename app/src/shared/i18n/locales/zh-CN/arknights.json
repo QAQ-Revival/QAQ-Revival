@@ -83,7 +83,8 @@
     "sync": "同步 Mod",
     "synced": "已同步 {{modCount}} 个 Mod、{{fileCount}} 个文件",
     "workerMissing": "未安装资源组件，角色与 Mod 库仍可管理",
-    "readOnly": "只读取游戏文件，生成的资源包存于 QAQR 数据目录"
+    "readOnly": "只读取游戏文件，生成的资源包存于 QAQR 数据目录",
+    "input": "鼠标与窗口"
   },
   "warnings": {
     "dimensionsChanged": "旧 Mod 与当前资源的尺寸不同，已保留原图和图集，请在游戏中确认兼容性",

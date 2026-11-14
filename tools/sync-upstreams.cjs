@@ -82,13 +82,14 @@ async function syncUpstreams({ client } = {}) {
     else git(directory, ['remote', 'add', 'upstream', upstream]);
     git(directory, ['remote', 'set-url', '--push', 'upstream', 'disabled://upstream-read-only']);
     git(directory, ['fetch', '--no-tags', 'upstream', `${upstreamBranch}:refs/remotes/upstream/${upstreamBranch}`]);
-    // The runtime generates its PE version with git describe. A release can
+    // The runtime generates its PE version with git describe, and wwmi-dx12 counts
+    // its build number from the upstream release tag. A release can
     // add a tag to a commit that was already merged, without changing the branch.
     const versionTags = item.versionTags ? fetchVersionTags(git, directory, item.versionTags) : [];
     const previous = git(directory, ['rev-parse', 'HEAD']).stdout;
     const verify = changed => {
       verifyDownstream(directory, item.name);
-      if (changed && ['XXMI-Libs-Package', 'EFMI-Package', 'wwmi-dx12'].includes(item.name)) {
+      if (changed && ['XXMI-Libs-Package', 'XXMI-Libs-Vulkan', 'EFMI-Package', 'wwmi-dx12'].includes(item.name)) {
         // wwmi-dx12 builds its engine and SDK from submodules, all in the organization by now.
         if (fs.existsSync(path.join(directory, '.gitmodules'))) git(directory, ['submodule', 'update', '--init', '--recursive']);
         const env = { ...process.env };
@@ -99,9 +100,19 @@ async function syncUpstreams({ client } = {}) {
       }
     };
     let changed = false, skipped = null;
-    for (const ref of [`upstream/${upstreamBranch}`, ...(item.also || []).map(branch => `origin/${branch}`)]) {
-      if (ref.startsWith('origin/')) git(directory, ['fetch', '--no-tags', 'origin', `${ref.slice(7)}:refs/remotes/${ref}`]);
-      const message = ref.startsWith('origin/') ? `Merge ${ref.slice(7)} into ${item.branch}` : `Merge upstream ${item.upstream} into ${item.branch}`;
+    // `also` names more sources of fixes: a branch of the same fork, or `Repository@branch` for another organization fork.
+    const sources = (item.also || []).map(source => {
+      const [repository, branch] = source.includes('@') ? source.split('@') : [null, source];
+      if (!repository) return { ref: `origin/${branch}`, remote: 'origin', branch, message: `Merge ${branch} into ${item.branch}` };
+      if (!forks.some(fork => fork.name === repository)) throw Error('Unregistered fix source: ' + source);
+      const remote = 'fixes-' + repository.toLowerCase(), url = `https://github.com/${owner}/${repository}.git`;
+      if (git(directory, ['remote']).stdout.split(/\r?\n/).includes(remote)) git(directory, ['remote', 'set-url', remote, url]);
+      else git(directory, ['remote', 'add', remote, url]);
+      git(directory, ['remote', 'set-url', '--push', remote, 'disabled://fix-source-read-only']);
+      return { ref: `${remote}/${branch}`, remote, branch, message: `Merge ${owner}/${repository} ${branch} into ${item.branch}` };
+    });
+    for (const { ref, remote, branch, message } of [{ ref: `upstream/${upstreamBranch}`, message: `Merge upstream ${item.upstream} into ${item.branch}` }, ...sources]) {
+      if (remote) git(directory, ['fetch', '--no-tags', remote, `${branch}:refs/remotes/${ref}`]);
       if (!item.optional) { changed = mergeUpstream(git, directory, ref, verify, message) || changed; continue; }
       const result = mergeOptional(git, directory, ref, verify, message);
       changed = result.changed || changed;

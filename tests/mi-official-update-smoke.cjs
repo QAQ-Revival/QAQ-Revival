@@ -20,7 +20,9 @@ module.exports = async ({ electron, handlers, root, evaluate, waitFor, captureUI
   write(coreManifest, JSON.stringify({ version: oldVersion }));
   for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send('xxmi:changed', { gameId: 'endfield' });
   const coreButton = '[aria-label="更新 EFMI-Package 本地原版"]';
-  await waitFor(`document.querySelector('#settings-mi-forks')?.textContent.includes('旧版修复 ${oldVersion}') && !!document.querySelector('${coreButton}') && !document.querySelector('${coreButton}').disabled`, 'old Core shows its actual version and an enabled official updater');
+  const coreVariant = channel => `document.querySelector('#settings-mi-forks [data-component="core"] [data-channel="${channel}"]')`;
+  await evaluate(`document.querySelector('[data-section="game-updates"]').click()`);
+  await waitFor(`${coreVariant('fork')}?.classList.contains('is-active') && ${coreVariant('fork')}.querySelector('.version-local').textContent === '${oldVersion}' && !!document.querySelector('${coreButton}') && !document.querySelector('${coreButton}').disabled`, 'old Core shows its actual version and an enabled official updater');
   await evaluate(`document.querySelector('#settings-mi-forks').scrollIntoView({ block: 'start' })`);
   await captureUI('mi-official-update-before.png');
   const original = handlers.get('xxmi:update-official'), requests = [];
@@ -42,7 +44,7 @@ module.exports = async ({ electron, handlers, root, evaluate, waitFor, captureUI
     await waitFor(`document.querySelector('${coreButton}').disabled`, 'the update action is locked while applying');
     assert.deepEqual(requests, [{ gameId: 'endfield', component: 'core' }]);
     finish();
-    await waitFor(`!document.querySelector('${coreButton}').disabled && document.querySelector('#settings-mi-forks').textContent.includes('官方原版 ${manifest.official.version}') && !document.querySelector('#settings-mi-forks').textContent.includes('本地是 ${oldVersion}')`, 'successful update refreshes disk state and removes the mismatch warning');
+    await waitFor(`!document.querySelector('${coreButton}').disabled && ${coreVariant('official')}.classList.contains('is-active') && ${coreVariant('official')}.querySelector('.version-local').textContent === '${manifest.official.version}' && !document.querySelector('#settings-mi-forks').textContent.includes('本地是 ${oldVersion}')`, 'successful update refreshes disk state and removes the mismatch warning');
     const state = await handlers.get('xxmi:status')({}, 'endfield');
     assert.equal(state.fork.components.find(item => item.id === 'core').canUseFork, true);
     await captureUI('mi-official-update-after.png');

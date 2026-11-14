@@ -28,8 +28,8 @@
 	branch = main
 [submodule "native/xxmi-runtime-vulkan"]
 	path = native/xxmi-runtime-vulkan
-	url = https://github.com/QAQ-Revival/XXMI-Libs-Package.git
-	branch = vulkan
+	url = https://github.com/QAQ-Revival/XXMI-Libs-Vulkan.git
+	branch = master
 [submodule "native/wwmi-dx12"]
 	path = native/wwmi-dx12
 	url = https://github.com/QAQ-Revival/wwmi-dx12.git

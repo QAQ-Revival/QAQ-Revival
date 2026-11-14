@@ -149,6 +149,11 @@
   color: var(--fg-3);
 }
 
+/* Settings of the game named beside it */
+.topbar-game-settings {
+  margin-left: 2px;
+}
+
 .game-tile {
   display: inline-flex;
   align-items: center;

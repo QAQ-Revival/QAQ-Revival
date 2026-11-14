@@ -1,9 +1,10 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
-import { Icon } from "../../components/Icon.jsx";
 import {
   Button,
+  Checks,
   Notice,
+  PageHead,
   PathValue,
   Section,
   Row,
@@ -123,40 +124,96 @@ function SteamBridgeSettings({ gameId }) {
         : t("settings.steam.refreshMetadataHint"),
     ],
   ];
+  const messages = (
+    <React.Fragment>
+      {message && (
+        <Notice kind="success" role="status">
+          {message}
+        </Notice>
+      )}
+      {data?.automation?.message && (
+        <Notice role="status">{data.automation.message}</Notice>
+      )}
+      {data?.automation?.warnings?.length > 0 && (
+        <Notice kind="warning" role="status">
+          {data.automation.warnings.join("；")}
+        </Notice>
+      )}
+      {(error || data?.error || data?.automation?.error) && (
+        <Notice kind="danger" role="alert">
+          {error || data.error || data.automation.error}
+        </Notice>
+      )}
+    </React.Fragment>
+  );
   return (
-    <Section
-      id="steam-bridge"
-      title={t("settings.game.steamBridge")}
-      actions={
-        <Button
-          small={true}
-          disabled={busy}
-          onClick={() =>
-            act(async () =>
-              check(
-                await window.api.steamBridgeOpenLibrary({
-                  gameId,
-                }),
-              ),
-            )
-          }
-        >
-          {t("settings.steam.openLibrary")}
-        </Button>
-      }
-    >
-      <Row
-        title={
-          data?.installed
-            ? data.phase === "enabled"
-              ? t("settings.steam.configured")
-              : t("settings.steam.incompleteHint")
-            : t("settings.steam.title")
-        }
+    <React.Fragment>
+      <PageHead
+        title={t("settings.game.steamBridge")}
         description={t("settings.steam.description")}
+        actions={
+          <Button
+            disabled={busy}
+            onClick={() =>
+              act(async () =>
+                check(
+                  await window.api.steamBridgeOpenLibrary({
+                    gameId,
+                  }),
+                ),
+              )
+            }
+          >
+            {t("settings.steam.openLibrary")}
+          </Button>
+        }
       />
+      <Section id="steam-bridge">
+        {checks ? (
+          <Checks
+            grid={true}
+            title={
+              data.installed
+                ? data.phase === "enabled"
+                  ? t("settings.steam.configured")
+                  : t("settings.steam.incompleteHint")
+                : t("settings.steam.title")
+            }
+            items={checks.map(([label, ready, detail]) => ({
+              id: label,
+              title: label,
+              ok: !!ready,
+              message: detail,
+            }))}
+            actions={
+              <React.Fragment>
+                {busy && (
+                  <span className="settings-busy" role="status">
+                    <span className="spinner" />
+                    {t("settings.steam.processing")}
+                  </span>
+                )}
+                <Button
+                  small={true}
+                  ghost={true}
+                  disabled={busy}
+                  onClick={() => act(() => refresh(options))}
+                >
+                  {t("settings.steam.detectAgain")}
+                </Button>
+              </React.Fragment>
+            }
+          />
+        ) : (
+          <div className="settings-state" role="status">
+            <span className="spinner" />
+            {t("settings.steam.processing")}
+          </div>
+        )}
+        {messages}
+      </Section>
       {options && (
-        <React.Fragment>
+        <Section id="steam-bridge-options" title={t("settings.steam.options")}>
           <Row
             title={t("settings.steam.launchMode")}
             hint={t("settings.steam.launchDescription")}
@@ -269,70 +326,20 @@ function SteamBridgeSettings({ gameId }) {
               onChange={(value) => edit("autoSync", value)}
             />
           </Row>
-        </React.Fragment>
+          <div className="settings-actions">
+            <Button primary={true} disabled={busy} onClick={() => apply(false)}>
+              {t("settings.steam.applyCurrent")}
+            </Button>
+            <Button disabled={busy} onClick={() => apply(true)}>
+              {t("settings.steam.applyBoth")}
+            </Button>
+            <Button disabled={busy || !data?.installed} onClick={restore}>
+              {t("settings.steam.restoreCurrent")}
+            </Button>
+          </div>
+        </Section>
       )}
-      {checks && (
-        <div className="settings-checks is-grid" role="status">
-          {checks.map(([label, ready, detail]) => (
-            <div
-              key={label}
-              className={`settings-check ${ready ? "ready" : "missing"}`}
-            >
-              <Icon name={ready ? "check" : "minus"} size={13} />
-              <span>
-                <strong>{label + "："}</strong>
-                {detail}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="settings-actions">
-        <Button
-          primary={true}
-          disabled={busy || !options}
-          onClick={() => apply(false)}
-        >
-          {t("settings.steam.applyCurrent")}
-        </Button>
-        <Button disabled={busy || !options} onClick={() => apply(true)}>
-          {t("settings.steam.applyBoth")}
-        </Button>
-        <Button disabled={busy || !data?.installed} onClick={restore}>
-          {t("settings.steam.restoreCurrent")}
-        </Button>
-        <Button
-          ghost={true}
-          disabled={busy}
-          onClick={() => act(() => refresh(options))}
-        >
-          {t("settings.steam.detectAgain")}
-        </Button>
-      </div>
-      {busy && (
-        <p className="settings-footnote" role="status">
-          {t("settings.steam.processing")}
-        </p>
-      )}
-      {message && (
-        <Notice kind="success" role="status">
-          {message}
-        </Notice>
-      )}
-      {data?.automation?.message && (
-        <Notice role="status">{data.automation.message}</Notice>
-      )}
-      {data?.automation?.warnings?.length > 0 && (
-        <Notice kind="warning" role="status">
-          {data.automation.warnings.join("；")}
-        </Notice>
-      )}
-      {(error || data?.error || data?.automation?.error) && (
-        <Notice kind="danger" role="alert">
-          {error || data.error || data.automation.error}
-        </Notice>
-      )}
-    </Section>
+    </React.Fragment>
   );
 }
 export { SteamBridgeSettings };

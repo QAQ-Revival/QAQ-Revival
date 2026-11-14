@@ -34,7 +34,7 @@ function validate(info) {
 }
 // What a launcher takes from a release, per the upstream's docs/runtime-dependencies.md.
 function releaseFiles(release, dependencies) {
-  if (!release || release.draft || release.prerelease || !/^v\d+\.\d+\.\d+-nhd\.\d+$/.test(release.tag_name || '')) throw Error(i18n.t("backend.efmiVulkan.invalidRelease"));
+  if (!release || release.draft || !/^v\d+\.\d+\.\d+-nhd\.\d+$/.test(release.tag_name || '')) throw Error(i18n.t("backend.efmiVulkan.invalidRelease"));
   const assets = new Map((release.assets || []).map(asset => [asset.name, asset]));
   const listed = dependencies.schema === 1 && Array.isArray(dependencies.files) && dependencies.files.length <= 16 ? dependencies.files.map(file => file.name) : ['dxcompiler.dll', 'dxil.dll'];
   const files = {};
@@ -44,6 +44,28 @@ function releaseFiles(release, dependencies) {
     files[name] = digest;
   }
   return validate({ version: release.tag_name.slice(1), files });
+}
+// The REST API allows 60 anonymous requests an hour per address, which a shared address runs out of.
+// The release page is not counted and lists the same assets with the same digests.
+async function releasePage(fetchImpl, signal) {
+  async function text(url) {
+    const response = await fetchImpl(url, { signal, headers: { Accept: 'text/html' } });
+    if (!response.ok) throw Error(i18n.t("backend.efmiVulkan.updateCheckFailed", { status: response.status }));
+    return await response.text();
+  }
+  // Newest first, pre-releases included: QAQR takes a pre-release as soon as it is out.
+  const latest = await text(`https://github.com/${REPOSITORY}/releases`);
+  const tag = /\/releases\/expanded_assets\/(v\d+\.\d+\.\d+-nhd\.\d+)["']/.exec(latest)?.[1];
+  if (!tag) throw Error(i18n.t("backend.efmiVulkan.invalidRelease"));
+  const rows = [...(await text(`https://github.com/${REPOSITORY}/releases/expanded_assets/${tag}`)).matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)].map(match => match[1]);
+  const prefix = `/${REPOSITORY}/releases/download/${tag}/`;
+  const assets = [];
+  for (const row of rows) {
+    const name = /\/releases\/download\/[^/"']+\/([A-Za-z0-9._-]+)["']/.exec(row)?.[1];
+    const digest = /sha256:([a-f0-9]{64})/i.exec(row)?.[1].toLowerCase();
+    if (name && digest && row.includes(prefix + name)) assets.push({ name, digest: 'sha256:' + digest, size: 0 });
+  }
+  return { tag_name: tag, draft: false, prerelease: false, assets };
 }
 function createEfmiVulkanPackages({
   bundledDir,
@@ -106,12 +128,20 @@ function createEfmiVulkanPackages({
     next.error = null;
     next.checkedAt = new Date().toISOString();
     try {
-      const response = await fetchImpl(`https://api.github.com/repos/${REPOSITORY}/releases/latest`, {
-        signal: controller.signal,
-        headers: { Accept: 'application/vnd.github+json' }
-      });
-      if (!response.ok) throw Error(i18n.t("backend.efmiVulkan.updateCheckFailed", { status: response.status }));
-      const release = await response.json();
+      let release;
+      try {
+        // /releases/latest skips pre-releases, which QAQR takes as soon as they are out.
+        const response = await fetchImpl(`https://api.github.com/repos/${REPOSITORY}/releases?per_page=10`, {
+          signal: controller.signal,
+          headers: { Accept: 'application/vnd.github+json' }
+        });
+        if (!response.ok) throw Error(i18n.t("backend.efmiVulkan.updateCheckFailed", { status: response.status }));
+        const releases = await response.json();
+        release = Array.isArray(releases) ? releases.find(item => !item?.draft && /^v\d+\.\d+\.\d+-nhd\.\d+$/.test(item?.tag_name || '')) : null;
+        if (!release) throw Error(i18n.t("backend.efmiVulkan.invalidRelease"));
+      } catch {
+        release = await releasePage(fetchImpl, controller.signal);
+      }
       const manifest = await download(assetUrl(release.tag_name?.slice(1), 'runtime-dependencies.json'), MAX_MANIFEST).catch(() => null);
       next.available = releaseFiles(release, manifest ? JSON.parse(manifest.toString('utf8')) : {});
     } catch (error) {
@@ -152,5 +182,6 @@ module.exports = {
   PINNED,
   REPOSITORY,
   createEfmiVulkanPackages,
-  releaseFiles
+  releaseFiles,
+  releasePage
 };

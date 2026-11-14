@@ -6,7 +6,7 @@ module.exports = async ({ call, click, evaluate, waitFor, captureUI, root, launc
   fs.mkdirSync(win64, { recursive: true }); fs.writeFileSync(path.join(win64, 'Client-Win64-Shipping.exe'), 'Synthetic game, never executed');
   fs.mkdirSync(path.join(wwmi, 'Mods'), { recursive: true }); fs.mkdirSync(path.join(wwmi, 'Core/WWMI'), { recursive: true }); fs.writeFileSync(path.join(wwmi, 'd3dx.ini'), '[Include]\n');
   await call('game:update', { gameId: 'wuthering-waves', updates: { modFolderPath: path.join(wwmi, 'Mods') } });
-  await evaluate(`[...document.querySelectorAll('#settings-wuwa-dx12 button')].find(b => b.textContent === '重新检测').click()`);
+  await evaluate(`[...document.querySelectorAll('[data-page="wuwa-dx12"] button')].find(b => b.textContent === '重新检测').click()`);
   await waitFor(`!document.querySelector('[aria-label="鸣潮 DX12 Mod"]').disabled`, 'DX12 checks loaded');
   assert.equal((await call('wuwa:dx12-status')).sources.reshade.source, 'missing');
   assert.equal(fs.existsSync(path.join(win64, 'dxgi.dll')), false, 'opening settings never installs');
@@ -18,11 +18,11 @@ module.exports = async ({ call, click, evaluate, waitFor, captureUI, root, launc
   const configFile = path.join(root, 'AppData/QAQ-Revival/config.json');
   assert.equal(JSON.parse(fs.readFileSync(configFile)).games.find(game => game.id === 'wuthering-waves').wuwaDx12Enabled, true, 'DX12 switch is saved on disk');
   await waitFor(`document.querySelector('[aria-label="启动游戏"]').textContent.includes('DX12')`, 'DX12 launch label');
-  await evaluate(`[...document.querySelectorAll('#settings-wuwa-dx12 button')].find(b => b.textContent === '检查更新').click()`);
+  await evaluate(`[...document.querySelectorAll('[data-page="wuwa-dx12"] button')].find(b => b.textContent === '检查更新').click()`);
   await waitFor(`!document.querySelector('[aria-label="更新 wwmi-dx12 本地原版"]').disabled`, 'official updater available');
   assert.equal(await evaluate(`document.querySelector('[aria-label="更新 ReShade 本地原版"]').disabled`), false);
   await click('[aria-label="更新 wwmi-dx12 本地原版"]');
-  await waitFor(`!document.querySelector('[aria-label="鸣潮 DX12 Mod"]').disabled && document.querySelector('[data-dx12-component="addon"]').textContent.includes('内置版本 2026.11.1')`, 'component update installed');
+  await waitFor(`!document.querySelector('[aria-label="鸣潮 DX12 Mod"]').disabled && document.querySelector('[data-dx12-component="addon"] [data-channel="official"] .version-local').textContent.includes('2026.11.1')`, 'component update installed');
   assert.ok(fs.readFileSync(path.join(win64, 'wwmi_dx12.addon64')).includes(Buffer.from('smoke component update')));
   assert.equal((await call('wuwa:dx12-status')).enabled, true);
   await evaluate(`(() => { const pane = document.querySelector('.game-settings-view .system-settings-pane'), section = document.querySelector('#settings-wuwa-dx12'); pane.style.scrollBehavior = 'auto'; pane.scrollTop += section.getBoundingClientRect().top - pane.getBoundingClientRect().top; })()`);

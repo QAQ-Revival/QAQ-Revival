@@ -3,6 +3,7 @@ import React from "react";
 import {
   Button,
   Notice,
+  PageHead,
   Section,
   Row,
   Switch,
@@ -158,17 +159,17 @@ function GenshinAntiErrorSettings({ onPathsChanged }) {
     .filter(Boolean)
     .join(" · ");
   return (
-    <Section
-      id="genshin-anticrash"
-      title={
-        <React.Fragment>
-          {t("settings.game.antiError")}
+    <React.Fragment>
+      <PageHead
+        title={t("settings.game.antiError")}
+        description={t("settings.genshin.session.restoreHint")}
+        actions={
           <span className="settings-save-status" role="status">
             {saveStatus}
           </span>
-        </React.Fragment>
-      }
-    >
+        }
+      />
+      <Section id="genshin-anticrash">
       {!data && (
         <div className="settings-state" role="status">
           <span className="spinner" />
@@ -514,12 +515,10 @@ function GenshinAntiErrorSettings({ onPathsChanged }) {
               )}
             </details>
           </div>
-          <p className="settings-footnote">
-            {t("settings.genshin.session.restoreHint")}
-          </p>
         </React.Fragment>
       )}
-    </Section>
+      </Section>
+    </React.Fragment>
   );
 }
 export { GenshinAntiErrorSettings };

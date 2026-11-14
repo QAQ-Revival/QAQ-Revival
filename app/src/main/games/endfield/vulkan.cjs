@@ -37,7 +37,7 @@ function createEfmiVulkanService({
   let busy = false;
   const roots = () => typeof bundleRoots === 'function' ? bundleRoots() : bundleRoots;
   function forkBundle() {
-    const bundle = loadBundle(roots(), 'xxmi-runtime-vulkan', 'XXMI-Libs-Package');
+    const bundle = loadBundle(roots(), 'xxmi-runtime-vulkan', 'XXMI-Libs-Vulkan');
     if (!bundle.files[RUNTIME] || bundle.manifest.backend !== 'vulkan') throw Error(i18n.t("backend.efmiVulkan.invalidFork"));
     return bundle;
   }

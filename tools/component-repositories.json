@@ -144,8 +144,8 @@
   },
   "xxmi-runtime-vulkan": {
     "source": "native/xxmi-runtime-vulkan",
-    "repository": "QAQ-Revival/XXMI-Libs-Package",
-    "branch": "vulkan",
+    "repository": "QAQ-Revival/XXMI-Libs-Vulkan",
+    "branch": "master",
     "build": "qaqr/build.cjs",
     "targets": {
       "xxmi-runtime-vulkan": {

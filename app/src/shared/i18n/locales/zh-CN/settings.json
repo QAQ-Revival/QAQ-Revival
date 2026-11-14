@@ -1,16 +1,11 @@
 {
   "mi": {
-    "title": "XXMI Launcher",
-    "navigation": "XXMI Launcher",
     "directory": "安装目录",
     "directoryHint": "默认在 QAQR 的 data 目录，更新时保留 Mod 和配置",
     "loading": "正在读取版本…",
     "check": "检查更新",
     "working": "处理中…",
-    "installed": "已安装 {{version}}",
     "notInstalled": "未安装",
-    "available": "可更新至 {{version}}",
-    "latest": "已是最新 {{version}}",
     "install": "安装",
     "open": "打开 Launcher",
     "update": "更新",
@@ -33,16 +28,12 @@
       "verify": "正在校验 {{name}}"
     },
     "fork": {
-      "navigation": "MI 组件",
       "title": "{{importer}} 组件",
-      "scope": "按组件切换，只替换下面列出的文件，不动 Launcher、Mod 和配置。重启游戏生效，F10 不会换掉已加载的 DLL",
+      "scope": "切换和更新只替换组件自身的文件，不动 Launcher、Mod 和配置；重启游戏生效",
       "directory": "{{importer}} 目录",
       "official": "原版",
       "fork": "QAQR 修复版",
       "source": "源码",
-      "local": "本地",
-      "switchTo": "可切换",
-      "updateOfficial": "更新本地原版",
       "updateNamedOfficial": "更新 {{name}} 本地原版",
       "officialUpdated": "{{name}} 原版已更新至 {{version}}",
       "kinds": {
@@ -54,17 +45,17 @@
       },
       "runtime": {
         "officialDescription": "XXMI 官方运行库",
-        "updateHint": "更新原版时保留正在使用的修复版；切回原版会使用更新后的文件",
+        "updateHint": "下载官方最新版；正在使用的修复版不变，切回原版时用更新后的文件",
         "tag": "运行库",
-        "description": "替换 d3d11.dll · 修复版增加增量保存和活动检测",
+        "description": "替换 d3d11.dll，修复版增加增量保存和活动检测",
         "inactiveOnDx12": "现在是 DX12 模式，游戏不加载 d3d11.dll，这里的选择切回 DX11 后才生效"
       },
       "core": {
         "officialUpdateHint": "更新官方 Core 和 ShaderFixes，保留 Mod 和配置",
         "officialDescription": "官方 Core 与 ShaderFixes",
-        "updateHint": "更新官方 Core 后使用原版，可重新切换修复版；保留 Mod 和配置",
+        "updateHint": "更新官方 Core 并改用原版，之后可再切回修复版；保留 Mod 和配置",
         "tag": "Core",
-        "description": "替换 MergedSkeleton 的 INI、HLSL 和着色器缓存 · 修复版兼容结构化骨骼缓冲区"
+        "description": "替换 MergedSkeleton 的 INI、HLSL 和着色器缓存，修复版兼容结构化骨骼缓冲区"
       },
       "switched": "{{name}} 已切换到{{target}}，重启游戏生效",
       "approvalHint": "修复版 DLL 需要 Unsafe Mode：在 Launcher 里选中这个游戏，到高级设置打开并保存。它允许这个 MI 使用自定义 DLL，并跳过上游 DLL 签名校验",
@@ -84,15 +75,16 @@
       "coreMismatch": "修复版对应 EFMI {{fork}}，本地是 {{version}}，暂不能切换",
       "writeFailed": "文件替换失败，已还原。关闭游戏后再试",
       "vulkanActive": "现在用的是 Vulkan 运行库，在 Vulkan Mod 里切换"
-    }
+    },
+    "section": "加载器",
+    "launcherDescription": "安装并启动各游戏的 Mod 加载器",
+    "directories": "目录"
   },
   "language": {
     "unsupported": "暂不支持此语言",
     "saveFailed": "语言设置保存失败"
   },
   "scope": {
-    "label": "设置范围",
-    "game": "游戏",
     "general": "通用"
   },
   "presets": {
@@ -296,7 +288,11 @@
     "repairPakLauncher": "修复内置启动器",
     "repairPakLauncherHint": "从本地资源重装",
     "pakLauncherReinstalled": "已重新安装",
-    "fixerHint": "角色与 Mod 页共用"
+    "fixerHint": "角色与 Mod 页共用",
+    "versions": "版本与组件",
+    "gameUpdate": "游戏更新",
+    "gameSection": "游戏",
+    "updateOptions": "更新检查"
   },
   "range": {
     "valueLabel": "{{label}}数值",
@@ -500,7 +496,8 @@
     "applyBoth": "同步两款",
     "restoreCurrent": "撤回",
     "detectAgain": "重新检测",
-    "processing": "正在处理…"
+    "processing": "正在处理…",
+    "options": "同步选项"
   },
   "errors": {
     "readConfiguration": "无法读取设置：{{loadError}}"
@@ -518,19 +515,9 @@
     "bundledSource": "内置 · {{status}}",
     "missingSource": "未安装",
     "toggle": "使用 DX12 加载 Mod",
-    "description": "通过 wwmi-dx12 加载，缺少时自动安装内置组件",
+    "description": "通过 ReShade 和 wwmi-dx12 在 DX12 下加载 Mod，缺少时自动安装内置组件",
     "toggleLabel": "鸣潮 DX12 Mod",
-    "channelLabel": "wwmi-dx12 版本",
-    "channelOfficial": "原版",
-    "channelFork": "QAQR 修复版",
-    "userComponentHint": "使用现有文件",
-    "bundledVersionHint": "内置版本 {{version}}",
-    "componentVersion": "内置包 {{bundledVersion}}{{status}}",
-    "awaitingCheck": "待检测",
-    "officialVersionSuffix": " · 官方 {{availableVersion}}",
-    "uncheckedSuffix": " · 未检查",
-    "updateNamedComponent": "{{name}} 更新内置组件",
-    "updateComponent": "更新",
+    "userComponentHint": "现有文件",
     "disabledHint": "DX12 已关闭",
     "ready": "DX12 已就绪",
     "needsCheck": "DX12 待检查",
@@ -538,9 +525,9 @@
     "checkUpdates": "检查更新",
     "detectAgain": "重新检测",
     "openGameDirectory": "打开游戏目录",
-    "projectInfo": "项目说明",
-    "reshadeWebsite": "ReShade 官网",
-    "processing": "正在处理…"
+    "processing": "正在处理…",
+    "reshadeDescription": "承载插件的 ReShade，以 dxgi.dll 放进游戏目录",
+    "addonDescription": "在 DX12 下加载 WWMI Mod 的 ReShade 插件"
   },
   "efmiVulkan": {
     "toggle": "使用 Vulkan 加载 Mod",
@@ -548,26 +535,20 @@
     "toggleLabel": "终末地 Vulkan Mod",
     "official": "原版",
     "fork": "QAQR 修复版",
-    "channelLabel": "XXMI-Libs Vulkan 版本",
-    "runtimeDescription": "原版取自上游发布 {{official}} · 修复版在此基础上合入 QAQR 修复",
+    "runtimeDescription": "带 Vulkan 后端的 d3d11.dll，修复版在上游发布之上合入 QAQR 修复",
     "forkMissing": "这个版本没有打包修复版",
     "kinds": {
       "off": "未启用",
-      "official": "原版",
-      "fork": "QAQR 修复版",
       "outdated": "旧版修复",
       "other": "未识别的文件"
     },
-    "availableVersion": "上游最新 {{version}}",
     "updateAria": "更新上游 Vulkan 运行库",
-    "update": "更新",
     "disabledHint": "Vulkan 已关闭",
     "ready": "Vulkan 已就绪",
     "needsCheck": "Vulkan 待检查",
     "checkUpdates": "检查更新",
     "detectAgain": "重新检测",
     "openMiDirectory": "打开 EFMI 目录",
-    "projectInfo": "QAQR 分支",
     "upstreamInfo": "上游项目",
     "processing": "正在处理…",
     "limits": "实验性：现有 Mod 不一定都正常。用 DX11 ShaderRegex 改材质的 Mod 只有少数能自动转换，RabbitFX 要用 Vulkan 版才完整。重启游戏生效",
@@ -576,7 +557,9 @@
     "confirmAction": "替换并开启",
     "enabled": "已开启 Vulkan，重启游戏生效",
     "disabled": "已切回 DX11，重启游戏生效",
-    "switched": "已切换到{{target}}，重启游戏生效"
+    "switched": "已切换到{{target}}，重启游戏生效",
+    "summary": "实验性：用带 Vulkan 后端的运行库加载 Mod",
+    "runtimeTag": "Vulkan 运行库"
   },
   "wuwaTuning": {
     "importedProfiles": "导入的 DeviceProfiles",
@@ -592,5 +575,23 @@
     "profilesDescription": "导入已有配置，自动备份并清除其他方案参数",
     "selectAndApply": "选择文件",
     "restartHint": "应用前关闭鸣潮与 XXMI，保存后重启游戏；DX12 用「直接启动」"
+  },
+  "versions": {
+    "variant": "版本",
+    "local": "本地",
+    "latest": "最新",
+    "current": "已是最新",
+    "updateAvailable": "可更新",
+    "checkFailed": "检查失败",
+    "unchecked": "未检查",
+    "inUse": "使用中",
+    "build": "构建提交",
+    "official": "官方版",
+    "components": "组件",
+    "use": "使用",
+    "useNamed": "{{name}} 使用{{target}}",
+    "updateNamedFork": "更新 {{name}} 修复版",
+    "updateForkHint": "换成 QAQR 内置的最新修复版",
+    "forkUpdated": "{{name}} 修复版已更新，重启游戏生效"
   }
 }

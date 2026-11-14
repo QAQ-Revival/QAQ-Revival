@@ -1,6 +1,13 @@
 import { t } from "../../../shared/i18n/index.mjs";
 import React from "react";
-import { Button, Notice, Section, Row, check } from "./SettingsControls.jsx";
+import {
+  Button,
+  Notice,
+  PageHead,
+  Section,
+  Row,
+  check,
+} from "./SettingsControls.jsx";
 function WuwaTuningSettings() {
   const [data, setData] = React.useState(null);
   const [selected, setSelected] = React.useState("");
@@ -56,7 +63,12 @@ function WuwaTuningSettings() {
       ? t("settings.wuwaTuning.importedProfiles")
       : t("settings.wuwaTuning.customConfiguration"));
   return (
-    <Section id="wuwa-tuning" title={t("settings.wuwaTuning.title")}>
+    <React.Fragment>
+      <PageHead
+        title={t("settings.wuwaTuning.title")}
+        description={t("settings.wuwaTuning.restartHint")}
+      />
+      <Section id="wuwa-tuning">
       {data && (
         <div
           className="settings-options"
@@ -153,8 +165,8 @@ function WuwaTuningSettings() {
           {message}
         </Notice>
       )}
-      <p className="settings-footnote">{t("settings.wuwaTuning.restartHint")}</p>
-    </Section>
+      </Section>
+    </React.Fragment>
   );
 }
 export { WuwaTuningSettings };

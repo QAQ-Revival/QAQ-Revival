@@ -25,23 +25,176 @@ function Button({
   );
 }
 
-function Section({ id, title, actions, children }) {
+// One page of settings. Pages stay mounted once opened, so work in progress survives a visit elsewhere.
+function Page({ id, active = true, children }) {
+  return (
+    <div className="settings-page" data-page={id} hidden={!active}>
+      {children}
+    </div>
+  );
+}
+
+function PageHead({ title, description, actions }) {
+  return (
+    <header className="settings-page-head">
+      <div className="settings-page-heading">
+        <h1 className="settings-page-title">{title}</h1>
+        {description && <p className="settings-page-desc">{description}</p>}
+      </div>
+      {actions && <div className="settings-page-actions">{actions}</div>}
+    </header>
+  );
+}
+
+// A titled group. Its rows sit on one card; `plain` leaves the body bare for content that brings its own cards.
+function Section({ id, title, description, actions, plain = false, children }) {
   return (
     <section
       id={`settings-${id}`}
       className="settings-section"
       aria-labelledby={title ? `heading-${id}` : undefined}
     >
-      {title && (
+      {(title || actions) && (
         <div className="settings-section-head">
-          <h2 id={`heading-${id}`} className="settings-section-title">
-            {title}
-          </h2>
+          {title && (
+            <h2 id={`heading-${id}`} className="settings-section-title">
+              {title}
+            </h2>
+          )}
           {actions && <div className="settings-section-actions">{actions}</div>}
         </div>
       )}
-      {children}
+      {description && <p className="settings-section-desc">{description}</p>}
+      <div className={plain ? "settings-stack" : "settings-card"}>{children}</div>
     </section>
+  );
+}
+
+// A versioned component: who it is on top, one line per variant below.
+function ComponentCard({
+  name,
+  tag,
+  badge,
+  description,
+  actions,
+  rows,
+  children,
+  ...rest
+}) {
+  return (
+    <article className="component-card" {...rest}>
+      <header className="component-head">
+        <div className="component-identity">
+          <div className="component-name">
+            {name}
+            {tag && <span className="badge">{tag}</span>}
+            {badge}
+          </div>
+          {description && <p className="component-desc">{description}</p>}
+        </div>
+        {actions && <div className="component-actions">{actions}</div>}
+      </header>
+      {rows && (
+        <div className="component-versions" role="table">
+          <div className="version-row is-head" role="row">
+            <span role="columnheader">{t("settings.versions.variant")}</span>
+            <span role="columnheader">{t("settings.versions.local")}</span>
+            <span role="columnheader">{t("settings.versions.latest")}</span>
+            <span role="columnheader" />
+          </div>
+          {rows}
+        </div>
+      )}
+      {React.Children.toArray(children).length > 0 && (
+        <div className="component-notes">{children}</div>
+      )}
+    </article>
+  );
+}
+
+// `latest` is what the source offers; `status` says how the local copy compares to it.
+function VersionRow({
+  channel,
+  name,
+  inUse = false,
+  local,
+  build,
+  latest,
+  status,
+  actions,
+}) {
+  const marks = {
+    current: ["check", t("settings.versions.current")],
+    update: ["arrow-up", t("settings.versions.updateAvailable")],
+    error: ["alert", t("settings.versions.checkFailed")],
+  };
+  const mark = marks[status];
+  return (
+    <div
+      className={`version-row${inUse ? " is-active" : ""}`}
+      data-channel={channel}
+      data-status={status}
+      role="row"
+    >
+      <div className="version-name" role="cell">
+        <span>{name}</span>
+        {inUse && (
+          <span className="badge badge-accent">{t("settings.versions.inUse")}</span>
+        )}
+      </div>
+      <div className="version-local" role="cell">
+        <span className="version-number">{local || "—"}</span>
+        {build && (
+          <span className="version-build" title={t("settings.versions.build")}>
+            {build}
+          </span>
+        )}
+      </div>
+      <div className="version-latest" role="cell">
+        {(latest || status !== "error") && (
+          <span className="version-number">
+            {latest || t("settings.versions.unchecked")}
+          </span>
+        )}
+        {mark && (
+          <span className="version-status">
+            <Icon name={mark[0]} size={12} />
+            {mark[1]}
+          </span>
+        )}
+      </div>
+      <div className="version-actions" role="cell">
+        {actions}
+      </div>
+    </div>
+  );
+}
+
+// A readiness list: one headline, then what was found for each requirement.
+function Checks({ title, items, grid = false, actions }) {
+  return (
+    <div className="settings-checks" role="status">
+      {(title || actions) && (
+        <div className="settings-checks-head">
+          {title && <div className="settings-checks-title">{title}</div>}
+          {actions && <div className="settings-checks-actions">{actions}</div>}
+        </div>
+      )}
+      <div className={`settings-checks-list${grid ? " is-grid" : ""}`}>
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className={`settings-check ${item.ok ? "ready" : "missing"}`}
+          >
+            <Icon name={item.ok ? "check" : "minus"} size={13} />
+            <span>
+              <strong>{item.title + "："}</strong>
+              {item.message}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -227,75 +380,6 @@ function Dialog({
   );
 }
 
-// The game and general settings are two pages that read as one.
-function SettingsFrame({
-  scope,
-  gameId,
-  gameName,
-  paneRef,
-  nav,
-  toast,
-  children,
-}) {
-  const open = (tab) =>
-    window.dispatchEvent(
-      new CustomEvent("qaqm-navigate", {
-        detail: {
-          tab,
-        },
-      }),
-    );
-  const isGame = scope === "game";
-  return (
-    <div
-      className={`settings-view${isGame ? " game-settings-view" : ""}`}
-      data-game-id={isGame ? gameId : undefined}
-    >
-      <aside className="settings-nav">
-        <div
-          className="segmented settings-scope"
-          role="group"
-          aria-label={t("settings.scope.label")}
-        >
-          <button
-            type="button"
-            className={isGame ? "active" : ""}
-            aria-pressed={isGame}
-            onClick={() => open("game-settings")}
-          >
-            {t("settings.scope.game")}
-          </button>
-          <button
-            type="button"
-            className={isGame ? "" : "active"}
-            aria-pressed={!isGame}
-            onClick={() => open("settings")}
-          >
-            {t("settings.scope.general")}
-          </button>
-        </div>
-        {isGame && gameName && (
-          <div className="settings-nav-game" title={gameName}>
-            {gameName}
-          </div>
-        )}
-        {nav}
-      </aside>
-      <div className="system-settings-pane" ref={paneRef}>
-        <div className="settings-content">{children}</div>
-      </div>
-      {toast && (
-        <div
-          className={`toast toast-${toast.type}`}
-          role={toast.type === "error" ? "alert" : "status"}
-        >
-          {toast.message}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function Range({
   label,
   value,
@@ -407,7 +491,12 @@ function check(result) {
 export {
   check,
   Button,
+  Page,
+  PageHead,
   Section,
+  ComponentCard,
+  VersionRow,
+  Checks,
   Row,
   Choices,
   Range,
@@ -416,5 +505,4 @@ export {
   Switch,
   Notice,
   Dialog,
-  SettingsFrame,
 };

@@ -26,16 +26,14 @@ import { TopBar } from "../components/TopBar.jsx";
 import { CharacterRail } from "../features/characters/components/CharacterRail.jsx";
 import { useGameOrder } from "../hooks/useGameOrder.js";
 import { FloatingDownloadOrb } from "../features/downloads/FloatingDownloadOrb.jsx";
+import { openSettings } from "../features/settings/settingsPreferences.js";
 import { PublishProgressFloat } from "../features/market/components/PublishProgressFloat.jsx";
 const CharacterView = lazyWithPreload(
   () => import("../features/characters/CharacterView.jsx"),
 );
 const ModView = lazyWithPreload(() => import("../features/mods/ModView.jsx"));
 const SettingsView = lazyWithPreload(
-  () => import("../features/settings/SystemSettings.jsx"),
-);
-const GameSettingsView = lazyWithPreload(
-  () => import("../features/settings/GameSettings.jsx"),
+  () => import("../features/settings/SettingsView.jsx"),
 );
 const ModDownloadView = lazyWithPreload(
   () => import("../features/downloads/ModDownloadView.jsx"),
@@ -235,6 +233,7 @@ function App() {
       modmarket: [ModDownloadView.preload],
       presets: [PresetView.preload],
       settings: [SettingsView.preload],
+      "game-settings": [SettingsView.preload],
       gacha: [GachaView.preload],
     };
     (preloaders[tab] || []).forEach((fn) => {
@@ -957,7 +956,7 @@ function App() {
                 initialCache={currentCharacterViewCache}
                 onCacheChange={handleCharacterCacheChange}
                 onSelectCharacter={setSelectedCharacter}
-                onOpenSettings={() => setActiveTab("game-settings")}
+                onOpenSettings={() => openSettings({ section: "game-paths" })}
                 pendingBatchItems={pendingBatchItems}
                 pendingBatchPreferredCharacter={
                   pendingBatchContext?.preferredCharacter || ""
@@ -1024,21 +1023,17 @@ function App() {
                 />
               </div>
             )}
-            {activeTab === "game-settings" && (
-              <GameSettingsView
-                activeGame={activeGame}
-                key={activeGame?.id || "game-settings"}
-              />
-            )}
             {activeTab === "gacha" && activeGame?.id === "wuthering-waves" && (
               <GachaView />
             )}
-            {activeTab === "settings" && (
+            {(activeTab === "settings" || activeTab === "game-settings") && (
               <SettingsView
+                scope={activeTab === "settings" ? "general" : "game"}
+                activeGame={activeGame}
                 devMode={devMode}
                 games={games}
                 allGames={gameOrder.allItems}
-                key={"system-settings"}
+                key={"settings"}
               />
             )}
           </React.Suspense>

@@ -36,7 +36,8 @@ function fixture(t, { present = { vendor: 'nvidia', value: null }, argument = '-
   function bundle(name, contents, extra) {
     const directory = path.join(app, 'local-components', name), files = {};
     for (const [relative, bytes] of Object.entries(contents)) { write(path.join(directory, relative), bytes); files[relative] = sha(bytes); }
-    write(path.join(directory, 'component.json'), JSON.stringify({ source: 'https://github.com/QAQ-Revival/XXMI-Libs-Package', sourceCommit: 'a'.repeat(40), files, ...extra }));
+    const repository = extra.backend === 'vulkan' ? 'XXMI-Libs-Vulkan' : 'XXMI-Libs-Package';
+    write(path.join(directory, 'component.json'), JSON.stringify({ source: 'https://github.com/QAQ-Revival/' + repository, sourceCommit: 'a'.repeat(40), files, ...extra }));
   }
   bundle('xxmi-runtime', { 'd3d11.dll': dx11Fork }, { activityProtocol: 1, compatibleRuntimeHashes: [sha(official)] });
   const forkDll = dll('vulkan fork', vulkanMark, forkMark), upstreamDll = dll('vulkan upstream', vulkanMark);
@@ -198,8 +199,23 @@ test('a release is read per the runtime dependency contract', () => {
   const manifest = { schema: 1, files: [{ name: 'SPIRV-Tools-shared.dll' }] };
   assert.deepEqual(Object.keys(releaseFiles(release, manifest).files), ['d3d11.dll', 'SPIRV-Tools-shared.dll']);
   assert.deepEqual(Object.keys(releaseFiles(release, {}).files), ['d3d11.dll', 'dxcompiler.dll', 'dxil.dll'], 'without a manifest the older contract applies');
-  assert.throws(() => releaseFiles({ ...release, prerelease: true }, manifest));
+  assert.equal(releaseFiles({ ...release, prerelease: true }, manifest).version, '1.2.2-nhd.28', 'a pre-release counts as the latest');
+  assert.throws(() => releaseFiles({ ...release, draft: true }, manifest));
   assert.throws(() => releaseFiles({ ...release, tag_name: 'latest' }, manifest));
   assert.throws(() => releaseFiles(release, { schema: 1, files: [{ name: 'missing.dll' }] }));
   assert.throws(() => releaseFiles(release, { schema: 1, files: [{ name: '..\\evil.dll' }] }));
+});
+
+test('a rate-limited API falls back to the release page for the same assets and digests', async () => {
+  const { releasePage } = require('../app/src/main/games/endfield/vulkan-packages.cjs');
+  const repository = 'myparsleycat/XXMI-Libs-Package-Forked', tag = 'v1.2.2-nhd.31';
+  const row = (name, digest) => `<li class="Box-row"><a href="/${repository}/releases/download/${tag}/${name}">${name}</a><span>sha256:${digest}</span></li>`;
+  const pages = {
+    [`https://github.com/${repository}/releases`]: `<include-fragment src="https://github.com/${repository}/releases/expanded_assets/${tag}"></include-fragment><include-fragment src="https://github.com/${repository}/releases/expanded_assets/v1.2.2-nhd.30"></include-fragment>`,
+    [`https://github.com/${repository}/releases/expanded_assets/${tag}`]: row('d3d11.dll', 'a'.repeat(64)) + row('dxcompiler.dll', 'b'.repeat(64)) + row('dxil.dll', 'c'.repeat(64))
+      + `<li class="Box-row"><a href="/someone/else/releases/download/${tag}/d3d11.dll">d3d11.dll</a><span>sha256:${'f'.repeat(64)}</span></li>`
+  };
+  const release = await releasePage(async url => pages[url] ? new Response(pages[url]) : new Response('', { status: 404 }));
+  assert.deepEqual(releaseFiles(release, {}), { version: '1.2.2-nhd.31', files: { 'd3d11.dll': 'a'.repeat(64), 'dxcompiler.dll': 'b'.repeat(64), 'dxil.dll': 'c'.repeat(64) } });
+  await assert.rejects(releasePage(async () => new Response('', { status: 503 })));
 });

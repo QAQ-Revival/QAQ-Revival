@@ -149,7 +149,8 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   fs.writeFileSync(windowGamePath, 'Synthetic window setting fixture, never executed');
   assert.equal((await call('game:update', { gameId: 'arknights', updates: { gamePath: windowGamePath } })).success, true);
   await click('.game-settings-button');
-  await waitFor(`!!document.querySelector('#settings-arknights-tools')`, 'M4A settings');
+  await waitFor(`!!document.querySelector('[data-section="arknights-input"]')`, 'Arknights settings pages');
+  await click('[data-section="arknights-input"]');
   await waitFor(`!!document.querySelector('#settings-arknights-cursor [role="switch"]')`, 'system cursor setting');
   assert.equal(await evaluate(`document.querySelector('#settings-arknights-cursor [role="switch"]').getAttribute('aria-label')`), '使用系统光标');
   await waitFor(`!!document.querySelector('#settings-arknights-window [role="switch"]')`, 'proportional window resize setting');
@@ -174,10 +175,14 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   await waitFor(`document.querySelector('${mouseSwitch}')?.checked === false && !document.querySelector('${mouseSwitch}').disabled`, 'mouse coalescing disabled');
   assert.equal((await call('arknights:mouse-status')).enabled, false);
   passed('Arknights high polling rate mouse switch sits in the mouse section, toggles through real IPC, persists only its own field, and never launches the game');
-  assert.equal(await evaluate(`document.querySelector('#heading-arknights-tools').textContent`), '加载器');
+  await click('[data-section="arknights-tools"]');
+  await waitFor(`!!document.querySelector('#settings-arknights-tools')`, 'M4A settings');
+  assert.equal(await evaluate(`document.querySelector('.settings-page[data-page="arknights-tools"] .settings-page-title').textContent`), '加载器');
   await captureUI('arknights-settings.png');
   await call('game:update', { gameId: 'arknights', updates: { gamePath: game.gamePath || '' } });
-  assert.equal(await evaluate(`!!document.querySelector('#settings-game-persist, #settings-fixer')`), false);
+  await click('[data-section="game-paths"]');
+  await waitFor(`!!document.querySelector('#settings-game-paths')`, 'Arknights paths page');
+  assert.equal(await evaluate(`!!document.querySelector('#settings-fixer, [data-section="steam-bridge"], [data-section="wuwa-dx12"]')`), false);
   assert.equal(launchRequests.length, 0, 'No game or loader launches are permitted in this smoke scope');
   passed('Actual renderer context menu runs the offline worker and creates a disabled copy without changing its source; M4A settings render without XXMI controls; no game is launched');
   await require('./library-performance-smoke.cjs')({ electron, evaluate, waitFor, captureUI, handlers, root, passed, selectNativeAction });

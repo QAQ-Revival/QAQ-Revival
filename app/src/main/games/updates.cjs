@@ -101,4 +101,9 @@ function registerIpc() {
     });
   }
 }
-module.exports = { createGameUpdates, registerIpc, invalidate: gameId => service?.invalidate(gameId) };
+// The component versions the last check saved for this game, if they still describe it.
+function checkedComponents(gameId) {
+  try { return service?.state(gameId).components || []; }
+  catch { return []; }
+}
+module.exports = { createGameUpdates, registerIpc, checkedComponents, invalidate: gameId => service?.invalidate(gameId) };

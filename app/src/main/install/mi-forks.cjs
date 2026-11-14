@@ -8,8 +8,9 @@ const i18n = require("../../shared/i18n/core.cjs");
 const SUPPORTED = { endfield: "EFMI", "wuthering-waves": "WWMI", "genshin-impact": "GIMI", zzz: "ZZMI", "honkai-star-rail": "SRMI" };
 const RUNTIME_FILE = "d3d11.dll";
 const EFMI_FILES = ["Core/EFMI/MergedSkeleton.ini", "Core/EFMI/Shaders/MergedSkeleton_InstanceConfigOverrider_ConstantBuffer.hlsl", "Core/EFMI/Shaders/MergedSkeleton_InstanceConfigOverrider_ConstantBuffer.cs_5_0.8000.bin"];
-// Every build of the fork carries this in its version resource, so older builds still identify themselves.
-const FORK_MARK = Buffer.from("QAQ-Revival/XXMI-Libs-Package", "utf16le");
+// Every build of the forks carries its repository in the version resource, so older builds still identify themselves.
+// The DX11 fork is XXMI-Libs-Package and the Vulkan one XXMI-Libs-Vulkan, which was a branch of the former until 2026-11.
+const FORK_MARK = Buffer.from("QAQ-Revival/XXMI-Libs-", "utf16le");
 // Only builds with the Vulkan backend read this setting, whichever branch or release they came from.
 const VULKAN_MARK = Buffer.from("extended_rendering", "utf16le");
 const hash = value => crypto.createHash("sha256").update(value).digest("hex");
@@ -174,7 +175,8 @@ function createMiForksService({ bundleRoots, resolveInstallation, userName } = {
       return compatibleFiles[relative].includes(text) || compatibleFiles[relative].includes(fileHash(target(relative))) || text === textHash(forkFile(relative)) || text === textHash(officialFile(relative));
     });
     const sameVersion = !installed || installed === version;
-    const fork = { version, build: sourceCommit.slice(0, 12) };
+    // <upstream version>.<QAQR patch number>; bundles from before that carry only the upstream version.
+    const fork = { version: /^\d+(?:\.\d+){3}$/.test(bundle.manifest.version || "") && bundle.manifest.version.startsWith(version + ".") ? bundle.manifest.version : version, build: sourceCommit.slice(0, 12) };
     const local = matches(forkFile) ? sameVersion ? { kind: "fork", ...fork } : { kind: "outdated", version: installed }
       : matches(officialFile) ? { kind: "official", version: installed || version }
       : known ? { kind: "outdated", version: installed || version }

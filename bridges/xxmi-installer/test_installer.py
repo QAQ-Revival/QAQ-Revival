@@ -34,6 +34,21 @@ class InstallerTests(unittest.TestCase):
             package.detect_latest_version.assert_not_called()
             package.update.assert_not_called()
 
+    def test_checks_take_pre_releases_and_fall_back_to_stable(self):
+        calls = []
+
+        def fetch(owner, name, pre_release=False):
+            calls.append(pre_release)
+            if pre_release and owner == "offline":
+                raise ConnectionRefusedError("rate limit")
+            return "1.3.0" if pre_release else "1.2.3"
+
+        client = SimpleNamespace(fetch_latest_release=fetch)
+        worker.prefer_pre_releases(client)
+        self.assertEqual(client.fetch_latest_release("SpectrumQT", "XXMI-Libs-Package", pre_release=False), "1.3.0")
+        self.assertEqual(client.fetch_latest_release("offline", "XXMI-Libs-Package"), "1.2.3")
+        self.assertEqual(calls, [True, True, False])
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
