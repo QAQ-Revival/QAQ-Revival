@@ -80,10 +80,10 @@ function sync({ force = false, changedModPath = "", confirmedConflictIds = [] } 
   try {
     const entries = enabledEntries();
     const approvedConflictIds = conflictApprovals(confirmedConflictIds).ids;
-    const planned = deployment.planDeployment(entries, { approvedConflictIds });
-    const signature = JSON.stringify([p.library, p.destination, ...planned.map(entry => [entry.path, ...[...entry.resources, ...entry.manifests].map(file => [file.relative, file.size, file.mtimeMs])])]);
+    const plan = deployment.prepareDeployment(entries, { approvedConflictIds });
+    const signature = JSON.stringify([p.library, p.destination, approvedConflictIds, ...plan.planned.map(entry => [entry.path, ...[...entry.resources, ...entry.manifests].map(file => [file.relative, file.size, file.mtimeMs, file.ctimeMs])])]);
     if (!force && !changedModPath && lastSync?.success && signature === lastSignature && fs.existsSync(p.destination)) return lastSync;
-    const { sources: _sources, approvedResourcePairs: _pairs, modOrder: _order, ...summary } = deployment.deploy({ ...p, entries, changedModPath, approvedConflictIds });
+    const { sources: _sources, approvedResourcePairs: _pairs, modOrder: _order, ...summary } = deployment.deploy({ ...p, entries, plan, force, changedModPath, approvedConflictIds });
     lastSync = { success: true, ...summary };
     lastSignature = signature;
   } catch (error) {
@@ -120,10 +120,14 @@ function status() {
   return { success: true, ...p, ...sourceComponent.state(), sync: lastSync, migrationError: configStore.currentConfig.arknightsMigrationError || "" };
 }
 function generatedFingerprint(root) {
-  return files.fingerprint(root, { maxBytes: 64 * 1024 * 1024 * 1024, maxFiles: 100000 });
+  return files.metadataFingerprint(root, { maxBytes: 64 * 1024 * 1024 * 1024, maxFiles: 100000 });
 }
 function componentFingerprint() {
   return crypto.createHash("sha256").update(JSON.stringify(sourceComponent.packageInfo().manifest)).digest("hex");
+}
+function checkBundles(manifest) {
+  const changedOnly = sourceComponent.packageInfo().manifest.capabilities?.includes("incremental-bundle-validation-v1");
+  return sourceComponent.runNative(["--check", "--manifest", manifest, ...(changedOnly ? ["--changed-only"] : [])]);
 }
 async function prepareLoader() {
   const p = paths();
@@ -139,25 +143,27 @@ async function prepareLoader() {
   files.assertOutsideGame(previous, p.gamePath);
   for (const dir of [p.bundleRoot, previous]) if (fs.existsSync(dir) && !fs.existsSync(path.join(dir, ".qaqr-generated"))) throw Error(i18n.t("arknights.errors.unowned"));
   const cacheFile = path.join(p.bundleRoot, BUILD_STATE);
+  let cacheDirectory;
   if (fs.existsSync(cacheFile)) {
     try {
       files.assertNoLinks(cacheFile);
       const cached = JSON.parse(fs.readFileSync(cacheFile, "utf8"));
-      if (cached.schemaVersion === 1 && cached.resourceFingerprint === fingerprint && cached.componentFingerprint === componentHash && cached.gamePath === p.gamePath) {
+      if (cached.componentFingerprint === componentHash && cached.gamePath === p.gamePath) cacheDirectory = p.bundleRoot;
+      if (cached.schemaVersion === 2 && cached.resourceFingerprint === fingerprint && cached.componentFingerprint === componentHash && cached.gamePath === p.gamePath) {
         const manifest = path.join(p.bundleRoot, "manifest.tsv");
-        await sourceComponent.runNative(["--check", "--manifest", manifest]);
+        await checkBundles(manifest);
         return { success: true, path: sourceComponent.resolveFile("loader/ArkLoader.exe"), manifest, bundleCount: cached.bundleCount, resourceCount: cached.resourceCount, experimental: true, cached: true };
       }
     } catch { /* A stale cache is rebuilt from current PC originals. */ }
   }
   let moved = false;
   try {
-    const built = await runWorker({ action: "build-bundles", source: p.destination, gamePath: p.gamePath, output: stage, characterIds: [...new Set(enabledEntries().flatMap(entry => entry.characterIds || []))] });
+    const built = await runWorker({ action: "build-bundles", source: p.destination, gamePath: p.gamePath, output: stage, cacheDirectory, characterIds: [...new Set(enabledEntries().flatMap(entry => entry.characterIds || []))] });
     if (generatedFingerprint(p.destination) !== fingerprint) throw Error(i18n.t("arknights.errors.changed"));
-    await sourceComponent.runNative(["--check", "--manifest", path.join(stage, "manifest.tsv")]);
+    await checkBundles(path.join(stage, "manifest.tsv"));
     fs.writeFileSync(path.join(stage, "bundle-index.json"), JSON.stringify({ schemaVersion: 1, bundles: built.bundles }));
     fs.writeFileSync(path.join(stage, ".qaqr-generated"), "arknights-bundles-v1");
-    fs.writeFileSync(path.join(stage, BUILD_STATE), JSON.stringify({ schemaVersion: 1, resourceFingerprint: fingerprint, componentFingerprint: componentHash, gamePath: p.gamePath, bundleCount: built.bundleCount, resourceCount: built.resourceCount }));
+    fs.writeFileSync(path.join(stage, BUILD_STATE), JSON.stringify({ schemaVersion: 2, resourceFingerprint: fingerprint, componentFingerprint: componentHash, gamePath: p.gamePath, bundleCount: built.bundleCount, resourceCount: built.resourceCount }));
     if (fs.existsSync(previous)) fs.rmSync(previous, { recursive: true });
     if (fs.existsSync(p.bundleRoot)) { files.renameDirectory(p.bundleRoot, previous); moved = true; }
     files.renameDirectory(stage, p.bundleRoot);

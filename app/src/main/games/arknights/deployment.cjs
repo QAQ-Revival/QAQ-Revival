@@ -48,14 +48,19 @@ function validatePlan({ planned, conflicts }, approvedConflictIds) {
   return planned;
 }
 function planDeployment(entries, { approvedConflictIds = [] } = {}) {
-  return validatePlan(inspectEntries(entries), approvedConflictIds);
+  return prepareDeployment(entries, { approvedConflictIds }).planned;
 }
-function deploy({ entries, library, destination, gamePath, changedModPath = "", approvedConflictIds = [], copy = fs.copyFileSync, rename = fs.renameSync }) {
+function prepareDeployment(entries, { approvedConflictIds = [] } = {}) {
+  const inspected = inspectEntries(entries);
+  validatePlan(inspected, approvedConflictIds);
+  return inspected;
+}
+function deploy({ entries, library, destination, gamePath, changedModPath = "", force = false, approvedConflictIds = [], plan, copy = fs.copyFileSync, rename = fs.renameSync }) {
   files.assertOutsideGame(destination, gamePath);
   files.assertOutsideGame(library, gamePath);
   if (files.inside(destination, library) || files.inside(library, destination)) throw Error(i18n.t("arknights.errors.overlap"));
-  const inspected = inspectEntries(entries);
-  const planned = validatePlan(inspected, approvedConflictIds);
+  const inspected = plan || prepareDeployment(entries, { approvedConflictIds });
+  const { planned } = inspected;
   const approvedResourcePairs = inspected.conflicts.map(conflict => conflict.files.map(file => ({ file: path.join(modId(file.modPath), path.relative(file.modPath, file.path)).split(path.sep).join("/"), sha256: file.sha256 })));
   const previous = path.join(path.dirname(destination), "DISABLE_QAQR_previous");
   function owned(dir) {
@@ -65,17 +70,24 @@ function deploy({ entries, library, destination, gamePath, changedModPath = "", 
   if (!fs.existsSync(destination) && fs.existsSync(previous) && owned(previous)) files.renameDirectory(previous, destination, rename);
   if (fs.existsSync(destination) && !owned(destination)) throw Error(i18n.t("arknights.errors.unowned"));
   if (fs.existsSync(previous) && !owned(previous)) throw Error(i18n.t("arknights.errors.unowned"));
-  const oldSources = fs.existsSync(path.join(destination, MARKER)) ? JSON.parse(fs.readFileSync(path.join(destination, MARKER), "utf8")).sources || {} : {};
+  const old = fs.existsSync(path.join(destination, MARKER)) ? JSON.parse(fs.readFileSync(path.join(destination, MARKER), "utf8")) : {};
+  const oldSources = old.sources || {};
+  const sources = {};
+  const modOrder = planned.map(entry => modId(entry.path));
+  for (const entry of planned) for (const file of [...entry.resources, ...entry.manifests]) {
+    sources[path.join(modId(entry.path), file.relative)] = [file.path, file.size, file.mtimeMs, file.ctimeMs];
+  }
+  if (!force && !changedModPath && JSON.stringify([sources, modOrder, approvedResourcePairs]) === JSON.stringify([oldSources, old.modOrder, old.approvedResourcePairs]) &&
+      Object.keys(sources).every(relative => fs.existsSync(path.join(destination, relative)))) return old;
   const stage = path.join(path.dirname(destination), `DISABLE_QAQR_stage_${crypto.randomUUID()}`);
   fs.mkdirSync(stage, { recursive: true });
   let moved = false;
   try {
     let count = 0;
-    const sources = {};
     function stageFile(entry, file, id) {
       const relative = path.join(id, file.relative), target = path.join(stage, relative);
       fs.mkdirSync(path.dirname(target), { recursive: true });
-      const signature = [file.path, file.size, file.mtimeMs];
+      const signature = sources[relative];
       const existing = path.join(destination, relative);
       if (entry.path !== changedModPath && JSON.stringify(oldSources[relative]) === JSON.stringify(signature) && fs.existsSync(existing)) {
         files.assertNoLinks(existing);
@@ -83,7 +95,6 @@ function deploy({ entries, library, destination, gamePath, changedModPath = "", 
         try { fs.linkSync(existing, target); }
         catch { copy(file.path, target); }
       } else copy(file.path, target);
-      sources[relative] = signature;
     }
     for (const entry of planned) {
       const id = modId(entry.path);
@@ -95,7 +106,7 @@ function deploy({ entries, library, destination, gamePath, changedModPath = "", 
         stageFile(entry, file, id);
       }
     }
-    const summary = { owner: "qaqr-arknights-v1", modCount: planned.length, fileCount: count, updatedAt: new Date().toISOString(), sources, approvedResourcePairs, modOrder: planned.map(entry => modId(entry.path)) };
+    const summary = { owner: "qaqr-arknights-v1", modCount: planned.length, fileCount: count, updatedAt: new Date().toISOString(), sources, approvedResourcePairs, modOrder };
     fs.writeFileSync(path.join(stage, MARKER), JSON.stringify(summary));
     if (fs.existsSync(previous)) fs.rmSync(previous, { recursive: true });
     if (fs.existsSync(destination)) { files.renameDirectory(destination, previous, rename); moved = true; }
@@ -109,4 +120,4 @@ function deploy({ entries, library, destination, gamePath, changedModPath = "", 
   }
 }
 
-module.exports = { planDeployment, findConflicts, deploy, MARKER };
+module.exports = { planDeployment, prepareDeployment, findConflicts, deploy, MARKER };

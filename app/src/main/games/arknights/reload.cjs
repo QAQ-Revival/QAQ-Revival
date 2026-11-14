@@ -37,7 +37,7 @@ function createModReloader({ paths, resolveMod, characterIds, sync, runNative, r
     }
     files.assertNoLinks(indexDirectory);
     const index = JSON.parse(fs.readFileSync(path.join(indexDirectory, "bundle-index.json"), "utf8"));
-    if (index.schemaVersion !== 1 || !Array.isArray(index.bundles) || index.bundles.length > 200) throw Error(i18n.t("arknights.errors.reloadUnavailable"));
+    if (index.schemaVersion !== 1 || !Array.isArray(index.bundles) || index.bundles.length > 4096) throw Error(i18n.t("arknights.errors.reloadUnavailable"));
     const scopes = targets.map(target => {
       const source = resolveMod(target.characterName, target.modName);
       return { source, id: modId(path.join(path.dirname(source), path.basename(source).replace(files.DISABLED, ""))), fingerprint: files.fingerprint(source), characterIds: characterIds(target.characterName) };

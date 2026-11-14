@@ -44,6 +44,39 @@ test('resource keys detect cross-Mod aliases, preserve front/back identities and
   fs.writeFileSync(path.join(f.mod, 'char_4215_buddy.ab'), 'UnityFS');
   assert.throws(() => files.assertLoadable(f.mod));
 });
+
+test('unchanged deployments survive a manager restart without copying or replacing directories', t => {
+  const f = fixture(t);
+  deploy(f);
+  const before = fs.readFileSync(path.join(f.destination, MARKER), 'utf8');
+  deploy({ ...f, copy() { assert.fail('An unchanged resource was copied'); }, rename() { assert.fail('An unchanged deployment was replaced'); } });
+  assert.equal(fs.readFileSync(path.join(f.destination, MARKER), 'utf8'), before);
+  const source = path.join(f.mod, 'illust_char_4215_buddy_mh#2.png');
+  const stat = fs.statSync(source);
+  fs.writeFileSync(source, 'other');
+  fs.utimesSync(source, stat.atime, stat.mtime);
+  const copied = [];
+  deploy({ ...f, copy(from, to) { copied.push(from); fs.copyFileSync(from, to); } });
+  assert.deepEqual(copied, [source]);
+});
+
+test('generated metadata detects edits, bindings and priority changes without reading texture bytes', t => {
+  const f = fixture(t);
+  deploy(f);
+  const options = { maxBytes: 64 * 1024 * 1024 * 1024 };
+  const first = files.metadataFingerprint(f.destination, options);
+  assert.equal(files.metadataFingerprint(f.destination, options), first);
+  const marker = path.join(f.destination, MARKER);
+  const data = JSON.parse(fs.readFileSync(marker));
+  data.modOrder.reverse(); data.modOrder.push('changed-priority');
+  fs.writeFileSync(marker, JSON.stringify(data));
+  assert.notEqual(files.metadataFingerprint(f.destination, options), first);
+  const resource = files.walk(f.destination)[0].path;
+  const stat = fs.statSync(resource);
+  const second = files.metadataFingerprint(f.destination, options);
+  fs.writeFileSync(resource, 'other'); fs.utimesSync(resource, stat.atime, stat.mtime);
+  assert.notEqual(files.metadataFingerprint(f.destination, options), second);
+});
 test('resource overlaps require confirmation of the exact content and never reuse an approval after a file changes', t => {
   const f = fixture(t), second = path.join(f.library, 'operator', 'second');
   fs.mkdirSync(second);

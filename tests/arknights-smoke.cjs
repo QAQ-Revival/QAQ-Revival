@@ -148,6 +148,14 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   const windowGamePath = path.join(windowFixture, 'Arknights.exe');
   fs.writeFileSync(windowGamePath, 'Synthetic window setting fixture, never executed');
   assert.equal((await call('game:update', { gameId: 'arknights', updates: { gamePath: windowGamePath } })).success, true);
+  const prepared = await call('arknights:prepare-loader');
+  assert.equal(prepared.success, true, JSON.stringify(prepared));
+  assert.equal(prepared.bundleCount, 0);
+  const cached = await call('arknights:prepare-loader');
+  assert.equal(cached.success, true, JSON.stringify(cached));
+  assert.equal(cached.cached, true, 'Unchanged launch preparation must reuse its build');
+  assert.equal(fs.readFileSync(windowGamePath, 'utf8'), 'Synthetic window setting fixture, never executed');
+  passed('Launch preparation invokes the real worker and native verifier, reuses an unchanged build, and never starts the synthetic game');
   await click('.game-settings-button');
   await waitFor(`!!document.querySelector('[data-section="arknights-input"]')`, 'Arknights settings pages');
   await click('[data-section="arknights-input"]');

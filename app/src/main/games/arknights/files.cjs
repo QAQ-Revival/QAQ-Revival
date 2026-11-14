@@ -43,7 +43,7 @@ function walk(root, { includeDisabled = false, maxBytes = 2 * 1024 * 1024 * 1024
         const stat = fs.statSync(file);
         bytes += stat.size;
         if (stat.size > 512 * 1024 * 1024 || bytes > maxBytes) throw Error(i18n.t("arknights.errors.tooLarge"));
-        files.push({ path: file, relative: path.relative(root, file), name: entry.name, ext: path.extname(entry.name).toLowerCase(), size: stat.size, mtimeMs: stat.mtimeMs });
+        files.push({ path: file, relative: path.relative(root, file), name: entry.name, ext: path.extname(entry.name).toLowerCase(), size: stat.size, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs });
       }
       if (files.length > maxFiles) throw Error(i18n.t("arknights.errors.tooLarge"));
     }
@@ -97,7 +97,7 @@ function readBindings(root) {
           if (item.appearanceAliases != null && (!Array.isArray(item.appearanceAliases) || item.appearanceAliases.length > 32 || item.appearanceAliases.some(alias => typeof alias !== "string" || !alias || alias.length > 512 || /[\x00-\x1f]/.test(alias)))) throw Error(i18n.t("arknights.errors.invalidManifest"));
           bindings.set(resource.toLowerCase(), { bundle, target, ...(item.appearanceAliases ? { appearanceAliases: item.appearanceAliases } : {}) });
         }
-        manifests.push({ path: file, relative: path.relative(root, file), size: stat.size, mtimeMs: stat.mtimeMs });
+        manifests.push({ path: file, relative: path.relative(root, file), size: stat.size, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs });
       } else if (entry.isDirectory() && !ignored(entry.name) && !DISABLED.test(entry.name)) {
         if (!checkedStat(file)?.isDirectory()) throw Error(i18n.t("arknights.errors.invalidManifest"));
         checkedDirectories.add(path.resolve(file));
@@ -136,10 +136,19 @@ function inspect(root) {
   }
   return { files, resources, bundles, collisions, identities, manifests, keys: [...seen.keys()], kind: bundles.length ? "bundle" : resources.length ? "m4a" : "unknown" };
 }
+function fingerprintFiles(root, options) {
+  return [...walk(root, { ...options, includeDisabled: true }), ...readBindings(root).manifests].sort((a, b) => a.relative.localeCompare(b.relative));
+}
+function metadataFingerprint(root, options = {}) {
+  const entries = fingerprintFiles(root, options).map(file => [file.relative, file.size, file.mtimeMs, file.ctimeMs]);
+  const marker = path.join(root, ".qaqr-m4a.json");
+  const deployment = fs.existsSync(marker) ? JSON.parse(fs.readFileSync(marker, "utf8")) : {};
+  return crypto.createHash("sha256").update(JSON.stringify([entries, deployment.modOrder, deployment.approvedResourcePairs])).digest("hex");
+}
 function fingerprint(root, options = {}) {
   const digest = crypto.createHash("sha256");
   const buffer = Buffer.alloc(1024 * 1024);
-  for (const file of [...walk(root, { ...options, includeDisabled: true }), ...readBindings(root).manifests].sort((a, b) => a.relative.localeCompare(b.relative))) {
+  for (const file of fingerprintFiles(root, options)) {
     digest.update(file.relative);
     const fd = fs.openSync(file.path, "r");
     try { let size; while ((size = fs.readSync(fd, buffer, 0, buffer.length, null)) > 0) digest.update(buffer.subarray(0, size)); }
@@ -164,4 +173,4 @@ function renameDirectory(from, to, rename = fs.renameSync) {
   }
 }
 
-module.exports = { BUNDLES, RESOURCES, DISABLED, RESOURCE_MANIFEST, ignored, inside, assertNoLinks, assertOutsideGame, walk, resourceKey, readBindings, inspect, fingerprint, assertLoadable, renameDirectory };
+module.exports = { BUNDLES, RESOURCES, DISABLED, RESOURCE_MANIFEST, ignored, inside, assertNoLinks, assertOutsideGame, walk, resourceKey, readBindings, inspect, fingerprint, metadataFingerprint, assertLoadable, renameDirectory };

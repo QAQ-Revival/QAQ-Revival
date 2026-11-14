@@ -69,6 +69,17 @@ test('changed inputs, stopped games and legacy runtimes do not send reload patch
   assert.equal(fs.existsSync(f.workers[0].output), false);
 });
 
+test('a scoped reload supports a library with hundreds of active bundles', async t => {
+  const f = fixture(t);
+  const file = path.join(f.p.bundleRoot, 'bundle-index.json');
+  const index = JSON.parse(fs.readFileSync(file));
+  for (let i = 0; i < 500; i++) index.bundles.push({ logical: `skinpack/other-${i}.ab`, inputs: [`other-${i}/texture.png`] });
+  fs.writeFileSync(file, JSON.stringify(index));
+  assert.equal((await f.reload({ characterName: 'operator', modName: 'sample' })).bundleCount, 1);
+  const next = JSON.parse(fs.readFileSync(path.join(path.dirname(f.runtime.lastPatch), 'bundle-index.json')));
+  assert.equal(next.bundles.length, 502);
+});
+
 test('resource sync reuses unrelated generated copies but force-refreshes the selected Mod', t => {
   const f = fixture(t), other = path.join(f.p.library, 'operator', 'other');
   fs.mkdirSync(other); fs.writeFileSync(path.join(other, 'other.png'), 'unrelated');
