@@ -68,6 +68,9 @@ async function createAppClient({ permissions = { contents: 'read' }, names = rep
       if (args[args[0] === 'lfs' ? 2 : 1] !== 'origin' || args.some(arg => /^--force|^\+/.test(arg) && !lease.test(arg))) throw Error('Only non-forced or lease-protected pushes to a registered organization origin are allowed');
       const remote = git(directory, ['remote', 'get-url', '--push', 'origin']).stdout;
       if (!repositories.some(repository => remote.replace(/\.git$/, '') === `https://github.com/${repository}`)) throw Error('Refusing to push to upstream or an unregistered repository');
+      if (args[0] === 'push' && remote.replace(/\.git$/, '') === `https://github.com/${REPOSITORY}`) {
+        args = require('./release-push.cjs').releasePushArguments(args, (command, options) => git(directory, command, options));
+      }
     }
     let result;
     const retryable = ['fetch', 'clone'].includes(args[0]) || (args[0] === 'submodule' && args[1] === 'update');

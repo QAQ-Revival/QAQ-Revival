@@ -2,7 +2,10 @@ name: Portable Release
 
 on:
   push:
-    branches: [main]
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+  repository_dispatch:
+    types: [cleanup-history]
 
 permissions:
   contents: read
@@ -13,7 +16,7 @@ concurrency:
 
 jobs:
   release:
-    if: startsWith(github.event.head_commit.message, '[P] ')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: windows-2022
     timeout-minutes: 60
     permissions:
@@ -40,18 +43,20 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Merge upstream into organization forks and update components
-        env:
-          QAQR_GITHUB_APP_ID: ${{ secrets.QAQR_GITHUB_APP_ID }}
-          QAQR_GITHUB_APP_PRIVATE_KEY: ${{ secrets.QAQR_GITHUB_APP_PRIVATE_KEY }}
-        run: node tools/update-components.cjs
-
       - name: Read version from app/package.json
         id: release
         run: |
           node -e 'const fs = require("fs"); const { releaseNames } = require("./tools/package-release.cjs"); const names = releaseNames(require("./app/package.json").version); fs.appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(names).map(([k,v]) => `${k}=${v}`).join("\n") + "\n");'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           "QAQR_BUILD_DIR=$env:GITHUB_WORKSPACE/build/portable" >> $env:GITHUB_ENV
+          $expectedTag = "v$((Get-Content app/package.json -Raw | ConvertFrom-Json).version)"
+          if ($env:GITHUB_REF_NAME -ne $expectedTag) { throw "Release tag $env:GITHUB_REF_NAME does not match $expectedTag" }
+
+      - name: Merge upstream into organization forks and update components
+        env:
+          QAQR_GITHUB_APP_ID: ${{ secrets.QAQR_GITHUB_APP_ID }}
+          QAQR_GITHUB_APP_PRIVATE_KEY: ${{ secrets.QAQR_GITHUB_APP_PRIVATE_KEY }}
+        run: node tools/update-components.cjs
 
       # Allow CI reruns for an already published version.
       - name: Check existing publication
@@ -116,20 +121,29 @@ jobs:
           gh release create $env:RELEASE_TAG "release/$env:RELEASE_ARCHIVE" "release/$env:RELEASE_ARCHIVE.sha256" --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title $env:RELEASE_TITLE --notes-file $notesPath
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      # Only the current release stays up. Tags are kept: they mark the released commits.
-      - name: Delete older GitHub Releases
+  cleanup:
+    needs: release
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - name: Check out retention script
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          sparse-checkout: tools/cleanup-history.cjs
+          sparse-checkout-cone-mode: false
+      - name: Set up Node.js
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      # Tags still mark released commits. Drafts and active runs finish before cleanup.
+      - name: Keep only the newest release and Actions run
         env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
-        run: |
-          gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json tagName | Out-Null
-          if ($LASTEXITCODE -ne 0) { throw "The current release $env:RELEASE_TAG is not published; nothing is deleted" }
-          $rows = gh api --paginate "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" --jq '.[] | [.id, .tag_name] | @tsv'
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          foreach ($row in @($rows | Where-Object { $_ })) {
-            $id, $tag = $row -split "`t", 2
-            if ($tag -eq $env:RELEASE_TAG) { continue }
-            "Deleting release $tag"
-            gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/releases/$id" | Out-Null
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
+          GITHUB_TOKEN: ${{ github.token }}
+          CLEANUP_RELEASES: ${{ github.event_name != 'push' || needs.release.result == 'success' }}
+        run: node tools/cleanup-history.cjs
