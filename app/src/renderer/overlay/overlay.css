@@ -519,6 +519,7 @@
 
 .mod-gallery-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   flex: 1;
   gap: 8px;
@@ -574,6 +575,27 @@
 
 .mod-type-badge {
   margin-right: 4px;
+}
+
+.mod-content-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.mod-content-types .mod-type-badge {
+  margin-right: 0;
+}
+
+.mod-gallery-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mod-gallery-footer > .mod-content-types {
+  flex-basis: 100%;
+  margin-top: 0;
 }
 
 /* List rows */

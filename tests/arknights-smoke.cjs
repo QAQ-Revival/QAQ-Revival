@@ -70,6 +70,9 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   assert.equal((await call('character:set-hidden', { characterName: '艾露猫', hidden: false, gameId: 'arknights' })).success, true);
   passed('Raw bundles are blocked until conversion; disabling, applying a preset and hiding an operator update the external M4A directory');
 
+  const sampleEnabled = (await call('get-mods', '艾露猫')).mods.find(mod => mod.name === 'PC sample').enabled;
+  if (!sampleEnabled) assert.equal((await call('toggle-mod', { characterName: '艾露猫', modName: 'PC sample', enable: true })).success, true);
+  assert.equal((await call('pin-mod', { characterName: '艾露猫', modName: 'conflict', pinned: true })).success, true);
   await evaluate(`window.dispatchEvent(new CustomEvent('qaqm-navigate', { detail: { tab: 'characters', characterName: '艾露猫' } }))`);
   // Open through the actual character card to exercise the normal manager route.
   await waitFor(`[...document.querySelectorAll('.character-card')].some(card => card.textContent.includes('罗德岛隐秘队'))`, 'operator card');
@@ -80,9 +83,15 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
   await evaluate(`[...document.querySelectorAll('button')].find(button => button.textContent.includes('露营时间喵'))?.click()`);
   await waitFor(`!!document.querySelector('[data-mod-name="PC sample"]')`, 'skin-specific Mod');
   assert.equal(await evaluate(`document.querySelector('.mod-view-titlebar-actions button').classList.contains('active')`), false);
-  assert.equal(await evaluate(`document.querySelector('[data-mod-name="PC sample"] .mod-type-badge').textContent`), '皮肤 · 静态');
+  assert.equal(await evaluate(`document.querySelector('[data-mod-name="PC sample"] .mod-content-types .mod-type-badge').textContent`), '皮肤立绘');
+  assert.equal(await evaluate(`!!document.querySelector('[data-mod-name="PC sample"] .mod-row-name .mod-type-badge')`), false);
   assert.equal(await evaluate(`document.querySelectorAll('[data-mod-name] .mod-row-tag-row').length`), 0);
   assert.equal(await evaluate(`!!document.querySelector('.mod-sort-bar .mod-tag-filter')`), true);
+  await click('.mod-prioritize-enabled-btn');
+  await waitFor(`document.querySelector('[data-mod-name]')?.dataset.modName === 'conflict'`, 'disabled pinned Mod stays above enabled Mods');
+  assert.equal((await call('pin-mod', { characterName: '艾露猫', modName: 'conflict', pinned: false })).success, true);
+  if (!sampleEnabled) assert.equal((await call('toggle-mod', { characterName: '艾露猫', modName: 'PC sample', enable: false })).success, true);
+  passed('Enabled-first ordering keeps a disabled pinned Mod above an enabled Mod');
   await captureUI('arknights-library.png');
   const overlay = new electron.BrowserWindow({ show: false, webPreferences: { preload: path.join(process.resourcesPath, 'app/out/preload/overlay.js'), sandbox: false, contextIsolation: true, offscreen: true } });
   const runOverlay = code => overlay.webContents.executeJavaScript(code, true);
@@ -100,7 +109,8 @@ module.exports = async ({ electron, evaluate, waitFor, captureUI, handlers, root
     await waitFor(`document.querySelector('.appearance-section-tab.active')?.textContent.includes('跨皮肤')`, 'skin tab synchronization from overlay');
     await runOverlay(`[...document.querySelectorAll('#appearanceSections button')].find(button => button.textContent.includes('露营时间喵')).click()`);
     await overlayWait(`!!document.querySelector('[data-toggle="1"][data-mod="PC sample"]')`);
-    assert.equal(await runOverlay(`document.querySelector('[data-mod="PC sample"] .mod-type-badge').textContent`), '皮肤 · 静态');
+    assert.equal(await runOverlay(`document.querySelector('[data-mod="PC sample"] .mod-content-types .mod-type-badge').textContent`), '皮肤立绘');
+    assert.equal(await runOverlay(`!!document.querySelector('[data-mod="PC sample"] .mod-name .mod-type-badge')`), false);
     await runOverlay(`document.querySelector('[data-toggle="1"][data-mod="PC sample"]').click()`);
     await overlayWait(`document.querySelector('[data-toggle="1"][data-mod="PC sample"]')?.dataset.enabled === 'true'`);
     await runOverlay(`document.querySelector('[data-toggle="1"][data-mod="conflict"]').click()`);

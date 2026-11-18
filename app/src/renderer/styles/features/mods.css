@@ -275,6 +275,21 @@
   min-width: 120px;
 }
 
+.mod-search-field > input {
+  padding-right: 58px;
+}
+
+.mod-search-field > .search-clear {
+  right: 31px;
+}
+
+.mod-search-field > .mod-prioritize-enabled-btn {
+  position: absolute;
+  right: 3px;
+  width: 26px;
+  height: 26px;
+}
+
 .mod-tag-filter {
   position: relative;
   flex: none;
@@ -575,6 +590,13 @@
   color: var(--fg);
 }
 
+.mod-content-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .mod-type-badge {
   display: inline-flex;
   align-items: center;
@@ -586,6 +608,7 @@
   color: var(--fg-2);
   font-size: 11px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .mod-row-more,
@@ -814,6 +837,7 @@
 
 .mod-gallery-card-footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-height: 36px;
@@ -830,6 +854,16 @@
   line-height: 1.4;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.mod-gallery-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mod-gallery-card-footer > .mod-content-types {
+  flex-basis: 100%;
+  margin-top: 0;
 }
 
 .mod-gallery-card-name .mod-type-badge,

@@ -2,6 +2,7 @@
 
 const path = require("node:path");
 const files = require("./files.cjs");
+const { classifyContentTypes } = require("./content-types.cjs");
 const SHARED_SECTION = "arknights:shared";
 const normalize = value => String(value || "").toLowerCase().replace(/[@#]/g, "_");
 
@@ -66,17 +67,10 @@ function inspectAppearance(modDir, sections) {
     const binding = bindings.get(file.path.toLowerCase());
     return binding ? { resource: binding.target, bundle: binding.bundle, appearanceAliases: binding.appearanceAliases } : file.name;
   }), ...entries.filter(file => files.BUNDLES.has(file.ext)).map(file => file.name)];
-  // Battle/base chibis also contain animated Spine skeletons. Only portrait
-  // resources identify a dynamic illustration; a .skel extension does not.
-  const dynamic = entries.some(file => {
+  const contentTypes = classifyContentTypes(entries.map(file => {
     const binding = bindings.get(file.path.toLowerCase());
-    const target = path.posix.basename(String(binding?.target || file.name).replace(/\\/g, "/"));
-    return /^arts\/dynchars\//i.test(binding?.bundle || "") || /^(?:(?:sp_|entry_)?dyn_(?:illust|portrait|entrance)_)/i.test(target);
-  });
-  const contentTypes = [];
-  if (dynamic) contentTypes.push("dynamic");
-  else if (entries.some(file => file.ext === ".png")) contentTypes.push("static");
-  if (entries.some(file => file.ext === ".wav")) contentTypes.push("voice");
+    return { resource: binding?.target || file.name, bundle: binding?.bundle || "", relative: file.relative, appearanceAliases: binding?.appearanceAliases };
+  }), resource => classifyResources([resource], sections).sectionId);
   return { ...classifyResources(names, sections), contentTypes };
 }
 

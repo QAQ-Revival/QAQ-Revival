@@ -4,7 +4,13 @@ import { getCollectionVariantLabel } from "./collections.js";
 import { escapeHtml } from "./html.js";
 import { icon } from "./icons.js";
 import { getModTypeLabels } from "../lib/modPresentation.js";
-const renderTypes = mod => getModTypeLabels(mod).length ? `<span class="mod-type-badge">${escapeHtml(getModTypeLabels(mod).join(" · "))}</span>` : "";
+const renderTypes = (mod, below = false) => {
+  if (!!mod.arknightsScope !== below) return "";
+  const labels = getModTypeLabels(mod);
+  if (!labels.length) return "";
+  const badges = labels.map(label => `<span class="mod-type-badge">${escapeHtml(label)}</span>`).join("");
+  return below ? `<div class="mod-content-types" aria-label="${escapeHtml(t("mods.types.label"))}">${badges}</div>` : badges;
+};
 // `queued` ("enable" / "disable") marks a Mod waiting in the toggle queue: the
 // switch shows the requested state, dimmed, and clicks only explain the wait.
 const renderSwitch = (m) => {
@@ -54,8 +60,11 @@ export function renderModCards(
                         }
                     </div>
                     <div class="mod-gallery-footer">
+                        <div class="mod-gallery-info">
                         <button type="button" class="mod-gallery-name" title="${escapeHtml(m.name)}"><span class="mod-gallery-name-text">${renderTypes(m)}${escapeHtml(m.name)}${collection ? ` <span class="overlay-collection-badge">${collection.variants.length}</span>` : ""}</span></button>
+                        </div>
                         ${renderSwitch(m)}
+                        ${renderTypes(m, true)}
                     </div>
                 </div>
             `;
@@ -82,6 +91,7 @@ export function renderModCards(
                             : ""
                         }${m.pinned ? `<span class="mod-pin-icon" title="${t("overlay.pin.added")}">${icon("pin", 14)}</span>` : ""}${hasVisibleConflict(m) ? `<span class="mod-conflict-icon" title="${t("overlay.mods.conflict")}">${icon("alert", 14)}</span>` : ""}</button>
                         ${m.pendingEnabled ? `<div class="mod-status-text">${t("mods.conflicts.awaitingConfirmation")}</div>` : ""}
+                        ${renderTypes(m, true)}
                         ${
                           collection
                             ? `

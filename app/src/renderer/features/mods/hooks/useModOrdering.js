@@ -31,19 +31,22 @@ export function useModOrdering({
     return localStorage.getItem("modview-sort") || "name";
   });
   const [sortedMods, setSortedMods] = React.useState([]);
-  const [modInteractionOrder, setModInteractionOrder] = React.useState(() => {
-    try {
-      const saved = localStorage.getItem(
-        `modview-interaction-order-${characterName}`,
-      );
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const enabledOnEntryRef = React.useRef(new Map());
+  const customOrderRef = React.useRef(new Map());
+  const manuallyOrderedSectionsRef = React.useRef(new Set());
   const [draggedMod, setDraggedMod] = React.useState(null);
   const [dragOverMod, setDragOverMod] = React.useState(null);
   React.useEffect(() => {
+    // Names survive the folder rename used to toggle a Mod. Refreshing its
+    // status must not change its position during this visit to the page.
+    for (const mod of mods) {
+      if (!enabledOnEntryRef.current.has(mod.name)) {
+        enabledOnEntryRef.current.set(mod.name, !!mod.enabled);
+      }
+      if (!customOrderRef.current.has(mod.name)) {
+        customOrderRef.current.set(mod.name, customOrderRef.current.size);
+      }
+    }
     applySort(
       mods.filter(
         (mod) => getModAppearanceSectionId(mod) === activeAppearanceSectionId,
@@ -54,7 +57,6 @@ export function useModOrdering({
   }, [
     mods,
     sortMethod,
-    modInteractionOrder,
     modSearchQuery,
     selectedTagFilters,
     activeAppearanceSectionId,
@@ -100,31 +102,41 @@ export function useModOrdering({
         return true;
       });
     }
-    if (method === "custom") {
-      setSortedMods(sortPinnedModsFirst(filtered));
-      return;
-    }
-    const order = modInteractionOrder;
+    const groupEnabled =
+      method !== "custom" ||
+      !manuallyOrderedSectionsRef.current.has(activeAppearanceSectionId);
     const sorted = sortPinnedModsFirst(filtered, (a, b) => {
-      if (method === "name") {
+      if (groupEnabled) {
+        const enabledDiff =
+          Number(enabledOnEntryRef.current.get(b.name)) -
+          Number(enabledOnEntryRef.current.get(a.name));
+        if (enabledDiff) return enabledDiff;
+      }
+      if (method === "name" || method === "enabled") {
         return a.name.localeCompare(b.name, "zh-CN");
       } else if (method === "time") {
         const timeDiff = (b.addedAtMs || 0) - (a.addedAtMs || 0);
         if (timeDiff !== 0) return timeDiff;
         return a.name.localeCompare(b.name, "zh-CN");
-      } else if (method === "enabled") {
-        const aIdx = order.indexOf(a.name);
-        const bIdx = order.indexOf(b.name);
-        const aInteracted = aIdx !== -1;
-        const bInteracted = bIdx !== -1;
-        if (aInteracted && !bInteracted) return -1;
-        if (!aInteracted && bInteracted) return 1;
-        if (aInteracted && bInteracted) return aIdx - bIdx;
-        return a.name.localeCompare(b.name, "zh-CN");
+      } else if (method === "custom") {
+        return (
+          customOrderRef.current.get(a.name) -
+          customOrderRef.current.get(b.name)
+        );
       }
       return 0;
     });
     setSortedMods(sorted);
+  }
+  function prioritizeEnabledMods() {
+    const sectionMods = mods.filter(
+      (mod) => getModAppearanceSectionId(mod) === activeAppearanceSectionId,
+    );
+    for (const mod of sectionMods) {
+      enabledOnEntryRef.current.set(mod.name, !!mod.enabled);
+    }
+    manuallyOrderedSectionsRef.current.delete(activeAppearanceSectionId);
+    applySort(sectionMods, sortMethod);
   }
   function handleModDragStart(e, mod) {
     setDraggedMod(mod);
@@ -167,6 +179,10 @@ export function useModOrdering({
           ? replacementQueue.shift()
           : mod,
       );
+      manuallyOrderedSectionsRef.current.add(activeAppearanceSectionId);
+      mergedOrder.forEach((mod, index) =>
+        customOrderRef.current.set(mod.name, index),
+      );
       setSortedMods(reorderedVisibleMods);
       setMods(mergedOrder);
       setSortMethod("custom");
@@ -193,7 +209,7 @@ export function useModOrdering({
     sortMethod,
     setSortMethod,
     sortedMods,
-    setModInteractionOrder,
+    prioritizeEnabledMods,
     draggedMod,
     dragOverMod,
     setDragOverMod,

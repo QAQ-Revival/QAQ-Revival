@@ -11,6 +11,20 @@ import {
 } from "./LocalCollectionVariants.jsx";
 import { collectModTags, getModTypeLabels } from "../../../lib/modPresentation.js";
 
+function ModContentTypes({ mod }) {
+  if (!mod.arknightsScope) return null;
+  const labels = getModTypeLabels(mod);
+  return labels.length > 0 ? (
+    <div className="mod-content-types" aria-label={t("mods.types.label")}>
+      {labels.map((label) => (
+        <span className="mod-type-badge" key={label}>
+          {label}
+        </span>
+      ))}
+    </div>
+  ) : null;
+}
+
 function ModThumb({ mod, className = "mod-row-thumb" }) {
   const [failedUrl, setFailedUrl] = React.useState(null);
   return (
@@ -112,6 +126,7 @@ export function ModLibraryPanel({
   setModSearchQuery,
   sortMethod,
   setSortMethod,
+  prioritizeEnabledMods,
   focusNextEnabledMod,
   sortedMods,
   displayMods,
@@ -358,6 +373,16 @@ export function ModLibraryPanel({
               <Icon name="x" size={14} />
             </button>
           )}
+          <button
+            type="button"
+            className="icon-btn mod-prioritize-enabled-btn"
+            onClick={prioritizeEnabledMods}
+            disabled={modsLoading || sortedMods.length === 0}
+            aria-label={t("mods.library.prioritizeEnabled")}
+            title={t("mods.library.prioritizeEnabledHint")}
+          >
+            <Icon name="arrow-up" size={15} />
+          </button>
         </div>
         <details className="mod-tag-filter">
           <summary
@@ -634,29 +659,32 @@ export function ModLibraryPanel({
                     )}
                   </div>
                   <div className="mod-gallery-card-footer">
-                    <div
-                      className="mod-gallery-card-name"
-                      title={
-                        mod.notes
-                          ? `${mod.name}
+                    <div className="mod-gallery-card-info">
+                      <div
+                        className="mod-gallery-card-name"
+                        title={
+                          mod.notes
+                            ? `${mod.name}
 (${mod.notes})`
-                          : mod.name
-                      }
-                    >
-                      {getModTypeLabels(mod).length > 0 && (
-                        <span className="mod-type-badge">
-                          {getModTypeLabels(mod).join(" · ")}
-                        </span>
-                      )}
-                      {mod.name}
-                      {mod.hasConflict && lit && (
-                        <span
-                          className="mod-conflict-icon"
-                          title={t("mods.conflicts.confirmToast")}
-                        >
-                          <Icon name="alert" size={13} />
-                        </span>
-                      )}
+                            : mod.name
+                        }
+                      >
+                        {!mod.arknightsScope &&
+                          getModTypeLabels(mod).length > 0 && (
+                            <span className="mod-type-badge">
+                              {getModTypeLabels(mod).join(" · ")}
+                            </span>
+                          )}
+                        {mod.name}
+                        {mod.hasConflict && lit && (
+                          <span
+                            className="mod-conflict-icon"
+                            title={t("mods.conflicts.confirmToast")}
+                          >
+                            <Icon name="alert" size={13} />
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -674,6 +702,7 @@ export function ModLibraryPanel({
                             : t("mods.library.enableHint")
                       }
                     />
+                    <ModContentTypes mod={mod} />
                   </div>
                 </div>
               );
@@ -754,7 +783,7 @@ export function ModLibraryPanel({
                 <ModThumb mod={mod} />
                 <div className="mod-row-info mod-mod-info" title={mod.originalName}>
                   <div className="mod-row-name">
-                    {getModTypeLabels(mod).length > 0 && (
+                    {!mod.arknightsScope && getModTypeLabels(mod).length > 0 && (
                       <span className="mod-type-badge">
                         {getModTypeLabels(mod).join(" · ")}
                       </span>
@@ -815,6 +844,7 @@ export function ModLibraryPanel({
                       <div className="mod-original-name">{mod.originalName}</div>
                     )
                   )}
+                  <ModContentTypes mod={mod} />
                 </div>
                 {renderVersionMenu(mod, true)}
                 {markModeUnlocked && (

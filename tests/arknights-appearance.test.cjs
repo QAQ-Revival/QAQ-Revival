@@ -45,7 +45,7 @@ test('validated PC prefab reference aliases survive manifest loading and classif
   assert.throws(() => files.readBindings(fixture));
 });
 
-test('static illustrations with battle/base skeletons stay static while real dynamic portraits keep their type', t => {
+test('illustrations and chibis keep separate content types while real dynamic portraits keep their type', t => {
   const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'qaqr-content-types-'));
   t.after(() => fs.rmSync(fixture, { recursive: true, force: true }));
   const check = (name, resources, expected, binding) => {
@@ -55,9 +55,61 @@ test('static illustrations with battle/base skeletons stay static while real dyn
     if (binding) fs.writeFileSync(path.join(root, files.RESOURCE_MANIFEST), JSON.stringify({ schemaVersion: 1, resources: [binding] }));
     assert.deepEqual(inspectAppearance(root, []).contentTypes, expected, name);
   };
-  check('static-with-chibis', ['illust_char_103_angel_1.png', 'front_char_103_angel.skel', 'back_char_103_angel.skel', 'build_char_103_angel.skel'], ['static']);
+  check('static-with-chibis', ['illust_char_103_angel_1.png', 'front_char_103_angel.skel', 'back_char_103_angel.skel', 'build_char_103_angel.skel'], ['baseIllustration', 'baseChibi']);
   check('named-dynamic', ['dyn_illust_char_1041_angel2.skel', 'dyn_illust_char_1041_angel2.png'], ['dynamic']);
   check('bound-dynamic-texture', ['effect.png'], ['dynamic'], { file: 'effect.png', target: 'effect.png', bundle: 'arts/dynchars/char_1041_angel2_2.ab' });
   check('renamed-bound-portrait', ['texture.png'], ['dynamic'], { file: 'texture.png', target: 'sp_dyn_illust_char_1041_angel2.png', bundle: 'skinpack/char_1041_angel2.ab' });
-  check('voice-with-chibi', ['voice.wav', 'build_char_103_angel.skel'], ['voice']);
+  check('voice-with-chibi', ['voice.wav', 'build_char_103_angel.skel'], ['baseChibi', 'voice']);
+  check('chibi-only', ['front_char_103_angel.skel', 'front_char_103_angel.png'], ['baseChibi']);
+  check('loose-chibi-atlas', ['char_103_angel.skel', 'char_103_angel.png'], ['baseChibi']);
+  check('unidentified-image', ['unidentified.png', 'mod.ini'], ['other']);
+});
+
+test('one Mod reports every resource type independently of its overall appearance section', t => {
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'qaqr-mixed-types-'));
+  t.after(() => fs.rmSync(fixture, { recursive: true, force: true }));
+  const sections = catalog.characters.find(c => c.characterId === 'char_2025_shu').skins;
+  const resources = [
+    ['chararts/char_2025_shu.ab', 'illust_char_2025_shu_1.png'],
+    ['skinpack/char_2025_shu.ab', 'illust_char_2025_shu_nian#11.png'],
+    ['arts/dynchars/char_2025_shu_nian#11.ab', 'effect_bg.png'],
+    ['chararts/char_2025_shu.ab', 'front_char_2025_shu.skel'],
+    ['skinpack/char_2025_shu.ab', 'build_char_2025_shu_nian#11.skel'],
+    ['avg/characters/avg_2025_shu_1.ab', 'expression.png'],
+    ['avg/imgs/avg_img_0_0.ab', 'avg_img_0_0__texture_avg_0_1.png'],
+    ['avg/imgs/avg_img_0_0.ab', 'avg_img_0_0__texture_bg_0_babel.png'],
+    ['audio/sound_beta_2/voice_cn/char_2025_shu.ab', 'CN_001.wav'],
+    ['chararts/char_2025_shu.ab', 'char_2025_shu__texture_material.png'],
+  ].map(([bundle, target], index) => ({ file: `${index}${path.extname(target)}`, bundle, target }));
+  for (const resource of resources) fs.writeFileSync(path.join(fixture, resource.file), 'classification fixture');
+  fs.writeFileSync(path.join(fixture, files.RESOURCE_MANIFEST), JSON.stringify({ schemaVersion: 1, resources }));
+  const inspected = inspectAppearance(fixture, sections);
+  assert.equal(inspected.sectionId, 'arknights:shared');
+  assert.deepEqual(inspected.contentTypes, ['baseIllustration', 'skinIllustration', 'dynamic', 'baseChibi', 'skinChibi', 'storyPortrait', 'cg', 'background', 'voice']);
+});
+
+test('bundle paths distinguish supporting art, audio and other content without reading binary assets', () => {
+  const { classifyContentTypes } = require('../app/src/main/games/arknights/content-types.cjs');
+  const cases = [
+    ['arts/charavatars/avatar_hub.ab', 'portrait.png', 'avatar'],
+    ['arts/charportraits/portraits_hub.ab', 'portrait.png', 'portrait'],
+    ['arts/ui/namecardskin/[uc]nc_demo.ab', 'bg.png', 'namecard'],
+    ['arts/ui/skin_panel.ab', 'icon.png', 'ui'],
+    ['arts/maps/test.ab', 'terrain.png', 'map'],
+    ['audio/sound_beta_2/music/battle.ab', 'sample.wav', 'music'],
+    ['audio/sound_beta_2/player/char_103_angel.ab', 'sample.wav', 'sound'],
+    ['audio/sound_beta_2/voice/char_103_angel.ab', 'sample.wav', 'voice'],
+    ['voice_cn/char_1037_amiya3.ab', 'char_1037_amiya3.ab', 'voice'],
+    ['avg/effects/cloud.ab', 'cloud.png', 'effect'],
+    ['arts/dynchars/effect.ab', 'effect.png', 'effect'],
+    ['battle/prefabs/enemies/enemy_1000.ab', 'model.skel', 'enemy'],
+    ['skinpack/token_10003_cgbird_bird.ab', 'token_10003_cgbird_bird_witch#1.skel', 'summon'],
+    ['battle/prefabs/trap_001.ab', 'trap_001.skel', 'battleObject'],
+    ['raw/video/story.ab', 'story.mp4', 'video'],
+    ['unknown/resources.ab', 'unidentified.png', 'other'],
+  ];
+  for (const [bundle, resource, type] of cases) {
+    assert.deepEqual(classifyContentTypes([{ bundle, resource }], () => 'arknights:shared'), [type], bundle);
+  }
+  assert.deepEqual(classifyContentTypes([{ relative: 'audio/music/mod.ini', resource: 'mod.ini' }], () => 'base'), []);
 });
