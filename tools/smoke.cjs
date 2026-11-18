@@ -27,7 +27,7 @@ fs.writeFileSync(manifestPath, JSON.stringify(manifest));
 const env = { ...process.env, QAQR_TEST_RESULTS: results, QAQR_USER_DATA: path.join(results, 'AppData/QAQ-Revival'), QAQR_DATA_DIR: path.join(results, 'data') };
 const scopes = [
   'translation', 'genshin', 'genshin-check', 'genshin-anticrash', 'game-settings',
-  'steam-bridge', 'hidden-characters', 'character-images', 'character-skins',
+  'steam-bridge', 'hidden-characters', 'character-images', 'character-skins', 'endfield-hdr',
   'skin-cover-live', 'file-drop', 'persist', 'mod-sites', 'card-images',
   'overlay-activity', 'mod-layout', 'mod-preview', 'window-layout', 'post-links', 'market-scope',
   'imports', 'sources', 'sorting', 'settings', 'wuwa-gacha', 'arknights', 'xxmi', 'game-updates'

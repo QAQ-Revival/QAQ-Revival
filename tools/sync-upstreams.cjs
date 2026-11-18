@@ -6,9 +6,12 @@ const { verifyDownstream } = require('./verify-downstream.cjs');
 const { owner, forks } = require('./upstream-repositories.json');
 const root = path.resolve(__dirname, '..');
 
-function fetchVersionTags(git, directory, remote) {
+function fetchVersionTags(git, directory, remote, repository) {
+  const pattern = repository === 'XXMI-Libs-Vulkan'
+    ? /^refs\/tags\/v\d+\.\d+\.\d+-nhd\.\d+$/
+    : /^refs\/tags\/v\d+\.\d+\.\d+(?:\.\d+)?$/;
   const refs = git(directory, ['ls-remote', '--tags', '--refs', remote]).stdout.split(/\r?\n/)
-    .map(line => line.split(/\s+/)).filter(([, ref]) => /^refs\/tags\/v\d+\.\d+\.\d+(?:\.\d+)?$/.test(ref || ''));
+    .map(line => line.split(/\s+/)).filter(([, ref]) => pattern.test(ref || ''));
   const missing = [];
   for (const [object, ref] of refs) {
     const local = git(directory, ['rev-parse', '--verify', ref], { allowed: [0, 1, 128] });
@@ -85,7 +88,7 @@ async function syncUpstreams({ client } = {}) {
     // The runtime generates its PE version with git describe, and wwmi-dx12 counts
     // its build number from the upstream release tag. A release can
     // add a tag to a commit that was already merged, without changing the branch.
-    const versionTags = item.versionTags ? fetchVersionTags(git, directory, item.versionTags) : [];
+    const versionTags = item.versionTags ? fetchVersionTags(git, directory, item.versionTags, item.name) : [];
     const previous = git(directory, ['rev-parse', 'HEAD']).stdout;
     const verify = changed => {
       verifyDownstream(directory, item.name);

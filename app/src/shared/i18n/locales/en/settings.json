@@ -263,5 +263,29 @@
     "modsFolderHint": "Organize by character: data\\EFF\\Mods\\<character>\\<Mod>. The Mods page and imports use this directory.",
     "unassigned": "{{count}} Mods are not in a character folder. They load in game but the Mods page cannot show them: {{names}}",
     "externalRequired": "The upstream build still uses the game directory, so switching to it is unavailable. The QAQR build supports external data."
+  },
+  "endfieldHdr": {
+    "summary": "Choose how Endfield uses HDR. Restart the game after switching.",
+    "refresh": "Check again",
+    "autoDescription": "Allow Windows to expand Endfield’s SDR output to HDR. Applies only to this game.",
+    "nativeTitle": "RenoDX native HDR",
+    "nativeDescription": "Output HDR with game-specific shaders. Launch through EFMI in DX11 mode.",
+    "exclusive": "Enabling either mode disables the other. Turning off the active switch disables both.",
+    "displayHint": "Enable “Use HDR” in Windows display settings first. Disable Endfield’s NVIDIA RTX HDR filter when using either mode.",
+    "conflict": "Native HDR and Auto HDR are both enabled. Select one mode again.",
+    "approval": "On first launch, XXMI asks you to confirm the new Extra Libraries setting. Check the paths and select Keep to save approval in the launcher.",
+    "autoHint": "Auto HDR is allowed. Activation still depends on Windows game compatibility and presentation support.",
+    "saved": "Settings saved. Restart the game to apply them.",
+    "processing": "Applying…",
+    "components": "Native HDR components",
+    "componentDescription": "Components, settings and screenshots live in QAQR’s data/RenoDX/Endfield directory.",
+    "install": "Install components",
+    "reinstall": "Update / repair components",
+    "bundled": "QAQR bundled build",
+    "bundleMissing": "Native HDR components are missing from this installation. Update QAQR. Windows Auto HDR remains available.",
+    "requirements": "Native HDR launch requirements",
+    "tuning": "Press Home in game and open RenoDX to adjust peak, game and UI brightness. Set peak brightness for your display.",
+    "openFolder": "Open component folder",
+    "source": "Source"
   }
 }

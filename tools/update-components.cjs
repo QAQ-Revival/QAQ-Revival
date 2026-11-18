@@ -25,7 +25,7 @@ async function updateComponents() {
   git(['submodule', 'foreach', '--recursive', 'git config --replace-all remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"']);
   git(['submodule', 'update', '--remote', '--recursive']);
   for (const item of forks.filter(item => item.versionTags)) {
-    fetchVersionTags(client.git, path.join(root, item.path), 'origin');
+    fetchVersionTags(client.git, path.join(root, item.path), 'origin', item.name);
   }
   console.log(git(['submodule', 'status', '--recursive']).stdout);
 }

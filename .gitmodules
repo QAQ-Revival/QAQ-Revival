@@ -42,3 +42,7 @@
 	path = native/eff
 	url = https://github.com/QAQ-Revival/EFF.git
 	branch = main
+[submodule "native/renodx"]
+	path = native/renodx
+	url = https://github.com/QAQ-Revival/renodx.git
+	branch = main

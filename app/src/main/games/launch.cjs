@@ -63,6 +63,7 @@ function registerIpc() {
         success: false,
         error: i18n.t("backend.games.launch.quickLaunchUnsupported")
       };
+      if (activeGame?.id === "endfield") await gamesEndfieldServices.hdrService.prepareLaunch(resolvedLaunchMode);
       if (activeGame?.id === "genshin-impact" && resolvedLaunchMode === "GIMI" && activeGame.genshinPreflightEnabled === true) {
         const report = gamesGenshinServices.genshinDiagnostics.check({
           includeLogs: false

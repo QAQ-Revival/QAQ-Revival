@@ -330,5 +330,25 @@
     "dataInsideGame": "The EFF data directory must be outside the game directory",
     "legacyOtherPlugins": "The legacy loader also loads {{names}}. Move those plugins before migrating EFF.",
     "loaderFailed": "The external EFF loader could not complete startup ({{code}})"
+  },
+  "endfieldHdr": {
+    "game": "Endfield",
+    "gameRequired": "Set a valid Endfield.exe path first.",
+    "loaderReady": "EFMI is available. Launch through EFMI in QAQR to load native HDR.",
+    "loaderRequired": "Install and configure EFMI before enabling native HDR.",
+    "dx11Required": "RenoDX native HDR requires DX11. Turn off Endfield’s Vulkan Mod mode first.",
+    "dx11Hint": "EFMI launches the game in DX11 mode.",
+    "busy": "HDR settings are being applied. Try again shortly.",
+    "invalidMode": "Invalid HDR mode.",
+    "invalidState": "The HDR recovery record is invalid. Check state.json in the component folder.",
+    "bundleMissing": "The RenoDX and ReShade component bundle is incomplete.",
+    "installationChanged": "The game or EFMI path changed. Switch back to the original paths and disable native HDR before moving the installation.",
+    "launcherChanged": "EFMI library settings changed during the HDR switch. Check the Launcher settings and try again.",
+    "unmanaged": "A manually configured RenoDX injection was found. Remove it in XXMI before managing it through QAQR.",
+    "reshadeConflict": "An existing ReShade injection or conflicting game-folder component was found. Disable the previous installation first.",
+    "rollbackFailed": "Switching failed and some settings could not be restored. Reopen the HDR page to check the current state.",
+    "useEfmi": "Native HDR is enabled. Launch through EFMI, or disable native HDR before using another launch mode.",
+    "repairRequired": "Native HDR components or injection settings are incomplete. Update / repair the components and enable native HDR again.",
+    "hdrConflict": "Windows Auto HDR was enabled for Endfield again. Select RenoDX native HDR again on the HDR page."
   }
 }

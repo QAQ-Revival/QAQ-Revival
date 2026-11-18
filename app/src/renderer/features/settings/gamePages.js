@@ -28,6 +28,7 @@ function getGameModules(gameId) {
       pages: [
         ["game-paths", "folder", t("settings.game.pathAndLaunch")],
         ["game-updates", "refresh", t("settings.game.gameUpdate")],
+        ...when(gameId === "endfield", ["endfield-hdr", "monitor", "HDR"]),
         ...when(gameId === "wuthering-waves", ["wuwa-tuning", "monitor", t("settings.game.rendering")]),
         ...when(["endfield", "wuthering-waves"].includes(gameId), ["steam-bridge", "link", t("settings.game.steamBridge")]),
       ].map(page),

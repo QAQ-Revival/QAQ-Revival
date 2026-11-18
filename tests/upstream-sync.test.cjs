@@ -64,6 +64,11 @@ test('a release tag added after its code was merged updates the build version wi
   publishVersionTags(f.git, f.directory, refs);
   assert.equal(f.git(origin, ['rev-parse', 'v1.2.3']).stdout, head);
   assert.doesNotThrow(() => publishVersionTags(f.git, f.directory, fetchVersionTags(f.git, f.directory, 'upstream')));
+  f.git(upstream, ['tag', 'v1.2.3-nhd.32', head]);
+  const vulkan = fetchVersionTags(f.git, f.directory, 'upstream', 'XXMI-Libs-Vulkan');
+  assert.deepEqual(vulkan, [[head, 'refs/tags/v1.2.3-nhd.32']]);
+  publishVersionTags(f.git, f.directory, vulkan);
+  assert.equal(f.git(origin, ['rev-parse', 'v1.2.3-nhd.32']).stdout, head);
 });
 
 test('version tag synchronization rejects a different existing tag instead of replacing it', t => {

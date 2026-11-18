@@ -1397,5 +1397,25 @@
     "dataInsideGame": "EFF 数据目录不能放在游戏目录内",
     "legacyOtherPlugins": "旧加载器还供 {{names}} 使用，请先迁走这些插件再迁移 EFF",
     "loaderFailed": "EFF 外部加载器未能完成启动（{{code}}）"
+  },
+  "endfieldHdr": {
+    "game": "终末地",
+    "gameRequired": "请先设置有效的 Endfield.exe 路径。",
+    "loaderReady": "已找到 EFMI，可通过 QAQR 的 EFMI 启动加载原生 HDR。",
+    "loaderRequired": "原生 HDR 需要先安装并配置 EFMI。",
+    "dx11Required": "RenoDX 原生 HDR 需要 DX11；请先关闭终末地的 Vulkan Mod 模式。",
+    "dx11Hint": "通过 EFMI 启动时使用 DX11。",
+    "busy": "HDR 设置正在应用，请稍后再试。",
+    "invalidMode": "无效的 HDR 模式。",
+    "invalidState": "HDR 恢复记录无效，请检查组件目录中的 state.json。",
+    "bundleMissing": "缺少完整的 RenoDX 与 ReShade 组件。",
+    "installationChanged": "游戏或 EFMI 路径已改变，请先切回原路径关闭原生 HDR，再迁移安装。",
+    "launcherChanged": "切换 HDR 期间 EFMI 的库设置已改变。请核对启动器设置后再试。",
+    "unmanaged": "检测到手动配置的 RenoDX 注入，请先在 XXMI 中移除该注入，再由 QAQR 管理。",
+    "reshadeConflict": "检测到现有 ReShade 注入或游戏目录中的同名组件，请先停用旧安装。",
+    "rollbackFailed": "切换失败，部分设置未能恢复。请重新打开 HDR 页检查当前状态。",
+    "useEfmi": "原生 HDR 已启用，请使用 EFMI 启动；其他启动方式可先关闭原生 HDR。",
+    "repairRequired": "原生 HDR 组件或注入设置不完整，请在 HDR 页更新 / 修复组件，并重新开启。",
+    "hdrConflict": "终末地的 Windows Auto HDR 又被开启了，请在 HDR 页重新选择 RenoDX 原生 HDR。"
   }
 }

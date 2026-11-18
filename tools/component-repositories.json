@@ -189,5 +189,17 @@
         "output": "local-components/eff"
       }
     }
+  },
+  "endfield-hdr": {
+    "source": "native/renodx",
+    "repository": "QAQ-Revival/renodx",
+    "branch": "main",
+    "build": "qaqr/build.cjs",
+    "targets": {
+      "endfield-hdr": {
+        "output": "local-components/endfield-hdr",
+        "work": "build/endfield-hdr"
+      }
+    }
   }
 }

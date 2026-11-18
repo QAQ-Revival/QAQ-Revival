@@ -641,5 +641,29 @@
     "modsFolderHint": "按角色存放：data\\EFF\\Mods\\<角色>\\<Mod>。Mod 页和导入功能都使用这里",
     "unassigned": "{{count}} 个 Mod 没放在角色文件夹里，游戏照常加载，但 Mod 页看不到：{{names}}",
     "externalRequired": "上游原版仍使用游戏目录，暂不提供切换。QAQR 修复版支持独立数据目录。"
+  },
+  "endfieldHdr": {
+    "summary": "为终末地选择 HDR 方式。切换后重新启动游戏。",
+    "refresh": "重新检测",
+    "autoDescription": "允许 Windows 将终末地的 SDR 画面扩展为 HDR。仅影响此游戏。",
+    "nativeTitle": "RenoDX 原生 HDR",
+    "nativeDescription": "通过游戏专用着色器输出 HDR。使用 EFMI 的 DX11 模式启动。",
+    "exclusive": "两种方式互斥：开启其中一种会关闭另一种；关闭当前开关则停用两者。",
+    "displayHint": "请先在 Windows 显示设置中开启“使用 HDR”。使用这两种模式时，请关闭终末地的 NVIDIA RTX HDR 滤镜。",
+    "conflict": "检测到原生 HDR 与 Auto HDR 同时开启，请重新选择其中一种。",
+    "approval": "首次启动时，XXMI 会提示新增的 Extra Libraries 设置。核对路径后选择“保留 / Keep”，由启动器保存授权。",
+    "autoHint": "已允许 Auto HDR。是否实际触发仍取决于 Windows 的游戏兼容性与呈现方式。",
+    "saved": "设置已保存，请重新启动游戏。",
+    "processing": "正在应用…",
+    "components": "原生 HDR 组件",
+    "componentDescription": "组件、配置和截图统一保存在 QAQR 的 data/RenoDX/Endfield 中。",
+    "install": "安装组件",
+    "reinstall": "更新 / 修复组件",
+    "bundled": "QAQR 内置版",
+    "bundleMissing": "当前安装包缺少原生 HDR 组件，请更新 QAQR。Windows Auto HDR 仍可使用。",
+    "requirements": "原生 HDR 启动条件",
+    "tuning": "进入游戏后按 Home，在 RenoDX 页调整峰值亮度、游戏亮度和 UI 亮度。峰值亮度应按显示器能力设置。",
+    "openFolder": "打开组件目录",
+    "source": "源码"
   }
 }

@@ -3,6 +3,7 @@ import React from "react";
 import { evaluateXxmiImporterPathConsistency } from "../../lib/xxmiPaths.js";
 import { WuwaTuningSettings } from "./WuwaTuningSettings.jsx";
 import { EfmiVulkanSettings } from "./EfmiVulkanSettings.jsx";
+import { EndfieldHdrSettings } from "./EndfieldHdrSettings.jsx";
 import { EffSettings } from "./EffSettings.jsx";
 import { WuwaDx12Settings } from "./WuwaDx12Settings.jsx";
 import { SteamBridgeSettings } from "./SteamBridgeSettings.jsx";
@@ -252,6 +253,7 @@ function GameSettings({ gameId, page, active = true, updates, notify }) {
       {pageOf("efmi-vulkan", () => (
         <EfmiVulkanSettings />
       ))}
+      {pageOf("endfield-hdr", () => <EndfieldHdrSettings />)}
       {pageOf("eff", () => <EffSettings part="overview" />)}
       {pageOf("eff-components", () => <EffSettings part="components" />)}
       {pageOf("wuwa-dx12", () => (

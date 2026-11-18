@@ -22,6 +22,13 @@ electron.Menu.prototype.popup = function (options) {
   options.callback?.();
 };
 const root = process.env.QAQR_TEST_RESULTS;
+const hdrPreferences = new Map();
+if (process.env.QAQR_SMOKE_SCOPE === 'endfield-hdr') {
+  runtimeRequire('./out/main/games/endfield/hdr-windows.cjs').createWindowsHdrPreferences = () => ({
+    read: async game => ({ app: hdrPreferences.get(game) ?? null, global: 'AutoHDREnable=1;' }),
+    write: async (game, value) => { if (value === null) hdrPreferences.delete(game); else hdrPreferences.set(game, value); }
+  });
+}
 const profile = process.env.QAQR_USER_DATA;
 const mods = path.join(root, ...(process.env.QAQR_SMOKE_SCOPE === 'persist' ? ['WWMI', 'Mods'] : ['wuwa-mods']));
 const endfield = path.join(root, ...(process.env.QAQR_SMOKE_SCOPE === 'persist' ? ['EFMI', 'Mods'] : ['endfield-mods']));
@@ -403,6 +410,11 @@ async function main() {
   if (process.env.QAQR_SMOKE_SCOPE === 'genshin-anticrash') {
     await require('./genshin-anticrash-smoke.cjs')({ electron, evaluate, waitFor, captureUI, window, root, handlers, passed, launchRequests, antiCrashRequests,
       setLaunchFailure: value => { launchFailure = value; } });
+    fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
+    app.exit(0); return;
+  }
+  if (process.env.QAQR_SMOKE_SCOPE === 'endfield-hdr') {
+    await require('./endfield-hdr-smoke.cjs')({ evaluate, waitFor, captureUI, window, root, handlers, passed, hdrPreferences });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }

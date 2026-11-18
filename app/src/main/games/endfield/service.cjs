@@ -9,6 +9,8 @@ const { createEfmiVulkanService, assertEndfieldStopped } = require("./vulkan.cjs
 const { readPresentMethod } = require("./present-method.cjs");
 const { createEffPackages } = require("./eff-packages.cjs");
 const { createEffService } = require("./eff.cjs");
+const { createEndfieldHdrService } = require("./hdr.cjs");
+const { createWindowsHdrPreferences } = require("./hdr-windows.cjs");
 const { VULKAN_MARK } = require("../../install/mi-forks.cjs");
 const archivesExtract = require("../../archives/extract.cjs");
 const systemFiles = require("../../system/files.cjs");
@@ -19,7 +21,7 @@ const runtimePaths = require("../../runtime/paths.cjs");
 const { getLoaderDataRoot } = require("../../runtime/data-paths.cjs");
 const systemWindows = require("../../system/windows.cjs");
 const { logger } = require("../../core/logger.cjs");
-let efmiVulkanService, effService;
+let efmiVulkanService, effService, hdrService;
 function runPowerShell(script) {
   const powershell = path.join(process.env.SystemRoot || "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe");
   return new Promise((resolve, reject) => childProcess.execFile(powershell, ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(script, "utf16le").toString("base64")], {
@@ -38,6 +40,14 @@ function initialize() {
     return { ...installation, gamePath: game.gamePath };
   };
   const assertStopped = paths => assertEndfieldStopped(paths, runPowerShell);
+  hdrService = createEndfieldHdrService({
+    storageRoot: getLoaderDataRoot("RenoDX/Endfield"),
+    bundleRoots: installXxmi.componentRoots,
+    resolveInstallation,
+    preferences: createWindowsHdrPreferences(),
+    assertStopped: paths => assertStopped({ launcher: paths.launcherRoot }),
+    notifyChanged: notify
+  });
   efmiVulkanService = createEfmiVulkanService({
     packages: createEfmiVulkanPackages({
       bundledDir: path.join(installRoot, "local-components", "efmi-vulkan"),
@@ -98,6 +108,9 @@ function initialize() {
 }
 function registerIpc() {
   for (const [channel, action] of Object.entries({
+    "endfield:hdr-status": () => hdrService.status(),
+    "endfield:hdr-set-mode": mode => hdrService.setMode(mode),
+    "endfield:hdr-install": () => hdrService.install(),
     "efmi:vulkan-status": () => efmiVulkanService.status(),
     "efmi:vulkan-set-enabled": async ({ enabled, confirmed } = {}) => {
       const result = await efmiVulkanService.setEnabled(enabled, { confirmed: confirmed === true });
@@ -134,5 +147,8 @@ module.exports = {
   },
   get effService() {
     return effService;
+  },
+  get hdrService() {
+    return hdrService;
   }
 };
