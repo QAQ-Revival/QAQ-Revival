@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { spawnSync } = require('node:child_process');
-const { createPlan, synchronize, deploy, mergeUpstream, mergeOptional, fetchVersionTags, publishVersionTags } = require('../tools/sync.cjs');
+const { createPlan, ensureCheckout, synchronize, deploy, mergeUpstream, mergeOptional, fetchVersionTags, publishVersionTags } = require('../tools/sync.cjs');
 const { checkoutConfig } = require('../tools/github-app-client.cjs');
 
 // Git keeps its objects read-only, and fs.rmSync on Windows does not remove those by itself.
@@ -334,4 +334,21 @@ test('deployment rebuilds only a package whose source moved and replaces every c
   assert.deepEqual(copies(), ['two', 'two', 'two']);
   assert.equal(run().length, 3);
   assert.deepEqual(copies(), ['three', 'three', 'three']);
+});
+test('in a fresh clone a nested submodule is checked out after the repositories above it', t => {
+  const base = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'qaqr-fresh-'));
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const plan = createPlan(require('../tools/upstream-repositories.json'), base);
+  const calls = [];
+  const git = (directory, args) => {
+    assert.deepEqual(args.slice(0, 4), ['submodule', 'update', '--init', '--']);
+    assert(directory === base || fs.existsSync(path.join(directory, '.git')), 'Git ran in a directory that is not checked out: ' + directory);
+    calls.push(path.relative(base, path.join(directory, args[4])).split(path.sep).join('/'));
+    fs.mkdirSync(path.join(directory, args[4], '.git'), { recursive: true });
+  };
+  for (const node of plan) ensureCheckout(git, node);
+  assert.deepEqual([...calls].sort(), plan.filter(node => node.kind !== 'root').map(node => node.path).sort());
+  assert(calls.indexOf('native/renodx') < calls.indexOf('native/renodx/external/reshade'));
+  assert(calls.indexOf('native/wwmi-dx12') < calls.indexOf('native/wwmi-dx12/third_party/3Dmigoto'));
+  assert(calls.indexOf('bridges/mega') < calls.indexOf('bridges/mega/vendor/MegaDownloader-Revival'));
 });

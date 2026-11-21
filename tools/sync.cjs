@@ -246,6 +246,14 @@ async function acceptOfficialRuntime(git, node, api, download = async url => Buf
   return false;
 }
 
+// A fresh clone has none of the submodules. A child is handled before its parent, so the
+// parents above it are checked out first, at the revision the level above records.
+function ensureCheckout(git, node) {
+  if (node.kind === 'root' || fs.existsSync(path.join(node.directory, '.git'))) return;
+  ensureCheckout(git, node.parent);
+  git(node.parent.directory, ['submodule', 'update', '--init', '--', relative(node.parent.directory, node.directory)]);
+}
+
 async function advance(git, node, state, states, { api, verify, official, check }) {
   const directory = node.directory;
   if (node.kind === 'tracked') return advanceTracked(git, node);
@@ -294,7 +302,7 @@ async function synchronize({ plan, git, api, push = true, log = console.log, ver
     const state = { node, held: null };
     states.set(node, state);
     try {
-      if (node.kind !== 'root' && !fs.existsSync(path.join(node.directory, '.git'))) git(node.parent.directory, ['submodule', 'update', '--init', '--', relative(node.parent.directory, node.directory)]);
+      ensureCheckout(git, node);
       state.before = head(git, node.directory);
       await advance(git, node, state, states, { api, verify, official, check });
       state.revision = head(git, node.directory);
@@ -414,7 +422,8 @@ function deploy({ targets = [], install = process.env.QAQR_INSTALL_DIR || 'D:/QA
     if (force || recordedRevision !== revision || !fs.existsSync(current)) {
       log(`${target}: ${dryRun ? 'would build' : 'building'} ${revision.slice(0, 12)}`);
       if (dryRun) continue;
-      from = path.join(cache, 'stage', target);
+      // Some builds insist on the directory names of their final place.
+      from = path.join(cache, 'stage', target, options.output);
       fs.rmSync(from, { recursive: true, force: true });
       build(target, { output: from });
       built[target] = revision;
@@ -429,7 +438,13 @@ function deploy({ targets = [], install = process.env.QAQR_INSTALL_DIR || 'D:/QA
     }
     for (const destination of [current, ...applications.map(application => place(application, options.output))]) {
       if (destination === from || !fs.existsSync(path.dirname(destination))) continue;
-      if (fs.existsSync(destination) && sameTree(hashTree(destination), inventory)) continue;
+      if (fs.existsSync(destination)) {
+        if (sameTree(hashTree(destination), inventory)) continue;
+        // Builds are not byte-identical, so a copy that differs is replaced only when it is known to
+        // come from another source: this run rebuilt the package, or the copy names a different commit.
+        const theirs = fs.existsSync(path.join(destination, 'component.json')) && JSON.parse(fs.readFileSync(path.join(destination, 'component.json'), 'utf8')).sourceCommit;
+        if (from === current && (!theirs || theirs === revision)) continue;
+      }
       swaps.push({ target, from, destination, inventory });
     }
   }
@@ -509,4 +524,4 @@ async function main(argv) {
 }
 
 if (require.main === module) main(process.argv.slice(2)).catch(error => { console.error(error.message); process.exitCode = 1; });
-module.exports = { createPlan, synchronize, status, deploy, mergeUpstream, mergeOptional, fetchVersionTags, publishVersionTags, acceptOfficialRuntime, hashTree };
+module.exports = { createPlan, ensureCheckout, synchronize, status, deploy, mergeUpstream, mergeOptional, fetchVersionTags, publishVersionTags, acceptOfficialRuntime, hashTree };
