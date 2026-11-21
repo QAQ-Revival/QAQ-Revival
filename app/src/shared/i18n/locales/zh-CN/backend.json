@@ -1325,6 +1325,16 @@
     "loader": "加载器路径",
     "mods": "Mods 路径"
   },
+  "componentUpdates": {
+    "invalidRelease": "QAQR 发布的修复版清单不完整",
+    "updateCheckFailed": "检查修复版更新失败（{{status}}）",
+    "downloadFailed": "下载修复版失败（{{status}}）",
+    "checksumFailed": "{{name}} 校验失败，没有安装",
+    "invalidPackage": "下载的修复版和它的清单对不上，没有安装",
+    "installFailed": "修复版没能写入数据目录，原来的版本不变",
+    "nothingNew": "没有比现在更新的修复版",
+    "storageReadFailed": "读取修复版的版本记录失败"
+  },
   "efmiVulkan": {
     "gameTitle": "游戏",
     "gameRequired": "先设置 Endfield.exe 路径",

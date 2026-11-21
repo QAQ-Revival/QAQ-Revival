@@ -486,6 +486,7 @@ const api = {
   xxmiCheck: (gameId) => electron.ipcRenderer.invoke("xxmi:check", gameId),
   xxmiInstall: (opts) => electron.ipcRenderer.invoke("xxmi:install", opts),
   xxmiForkSwitch: (opts) => electron.ipcRenderer.invoke("xxmi:fork-switch", opts),
+  xxmiForkUpdate: (opts) => electron.ipcRenderer.invoke("xxmi:fork-update", opts),
   xxmiUpdateOfficial: (opts) => electron.ipcRenderer.invoke("xxmi:update-official", opts),
   onXxmiProgress: (cb) => {
     const handler = (_, data) => cb(data);

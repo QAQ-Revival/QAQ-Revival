@@ -1,0 +1,81 @@
+name: Component Release
+
+# Called by the `qaqr-component.yml` of an organization fork, and run there: it builds the package of
+# the component that fork holds and publishes it as the fork's release. Nothing here runs in this
+# repository, so an ordinary commit still leaves no Actions record.
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      actions: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out the release tooling
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: QAQ-Revival/QAQ-Revival
+          ref: main
+          path: tooling
+          persist-credentials: false
+          sparse-checkout: |
+            tools/publish-component.cjs
+            tools/component-repositories.json
+          sparse-checkout-cone-mode: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      # A fork whose component is not released yet, or a push to another branch, ends here.
+      - name: Find the component this repository publishes
+        id: plan
+        run: node tooling/tools/publish-component.cjs plan
+
+      # The branch head with every tag: a version tag that arrives after its commit renumbers the build.
+      - name: Check out the component source
+        if: steps.plan.outputs.publish == 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ steps.plan.outputs.branch }}
+          path: source
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Build, check and package
+        if: steps.plan.outputs.publish == 'true'
+        run: |
+          node tooling/tools/publish-component.cjs build source "$env:RUNNER_TEMP/component/${{ steps.plan.outputs.component }}"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Publish the release and drop the ones before it
+        if: steps.plan.outputs.publish == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node tooling/tools/publish-component.cjs publish "$env:RUNNER_TEMP/component/${{ steps.plan.outputs.component }}"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # A failed run stays until one goes through, so it is seen.
+      - name: Keep only this run of the workflow
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $runs = gh api --paginate "repos/$env:GITHUB_REPOSITORY/actions/workflows/qaqr-component.yml/runs?status=completed&per_page=100" --jq '.workflow_runs[].id'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($run in $runs) {
+            if ("$run" -ne $env:GITHUB_RUN_ID) { gh api --method DELETE "repos/$env:GITHUB_REPOSITORY/actions/runs/$run" | Out-Null }
+          }
+          exit 0

@@ -219,8 +219,10 @@
     "use": "Use",
     "useNamed": "Use {{target}} for {{name}}",
     "updateNamedFork": "Update the {{name}} fix",
-    "updateForkHint": "Replace it with the latest fix bundled with QAQR",
-    "forkUpdated": "The {{name}} fix was updated. Restart the game to apply."
+    "updateForkHint": "Replace it with the latest fix QAQR has",
+    "downloadForkHint": "Download the latest fix from QAQR's GitHub release, verify it, and replace this one",
+    "forkUpdated": "The {{name}} fix was updated. Restart the game to apply.",
+    "forkDownloaded": "The {{name}} fix {{version}} was downloaded"
   },
   "eff": {
     "summary": "Resource replacement framework for Endfield that works alongside EFMI. It swaps models, materials and textures as the game loads them.",

@@ -430,7 +430,7 @@ async function main() {
     app.exit(0); return;
   }
   if (process.env.QAQR_SMOKE_SCOPE === 'xxmi') {
-    await require('./xxmi-smoke.cjs')({ electron, evaluate, waitFor, captureUI, root, handlers, passed });
+    await require('./xxmi-smoke.cjs')({ electron, runtimeRequire, evaluate, waitFor, captureUI, root, handlers, passed });
     fs.writeFileSync(path.join(root, 'report.json'), JSON.stringify({ success: true, electron: process.versions.electron, checks }, null, 2));
     app.exit(0); return;
   }

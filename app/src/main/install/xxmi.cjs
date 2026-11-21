@@ -8,10 +8,11 @@ const electron = require("electron");
 const i18n = require("../../shared/i18n/core.cjs");
 const config = require("../config/store.cjs");
 const settings = require("../games/settings.cjs");
-const { getDataRoot, IMPORTERS } = require("../runtime/data-paths.cjs");
+const { getDataRoot, getLoaderDataRoot, IMPORTERS } = require("../runtime/data-paths.cjs");
 const installPaths = require("./paths.cjs");
 const { isPathInsideDirectory } = require("../system/paths.cjs");
-const { createMiForksService } = require("./mi-forks.cjs");
+const { createMiForksService, loadBundle, runtimePackage } = require("./mi-forks.cjs");
+const { createComponentUpdates } = require("./component-updates.cjs");
 const componentRoots = () => [path.dirname(process.execPath), path.resolve(electron.app.getAppPath(), "../.."), path.resolve(electron.app.getAppPath(), "..")];
 function resolveInstallation(gameId) {
   const game = settings.getGameById(gameId);
@@ -19,7 +20,15 @@ function resolveInstallation(gameId) {
   const info = launcher && settings.readXxmiImporterPathInfo(launcher, gameId);
   return info?.status === "configured" ? { launcherRoot: info.xxmiRootDir, miRoot: info.importerPath } : null;
 }
-const maintained = createMiForksService({ bundleRoots: componentRoots, resolveInstallation });
+// The fork releases every build of the runtime; a newer one than the bundled copy is kept under data.
+const runtimeUpdates = createComponentUpdates({
+  name: runtimePackage.name, repository: runtimePackage.repository,
+  storeDir: () => path.join(getLoaderDataRoot("Components"), runtimePackage.name),
+  bundled: () => loadBundle(componentRoots(), runtimePackage.name, "XXMI-Libs-Package"),
+  load: runtimePackage.load, versionOf: runtimePackage.version,
+  fetch: (...args) => electron.net.fetch(...args)
+});
+const maintained = createMiForksService({ bundleRoots: componentRoots, resolveInstallation, runtimeBundle: () => runtimeUpdates.active() });
 const cache = new Map();
 let operation = null;
 function plain(file) {
@@ -99,7 +108,11 @@ async function status(gameId, action = "status") {
   if (operation) return { success: true, ...resolved, ...cache.get(gameId), busy: true };
   // In DX12 mode the game loads the ReShade add-on, so this DLL only applies once it is back on DX11.
   const fork = { ...maintained.status(gameId), runtimeInactive: settings.getGameById(gameId)?.wuwaDx12Enabled === true };
-  const result = { ...await runWorker({ ...resolved, action }), fork };
+  const runtime = fork.components?.find(item => item.id === "runtime" && item.switchable !== false);
+  // The fork's releases are asked along with the official versions; offline, what is on disk goes on being used.
+  const [worked] = await Promise.all([runWorker({ ...resolved, action }), action === "check" && runtime ? runtimeUpdates.check() : null]);
+  if (runtime) runtime.forkUpdates = runtimeUpdates.state(runtime.fork?.version);
+  const result = { ...worked, fork };
   if (action === "status") {
     // After a restart nothing has been checked in this run yet, so fall back to what the last saved check found.
     const previous = cache.get(gameId)?.components || require("../games/updates.cjs").checkedComponents(gameId);
@@ -155,6 +168,32 @@ async function changeFork({ gameId, component, target, confirmed } = {}) {
     for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId });
   }
 }
+// Takes the fix the fork released last. A fix that is in use is replaced with it; the official runtime is left in place.
+async function updateFork({ gameId, component } = {}) {
+  if (operation) throw Error(i18n.t("settings.mi.busy"));
+  const state = maintained.status(gameId);
+  const entry = state.components?.find(item => item.id === component);
+  if (!state.ready || component !== "runtime" || entry?.switchable === false) throw Error(state.error || i18n.t("settings.mi.unsupported"));
+  operation = { gameId };
+  const changed = () => {
+    for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId });
+  };
+  changed();
+  try {
+    const installed = await runtimeUpdates.update(entry.fork?.version);
+    let applied = false, pending = null;
+    if (["fork", "outdated"].includes(entry.local.kind)) {
+      try { applied = maintained.change(gameId, component, "fork").success === true; }
+      catch (failure) { pending = failure.message; }
+    }
+    return { success: true, ...installed, applied, pending };
+  } finally {
+    operation = null;
+    cache.clear();
+    require("../games/updates.cjs").invalidate(gameId);
+    changed();
+  }
+}
 async function updateOfficial({ gameId, component } = {}) {
   if (operation) throw Error(i18n.t("settings.mi.busy"));
   const state = maintained.status(gameId);
@@ -179,11 +218,11 @@ async function updateOfficial({ gameId, component } = {}) {
   }
 }
 function registerIpc() {
-  for (const [channel, action] of [["xxmi:status", gameId => status(gameId)], ["xxmi:check", gameId => status(gameId, "check")], ["xxmi:install", install], ["xxmi:fork-switch", changeFork], ["xxmi:update-official", updateOfficial]]) {
+  for (const [channel, action] of [["xxmi:status", gameId => status(gameId)], ["xxmi:check", gameId => status(gameId, "check")], ["xxmi:install", install], ["xxmi:fork-switch", changeFork], ["xxmi:fork-update", updateFork], ["xxmi:update-official", updateOfficial]]) {
     electron.ipcMain.handle(channel, async (_, payload) => {
       try { return await action(payload); }
       catch (error) { return { success: false, error: error.message }; }
     });
   }
 }
-module.exports = { registerIpc, paths, runWorker, status, install, changeFork, updateOfficial, resolveInstallation, componentRoots, miForks: maintained, isBusy: () => !!operation };
+module.exports = { registerIpc, paths, runWorker, status, install, changeFork, updateFork, updateOfficial, resolveInstallation, componentRoots, miForks: maintained, runtimeUpdates, isBusy: () => !!operation };

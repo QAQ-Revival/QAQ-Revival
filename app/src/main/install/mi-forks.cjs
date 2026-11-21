@@ -31,6 +31,9 @@ function writeAtomic(file, bytes) {
 function loadBundle(roots, name, repository) {
   const directory = roots.map(root => path.join(root, "local-components", name)).find(root => fs.existsSync(path.join(root, "component.json")));
   if (!directory) throw error("bundleMissing");
+  return loadBundleAt(directory, repository);
+}
+function loadBundleAt(directory, repository) {
   plain(directory);
   const manifest = JSON.parse(fs.readFileSync(path.join(directory, "component.json"), "utf8"));
   if (manifest.source !== `https://github.com/QAQ-Revival/${repository}` || !/^[a-f0-9]{40}$/.test(manifest.sourceCommit || "") || !manifest.files) throw error("invalidBundle");
@@ -89,7 +92,28 @@ function replaceFiles(root, plans) {
   return { success: true, restartRequired: true };
 }
 
-function createMiForksService({ bundleRoots, resolveInstallation, userName } = {}) {
+// The XXMI-Libs package, as the component updates read it from the installation or from a download.
+// A downloaded DLL has to be a build of the fork that carries the number its manifest gives.
+const runtimePackage = {
+  name: "xxmi-runtime",
+  repository: "QAQ-Revival/XXMI-Libs-Package",
+  load(directory, { downloaded = false } = {}) {
+    const bundle = loadBundleAt(directory, "XXMI-Libs-Package");
+    if (bundle.manifest.activityProtocol !== 1 || !bundle.files[RUNTIME_FILE] || !Array.isArray(bundle.manifest.compatibleRuntimeHashes)) throw error("invalidBundle");
+    if (downloaded) {
+      const bytes = fs.readFileSync(bundle.files[RUNTIME_FILE]);
+      if (!bytes.includes(FORK_MARK) || bytes.includes(VULKAN_MARK) || peVersion(bytes) !== bundle.manifest.version) throw error("invalidBundle");
+    }
+    return bundle;
+  },
+  version(bundle) {
+    if (!bundle.files[RUNTIME_FILE]) throw error("invalidBundle");
+    return peVersion(fs.readFileSync(bundle.files[RUNTIME_FILE]));
+  }
+};
+
+// `runtimeBundle` hands over the runtime package to use when a newer one than the bundled copy may be on disk.
+function createMiForksService({ bundleRoots, resolveInstallation, userName, runtimeBundle } = {}) {
   const roots = () => typeof bundleRoots === "function" ? bundleRoots() : bundleRoots;
   function context(gameId) {
     const importer = SUPPORTED[gameId];
@@ -121,7 +145,7 @@ function createMiForksService({ bundleRoots, resolveInstallation, userName } = {
     const official = officialBytes && { version: launcherVersion(ctx.launcherRoot, "XXMI") };
     let bundle = null, bundleFailure = null;
     try {
-      bundle = loadBundle(roots(), "xxmi-runtime", "XXMI-Libs-Package");
+      bundle = runtimeBundle ? runtimeBundle() : loadBundle(roots(), "xxmi-runtime", "XXMI-Libs-Package");
       if (bundle.manifest.activityProtocol !== 1 || !bundle.files[RUNTIME_FILE] || !Array.isArray(bundle.manifest.compatibleRuntimeHashes)) throw error("invalidBundle");
     } catch (failure) { bundle = null; bundleFailure = failure; }
     const forkBytes = bundle && fs.readFileSync(bundle.files[RUNTIME_FILE]);
@@ -245,4 +269,4 @@ function createMiForksService({ bundleRoots, resolveInstallation, userName } = {
   return { status, change, dx11Runtime, preferForks };
 }
 
-module.exports = { createMiForksService, hasUnsafeApproval, loadBundle, replaceFiles, FORK_MARK, VULKAN_MARK };
+module.exports = { createMiForksService, hasUnsafeApproval, loadBundle, replaceFiles, runtimePackage, FORK_MARK, VULKAN_MARK };

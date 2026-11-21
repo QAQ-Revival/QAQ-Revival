@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-module.exports = async ({ electron, handlers, root, evaluate, waitFor, captureUI, passed }) => {
+module.exports = async ({ electron, runtimeRequire, handlers, root, evaluate, waitFor, captureUI, passed }) => {
   const call = (name, ...args) => handlers.get(name)({}, ...args);
   const xxmi = path.join(root, 'managed-XXMI');
   const loader = path.join(xxmi, 'Resources/Bin/XXMI Launcher.exe');
@@ -55,6 +55,7 @@ module.exports = async ({ electron, handlers, root, evaluate, waitFor, captureUI
   for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send('xxmi:changed', { gameId: 'wuthering-waves' });
   await waitFor(`${variant('fork')}.classList.contains('is-active')`, 'files changed outside QAQR are read back from disk');
   passed('XXMI-Libs switches between the Launcher official DLL and the packaged fix, shows what is on disk, and keeps Launcher preferences');
+  await require('./component-release-smoke.cjs')({ electron, runtimeRequire, handlers, root, xxmi, runtimeBundle, launcherConfig, evaluate, waitFor, captureUI, passed });
   const originalStatus = handlers.get('xxmi:status');
   let installing = true;
   electron.ipcMain.removeHandler('xxmi:status');

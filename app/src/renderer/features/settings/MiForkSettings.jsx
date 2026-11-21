@@ -12,10 +12,12 @@ import {
 } from "./SettingsControls.jsx";
 
 // One component, one line per variant: both stay listed with their own version whichever is in use.
-function MiComponentCard({ component, locked, onChoose, onUpdate, onOpenLauncher }) {
-  const { id, name, local, official, fork, updates } = component;
+function MiComponentCard({ component, locked, onChoose, onUpdate, onUpdateFork, onOpenLauncher }) {
+  const { id, name, local, official, fork, updates, forkUpdates } = component;
   const switchable = component.switchable !== false;
   const outdated = local.kind === "outdated";
+  // The fork released a later fix than the one QAQR holds, bundled or downloaded.
+  const released = !!forkUpdates?.updateAvailable;
   // Once a check found the official version current there is nothing for Update to do.
   const current = !!updates?.latest && !updates.updateAvailable && !updates.error;
   const useButton = (target, allowed) =>
@@ -94,10 +96,34 @@ function MiComponentCard({ component, locked, onChoose, onUpdate, onOpenLauncher
         inUse={local.kind === "fork" || outdated}
         local={outdated ? local.version : fork?.version}
         build={outdated ? undefined : fork?.build}
-        latest={fork?.version || "—"}
-        status={!fork ? undefined : outdated ? "update" : "current"}
+        latest={released ? forkUpdates.latest : fork?.version || "—"}
+        status={
+          released || (fork && outdated)
+            ? "update"
+            : !fork
+              ? undefined
+              : forkUpdates?.error
+                ? "error"
+                : "current"
+        }
         actions={
-          // An old fix on a Core the bundle does not match is brought up to date through the official line instead.
+          released ? (
+            // Downloads the released fix. One in use is replaced with it; the official variant stays as it is.
+            <React.Fragment>
+              {!outdated && useButton("fork", component.canUseFork)}
+              <Button
+                small={true}
+                data-action="update"
+                primary={true}
+                disabled={locked}
+                title={t("settings.versions.downloadForkHint")}
+                aria-label={t("settings.versions.updateNamedFork", { name })}
+                onClick={() => onUpdateFork(component)}
+              >
+                {t("settings.mi.update")}
+              </Button>
+            </React.Fragment>
+          ) : // An old fix on a Core the bundle does not match is brought up to date through the official line instead.
           outdated ? (
             component.canUseFork && <Button
               small={true}
@@ -213,6 +239,28 @@ export function MiForkSettings({
       setWorking(false);
     }
   }
+  async function updateFork(component) {
+    if (locked) return;
+    setWorking(true);
+    setError("");
+    try {
+      const result = check(await window.api.xxmiForkUpdate({ gameId, component: component.id }));
+      notify(
+        "success",
+        t(result.applied ? "settings.versions.forkUpdated" : "settings.versions.forkDownloaded", {
+          name: component.name,
+          version: result.version,
+        }),
+      );
+      // Downloaded, but the copy in use could not be replaced: Unsafe Mode is off, or the game holds the file.
+      if (result.pending) setError(result.pending);
+    } catch (failure) {
+      setError(failure.message);
+    } finally {
+      try { await onChanged(); } catch (failure) { setError(failure.message); }
+      setWorking(false);
+    }
+  }
   function choose(component, target) {
     if (locked || component.local.kind === target) return;
     if (component.confirmReplace) setConfirming({ component, target });
@@ -243,6 +291,7 @@ export function MiForkSettings({
           locked={locked}
           onChoose={choose}
           onUpdate={update}
+          onUpdateFork={updateFork}
           onOpenLauncher={onOpenLauncher}
         />
       ))}

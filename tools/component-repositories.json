@@ -171,6 +171,7 @@
     "repository": "QAQ-Revival/XXMI-Libs-Package",
     "branch": "master",
     "build": "qaqr/build.cjs",
+    "release": true,
     "targets": {
       "xxmi-runtime": {
         "output": "local-components/xxmi-runtime",

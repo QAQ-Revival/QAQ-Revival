@@ -258,6 +258,16 @@
     "targetModsDirectory": "Target Mods directory",
     "downloadCacheDirectory": "Download cache directory"
   },
+  "componentUpdates": {
+    "invalidRelease": "The fix QAQR released has an incomplete file list",
+    "updateCheckFailed": "Could not check for a newer fix ({{status}})",
+    "downloadFailed": "Could not download the fix ({{status}})",
+    "checksumFailed": "{{name}} failed its checksum. Nothing was installed",
+    "invalidPackage": "The downloaded fix does not match its file list. Nothing was installed",
+    "installFailed": "The fix could not be written to the data folder. The current version is unchanged",
+    "nothingNew": "There is no fix newer than the current one",
+    "storageReadFailed": "Could not read the saved versions of the fix"
+  },
   "efmiVulkan": {
     "gameTitle": "Game",
     "gameRequired": "Set the Endfield.exe path first",
