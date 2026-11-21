@@ -132,7 +132,8 @@ const characterImageRequests = [];
 const characterImageBytes = electron.nativeImage.createFromBitmap(Buffer.from([0x70, 0x90, 0xe0, 0xff]), { width: 1, height: 1 }).toPNG();
 let characterImagesOffline = false;
 electron.net.fetch = async (address, options = {}) => {
-  if (String(address) === 'https://reshade.me/') return new Response('<a href="/downloads/ReShade_Setup_6.8.0_Addon.exe">Full add-on support</a>');
+  // Later than any ReShade the manager ships, so the update stays on offer whatever is bundled.
+  if (String(address) === 'https://reshade.me/') return new Response('<a href="/downloads/ReShade_Setup_99.0.0_Addon.exe">Full add-on support</a>');
   if (String(address).startsWith('https://api.github.com/repos/lekarsenten/wwmi-dx12/') || String(address) === 'https://github.com/lekarsenten/wwmi-dx12/releases/download/v2026.11.1/wwmi-dx12-2026.11.1.zip') {
     // A synthetic future release exercises the updater without any live download or execution.
     const zip = new (runtimeRequire('adm-zip'))(path.join(path.dirname(process.execPath), 'local-components/wwmi-dx12/wwmi-dx12-2026.10.3.zip'));

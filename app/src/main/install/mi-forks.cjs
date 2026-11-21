@@ -28,10 +28,13 @@ function writeAtomic(file, bytes) {
   try { fs.writeFileSync(temporary, bytes); fs.renameSync(temporary, file); }
   finally { if (fs.existsSync(temporary)) fs.unlinkSync(temporary); }
 }
-function loadBundle(roots, name, repository) {
+function bundleDirectory(roots, name) {
   const directory = roots.map(root => path.join(root, "local-components", name)).find(root => fs.existsSync(path.join(root, "component.json")));
   if (!directory) throw error("bundleMissing");
-  return loadBundleAt(directory, repository);
+  return directory;
+}
+function loadBundle(roots, name, repository) {
+  return loadBundleAt(bundleDirectory(roots, name), repository);
 }
 function loadBundleAt(directory, repository) {
   plain(directory);
@@ -112,8 +115,8 @@ const runtimePackage = {
   }
 };
 
-// `runtimeBundle` hands over the runtime package to use when a newer one than the bundled copy may be on disk.
-function createMiForksService({ bundleRoots, resolveInstallation, userName, runtimeBundle } = {}) {
+// `runtimeBundle` and `coreBundle` hand over the package to use when a newer one than the bundled copy may be on disk.
+function createMiForksService({ bundleRoots, resolveInstallation, userName, runtimeBundle, coreBundle } = {}) {
   const roots = () => typeof bundleRoots === "function" ? bundleRoots() : bundleRoots;
   function context(gameId) {
     const importer = SUPPORTED[gameId];
@@ -184,7 +187,7 @@ function createMiForksService({ bundleRoots, resolveInstallation, userName, runt
     const installed = coreVersion(ctx);
     let bundle;
     try {
-      bundle = loadBundle(roots(), "efmi-core", "EFMI-Package");
+      bundle = coreBundle ? coreBundle() : loadBundle(roots(), "efmi-core", "EFMI-Package");
       const { official, compatibleFiles } = bundle.manifest;
       if (!official?.version || !Array.isArray(official.files) || !official.files.length || official.files.some(relative => !bundle.files[`official/${relative}`]) || EFMI_FILES.some(relative => !bundle.files[relative] || !Array.isArray(compatibleFiles?.[relative]))) throw error("invalidBundle");
     } catch (failure) {
@@ -269,4 +272,4 @@ function createMiForksService({ bundleRoots, resolveInstallation, userName, runt
   return { status, change, dx11Runtime, preferForks };
 }
 
-module.exports = { createMiForksService, hasUnsafeApproval, loadBundle, replaceFiles, runtimePackage, FORK_MARK, VULKAN_MARK };
+module.exports = { createMiForksService, hasUnsafeApproval, bundleDirectory, loadBundle, loadBundleAt, replaceFiles, runtimePackage, FORK_MARK, VULKAN_MARK };

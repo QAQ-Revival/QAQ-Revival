@@ -24,7 +24,8 @@ function hasLibraryApproval(launcherRoot, importer) {
     return crypto.verify("sha256", Buffer.from(importer.extra_libraries), { key, type: "spki", format: "der" }, Buffer.from(importer.extra_libraries_signature || "", "base64"));
   } catch { return false; }
 }
-function createEndfieldHdrService({ storageRoot, bundleRoots, resolveInstallation, preferences, assertStopped, notifyChanged = () => {} }) {
+// `forkPackage` is the fork's own releases of the component: the newer of the bundled copy and a downloaded one.
+function createEndfieldHdrService({ storageRoot, bundleRoots, forkPackage, resolveInstallation, preferences, assertStopped, notifyChanged = () => {} }) {
   let busy = false;
   const managedDll = path.join(storageRoot, DLL);
   const stateFile = path.join(storageRoot, "state.json");
@@ -39,7 +40,7 @@ function createEndfieldHdrService({ storageRoot, bundleRoots, resolveInstallatio
     if (state && state.protocol !== 1) throw failure("invalidState");
     return { ...found, configFile, config, importer, runtime, vulkan, state };
   }
-  function bundle() { return loadBundle(typeof bundleRoots === "function" ? bundleRoots() : bundleRoots, "endfield-hdr", "renodx"); }
+  function bundle() { return forkPackage ? forkPackage.active() : loadBundle(typeof bundleRoots === "function" ? bundleRoots() : bundleRoots, "endfield-hdr", "renodx"); }
   function installed() {
     try {
       const record = JSON.parse(fs.readFileSync(path.join(storageRoot, "component.json"), "utf8"));
@@ -64,6 +65,7 @@ function createEndfieldHdrService({ storageRoot, bundleRoots, resolveInstallatio
     return {
       success: true, mode: native ? "native" : auto ? "auto" : "off", native, auto,
       conflict: native && auto, installed: !!local, local, available,
+      forkUpdates: forkPackage ? forkPackage.state(available?.version) : null,
       canUseNative: gameReady && loaderReady && !ctx.vulkan && !!(local || available),
       needsApproval: native && !hasLibraryApproval(ctx.launcherRoot, ctx.importer),
       checks: [
@@ -117,6 +119,23 @@ function createEndfieldHdrService({ storageRoot, bundleRoots, resolveInstallatio
   }
   async function install() {
     return locked(async () => { const ctx = context(); await assertStopped(ctx); installFiles(); return status(); });
+  }
+  async function checkUpdates() {
+    return locked(async () => { await forkPackage?.check(); return status(); });
+  }
+  // Takes the build the fork released last. Installed files are replaced with it, so the game has to be
+  // closed before anything is downloaded.
+  async function updateFork() {
+    return locked(async () => {
+      if (!forkPackage) throw failure("bundleMissing");
+      const ctx = context(), inUse = !!installed();
+      if (inUse) await assertStopped(ctx);
+      let current;
+      try { current = bundle().manifest.version; } catch { /* Nothing bundled: any release is newer. */ }
+      const got = await forkPackage.update(current);
+      if (inUse) installFiles();
+      return { ...await status(), updated: got.version, applied: inUse, restartRequired: inUse && active(ctx) };
+    });
   }
   async function setMode(mode) {
     if (!MODES.includes(mode)) throw failure("invalidMode");
@@ -194,6 +213,6 @@ function createEndfieldHdrService({ storageRoot, bundleRoots, resolveInstallatio
     const prefs = await preferences.read(ctx.gamePath);
     if (autoHdrAllowed(prefs.app, autoHdrAllowed(prefs.global))) throw failure("hdrConflict");
   }
-  return { status, install, setMode, prepareLaunch };
+  return { status, install, checkUpdates, updateFork, setMode, prepareLaunch };
 }
 module.exports = { createEndfieldHdrService, hasLibraryApproval };

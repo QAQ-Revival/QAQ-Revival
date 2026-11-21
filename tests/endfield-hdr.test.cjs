@@ -214,3 +214,54 @@ test('a tampered saved authorization cannot suppress the Launcher prompt', async
   assert.equal((await f.service.setMode('native')).needsApproval, true);
   assert.equal(f.config().Importers.EFMI.Importer.extra_libraries_signature, undefined);
 });
+
+// A build the fork released after this manager was built, and the service reading its package through it.
+function withRelease(t) {
+  const f = fixture(t), { loadBundleAt } = require('../app/src/main/install/mi-forks.cjs');
+  const released = path.join(f.root, 'released'), bundled = path.join(f.root, 'local-components/endfield-hdr');
+  const contents = { 'dxgi.dll': 'ReShade next', 'renodx-endfield.addon64': 'RenoDX next', 'licenses/ReShade.txt': 'license' };
+  for (const [name, bytes] of Object.entries(contents)) f.write(path.join(released, name), bytes);
+  f.write(path.join(released, 'component.json'), JSON.stringify({ source: 'https://github.com/QAQ-Revival/renodx', sourceCommit: 'b'.repeat(40), version: '0.1.0.4',
+    files: Object.fromEntries(Object.entries(contents).map(([name, bytes]) => [name, crypto.createHash('sha256').update(bytes).digest('hex')])) }));
+  const state = { directory: bundled, downloads: 0, running: false };
+  const forkPackage = {
+    active: () => loadBundleAt(state.directory, 'renodx'), check: async () => {},
+    state: version => ({ latest: '0.1.0.4', updateAvailable: version !== '0.1.0.4', error: null }),
+    update: async () => { state.downloads++; state.directory = released; return { version: '0.1.0.4', sourceCommit: 'b'.repeat(40) }; }
+  };
+  const service = createEndfieldHdrService({ storageRoot: f.storageRoot, forkPackage, resolveInstallation: () => ({ gamePath: f.gamePath, launcherRoot: f.launcherRoot, miRoot: f.miRoot }),
+    preferences: f.preferences, assertStopped: async () => { if (state.running) throw Error('Game running'); } });
+  return { f, service, state };
+}
+
+test('a released HDR build is kept for the next install when nothing is installed yet', async t => {
+  const { f, service, state } = withRelease(t);
+  assert.deepEqual([(await service.status()).available.version, (await service.status()).forkUpdates.updateAvailable], ['0.1.0.0', true]);
+  state.running = true;
+  const result = await service.updateFork();
+  assert.deepEqual([result.updated, result.applied, result.restartRequired, state.downloads], ['0.1.0.4', false, false, 1]);
+  assert.equal(fs.existsSync(f.storageRoot), false);
+  assert.deepEqual([result.available.version, result.forkUpdates.updateAvailable, result.installed], ['0.1.0.4', false, false]);
+  state.running = false;
+  await service.install();
+  assert.equal(fs.readFileSync(path.join(f.storageRoot, 'dxgi.dll'), 'utf8'), 'ReShade next');
+});
+
+test('a released HDR build replaces the installed files, and nothing is downloaded while the game is running', async t => {
+  const { f, service, state } = withRelease(t);
+  await service.setMode('native');
+  f.write(path.join(f.storageRoot, 'ReShade.ini'), 'player tuning');
+  const launcher = fs.readFileSync(f.configFile);
+  assert.equal((await service.status()).local.version, '0.1.0.0');
+  state.running = true;
+  await assert.rejects(service.updateFork(), /Game running/);
+  assert.equal(state.downloads, 0);
+  assert.equal(fs.readFileSync(path.join(f.storageRoot, 'dxgi.dll'), 'utf8'), 'ReShade');
+  state.running = false;
+  const result = await service.updateFork();
+  assert.deepEqual([result.updated, result.applied, result.restartRequired, result.local.version, result.mode], ['0.1.0.4', true, true, '0.1.0.4', 'native']);
+  assert.equal(fs.readFileSync(path.join(f.storageRoot, 'dxgi.dll'), 'utf8'), 'ReShade next');
+  assert.equal(fs.readFileSync(path.join(f.storageRoot, 'renodx-endfield.addon64'), 'utf8'), 'RenoDX next');
+  assert.equal(fs.readFileSync(path.join(f.storageRoot, 'ReShade.ini'), 'utf8'), 'player tuning');
+  assert.deepEqual(fs.readFileSync(f.configFile), launcher);
+});

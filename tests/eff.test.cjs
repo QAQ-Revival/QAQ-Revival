@@ -19,7 +19,7 @@ function releaseFiles(tag = 'one') {
     ['plugin/eff.ini', Buffer.from('[Hotkeys]\nreload=F10\n')]
   ]);
 }
-function fixture(t) {
+function fixture(t, { forkPackage } = {}) {
   const temporary = fs.realpathSync(os.tmpdir()), root = fs.mkdtempSync(path.join(temporary, 'qaqr-eff-'));
   t.after(() => { assert.equal(path.dirname(fs.realpathSync(root)), temporary); fs.rmSync(root, { recursive: true, force: true }); });
   const game = path.join(root, 'game'), state = path.join(root, 'state'), storage = path.join(root, 'data/EFF');
@@ -43,6 +43,7 @@ function fixture(t) {
     efmiVulkanActive: () => vulkan,
     packages,
     bundleRoots: [root],
+    forkPackage: forkPackage?.(root),
     assertStopped: async () => { if (running) throw Error('game running'); },
     stateFile: path.join(state, 'state.json'),
     backupDir: path.join(state, 'backup'),
@@ -325,4 +326,46 @@ test('the EFF version shows the QAQR revision as a fourth part only when there i
 test('the fork build packages exactly the files QAQR installs', () => {
   const { LAYOUT } = require('../native/eff/qaqr/build.cjs');
   assert.deepEqual(Object.keys(LAYOUT).sort(), ['EFFLoader.exe', ...PROXIES, ...PLUGIN_FILES, SETTINGS_FILE].sort());
+});
+
+// A fix the fork released after this manager was built, and the service reading its package through it.
+function withRelease(t) {
+  const { loadBundleAt } = require('../app/src/main/install/mi-forks.cjs');
+  const state = { directory: null, downloads: 0 }, version = '2.0.12.7';
+  const f = fixture(t, { forkPackage: root => ({
+    active: () => loadBundleAt(state.directory || path.join(root, 'local-components/eff'), 'EFF'), check: async () => {},
+    state: held => ({ latest: version, updateAvailable: held !== version, error: null }),
+    update: async () => { state.downloads++; state.directory = path.join(root, 'released'); return { version, sourceCommit: 'd'.repeat(40) }; }
+  }) });
+  const files = new Map(writeForkBundle(f).files), digests = {};
+  files.set('plugin/eff.dll', Buffer.concat([Buffer.from('eff runtime next EFF_ExternalData_v1 '), versionResource([2, 0, 12, 7])]));
+  for (const [relative, bytes] of files) { f.write(path.join(f.root, 'released', relative), bytes); digests[relative] = sha(bytes); }
+  f.write(path.join(f.root, 'released/component.json'), JSON.stringify({ source: 'https://github.com/QAQ-Revival/EFF', sourceCommit: 'd'.repeat(40), version, files: digests }));
+  return { f, state, version, next: files.get('plugin/eff.dll') };
+}
+
+test('a released EFF fix is kept for the next install when EFF is not installed', async t => {
+  const { f, state, version } = withRelease(t);
+  assert.equal((await f.service.status()).forkUpdates.updateAvailable, true);
+  f.setRunning(true);
+  const result = await f.service.updateFork();
+  assert.deepEqual([result.updated, result.applied, result.restartRequired, state.downloads], [version, false, false, 1]);
+  assert.equal(fs.existsSync(f.at('eff.dll')), false);
+  assert.deepEqual([result.sources.fork.version, result.forkUpdates.updateAvailable, result.installed], [version, false, false]);
+});
+
+test('a released EFF fix replaces the installed one, and nothing is downloaded while the game is running', async t => {
+  const { f, state, version, next } = withRelease(t);
+  await f.service.setInstalled(true);
+  f.write(f.at('eff.ini'), 'player settings');
+  assert.deepEqual([(await f.service.status()).channel, (await f.service.status()).version], ['fork', '2.0.12.6']);
+  f.setRunning(true);
+  await assert.rejects(f.service.updateFork(), /game running/);
+  assert.equal(state.downloads, 0);
+  assert.equal((await f.service.status()).version, '2.0.12.6');
+  f.setRunning(false);
+  const result = await f.service.updateFork();
+  assert.deepEqual([result.updated, result.applied, result.restartRequired, result.channel, result.version], [version, true, true, 'fork', version]);
+  assert.deepEqual(fs.readFileSync(f.at('eff.dll')), next);
+  assert.equal(fs.readFileSync(f.at('eff.ini'), 'utf8'), 'player settings');
 });

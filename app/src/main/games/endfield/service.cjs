@@ -43,6 +43,7 @@ function initialize() {
   hdrService = createEndfieldHdrService({
     storageRoot: getLoaderDataRoot("RenoDX/Endfield"),
     bundleRoots: installXxmi.componentRoots,
+    forkPackage: installXxmi.componentPackages("endfield-hdr"),
     resolveInstallation,
     preferences: createWindowsHdrPreferences(),
     assertStopped: paths => assertStopped({ launcher: paths.launcherRoot }),
@@ -56,6 +57,7 @@ function initialize() {
     }),
     miForks: installXxmi.miForks,
     bundleRoots: installXxmi.componentRoots,
+    forkPackage: installXxmi.componentPackages("xxmi-runtime-vulkan"),
     readPresent: readPresentMethod,
     assertStopped,
     resolveInstallation,
@@ -70,6 +72,7 @@ function initialize() {
       fetch: (...args) => electron.net.fetch(...args)
     }),
     bundleRoots: installXxmi.componentRoots,
+    forkPackage: installXxmi.componentPackages("eff"),
     resolveGame: resolveInstallation,
     // The runtime on disk decides, as it is what the next launch loads.
     efmiVulkanActive: () => {
@@ -111,6 +114,8 @@ function registerIpc() {
     "endfield:hdr-status": () => hdrService.status(),
     "endfield:hdr-set-mode": mode => hdrService.setMode(mode),
     "endfield:hdr-install": () => hdrService.install(),
+    "endfield:hdr-check-updates": () => hdrService.checkUpdates(),
+    "endfield:hdr-update-fork": () => hdrService.updateFork(),
     "efmi:vulkan-status": () => efmiVulkanService.status(),
     "efmi:vulkan-set-enabled": async ({ enabled, confirmed } = {}) => {
       const result = await efmiVulkanService.setEnabled(enabled, { confirmed: confirmed === true });
@@ -119,12 +124,14 @@ function registerIpc() {
     "efmi:vulkan-set-channel": target => efmiVulkanService.setChannel(target),
     "efmi:vulkan-check-updates": () => efmiVulkanService.checkUpdates(),
     "efmi:vulkan-update": () => efmiVulkanService.update(),
+    "efmi:vulkan-update-fork": () => efmiVulkanService.updateFork(),
     "eff:status": () => effService.status(),
     "eff:set-installed": installed => effService.setInstalled(installed === true),
     "eff:set-enabled": enabled => effService.setEnabled(enabled),
     "eff:set-channel": target => effService.setChannel(target),
     "eff:check-updates": () => effService.checkUpdates(),
-    "eff:update": () => effService.update()
+    "eff:update": () => effService.update(),
+    "eff:update-fork": () => effService.updateFork()
   })) {
     electron.ipcMain.handle(channel, async (_, payload) => {
       try {

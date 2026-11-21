@@ -136,6 +136,7 @@
     "repository": "QAQ-Revival/EFMI-Package",
     "branch": "main",
     "build": "qaqr/build.cjs",
+    "release": true,
     "targets": {
       "efmi-core": {
         "output": "local-components/efmi-core"
@@ -147,6 +148,7 @@
     "repository": "QAQ-Revival/XXMI-Libs-Vulkan",
     "branch": "master",
     "build": "qaqr/build.cjs",
+    "release": true,
     "targets": {
       "xxmi-runtime-vulkan": {
         "output": "local-components/xxmi-runtime-vulkan",
@@ -160,6 +162,7 @@
     "repository": "QAQ-Revival/wwmi-dx12",
     "branch": "main",
     "build": "qaqr/build.cjs",
+    "release": true,
     "targets": {
       "wwmi-dx12": {
         "output": "local-components/wwmi-dx12-qaqr"
@@ -185,6 +188,7 @@
     "repository": "QAQ-Revival/EFF",
     "branch": "main",
     "build": "qaqr/build.cjs",
+    "release": true,
     "targets": {
       "eff": {
         "output": "local-components/eff"
@@ -196,6 +200,7 @@
     "repository": "QAQ-Revival/renodx",
     "branch": "main",
     "build": "qaqr/build.cjs",
+    "release": true,
     "targets": {
       "endfield-hdr": {
         "output": "local-components/endfield-hdr",

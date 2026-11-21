@@ -29,6 +29,8 @@ function createEfmiVulkanService({
   packages,
   miForks,
   bundleRoots,
+  // The fork's own releases of this runtime: the newer of the bundled copy and a downloaded one.
+  forkPackage,
   assertStopped,
   readPresent,
   notifyChanged = () => {},
@@ -37,7 +39,7 @@ function createEfmiVulkanService({
   let busy = false;
   const roots = () => typeof bundleRoots === 'function' ? bundleRoots() : bundleRoots;
   function forkBundle() {
-    const bundle = loadBundle(roots(), 'xxmi-runtime-vulkan', 'XXMI-Libs-Vulkan');
+    const bundle = forkPackage ? forkPackage.active() : loadBundle(roots(), 'xxmi-runtime-vulkan', 'XXMI-Libs-Vulkan');
     if (!bundle.files[RUNTIME] || bundle.manifest.backend !== 'vulkan') throw Error(i18n.t("backend.efmiVulkan.invalidFork"));
     return bundle;
   }
@@ -129,6 +131,7 @@ function createEfmiVulkanService({
         fork: fork ? { version: fork.manifest.version || null, build: fork.manifest.sourceCommit.slice(0, 12) } : null
       },
       updates: packages.state(),
+      forkUpdates: forkPackage ? forkPackage.state(fork?.manifest.version) : null,
       paths: { mi: miRoot, game: gamePath, launcher: launcherRoot }
     };
   }
@@ -214,8 +217,24 @@ function createEfmiVulkanService({
   }
   async function checkUpdates() {
     return locked(async () => {
-      await packages.checkUpdates();
+      await Promise.all([packages.checkUpdates(), forkPackage?.check()]);
       return status();
+    });
+  }
+  // Takes the fix the fork released last. One that is in use is replaced with it, so the game has to be
+  // closed before anything is downloaded; the official runtime is left in place.
+  async function updateFork() {
+    return locked(async () => {
+      if (!forkPackage) throw Error(i18n.t("backend.efmiVulkan.alreadyCurrent"));
+      const state = await status();
+      const inUse = state.enabled && ['fork', 'outdated'].includes(state.channel);
+      if (inUse) {
+        requireReady(state, ['approval']);
+        await assertStopped(state.paths);
+      }
+      const installed = await forkPackage.update(tryFork()?.manifest.version);
+      if (inUse) apply(state.paths.mi, state.paths.launcher, await vulkanFiles('fork', tryFork()), true);
+      return { ...await status(), updated: installed.version, applied: inUse, restartRequired: inUse };
     });
   }
   async function update() {
@@ -252,6 +271,7 @@ function createEfmiVulkanService({
     setChannel,
     checkUpdates,
     update,
+    updateFork,
     prepareLaunch
   };
 }

@@ -45,8 +45,10 @@ test('a repository publishes only the component marked for release, from its own
   assert.equal(plan({ repository: REPOSITORY, ref: 'refs/tags/v1.3.4' }).publish, true, 'an upstream version tag renumbers the branch head');
   assert.equal(plan({ repository: REPOSITORY, ref: 'refs/heads/main' }).publish, false);
   assert.equal(plan({ repository: REPOSITORY, ref: 'refs/tags/xxmi-runtime-1.3.3.15' }).publish, false, 'its own release tag does not start another build');
-  // The Vulkan fork merges this fork's workflow file along with everything else.
-  assert.equal(plan({ repository: 'QAQ-Revival/XXMI-Libs-Vulkan', ref: 'refs/heads/master' }).publish, false);
+  // The Vulkan fork merges this fork's workflow file along with everything else, and publishes its own package with it.
+  assert.deepEqual(plan({ repository: 'QAQ-Revival/XXMI-Libs-Vulkan', ref: 'refs/heads/master' }), { publish: true, component: 'xxmi-runtime-vulkan', branch: 'master', build: 'qaqr/build.cjs' });
+  // The same workflow file in a fork whose component still ships only inside the manager does nothing.
+  assert.equal(plan({ repository: 'QAQ-Revival/XXMI-Launcher', ref: 'refs/heads/main' }).publish, false);
   assert.equal(plan({ repository: 'SpectrumQT/XXMI-Libs-Package', ref: 'refs/heads/master' }).publish, false);
   const components = { demo: { repository: 'QAQ-Revival/Demo', branch: 'main', build: 'qaqr/build.cjs', release: true, targets: { 'wwmi-dx12': { output: 'local-components/wwmi-dx12-qaqr' } } } };
   assert.equal(plan({ repository: 'QAQ-Revival/Demo', ref: 'refs/heads/main', components }).component, 'wwmi-dx12-qaqr', 'named after the package directory the manager reads');

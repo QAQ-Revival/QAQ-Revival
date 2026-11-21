@@ -221,3 +221,53 @@ test('a rate-limited API falls back to the release page for the same assets and 
   assert.deepEqual(releaseFiles(release, {}), { version: '1.2.2-nhd.31', files: { 'd3d11.dll': 'a'.repeat(64), 'dxcompiler.dll': 'b'.repeat(64), 'dxil.dll': 'c'.repeat(64) } });
   await assert.rejects(releasePage(async () => new Response('', { status: 503 })));
 });
+
+// A fix the fork released after this manager was built, and the service reading its package through it.
+function withRelease(t) {
+  const f = fixture(t), { loadBundleAt } = require('../app/src/main/install/mi-forks.cjs');
+  const version = '1.3.3-nhd.33.18', released = path.join(f.root, 'released'), bundled = path.join(f.root, 'app/local-components/xxmi-runtime-vulkan');
+  const contents = { 'd3d11.dll': dll('vulkan fork next', vulkanMark, forkMark), 'dxcompiler.dll': Buffer.from('next dxc'), 'SPIRV-Tools-shared.dll': Buffer.from('fork spirv') };
+  for (const [name, bytes] of Object.entries(contents)) f.write(path.join(released, name), bytes);
+  f.write(path.join(released, 'component.json'), JSON.stringify({ source: 'https://github.com/QAQ-Revival/XXMI-Libs-Vulkan', sourceCommit: 'b'.repeat(40), version, backend: 'vulkan',
+    files: Object.fromEntries(Object.entries(contents).map(([name, bytes]) => [name, sha(bytes)])) }));
+  const state = { directory: bundled, downloads: 0, running: false };
+  const forkPackage = {
+    active: () => loadBundleAt(state.directory, 'XXMI-Libs-Vulkan'), check: async () => {},
+    state: () => ({ latest: version, updateAvailable: state.directory === bundled, error: null }),
+    update: async () => { state.downloads++; state.directory = released; return { version, sourceCommit: 'b'.repeat(40) }; }
+  };
+  const service = createEfmiVulkanService({
+    resolveInstallation: () => ({ launcherRoot: f.launcherRoot, miRoot: f.miRoot, gamePath: path.join(f.root, 'game/Endfield.exe') }),
+    packages: f.packages, miForks: f.miForks, userName: 'qaqr-fixture', forkPackage,
+    readPresent: async () => ({ vendor: 'nvidia', value: null }), assertStopped: async () => { if (state.running) throw Error('game running'); }
+  });
+  return { f, service, state, version, next: contents['d3d11.dll'] };
+}
+
+test('a released Vulkan fix is only kept ready while the game runs on another runtime', async t => {
+  const { f, service, state, version } = withRelease(t);
+  assert.equal((await service.status()).forkUpdates.updateAvailable, true);
+  state.running = true;
+  const result = await service.updateFork();
+  assert.deepEqual([result.updated, result.applied, result.restartRequired, state.downloads], [version, false, false, 1]);
+  assert.deepEqual(f.onDisk(), f.official);
+  assert.equal(f.argumentNow(), '-force-d3d11');
+  assert.deepEqual([result.sources.fork.version, result.forkUpdates.updateAvailable], [version, false]);
+});
+
+test('a released Vulkan fix replaces the one in use, and nothing is downloaded while the game is running', async t => {
+  const { f, service, state, version, next } = withRelease(t);
+  await service.setEnabled(true);
+  assert.deepEqual(f.onDisk(), f.forkDll);
+  state.running = true;
+  await assert.rejects(service.updateFork(), /game running/);
+  assert.equal(state.downloads, 0);
+  assert.deepEqual(f.onDisk(), f.forkDll);
+  state.running = false;
+  const result = await service.updateFork();
+  assert.deepEqual([result.updated, result.applied, result.restartRequired, result.channel], [version, true, true, 'fork']);
+  assert.deepEqual(f.onDisk(), next);
+  assert.equal(fs.readFileSync(path.join(f.miRoot, 'dxcompiler.dll'), 'utf8'), 'next dxc');
+  assert.equal(f.argumentNow(), '');
+  assert.equal(fs.readFileSync(path.join(f.miRoot, 'Mods/kept.ini'), 'utf8'), 'keep mod');
+});

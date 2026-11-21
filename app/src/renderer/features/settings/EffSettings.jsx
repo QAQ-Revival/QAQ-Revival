@@ -14,6 +14,9 @@ import {
   Row,
   Switch,
   VersionRow,
+  forkRelease,
+  ForkUpdateButton,
+  forkUpdateNotice,
   check,
 } from "./SettingsControls.jsx";
 const UPSTREAM = "https://github.com/ssice-a/EFF";
@@ -42,8 +45,8 @@ function EffSettings({ part = "overview" }) {
     setNotice("");
     try {
       if (action) {
-        check(await action());
-        if (alive.current && done) setNotice(done);
+        const result = check(await action());
+        if (alive.current && done) setNotice(typeof done === "function" ? done(result) : done);
       }
     } catch (e) {
       if (alive.current) setError(e.message);
@@ -87,6 +90,7 @@ function EffSettings({ part = "overview" }) {
     const updates = data?.updates;
     const channel = data?.installed ? data.channel : "off";
     const fork = data?.sources.fork;
+    const release = forkRelease(data?.forkUpdates, fork?.version || fork?.build);
     const choose = (target) =>
       run(
         () => window.api.effSetChannel(target),
@@ -200,9 +204,25 @@ function EffSettings({ part = "overview" }) {
                       inUse={channel === "fork"}
                       local={fork.version || fork.build}
                       build={fork.version ? fork.build : undefined}
-                      latest={fork.version || fork.build}
-                      status="current"
-                      actions={useButton("fork")}
+                      latest={release.latest}
+                      status={release.status}
+                      actions={
+                        <React.Fragment>
+                          {useButton("fork")}
+                          {release.released && (
+                            <ForkUpdateButton
+                              name="EFF"
+                              disabled={busy}
+                              onClick={() =>
+                                run(
+                                  () => window.api.effUpdateFork(),
+                                  (result) => forkUpdateNotice("EFF", result),
+                                )
+                              }
+                            />
+                          )}
+                        </React.Fragment>
+                      }
                     />
                   )}
                 </React.Fragment>

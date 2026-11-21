@@ -170,6 +170,37 @@ function VersionRow({
   );
 }
 
+// The last columns of a fork line. Once the fork has released a later fix than the one QAQR holds,
+// that release is what the line offers; `status` is what it showed before releases were asked.
+function forkRelease(updates, held, status = "current") {
+  if (updates?.updateAvailable) return { released: true, latest: updates.latest, status: "update" };
+  return { released: false, latest: held, status: updates?.error && status === "current" ? "error" : status };
+}
+
+// Downloads the released fix. One in use is replaced with it; the official variant stays as it is.
+function ForkUpdateButton({ name, label, hint, disabled, onClick }) {
+  return (
+    <Button
+      small={true}
+      data-action="update"
+      primary={true}
+      disabled={disabled}
+      title={hint || t("settings.versions.downloadForkHint")}
+      aria-label={label || t("settings.versions.updateNamedFork", { name })}
+      onClick={onClick}
+    >
+      {t("settings.mi.update")}
+    </Button>
+  );
+}
+
+// What to say after the download: the fix in use was replaced, or a spare one is now on disk.
+const forkUpdateNotice = (name, result) =>
+  t(result.applied ? "settings.versions.forkUpdated" : "settings.versions.forkDownloaded", {
+    name,
+    version: result.updated,
+  });
+
 // A readiness list: one headline, then what was found for each requirement.
 function Checks({ title, items, grid = false, actions }) {
   return (
@@ -496,6 +527,9 @@ export {
   Section,
   ComponentCard,
   VersionRow,
+  forkRelease,
+  ForkUpdateButton,
+  forkUpdateNotice,
   Checks,
   Row,
   Choices,

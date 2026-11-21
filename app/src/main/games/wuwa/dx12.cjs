@@ -172,6 +172,8 @@ function createWuwaDx12Service({
   launchProcess,
   components,
   packages,
+  // The fork's own releases of the add-on, which `packages.fork()` already reads through.
+  forkPackage,
   inspect = inspectReShade,
   stopped = assertStopped,
   waitForStart = waitForLaunchResult
@@ -240,7 +242,8 @@ function createWuwaDx12Service({
       updates,
       channel: {
         current: onFork ? 'fork' : 'official',
-        fork: fork && { version: fork.version, build: fork.build }
+        fork: fork && { version: fork.version, build: fork.build },
+        forkUpdates: forkPackage ? forkPackage.state(fork?.version) : null
       }
     };
   }
@@ -414,11 +417,31 @@ function createWuwaDx12Service({
   }
   async function checkUpdates() {
     return locked(async () => {
-      const result = await packages.checkUpdates();
+      const [result] = await Promise.all([packages.checkUpdates(), forkPackage?.check()]);
       return {
         ...(await status()),
         message: Object.keys(result.errors).length ? i18n.t("backend.wuwaDx12.componentChecksFailed") : i18n.t("backend.wuwaDx12.componentChecksComplete")
       };
+    });
+  }
+  // Takes the add-on the fork released last. One that is installed is replaced with it, so the game has
+  // to be closed before anything is downloaded; an installed official add-on is left in place.
+  async function updateFork() {
+    return locked(async () => {
+      if (!forkPackage) throw Error(i18n.t("backend.wuwaDx12.forkMissing"));
+      const state = await status();
+      const inUse = state.channel.current === 'fork' && state.sources.addon.source === 'managed';
+      if (inUse) await stopped(state.paths);
+      const installed = await forkPackage.update(state.channel.fork?.version);
+      if (inUse) {
+        await components.update(state.paths, 'addon', packages.fork(), {
+          beforeApply: () => stopped(state.paths),
+          validate: async () => {
+            if (state.enabled && !(await status()).ready) throw Error(i18n.t("backend.wuwaDx12.updatedEnvironmentInvalid"));
+          }
+        });
+      }
+      return { ...(await status()), updated: installed.version, applied: inUse, restartRequired: inUse };
     });
   }
   async function updateComponent(kind) {
@@ -454,6 +477,7 @@ function createWuwaDx12Service({
     launch,
     setChannel,
     checkUpdates,
+    updateFork,
     updateComponent
   };
 }

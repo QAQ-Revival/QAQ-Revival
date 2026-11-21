@@ -13,6 +13,9 @@ import {
   Row,
   Switch,
   VersionRow,
+  forkRelease,
+  ForkUpdateButton,
+  forkUpdateNotice,
   check,
 } from "./SettingsControls.jsx";
 const QAQR_FORK = "https://github.com/QAQ-Revival/XXMI-Libs-Vulkan";
@@ -38,8 +41,8 @@ function EfmiVulkanSettings() {
     setNotice("");
     try {
       if (action) {
-        check(await action());
-        if (alive.current && done) setNotice(done);
+        const result = check(await action());
+        if (alive.current && done) setNotice(typeof done === "function" ? done(result) : done);
       }
     } catch (e) {
       if (alive.current) setError(e.message);
@@ -78,6 +81,11 @@ function EfmiVulkanSettings() {
   const updates = data?.updates;
   const channel = data?.enabled ? data.channel : "off";
   const fork = data?.sources.fork;
+  const release = forkRelease(
+    data?.forkUpdates,
+    fork?.version || fork?.build,
+    channel === "outdated" ? "update" : "current",
+  );
   const open = (url) => window.api.openExternalUrl(url);
   const choose = (target) =>
     run(
@@ -299,10 +307,24 @@ function EfmiVulkanSettings() {
                     build={
                       channel === "outdated" || !fork.version ? undefined : fork.build
                     }
-                    latest={fork.version || fork.build}
-                    status={channel === "outdated" ? "update" : "current"}
+                    latest={release.latest}
+                    status={release.status}
                     actions={
-                      channel === "outdated" ? (
+                      release.released ? (
+                        <React.Fragment>
+                          {channel !== "outdated" && useButton("fork")}
+                          <ForkUpdateButton
+                            name="XXMI-Libs"
+                            disabled={busy}
+                            onClick={() =>
+                              run(
+                                () => window.api.efmiVulkanUpdateFork(),
+                                (result) => forkUpdateNotice("XXMI-Libs", result),
+                              )
+                            }
+                          />
+                        </React.Fragment>
+                      ) : channel === "outdated" ? (
                         <Button
                           small={true}
                           data-action="update"

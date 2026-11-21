@@ -19,20 +19,22 @@ const gamesSettings = require("../settings.cjs");
 const installPaths = require("../../install/paths.cjs");
 const runtimePaths = require("../../runtime/paths.cjs");
 const systemWindows = require("../../system/windows.cjs");
-const { loadBundle } = require("../../install/mi-forks.cjs");
+
 const wuwaDx12StateDir = path.join(electron.app.getPath("userData"), "wuwa-dx12");
 let wuwaDx12Packages;
 let wuwaDx12Components;
 let wuwaDx12Service;
 let wuwaTuningService;
 function initialize() {
+  const forkPackage = require("../../install/xxmi.cjs").componentPackages("wwmi-dx12-qaqr");
   wuwaDx12Packages = createWuwaDx12Packages({
     bundledDir: path.join(electron.app.isPackaged ? path.dirname(process.execPath) : path.resolve(runtimePaths.mainDir, "../../.."), "local-components", "wwmi-dx12"),
     cacheDir: path.join(wuwaDx12StateDir, "packages"),
     fetch: (...args) => electron.net.fetch(...args),
+    // The newer of the add-on QAQR ships and one the fork released since.
     loadFork: () => {
       try {
-        return loadBundle([electron.app.isPackaged ? path.dirname(process.execPath) : path.resolve(runtimePaths.mainDir, "../../..")], "wwmi-dx12-qaqr", "wwmi-dx12");
+        return forkPackage.active();
       } catch {
         return null;
       }
@@ -45,6 +47,7 @@ function initialize() {
   wuwaDx12Service = createWuwaDx12Service({
     components: wuwaDx12Components,
     packages: wuwaDx12Packages,
+    forkPackage,
     backupDir: path.join(wuwaDx12StateDir, "config-backups"),
     resolvePaths: () => {
       const game = gamesSettings.getSettingsGame("wuthering-waves");
@@ -115,7 +118,8 @@ function registerIpc() {
     "wuwa:dx12-set-enabled": enabled => wuwaDx12Service.setEnabled(enabled),
     "wuwa:dx12-set-channel": target => wuwaDx12Service.setChannel(target),
     "wuwa:dx12-check-updates": () => wuwaDx12Service.checkUpdates(),
-    "wuwa:dx12-update-component": kind => wuwaDx12Service.updateComponent(kind)
+    "wuwa:dx12-update-component": kind => wuwaDx12Service.updateComponent(kind),
+    "wuwa:dx12-update-fork": () => wuwaDx12Service.updateFork()
   })) {
     electron.ipcMain.handle(channel, async (_, payload) => {
       try {

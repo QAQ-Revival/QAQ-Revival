@@ -11,8 +11,8 @@ const settings = require("../games/settings.cjs");
 const { getDataRoot, getLoaderDataRoot, IMPORTERS } = require("../runtime/data-paths.cjs");
 const installPaths = require("./paths.cjs");
 const { isPathInsideDirectory } = require("../system/paths.cjs");
-const { createMiForksService, loadBundle, runtimePackage } = require("./mi-forks.cjs");
-const { createComponentUpdates } = require("./component-updates.cjs");
+const { createMiForksService } = require("./mi-forks.cjs");
+const { createComponentPackages } = require("./component-packages.cjs");
 const componentRoots = () => [path.dirname(process.execPath), path.resolve(electron.app.getAppPath(), "../.."), path.resolve(electron.app.getAppPath(), "..")];
 function resolveInstallation(gameId) {
   const game = settings.getGameById(gameId);
@@ -20,15 +20,12 @@ function resolveInstallation(gameId) {
   const info = launcher && settings.readXxmiImporterPathInfo(launcher, gameId);
   return info?.status === "configured" ? { launcherRoot: info.xxmiRootDir, miRoot: info.importerPath } : null;
 }
-// The fork releases every build of the runtime; a newer one than the bundled copy is kept under data.
-const runtimeUpdates = createComponentUpdates({
-  name: runtimePackage.name, repository: runtimePackage.repository,
-  storeDir: () => path.join(getLoaderDataRoot("Components"), runtimePackage.name),
-  bundled: () => loadBundle(componentRoots(), runtimePackage.name, "XXMI-Libs-Package"),
-  load: runtimePackage.load, versionOf: runtimePackage.version,
-  fetch: (...args) => electron.net.fetch(...args)
-});
-const maintained = createMiForksService({ bundleRoots: componentRoots, resolveInstallation, runtimeBundle: () => runtimeUpdates.active() });
+// Each fork releases every build of its component; a newer one than the bundled copy is kept under data.
+const componentPackages = createComponentPackages({ roots: componentRoots, storeRoot: () => getLoaderDataRoot("Components"), fetch: (...args) => electron.net.fetch(...args) });
+const runtimeUpdates = componentPackages("xxmi-runtime"), coreUpdates = componentPackages("efmi-core");
+// The lines under Settings that a fork release can move, by the id the fork service gives them.
+const forkUpdates = { runtime: runtimeUpdates, core: coreUpdates };
+const maintained = createMiForksService({ bundleRoots: componentRoots, resolveInstallation, runtimeBundle: () => runtimeUpdates.active(), coreBundle: () => coreUpdates.active() });
 const cache = new Map();
 let operation = null;
 function plain(file) {
@@ -108,10 +105,10 @@ async function status(gameId, action = "status") {
   if (operation) return { success: true, ...resolved, ...cache.get(gameId), busy: true };
   // In DX12 mode the game loads the ReShade add-on, so this DLL only applies once it is back on DX11.
   const fork = { ...maintained.status(gameId), runtimeInactive: settings.getGameById(gameId)?.wuwaDx12Enabled === true };
-  const runtime = fork.components?.find(item => item.id === "runtime" && item.switchable !== false);
-  // The fork's releases are asked along with the official versions; offline, what is on disk goes on being used.
-  const [worked] = await Promise.all([runWorker({ ...resolved, action }), action === "check" && runtime ? runtimeUpdates.check() : null]);
-  if (runtime) runtime.forkUpdates = runtimeUpdates.state(runtime.fork?.version);
+  const released = (fork.components || []).filter(item => forkUpdates[item.id] && item.switchable !== false);
+  // The forks' releases are asked along with the official versions; offline, what is on disk goes on being used.
+  const [worked] = await Promise.all([runWorker({ ...resolved, action }), ...(action === "check" ? released.map(item => forkUpdates[item.id].check()) : [])]);
+  for (const item of released) item.forkUpdates = forkUpdates[item.id].state(item.fork?.version);
   const result = { ...worked, fork };
   if (action === "status") {
     // After a restart nothing has been checked in this run yet, so fall back to what the last saved check found.
@@ -173,14 +170,14 @@ async function updateFork({ gameId, component } = {}) {
   if (operation) throw Error(i18n.t("settings.mi.busy"));
   const state = maintained.status(gameId);
   const entry = state.components?.find(item => item.id === component);
-  if (!state.ready || component !== "runtime" || entry?.switchable === false) throw Error(state.error || i18n.t("settings.mi.unsupported"));
+  if (!state.ready || !forkUpdates[component] || !entry || entry.switchable === false) throw Error(state.error || i18n.t("settings.mi.unsupported"));
   operation = { gameId };
   const changed = () => {
     for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId });
   };
   changed();
   try {
-    const installed = await runtimeUpdates.update(entry.fork?.version);
+    const installed = await forkUpdates[component].update(entry.fork?.version);
     let applied = false, pending = null;
     if (["fork", "outdated"].includes(entry.local.kind)) {
       try { applied = maintained.change(gameId, component, "fork").success === true; }
@@ -225,4 +222,4 @@ function registerIpc() {
     });
   }
 }
-module.exports = { registerIpc, paths, runWorker, status, install, changeFork, updateFork, updateOfficial, resolveInstallation, componentRoots, miForks: maintained, runtimeUpdates, isBusy: () => !!operation };
+module.exports = { registerIpc, paths, runWorker, status, install, changeFork, updateFork, updateOfficial, resolveInstallation, componentRoots, componentPackages, miForks: maintained, runtimeUpdates, isBusy: () => !!operation };

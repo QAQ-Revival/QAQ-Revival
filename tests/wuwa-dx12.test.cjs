@@ -231,3 +231,43 @@ test('the add-on switches between the upstream and QAQR builds, while on or off,
   assert.ok(fs.readFileSync(userAddon).includes(Buffer.from('user addon')));
   await assert.rejects(service.setChannel('nightly'));
 });
+
+test('a released add-on replaces the QAQR build in use only with the game closed, and leaves the upstream build alone', async t => {
+  const f = fixture(t), addon = path.join(f.paths.win64, 'wwmi_dx12.addon64');
+  const build = (label, version) => {
+    const bytes = Buffer.concat([pe(), Buffer.from(label)]);
+    return Object.assign(new Map([...f.bundles.addon].map(([name, value]) => [name, name === 'wwmi_dx12.addon64' ? bytes : value])),
+      { version, build: 'a'.repeat(12), addonHash: crypto.createHash('sha256').update(bytes).digest('hex'), bytes });
+  };
+  const held = build('qaqr build', '2026.10.4'), next = build('qaqr next', '2026.10.5');
+  f.bundles.addon.version = '2026.10.3';
+  let fork = held, downloads = 0, running = false, enabled = true;
+  const packages = Object.assign(async kind => f.bundles[kind], { fork: () => fork, state: () => ({ components: {}, errors: {} }) });
+  const forkPackage = { check: async () => {}, state: version => ({ latest: next.version, updateAvailable: version !== next.version, error: null }),
+    update: async () => { downloads++; fork = next; return { version: next.version, sourceCommit: 'b'.repeat(40) }; } };
+  const service = createWuwaDx12Service({ resolvePaths: () => ({ ...f.paths }), getEnabled: () => enabled, saveEnabled: value => { enabled = value; }, components: f.components, packages, forkPackage,
+    backupDir: path.join(f.root, 'backups'), stopped: async () => { if (running) throw Error('game running'); }, inspect: async file => ({ ok: fs.existsSync(file), message: 'ReShade' }), launchProcess: async () => ({ success: true }) });
+  await f.service.setEnabled(true);
+  const upstream = fs.readFileSync(addon);
+
+  // On the upstream build the release is only downloaded, whether or not the game is running.
+  running = true;
+  let state = await service.updateFork();
+  assert.deepEqual([state.updated, state.applied, downloads], [next.version, false, 1]);
+  assert.deepEqual(fs.readFileSync(addon), upstream);
+  assert.deepEqual([state.channel.current, state.channel.fork.version, state.channel.forkUpdates.updateAvailable], ['official', next.version, false]);
+
+  running = false; fork = held; downloads = 0;
+  await service.setChannel('fork');
+  assert.deepEqual(fs.readFileSync(addon), held.bytes);
+  assert.equal((await service.status()).channel.forkUpdates.updateAvailable, true);
+  running = true;
+  await assert.rejects(service.updateFork(), /game running/);
+  assert.equal(downloads, 0);
+  assert.deepEqual(fs.readFileSync(addon), held.bytes);
+  running = false;
+  state = await service.updateFork();
+  assert.deepEqual([state.updated, state.applied, state.restartRequired], [next.version, true, true]);
+  assert.deepEqual(fs.readFileSync(addon), next.bytes);
+  assert.deepEqual([state.channel.current, state.sources.addon.source, state.sources.addon.version, state.ready], ['fork', 'managed', next.version, true]);
+});

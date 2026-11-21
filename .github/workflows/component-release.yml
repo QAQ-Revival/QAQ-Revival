@@ -53,6 +53,13 @@ jobs:
           submodules: recursive
           persist-credentials: false
 
+      # EFMI checks its shader through Python, and RenoDX generates sources with it.
+      - name: Set up Python for the builds that use it
+        if: steps.plan.outputs.publish == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
       - name: Build, check and package
         if: steps.plan.outputs.publish == 'true'
         run: |

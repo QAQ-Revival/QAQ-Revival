@@ -12,6 +12,8 @@ import {
   Row,
   Switch,
   VersionRow,
+  forkRelease,
+  ForkUpdateButton,
   check,
 } from "./SettingsControls.jsx";
 const sourceLabel = (item) =>
@@ -110,6 +112,7 @@ function WuwaDx12Settings() {
     const managed = source?.source === "managed";
     const fork = key === "addon" ? data?.channel?.fork : null;
     const onFork = !!fork && data.channel.current === "fork";
+    const release = forkRelease(fork && data.channel.forkUpdates, fork?.version);
     const useButton = (target) => (
       <Button
         small={true}
@@ -188,9 +191,20 @@ function WuwaDx12Settings() {
           inUse={onFork}
           local={fork.version}
           build={fork.build}
-          latest={fork.version}
-          status="current"
-          actions={!onFork && useButton("fork")}
+          latest={release.latest}
+          status={release.status}
+          actions={
+            <React.Fragment>
+              {!onFork && useButton("fork")}
+              {release.released && (
+                <ForkUpdateButton
+                  name={name}
+                  disabled={busy}
+                  onClick={() => act(() => window.api.wuwaDx12UpdateFork())}
+                />
+              )}
+            </React.Fragment>
+          }
         />,
       );
     return (

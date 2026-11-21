@@ -10,6 +10,8 @@ import {
   Section,
   Switch,
   VersionRow,
+  forkRelease,
+  ForkUpdateButton,
   check,
 } from "./SettingsControls.jsx";
 
@@ -24,7 +26,7 @@ function EndfieldHdrSettings() {
     const result = check(await window.api.endfieldHdrStatus());
     if (alive.current) setData(result);
   }
-  async function run(action) {
+  async function run(action, done = t("settings.endfieldHdr.saved")) {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
@@ -32,8 +34,8 @@ function EndfieldHdrSettings() {
     setNotice("");
     try {
       if (action) {
-        check(await action());
-        if (alive.current) setNotice(t("settings.endfieldHdr.saved"));
+        const result = check(await action());
+        if (alive.current && done) setNotice(typeof done === "function" ? done(result) : done);
       }
     } catch (failure) {
       if (alive.current) setError(failure.message);
@@ -59,13 +61,15 @@ function EndfieldHdrSettings() {
     };
   }, []);
   const choose = (mode) => run(() => window.api.endfieldHdrSetMode(mode));
+  // A release later than the build QAQR holds takes over the last column; nothing is marked before that.
+  const release = forkRelease(data?.forkUpdates, data?.available?.version, null);
   return (
     <React.Fragment>
       <PageHead
         title="HDR"
         description={t("settings.endfieldHdr.summary")}
         actions={
-          <Button disabled={busy} onClick={() => run()}>
+          <Button disabled={busy} onClick={() => run(() => window.api.endfieldHdrCheckUpdates(), null)}>
             {t("settings.endfieldHdr.refresh")}
           </Button>
         }
@@ -152,8 +156,30 @@ function EndfieldHdrSettings() {
                 channel="fork"
                 local={data.local?.version}
                 build={data.local?.build}
-                latest={data.available?.version}
+                latest={release.latest}
+                status={release.status}
                 inUse={data.native && data.installed}
+                actions={
+                  release.released && (
+                    <ForkUpdateButton
+                      label={t("settings.endfieldHdr.updateLabel")}
+                      hint={t("settings.endfieldHdr.updateHint")}
+                      disabled={busy}
+                      onClick={() =>
+                        run(
+                          () => window.api.endfieldHdrUpdateFork(),
+                          (result) =>
+                            t(
+                              result.applied
+                                ? "settings.endfieldHdr.updated"
+                                : "settings.endfieldHdr.downloaded",
+                              { version: result.updated },
+                            ),
+                        )
+                      }
+                    />
+                  )
+                }
               />
             }
           >

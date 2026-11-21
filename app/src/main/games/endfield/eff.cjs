@@ -140,6 +140,8 @@ function createEffService({
   efmiVulkanActive = () => false,
   packages,
   bundleRoots = [],
+  // The fork's own releases of EFF: the newer of the bundled copy and a downloaded one.
+  forkPackage,
   assertStopped,
   storageRoot = getLoaderDataRoot("EFF"),
   stateFile = path.join(storageRoot, "state.json"),
@@ -157,7 +159,7 @@ function createEffService({
   const roots = () => typeof bundleRoots === "function" ? bundleRoots() : bundleRoots;
   const tryFork = () => {
     try {
-      const bundle = loadBundle(roots(), "eff", "EFF");
+      const bundle = forkPackage ? forkPackage.active() : loadBundle(roots(), "eff", "EFF");
       return bundle.files[RUNTIME] && bundle.files[LOADER] && read(bundle.files[RUNTIME])?.includes(EXTERNAL_MARK) ? bundle : null;
     } catch { return null; }
   };
@@ -216,7 +218,8 @@ function createEffService({
       otherPlugins: [], unassignedMods: local.installed ? unassignedMods().map(mod => mod.id) : [],
       sources: { official: { version: packages.selected().version, externalData: false },
         fork: local.fork ? { version: local.fork.manifest.version || null, build: local.fork.manifest.sourceCommit.slice(0, 12), localBuild: !!local.fork.manifest.localBuild } : null },
-      updates: packages.state(), paths: { game: root, plugin: storageRoot, mods: modsDir() }, loaderStatus };
+      updates: packages.state(), forkUpdates: forkPackage ? forkPackage.state(local.fork?.manifest.version) : null,
+      paths: { game: root, plugin: storageRoot, mods: modsDir() }, loaderStatus };
   }
   async function locked(action) {
     if (busy) throw fail("operationInProgress");
@@ -323,7 +326,17 @@ function createEffService({
     if (!installed() && !legacy(requireGame())) throw fail("notInstalled");
     return install(target);
   });
-  const checkUpdates = () => locked(async () => { await packages.checkUpdates(); return status(); });
+  const checkUpdates = () => locked(async () => { await Promise.all([packages.checkUpdates(), forkPackage?.check()]); return status(); });
+  // Takes the fix the fork released last. An installed fix is replaced with it, so the game has to be
+  // closed before anything is downloaded; an installed official build is left in place.
+  const updateFork = () => locked(async () => {
+    if (!forkPackage) throw fail("alreadyCurrent");
+    const local = inspect(gameRoot().root), inUse = local.installed && local.channel === "fork";
+    if (inUse) await assertStopped();
+    const installed = await forkPackage.update(tryFork()?.manifest.version);
+    if (inUse) await install("fork");
+    return { ...await status(), updated: installed.version, applied: inUse, restartRequired: inUse };
+  });
   const update = () => locked(async () => {
     const info = packages.pending();
     if (!packages.state().updateAvailable || !info) throw fail("alreadyCurrent");
@@ -531,6 +544,7 @@ function createEffService({
     setChannel,
     checkUpdates,
     update,
+    updateFork,
     sync,
     prepareLaunch,
     cancelLaunch,

@@ -23,7 +23,14 @@ module.exports = async ({ call, click, evaluate, waitFor, captureUI, root, launc
   assert.equal(await evaluate(`document.querySelector('[aria-label="更新 ReShade 本地原版"]').disabled`), false);
   await click('[aria-label="更新 wwmi-dx12 本地原版"]');
   await waitFor(`!document.querySelector('[aria-label="鸣潮 DX12 Mod"]').disabled && document.querySelector('[data-dx12-component="addon"] [data-channel="official"] .version-local').textContent.includes('2026.11.1')`, 'component update installed');
-  assert.ok(fs.readFileSync(path.join(win64, 'wwmi_dx12.addon64')).includes(Buffer.from('smoke component update')));
+  // A new installation takes the QAQR build, so the upstream update is only kept ready until that build is chosen.
+  const updated = () => fs.readFileSync(path.join(win64, 'wwmi_dx12.addon64')).includes(Buffer.from('smoke component update'));
+  if ((await call('wuwa:dx12-status')).channel.current === 'fork') {
+    assert.equal(updated(), false);
+    await click('[data-dx12-component="addon"] [data-channel="official"] [data-action="use"]');
+    await waitFor(`document.querySelector('[data-dx12-component="addon"] [data-channel="official"]').classList.contains('is-active') && !document.querySelector('[aria-label="鸣潮 DX12 Mod"]').disabled`, 'upstream add-on chosen');
+  }
+  assert.ok(updated());
   assert.equal((await call('wuwa:dx12-status')).enabled, true);
   await evaluate(`(() => { const pane = document.querySelector('.game-settings-view .system-settings-pane'), section = document.querySelector('#settings-wuwa-dx12'); pane.style.scrollBehavior = 'auto'; pane.scrollTop += section.getBoundingClientRect().top - pane.getBoundingClientRect().top; })()`);
   await captureUI('wuwa-dx12-managed.png');
