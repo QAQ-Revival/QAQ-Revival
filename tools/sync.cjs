@@ -313,8 +313,8 @@ async function synchronize({ plan, git, api, push = true, log = console.log, ver
     const state = states.get(node);
     return { name: node.name, kind: node.kind, path: node.path || '.', before: state.before, revision: state.revision, changed: !!state.revision && state.revision !== state.before, published: !!state.published, held: state.held };
   });
-  for (const row of report) if (row.held || row.changed) log(`${row.path}: ${row.held ? 'held back: ' + row.held : 'updated to ' + row.revision.slice(0, 12) + (row.published ? ', published' : '')}`);
-  if (!report.some(row => row.held || row.changed)) log('Everything is up to date');
+  for (const row of report) if (row.held || row.changed || row.published) log(`${row.path}: ${row.held ? 'held back: ' + row.held : (row.changed ? 'updated to ' : 'at ') + row.revision.slice(0, 12) + (row.published ? ', published' : '')}`);
+  if (!report.some(row => row.held || row.changed || row.published)) log('Everything is up to date');
   return report;
 }
 

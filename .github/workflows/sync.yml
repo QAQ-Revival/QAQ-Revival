@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '17 */6 * * *'
   workflow_dispatch:
+    inputs:
+      force:
+        description: Run the whole sync even when GitHub reports nothing waiting
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -43,7 +48,7 @@ jobs:
         run: node tools/sync.cjs status
 
       - name: Set up Python for the shader checks
-        if: steps.status.outputs.pending == 'true'
+        if: steps.status.outputs.pending == 'true' || inputs.force
         uses: actions/setup-python@v6
         with:
           python-version: '3.12'
@@ -51,7 +56,7 @@ jobs:
       # Exit code 2 means some repositories were held back and the rest went through.
       - name: Merge, verify and publish
         id: sync
-        if: steps.status.outputs.pending == 'true'
+        if: steps.status.outputs.pending == 'true' || inputs.force
         run: |
           node tools/sync.cjs run
           if ($LASTEXITCODE -notin 0, 2) { exit $LASTEXITCODE }
