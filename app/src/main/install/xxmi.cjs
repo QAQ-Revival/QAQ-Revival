@@ -25,6 +25,9 @@ const componentPackages = createComponentPackages({ roots: componentRoots, store
 const runtimeUpdates = componentPackages("xxmi-runtime"), coreUpdates = componentPackages("efmi-core");
 // The lines under Settings that a fork release can move, by the id the fork service gives them.
 const forkUpdates = { runtime: runtimeUpdates, core: coreUpdates };
+// The other components of a game that its forks release. Their own pages show them; the periodic
+// check asks for these as well, so a page opens on what was last found.
+const alongside = { endfield: ["xxmi-runtime-vulkan", "eff", "endfield-hdr"], "wuthering-waves": ["wwmi-dx12-qaqr"] };
 const maintained = createMiForksService({ bundleRoots: componentRoots, resolveInstallation, runtimeBundle: () => runtimeUpdates.active(), coreBundle: () => coreUpdates.active() });
 const cache = new Map();
 let operation = null;
@@ -107,7 +110,8 @@ async function status(gameId, action = "status") {
   const fork = { ...maintained.status(gameId), runtimeInactive: settings.getGameById(gameId)?.wuwaDx12Enabled === true };
   const released = (fork.components || []).filter(item => forkUpdates[item.id] && item.switchable !== false);
   // The forks' releases are asked along with the official versions; offline, what is on disk goes on being used.
-  const [worked] = await Promise.all([runWorker({ ...resolved, action }), ...(action === "check" ? released.map(item => forkUpdates[item.id].check()) : [])]);
+  const asked = action === "check" ? [...released.map(item => forkUpdates[item.id].check()), ...(alongside[gameId] || []).map(name => componentPackages(name).check())] : [];
+  const [worked] = await Promise.all([runWorker({ ...resolved, action }), ...asked]);
   for (const item of released) item.forkUpdates = forkUpdates[item.id].state(item.fork?.version);
   const result = { ...worked, fork };
   if (action === "status") {
