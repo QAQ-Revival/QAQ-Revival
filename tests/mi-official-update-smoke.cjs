@@ -22,9 +22,18 @@ module.exports = async ({ electron, handlers, root, evaluate, waitFor, captureUI
   const coreButton = '[aria-label="更新 EFMI-Package 本地原版"]';
   const coreVariant = channel => `document.querySelector('#settings-mi-forks [data-component="core"] [data-channel="${channel}"]')`;
   await evaluate(`document.querySelector('[data-section="game-updates"]').click()`);
-  await waitFor(`${coreVariant('fork')}?.classList.contains('is-active') && ${coreVariant('fork')}.querySelector('.version-local').textContent === '${oldVersion}' && !!document.querySelector('${coreButton}') && !document.querySelector('${coreButton}').disabled`, 'old Core shows its actual version and an enabled official updater');
+  await waitFor(`${coreVariant('fork')}?.classList.contains('is-active') && ${coreVariant('official')}.querySelector('.version-local').textContent === '${oldVersion}' && !!document.querySelector('${coreButton}') && !document.querySelector('${coreButton}').disabled`, 'old Core shows its actual version and an enabled official updater');
   await evaluate(`document.querySelector('#settings-mi-forks').scrollIntoView({ block: 'start' })`);
   await captureUI('mi-official-update-before.png');
+  // The fix sits on a Core of another version. Either switch goes through and says so once, under the component.
+  const coreUse = channel => `${coreVariant(channel)}.querySelector('[data-action="use"]')`;
+  const notes = `(document.querySelector('#settings-mi-forks [data-component="core"] .component-notes')?.textContent || '')`;
+  assert.equal(await evaluate(`${notes}.includes('${oldVersion}')`), false, 'nothing is said before a switch');
+  await evaluate(`${coreUse('official')}.click()`);
+  await waitFor(`${coreVariant('official')}.classList.contains('is-active') && ${notes}.includes('本地是 ${oldVersion}')`, 'the official files go onto the older Core with a note');
+  await evaluate(`${coreUse('fork')}.click()`);
+  await waitFor(`${coreVariant('fork')}.classList.contains('is-active') && ${coreVariant('fork')}.querySelector('.version-local').textContent.startsWith('${manifest.version}') && ${notes}.includes('本地是 ${oldVersion}')`, 'the fix goes back on with its own version and the same note');
+  await captureUI('mi-version-note.png');
   const original = handlers.get('xxmi:update-official'), requests = [];
   let finish;
   const pending = new Promise(resolve => { finish = resolve; });
@@ -44,7 +53,7 @@ module.exports = async ({ electron, handlers, root, evaluate, waitFor, captureUI
     await waitFor(`document.querySelector('${coreButton}').disabled`, 'the update action is locked while applying');
     assert.deepEqual(requests, [{ gameId: 'endfield', component: 'core' }]);
     finish();
-    await waitFor(`!document.querySelector('${coreButton}').disabled && ${coreVariant('official')}.classList.contains('is-active') && ${coreVariant('official')}.querySelector('.version-local').textContent === '${manifest.official.version}' && !document.querySelector('#settings-mi-forks').textContent.includes('本地是 ${oldVersion}')`, 'successful update refreshes disk state and removes the mismatch warning');
+    await waitFor(`!document.querySelector('${coreButton}').disabled && ${coreVariant('official')}.classList.contains('is-active') && ${coreVariant('official')}.querySelector('.version-local').textContent === '${manifest.official.version}' && !${notes}.includes('本地是')`, 'successful update refreshes disk state and the note is gone');
     const state = await handlers.get('xxmi:status')({}, 'endfield');
     assert.equal(state.fork.components.find(item => item.id === 'core').canUseFork, true);
     await captureUI('mi-official-update-after.png');
@@ -56,5 +65,5 @@ module.exports = async ({ electron, handlers, root, evaluate, waitFor, captureUI
     electron.ipcMain.removeHandler('xxmi:update-official');
     electron.ipcMain.handle('xxmi:update-official', original);
   }
-  passed('Component rows update Core and runtime independently; older Core reports its real version, and completion refreshes state and restores the compatible fix option');
+  passed('Component rows update Core and runtime independently; older Core reports its real version on the official line, and completion refreshes state');
 };

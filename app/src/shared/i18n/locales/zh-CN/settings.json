@@ -60,7 +60,7 @@
       "switched": "{{name}} 已切换到{{target}}，重启游戏生效",
       "approvalHint": "修复版 DLL 需要 Unsafe Mode：在 Launcher 里选中这个游戏，到高级设置打开并保存。它允许这个 MI 使用自定义 DLL，并跳过上游 DLL 签名校验",
       "confirmTitle": "替换未识别的文件",
-      "confirmDescription": "{{name}} 的本地文件既不是官方原版也不是 QAQR 修复版，换成{{target}}后无法找回",
+      "confirmDescription": "{{name}} 的本地文件不在 QAQR 认识的版本里，换成{{target}}后无法找回",
       "confirmAction": "替换",
       "confirmRequired": "这个文件替换后无法找回，确认后再替换",
       "unsupported": "这个游戏没有 QAQR 修复版",
@@ -72,7 +72,7 @@
       "runtimeNotAdapted": "修复版还没适配官方 {{version}}",
       "unknownRuntime": "本地 DLL 来源不明，切回原版后才能启用修复版",
       "unknownCore": "本地文件不是已知版本，切回原版后才能启用修复版",
-      "coreMismatch": "修复版对应 EFMI {{fork}}，本地是 {{version}}，暂不能切换",
+      "coreMismatch": "切换用的文件来自 EFMI {{fork}}，本地是 {{version}}，兼容性需自行确认",
       "writeFailed": "文件替换失败，已还原。关闭游戏后再试",
       "vulkanActive": "现在用的是 Vulkan 运行库，在 Vulkan Mod 里切换"
     },

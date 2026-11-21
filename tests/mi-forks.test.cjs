@@ -123,27 +123,48 @@ test('a Launcher update is read from disk instead of leaving a stale state behin
   assert.equal(f.component('runtime').canUseFork, false);
   assert.match(f.component('runtime').reason, /1\.2\.3/);
 
-  // A new EFMI package overwrites Core; the fix targets the old version, so nothing is switched over it.
+  // A new EFMI package overwrites Core with files of its own. The fix can still go over them, but they
+  // are in no version QAQR holds, so nothing replaces them before the user has agreed to lose them.
   f.write(path.join(f.miRoot, files[0]), 'official next ini');
   f.write(path.join(f.miRoot, files[1]), 'official next hlsl');
   f.write(path.join(f.launcherRoot, 'Resources/Packages/EFMI/Manifest.json'), JSON.stringify({ version: '1.4.9' }));
   const core = f.component('core');
   assert.deepEqual(core.local, { kind: 'official', version: '1.4.9' });
-  assert.equal(core.canUseFork, false);
-  assert.throws(() => f.service.change('endfield', 'core', 'fork'), { code: 'coreMismatch' });
+  assert.equal(core.canUseFork, true);
+  assert.equal(core.confirmReplace, true);
+  assert.deepEqual(f.service.preferForks('endfield').changed, [], 'nothing unrecognized is replaced unasked');
+  assert.throws(() => f.service.change('endfield', 'core', 'fork'), { code: 'confirmRequired' });
   assert.equal(fs.readFileSync(path.join(f.miRoot, files[0]), 'utf8'), 'official next ini');
+  f.service.change('endfield', 'core', 'fork', { confirmed: true });
+  assert.equal(f.component('core').local.kind, 'fork');
 });
 
-test('identical fix files do not disguise an older Core as the bundled version', t => {
+test('a Core of another version takes the fix and only says the versions differ', t => {
   const f = fixture(t);
+  // The official files the fix replaces are the same in the next version, as in EFMI 1.5.0 and 1.5.1.
+  f.write(path.join(f.miRoot, 'Core/EFMI/main.ini'), '[Constants]\nglobal $version = 1.49\n');
+  let core = f.component('core');
+  assert.deepEqual(core.local, { kind: 'official', version: '1.4.9' });
+  assert.equal(core.canUseFork, true);
+  assert.equal(core.confirmReplace, false);
+  assert.equal(core.reason, null);
+  assert.match(core.note, /1\.4\.8.*1\.4\.9/);
   f.service.change('endfield', 'core', 'fork');
+  core = f.component('core');
+  assert.equal(core.local.kind, 'fork');
+  assert.equal(core.local.version, '1.4.8.2', 'the fix keeps the number of the version it was built on');
+  assert.equal(core.official.version, '1.4.9', 'the official line shows the Core that is installed');
+  assert.equal(core.canUseOfficial, true);
+  f.service.change('endfield', 'core', 'official');
+  assert.deepEqual(f.component('core').local, { kind: 'official', version: '1.4.9' });
+  assert.equal(fs.readFileSync(path.join(f.miRoot, files[0]), 'utf8'), crlf(0));
+
+  // The same goes for an older Core, and a matching one has nothing to say.
   f.write(path.join(f.miRoot, 'Core/EFMI/main.ini'), '[Constants]\nglobal $version = 1.47\n');
-  const core = f.component('core');
-  assert.deepEqual(core.local, { kind: 'outdated', version: '1.4.7' });
-  assert.equal(core.canUpdateOfficial, true);
-  assert.equal(core.canUseFork, false);
-  assert.equal(core.canUseOfficial, false);
-  assert.match(core.reason, /1\.4\.7/);
+  assert.deepEqual(f.service.preferForks('endfield', { runtimeEnabled: false }).changed, ['core']);
+  assert.equal(f.component('core').official.version, '1.4.7');
+  f.write(path.join(f.miRoot, 'Core/EFMI/main.ini'), '[Constants]\nglobal $version = 1.48\n');
+  assert.equal(f.component('core').note, null);
 });
 
 test('all supported MI games expose official runtime and Core updates', t => {

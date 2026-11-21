@@ -60,7 +60,7 @@
       "switched": "{{name}} switched to {{target}}. Restart the game to apply.",
       "approvalHint": "The fixed DLL needs Unsafe Mode: select this game in the Launcher, turn it on in Advanced Settings, and save. This permits custom DLLs for this MI and skips the upstream DLL signature check.",
       "confirmTitle": "Replace unrecognized files",
-      "confirmDescription": "The installed {{name}} files are neither official nor the QAQR fix. They cannot be recovered after switching to {{target}}.",
+      "confirmDescription": "QAQR does not recognise the installed {{name}} files. They cannot be recovered after switching to {{target}}.",
       "confirmAction": "Replace",
       "confirmRequired": "These files cannot be recovered after replacing them. Confirm first.",
       "unsupported": "This game has no QAQR fix.",
@@ -72,7 +72,7 @@
       "runtimeNotAdapted": "The fix does not cover official {{version}} yet.",
       "unknownRuntime": "The installed DLL has an unknown origin. Switch to official before enabling the fix.",
       "unknownCore": "The installed files are not a known version. Switch to official before enabling the fix.",
-      "coreMismatch": "The fix targets EFMI {{fork}}, but {{version}} is installed. Switching is unavailable.",
+      "coreMismatch": "The files switched in come from EFMI {{fork}}, and {{version}} is installed. Whether they work together is yours to check.",
       "writeFailed": "Replacing the files failed and they were rolled back. Close the game and try again.",
       "vulkanActive": "The Vulkan runtime is in use. Switch it under Vulkan Mod"
     },

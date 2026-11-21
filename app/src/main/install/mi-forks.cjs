@@ -128,15 +128,17 @@ function createMiForksService({ bundleRoots, resolveInstallation, userName, runt
     if (!fs.existsSync(path.join(root, "d3dx.ini")) || !fs.existsSync(path.join(root, RUNTIME_FILE))) throw error("notInitialized");
     return { importer, root, launcherRoot: installation.launcherRoot, approval: hasUnsafeApproval(installation.launcherRoot, importer, userName) };
   }
-  function item({ id, name, source, local, official, fork, needsApproval, plans, blocked }) {
+  // `unrecognized`: the files on disk are in no version QAQR holds, so a switch cannot bring them back.
+  // `note`: something to say once after a switch that went through.
+  function item({ id, name, source, local, official, fork, needsApproval, plans, blocked, unrecognized = local.kind === "other", note = null }) {
     const kind = local.kind;
     return {
       plans, blocked,
       view: {
-        id, name, source, local, official, fork, needsApproval, canUpdateOfficial: true,
+        id, name, source, local, official, fork, needsApproval, note, canUpdateOfficial: true,
         canUseOfficial: kind !== "official" && !blocked.official,
         canUseFork: kind !== "fork" && !blocked.fork && !needsApproval,
-        confirmReplace: kind === "other",
+        confirmReplace: unrecognized,
         reason: [kind !== "fork" && blocked.fork, kind !== "official" && blocked.official].find(Boolean)?.message || null
       }
     };
@@ -204,19 +206,24 @@ function createMiForksService({ bundleRoots, resolveInstallation, userName, runt
     const sameVersion = !installed || installed === version;
     // <upstream version>.<QAQR patch number>; bundles from before that carry only the upstream version.
     const fork = { version: /^\d+(?:\.\d+){3}$/.test(bundle.manifest.version || "") && bundle.manifest.version.startsWith(version + ".") ? bundle.manifest.version : version, build: sourceCommit.slice(0, 12) };
-    const local = matches(forkFile) ? sameVersion ? { kind: "fork", ...fork } : { kind: "outdated", version: installed }
+    // The fix replaces these files and leaves the rest of Core alone, so it can go onto a Core of another version.
+    // Whether that pair works is the user's call: the switch stays open and only says the versions differ.
+    const recognized = matches(forkFile) || matches(officialFile) || known;
+    const local = matches(forkFile) ? { kind: "fork", ...fork }
       : matches(officialFile) ? { kind: "official", version: installed || version }
       : known ? { kind: "outdated", version: installed || version }
       : sameVersion ? { kind: "other", version: installed }
+      // Files QAQR does not know on another version are most likely that version's own.
       : { kind: "official", version: installed };
-    const mismatch = sameVersion ? null : error("coreMismatch", { fork: version, version: installed });
     return item({
-      ...base, local, official: { version }, fork,
+      // The version of Core is read from a file no switch touches, so the official line shows it whichever variant is in use.
+      ...base, local, official: { version: installed || version }, fork, unrecognized: !recognized,
+      note: sameVersion ? null : i18n.t("settings.mi.fork.coreMismatch", { fork: version, version: installed }),
       plans: {
         official: EFMI_FILES.map(relative => ({ relative, bytes: identity.includes(relative) ? fs.readFileSync(officialFile(relative)) : null })),
         fork: EFMI_FILES.map(relative => ({ relative, bytes: fs.readFileSync(forkFile(relative)) }))
       },
-      blocked: { official: mismatch, fork: mismatch || (local.kind === "other" ? error("unknownCore") : null) }
+      blocked: { official: null, fork: local.kind === "other" ? error("unknownCore") : null }
     });
   }
   function read(ctx) {

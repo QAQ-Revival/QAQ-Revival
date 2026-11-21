@@ -12,7 +12,7 @@ import {
 } from "./SettingsControls.jsx";
 
 // One component, one line per variant: both stay listed with their own version whichever is in use.
-function MiComponentCard({ component, locked, onChoose, onUpdate, onUpdateFork, onOpenLauncher }) {
+function MiComponentCard({ component, note, locked, onChoose, onUpdate, onUpdateFork, onOpenLauncher }) {
   const { id, name, local, official, fork, updates, forkUpdates } = component;
   const switchable = component.switchable !== false;
   const outdated = local.kind === "outdated";
@@ -165,6 +165,7 @@ function MiComponentCard({ component, locked, onChoose, onUpdate, onUpdateFork, 
       {component.reason && (
         <p className="settings-warning-text">{component.reason}</p>
       )}
+      {note && <p role="status">{note}</p>}
       {updates?.error && (
         <p className="settings-error">{t("games.updates.failed")}</p>
       )}
@@ -191,12 +192,15 @@ export function MiForkSettings({
   const [working, setWorking] = React.useState(false);
   const [error, setError] = React.useState("");
   const [confirming, setConfirming] = React.useState(null);
+  // What a switch had to say about the pair it made, kept under that component until the next action.
+  const [note, setNote] = React.useState(null);
   if (!state?.supported) return null;
   const locked = busy || working;
   async function change({ component, target }, confirmed = false) {
     setConfirming(null);
     setWorking(true);
     setError("");
+    setNote(null);
     try {
       check(
         await window.api.xxmiForkSwitch({
@@ -207,6 +211,7 @@ export function MiForkSettings({
         }),
       );
       await onChanged();
+      if (component.note) setNote({ id: component.id, text: component.note });
       notify(
         "success",
         t(
@@ -229,6 +234,7 @@ export function MiForkSettings({
     if (locked) return;
     setWorking(true);
     setError("");
+    setNote(null);
     try {
       const result = check(await window.api.xxmiUpdateOfficial({ gameId, component: component.id }));
       notify("success", t("settings.mi.fork.officialUpdated", { name: component.name, version: result.version }));
@@ -243,6 +249,7 @@ export function MiForkSettings({
     if (locked) return;
     setWorking(true);
     setError("");
+    setNote(null);
     try {
       const result = check(await window.api.xxmiForkUpdate({ gameId, component: component.id }));
       notify(
@@ -288,6 +295,7 @@ export function MiForkSettings({
         <MiComponentCard
           key={component.id}
           component={component}
+          note={note?.id === component.id ? note.text : null}
           locked={locked}
           onChoose={choose}
           onUpdate={update}

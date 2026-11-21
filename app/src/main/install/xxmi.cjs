@@ -31,6 +31,12 @@ const alongside = { endfield: ["xxmi-runtime-vulkan", "eff", "endfield-hdr"], "w
 const maintained = createMiForksService({ bundleRoots: componentRoots, resolveInstallation, runtimeBundle: () => runtimeUpdates.active(), coreBundle: () => coreUpdates.active() });
 const cache = new Map();
 let operation = null;
+// An operation moved what is installed. What the last check found upstream still holds, so it stays in
+// `cache` and in the saved record, and only the installed side is read again.
+async function finished(gameId) {
+  operation = null;
+  try { await require("../games/updates.cjs").refreshMi(gameId); } catch { /* the next check rewrites the record */ }
+}
 function plain(file) {
   for (let current = file; current !== path.dirname(current); current = path.dirname(current)) {
     if (fs.existsSync(current) && fs.lstatSync(current).isSymbolicLink()) throw Error(i18n.t("settings.mi.invalidComponent"));
@@ -149,12 +155,9 @@ async function install({ gameId } = {}) {
     config.currentConfig = next;
     result.preferredForks = maintained.preferForks(gameId, { runtimeEnabled: game.wuwaDx12Enabled !== true });
     settings.notifyGamesChanged();
-    cache.delete(gameId);
     return result;
   } finally {
-    operation = null;
-    cache.clear();
-    require("../games/updates.cjs").invalidate(gameId);
+    await finished(gameId);
     for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId, root: resolved.root });
   }
 }
@@ -163,9 +166,7 @@ async function changeFork({ gameId, component, target, confirmed } = {}) {
   operation = { gameId };
   try { return maintained.change(gameId, component, target, { confirmed: confirmed === true }); }
   finally {
-    operation = null;
-    cache.clear();
-    require("../games/updates.cjs").invalidate(gameId);
+    await finished(gameId);
     for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:changed", { gameId });
   }
 }
@@ -189,9 +190,7 @@ async function updateFork({ gameId, component } = {}) {
     }
     return { success: true, ...installed, applied, pending };
   } finally {
-    operation = null;
-    cache.clear();
-    require("../games/updates.cjs").invalidate(gameId);
+    await finished(gameId);
     changed();
   }
 }
@@ -212,9 +211,7 @@ async function updateOfficial({ gameId, component } = {}) {
       for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("xxmi:progress", { ...progress, gameId });
     });
   } finally {
-    operation = null;
-    cache.clear();
-    require("../games/updates.cjs").invalidate(gameId);
+    await finished(gameId);
     changed();
   }
 }

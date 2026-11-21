@@ -171,6 +171,38 @@ test('checks coalesce, cache for one hour, persist preferences and isolate MI fa
   assert.equal(restarted.state(game.id).client.latest, '', 'a changed installation invalidates old comparisons');
 });
 
+test('a local MI change keeps what the last check found and reads the installed side again', async t => {
+  const { root, write } = fixture(t);
+  const game = { id: 'genshin-impact', gamePath: write('game/YuanShen.exe', 'synthetic'), modLoaderPath: 'XXMI Launcher.exe' };
+  write('game/config.ini', '[General]\ngame_version=7.1.0\n');
+  let installed = '1.5.0', requests = 0, reads = 0, time = 10000000;
+  const components = () => [{ id: 'GIMI', installed, latest: '1.5.1', updateAvailable: installed !== '1.5.1' }];
+  const changes = [];
+  const options = { userData: root, getGame: id => id === game.id ? game : null, supportsMi: () => true, now: () => time,
+    fetch: async () => { requests++; return reply(branches()); }, onChange: value => changes.push(value),
+    checkMi: async () => ({ success: true, components: components() }),
+    readMi: async () => { reads++; return { success: true, components: components() }; } };
+  const service = createGameUpdates(options);
+  await service.refreshMi(game.id);
+  assert.equal(reads, 0, 'nothing was checked yet, so there is nothing to keep');
+  const checked = await service.check({ gameId: game.id });
+  assert.equal(checked.components[0].updateAvailable, true);
+  installed = '1.5.1';
+  time += 1000;
+  await service.refreshMi(game.id);
+  const state = service.state(game.id);
+  assert.equal(requests, 1, 'no one is asked again');
+  assert.equal(state.lastCheckedAt, checked.lastCheckedAt);
+  assert.equal(state.client.latest, checked.client.latest);
+  assert.deepEqual(state.components, [{ id: 'GIMI', installed: '1.5.1', latest: '1.5.1', updateAvailable: false }]);
+  assert.deepEqual(changes.at(-1).components, state.components);
+  assert.deepEqual(createGameUpdates(options).state(game.id).components, state.components, 'the saved record follows');
+  // A read that could not finish leaves the record as it was.
+  options.readMi = async () => ({ success: true, busy: true, components: [] });
+  await createGameUpdates(options).refreshMi(game.id);
+  assert.deepEqual(createGameUpdates(options).state(game.id).components, state.components);
+});
+
 test('a region change during a check cannot publish the former server result', async t => {
   const { root, write } = fixture(t);
   const game = { id: 'genshin-impact', gamePath: write('game/YuanShen.exe', 'synthetic') };

@@ -7,7 +7,7 @@ const { localClient, checkClient } = require("./update-versions.cjs");
 const INTERVAL = 60 * 60 * 1000;
 const REGIONS = new Set(["auto", "cn", "global", "bilibili"]);
 
-function createGameUpdates({ userData, getGame, checkMi, supportsMi, fetch: fetchImpl = globalThis.fetch, now = Date.now, onChange = () => {} }) {
+function createGameUpdates({ userData, getGame, checkMi, readMi, supportsMi, fetch: fetchImpl = globalThis.fetch, now = Date.now, onChange = () => {} }) {
   const file = path.join(userData, "game-updates.json");
   let saved = { games: {} }, storageError = false;
   const running = new Map(), revisions = new Map();
@@ -47,9 +47,18 @@ function createGameUpdates({ userData, getGame, checkMi, supportsMi, fetch: fetc
     onChange(state(gameId));
     return state(gameId);
   }
-  function invalidate(gameId) {
+  // A local change to the MI moves what is installed, not what the last check found upstream:
+  // the found versions stay, and the installed ones are read again without asking anyone.
+  async function refreshMi(gameId) {
     if (!getGame(gameId)) return;
-    revisions.set(gameId, (revisions.get(gameId) || 0) + 1);
+    const { record, fingerprint } = context(gameId);
+    if (!storageError && record.fingerprint === fingerprint && supportsMi(gameId)) {
+      const mi = await Promise.resolve().then(() => readMi(gameId)).catch(() => null);
+      const latest = context(gameId);
+      if (mi && mi.success !== false && !mi.busy && Array.isArray(mi.components) && latest.record.fingerprint === fingerprint && latest.fingerprint === fingerprint) {
+        try { persist(gameId, { ...latest.record, components: mi.components }); } catch { /* the next check writes it */ }
+      }
+    }
     onChange(state(gameId));
   }
   async function check({ gameId, manual = false }) {
@@ -82,7 +91,7 @@ function createGameUpdates({ userData, getGame, checkMi, supportsMi, fetch: fetc
     finally { running.delete(gameId); onChange(state(gameId)); }
     return state(gameId);
   }
-  return { state, check, configure, invalidate };
+  return { state, check, configure, refreshMi };
 }
 
 let service;
@@ -90,7 +99,7 @@ function registerIpc() {
   const electron = require("electron"), settings = require("./settings.cjs"), xxmi = require("../install/xxmi.cjs");
   const { IMPORTERS } = require("../runtime/data-paths.cjs");
   service = createGameUpdates({ userData: electron.app.getPath("userData"), getGame: id => settings.getGameById(id),
-    checkMi: id => xxmi.status(id, "check"), supportsMi: id => Object.hasOwn(IMPORTERS, id),
+    checkMi: id => xxmi.status(id, "check"), readMi: id => xxmi.status(id), supportsMi: id => Object.hasOwn(IMPORTERS, id),
     onChange: value => {
       for (const window of electron.BrowserWindow.getAllWindows()) if (!window.isDestroyed()) window.webContents.send("game-updates:changed", value);
     } });
@@ -106,4 +115,4 @@ function checkedComponents(gameId) {
   try { return service?.state(gameId).components || []; }
   catch { return []; }
 }
-module.exports = { createGameUpdates, registerIpc, checkedComponents, invalidate: gameId => service?.invalidate(gameId) };
+module.exports = { createGameUpdates, registerIpc, checkedComponents, refreshMi: async gameId => service?.refreshMi(gameId) };
