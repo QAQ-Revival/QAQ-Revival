@@ -8,6 +8,7 @@ const electron = require("electron");
 const i18n = require("../../../shared/i18n/core.cjs");
 const files = require("./files.cjs");
 const deployment = require("./deployment.cjs");
+const bundleCache = require("./bundle-cache.cjs");
 const settings = require("../settings.cjs");
 const directories = require("../../characters/directories.cjs");
 const hidden = require("../../characters/hidden.cjs");
@@ -17,6 +18,8 @@ const configStore = require("../../config/store.cjs");
 
 const GAME = "arknights";
 const BUILD_STATE = ".qaqr-build-state.json";
+const BUILD_SILENCE_LIMIT = 15 * 60 * 1000;
+const workers = new Set();
 let lastSync = null;
 let processing = false;
 let pendingSync = false;
@@ -122,8 +125,8 @@ function status() {
 function generatedFingerprint(root) {
   return files.metadataFingerprint(root, { maxBytes: 64 * 1024 * 1024 * 1024, maxFiles: 100000 });
 }
-function componentFingerprint() {
-  return crypto.createHash("sha256").update(JSON.stringify(sourceComponent.packageInfo().manifest)).digest("hex");
+function buildGeneration() {
+  return bundleCache.buildGeneration(sourceComponent.packageInfo().manifest);
 }
 function checkBundles(manifest) {
   const changedOnly = sourceComponent.packageInfo().manifest.capabilities?.includes("incremental-bundle-validation-v1");
@@ -135,7 +138,7 @@ async function prepareLoader() {
   if ((await sourceComponent.runNative(["--status"])).running) throw Error(i18n.t("arknights.errors.gameRunning"));
   sync();
   const fingerprint = generatedFingerprint(p.destination);
-  const componentHash = componentFingerprint();
+  const current = { generation: buildGeneration(), gamePath: p.gamePath, resourceFingerprint: fingerprint };
   const stage = path.join(p.root, `bundle-build-${crypto.randomUUID()}`);
   const previous = path.join(p.root, "PC-Bundles.previous");
   files.assertOutsideGame(stage, p.gamePath);
@@ -148,31 +151,43 @@ async function prepareLoader() {
     try {
       files.assertNoLinks(cacheFile);
       const cached = JSON.parse(fs.readFileSync(cacheFile, "utf8"));
-      if (cached.componentFingerprint === componentHash && cached.gamePath === p.gamePath) cacheDirectory = p.bundleRoot;
-      if (cached.schemaVersion === 2 && cached.resourceFingerprint === fingerprint && cached.componentFingerprint === componentHash && cached.gamePath === p.gamePath) {
+      const { reusable, unchanged } = bundleCache.evaluate(cached, current);
+      if (reusable) cacheDirectory = p.bundleRoot;
+      if (unchanged) {
         const manifest = path.join(p.bundleRoot, "manifest.tsv");
         await checkBundles(manifest);
+        bundleCache.discard([previous, ...bundleCache.leftoverBuilds(p.root)]);
         return { success: true, path: sourceComponent.resolveFile("loader/ArkLoader.exe"), manifest, bundleCount: cached.bundleCount, resourceCount: cached.resourceCount, experimental: true, cached: true };
       }
     } catch { /* A stale cache is rebuilt from current PC originals. */ }
   }
-  let moved = false;
+  // A build that fails or is stopped keeps its finished bundles, and the next one takes them over;
+  // a large library is otherwise built from nothing again each time.
+  const resumable = sourceComponent.packageInfo().manifest.capabilities?.includes("resumable-bundle-build-v1") === true;
+  const leftovers = resumable ? bundleCache.leftoverBuilds(p.root) : [];
+  let moved = false, keepStage = false;
   try {
-    const built = await runWorker({ action: "build-bundles", source: p.destination, gamePath: p.gamePath, output: stage, cacheDirectory, characterIds: [...new Set(enabledEntries().flatMap(entry => entry.characterIds || []))] });
+    const built = await runWorker({ action: "build-bundles", source: p.destination, gamePath: p.gamePath, output: stage, cacheDirectory, ...(resumable ? { resumeDirectories: leftovers } : {}), characterIds: [...new Set(enabledEntries().flatMap(entry => entry.characterIds || []))] });
+    // The stage holds everything the leftovers did. If a later step fails, it is the next leftover.
+    keepStage = resumable;
+    bundleCache.discard(leftovers);
     if (generatedFingerprint(p.destination) !== fingerprint) throw Error(i18n.t("arknights.errors.changed"));
     await checkBundles(path.join(stage, "manifest.tsv"));
     fs.writeFileSync(path.join(stage, "bundle-index.json"), JSON.stringify({ schemaVersion: 1, bundles: built.bundles }));
+    fs.rmSync(path.join(stage, "bundle-index.partial.jsonl"), { force: true });
     fs.writeFileSync(path.join(stage, ".qaqr-generated"), "arknights-bundles-v1");
-    fs.writeFileSync(path.join(stage, BUILD_STATE), JSON.stringify({ schemaVersion: 2, resourceFingerprint: fingerprint, componentFingerprint: componentHash, gamePath: p.gamePath, bundleCount: built.bundleCount, resourceCount: built.resourceCount }));
+    fs.writeFileSync(path.join(stage, BUILD_STATE), JSON.stringify(bundleCache.record(current, built)));
     if (fs.existsSync(previous)) fs.rmSync(previous, { recursive: true });
     if (fs.existsSync(p.bundleRoot)) { files.renameDirectory(p.bundleRoot, previous); moved = true; }
     files.renameDirectory(stage, p.bundleRoot);
+    // Reused bundles are hard links, so the old build only holds space for what was rebuilt.
+    bundleCache.discard([previous]);
     return { success: true, path: sourceComponent.resolveFile("loader/ArkLoader.exe"), manifest: path.join(p.bundleRoot, "manifest.tsv"), bundleCount: built.bundleCount, resourceCount: built.resourceCount, experimental: true };
   } catch (error) {
     if (moved && !fs.existsSync(p.bundleRoot)) files.renameDirectory(previous, p.bundleRoot);
     throw error;
   } finally {
-    if (fs.existsSync(stage)) fs.rmSync(stage, { recursive: true, force: true });
+    if (!keepStage && fs.existsSync(stage)) fs.rmSync(stage, { recursive: true, force: true });
   }
 }
 async function launch() {
@@ -194,12 +209,23 @@ function runWorker(payload) {
     let size = 0;
     let failed = false;
     const fail = error => { if (!failed) { failed = true; clearTimeout(timeout); child.kill(); reject(error); } };
-    const timeout = setTimeout(() => fail(Error(i18n.t("arknights.errors.timeout"))), payload.action === "build-bundles" ? 60 * 60 * 1000 : 180000);
+    const expire = () => fail(Error(i18n.t("arknights.errors.timeout")));
+    // A resumable build reports every bundle on stderr. It has no overall limit, since a large
+    // library takes longer than any fixed one on a slow machine; it is stopped when it falls silent.
+    const reporting = payload.action === "build-bundles" && Array.isArray(payload.resumeDirectories);
+    let timeout = setTimeout(expire, reporting ? BUILD_SILENCE_LIMIT : payload.action === "build-bundles" ? 60 * 60 * 1000 : 180000);
+    workers.add(child);
     child.on("error", fail);
     child.stdin.on("error", fail);
-    child.stderr.on("data", chunk => { stderr = (stderr + chunk.toString("utf8")).slice(-16384); });
-    child.stdout.on("data", chunk => { size += chunk.length; if (size > 8 * 1024 * 1024) fail(Error(i18n.t("arknights.errors.tooLarge"))); else chunks.push(chunk); });
+    child.stderr.on("data", chunk => {
+      stderr = (stderr + chunk.toString("utf8")).slice(-16384);
+      if (reporting && !failed) { clearTimeout(timeout); timeout = setTimeout(expire, BUILD_SILENCE_LIMIT); }
+    });
+    // The index of a full build lists every input of up to 4096 bundles.
+    const outputLimit = (payload.action === "build-bundles" ? 64 : 8) * 1024 * 1024;
+    child.stdout.on("data", chunk => { size += chunk.length; if (size > outputLimit) fail(Error(i18n.t("arknights.errors.tooLarge"))); else chunks.push(chunk); });
     child.on("close", code => {
+      workers.delete(child);
       clearTimeout(timeout);
       if (failed) return;
       try {
@@ -409,6 +435,8 @@ async function createCopy({ token, selectedIds }) {
   }
 }
 function registerIpc() {
+  // Nothing waits for a worker once the manager is gone. A stopped build keeps its bundles.
+  electron.app.on("will-quit", () => { for (const child of workers) child.kill(); });
   for (const [channel, service] of [["arknights:window-status", windowService], ["arknights:mouse-status", mouseService]]) electron.ipcMain.handle(channel, async () => {
     try { return await service.status(); }
     catch (error) { return { success: false, error: error.message }; }
@@ -437,4 +465,4 @@ function registerIpc() {
   });
 }
 
-module.exports = { GAME, paths, enabledEntries, generatedFingerprint, componentFingerprint, validateLibrary, initialize, status, sync, onModsChanged, assertCanEnable, prepareImportedMod, prepareLoader, launch, runWorker, toggleMod, commitToggleBatch, registerIpc };
+module.exports = { GAME, paths, enabledEntries, generatedFingerprint, buildGeneration, validateLibrary, initialize, status, sync, onModsChanged, assertCanEnable, prepareImportedMod, prepareLoader, launch, runWorker, toggleMod, commitToggleBatch, registerIpc };
