@@ -68,8 +68,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $title = 'Upstream sync needs attention'
-          $open = gh issue list --repo $env:GITHUB_REPOSITORY --state open --limit 100 --json number,title --jq ".[] | select(.title == `"$title`") | .number" | Select-Object -First 1
+          $issues = gh issue list --repo $env:GITHUB_REPOSITORY --state open --limit 100 --json number,title
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $open = ($issues | ConvertFrom-Json | Where-Object title -eq $title | Select-Object -First 1).number
           $held = if ('${{ steps.sync.outputs.held }}' -eq 'true') { (Get-Content .cache/sync/held.md -Raw).Trim() } else { '' }
           if (-not $held) {
             if ($open) { gh issue close $open --repo $env:GITHUB_REPOSITORY --comment 'The latest run went through.' }
