@@ -223,7 +223,20 @@ function zipMember(bytes, name) {
 
 // QAQR swaps its build in only over an official runtime it knows. Once the fork contains a new
 // upstream release, that release's DLL is the one users will have, so its hash is recorded here.
-async function acceptOfficialRuntime(git, node, api, download = async url => Buffer.from(await (await fetch(url, { signal: AbortSignal.timeout(120000) })).arrayBuffer())) {
+async function downloadPackage(url) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(120000) });
+      if (!response.ok) throw Error('HTTP ' + response.status);
+      return Buffer.from(await response.arrayBuffer());
+    } catch (error) {
+      if (attempt === 3) throw Error('Cannot download the official package: ' + (error.cause?.message || error.message));
+      await new Promise(resolve => setTimeout(resolve, attempt * 3000));
+    }
+  }
+}
+
+async function acceptOfficialRuntime(git, node, api, download = downloadPackage) {
   const directory = node.directory, file = path.join(directory, 'qaqr/changes.json'), pattern = new RegExp(node.officialRuntime, 'i');
   for (const release of await api(`/repos/${node.upstream}/releases?per_page=10`)) {
     if (!/^v[\w.-]+$/.test(release.tag_name)) continue;
@@ -261,7 +274,12 @@ async function advance(git, node, state, states, { api, verify, official, check 
   settle(git, node);
   const managed = node.children.map(child => relative(directory, child.directory));
   if (node.kind === 'fork' && !node.pinned) state.tags = mergeSources(git, node, managed);
-  if (node.officialRuntime) await official(git, node, api);
+  if (node.officialRuntime) {
+    // Only a merge or a release tag the organization has not seen can bring a runtime that is not recorded yet.
+    const known = new Set(git(directory, ['ls-remote', '--tags', '--refs', 'origin']).stdout.split(/\r?\n/).map(line => line.split(/\s+/)[1]));
+    const released = state.tags.some(([, ref]) => !known.has(ref) && contains(git, directory, `${ref}^{commit}`, 'HEAD'));
+    if (released || head(git, directory) !== state.before) await official(git, node, api);
+  }
   recordChildren(git, node, states);
   if (head(git, directory) === state.before) return;
   // The submodules nobody manages here follow whatever this commit pins.
@@ -401,6 +419,7 @@ function deploy({ targets = [], install = process.env.QAQR_INSTALL_DIR || 'D:/QA
     return result.stdout.trim();
   };
   const swaps = [], built = {};
+  let planned = 0;
   for (const component of Object.values(components)) for (const [target, options] of Object.entries(component.targets)) {
     if (targets.length ? !targets.includes(target) : !/^(local-components|app\/resources)\//.test(options.output)) continue;
     if (!/^(local-components|app\/resources)\//.test(options.output)) throw Error(target + ' is not a deployable package');
@@ -421,7 +440,7 @@ function deploy({ targets = [], install = process.env.QAQR_INSTALL_DIR || 'D:/QA
     let from = current;
     if (force || recordedRevision !== revision || !fs.existsSync(current)) {
       log(`${target}: ${dryRun ? 'would build' : 'building'} ${revision.slice(0, 12)}`);
-      if (dryRun) continue;
+      if (dryRun) { planned++; continue; }
       // Some builds insist on the directory names of their final place.
       from = path.join(cache, 'stage', target, options.output);
       fs.rmSync(from, { recursive: true, force: true });
@@ -448,6 +467,7 @@ function deploy({ targets = [], install = process.env.QAQR_INSTALL_DIR || 'D:/QA
       swaps.push({ target, from, destination, inventory });
     }
   }
+  if (!swaps.length && !planned) log('Every package already matches its source');
   if (dryRun) {
     for (const swap of swaps) log(`${swap.target}: would replace ${swap.destination}`);
     return swaps.map(swap => ({ target: swap.target, destination: swap.destination }));
@@ -481,7 +501,6 @@ function deploy({ targets = [], install = process.env.QAQR_INSTALL_DIR || 'D:/QA
     fs.rmSync(path.join(cache, 'stage'), { recursive: true, force: true });
   }
   if (Object.keys(built).length) fs.writeFileSync(stateFile, JSON.stringify({ ...deployed, ...built }, null, 2) + '\n');
-  if (!swaps.length) log('Every package already matches its source');
   return swaps.map(swap => ({ target: swap.target, destination: swap.destination }));
 }
 

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { spawnSync } = require('node:child_process');
-const { createPlan, ensureCheckout, synchronize, deploy, mergeUpstream, mergeOptional, fetchVersionTags, publishVersionTags } = require('../tools/sync.cjs');
+const { createPlan, ensureCheckout, synchronize, deploy, acceptOfficialRuntime, mergeUpstream, mergeOptional, fetchVersionTags, publishVersionTags } = require('../tools/sync.cjs');
 const { checkoutConfig } = require('../tools/github-app-client.cjs');
 
 // Git keeps its objects read-only, and fs.rmSync on Windows does not remove those by itself.
@@ -351,4 +351,35 @@ test('in a fresh clone a nested submodule is checked out after the repositories 
   assert(calls.indexOf('native/renodx') < calls.indexOf('native/renodx/external/reshade'));
   assert(calls.indexOf('native/wwmi-dx12') < calls.indexOf('native/wwmi-dx12/third_party/3Dmigoto'));
   assert(calls.indexOf('bridges/mega') < calls.indexOf('bridges/mega/vendor/MegaDownloader-Revival'));
+});
+test('the runtime of the newest release the fork contains is recorded once, and only when its package matches its digest', { skip: process.platform !== 'win32' }, async t => {
+  const f = fixture(t);
+  const sha = bytes => require('node:crypto').createHash('sha256').update(bytes).digest('hex');
+  fs.mkdirSync(path.join(f.directory, 'qaqr'));
+  f.save('qaqr/changes.json', JSON.stringify({ upstream: 'up/runtime', compatibleRuntimeHashes: ['0'.repeat(64)] }, null, 2) + '\n');
+  f.commit();
+  f.run(['tag', 'v1.2.3']);
+  f.run(['tag', 'v9.9.9', f.run(['commit-tree', 'HEAD^{tree}', '-m', 'Unmerged release'])]);
+  const packing = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'qaqr-package-'));
+  t.after(() => fs.rmSync(packing, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(packing, 'XXMI'));
+  fs.writeFileSync(path.join(packing, 'XXMI/d3d11.dll'), 'official runtime');
+  fs.writeFileSync(path.join(packing, 'XXMI/readme.txt'), 'notes');
+  assert.equal(spawnSync(path.join(process.env.SystemRoot, 'System32/tar.exe'), ['-a', '-cf', 'package.zip', 'XXMI'], { cwd: packing, windowsHide: true }).status, 0);
+  const archive = fs.readFileSync(path.join(packing, 'package.zip'));
+  const release = (tag, digest) => ({ tag_name: tag, assets: [{ name: `XXMI-PACKAGE-${tag}.zip`, digest, browser_download_url: `https://github.com/up/runtime/releases/download/${tag}/XXMI-PACKAGE-${tag}.zip` }] });
+  const node = { directory: f.directory, upstream: 'up/runtime', officialRuntime: '^XXMI-PACKAGE-v[\\d.]+\\.zip$' };
+  const downloads = [];
+  const download = async url => { downloads.push(url); return archive; };
+  const hashes = () => JSON.parse(fs.readFileSync(path.join(f.directory, 'qaqr/changes.json'), 'utf8')).compatibleRuntimeHashes;
+  const before = f.run(['rev-parse', 'HEAD']);
+  await assert.rejects(acceptOfficialRuntime(f.git, node, async () => [release('v9.9.9', 'sha256:' + sha(archive)), release('v1.2.3', 'sha256:' + '1'.repeat(64))], download), /does not match its recorded digest/);
+  assert.equal(f.run(['rev-parse', 'HEAD']), before);
+  const api = async route => { assert.equal(route, '/repos/up/runtime/releases?per_page=10'); return [release('v9.9.9', 'sha256:' + sha(archive)), release('v1.2.3', 'sha256:' + sha(archive))]; };
+  assert.equal(await acceptOfficialRuntime(f.git, node, api, download), true);
+  assert.deepEqual(hashes(), ['0'.repeat(64), sha(Buffer.from('official runtime'))]);
+  assert.equal(f.run(['show', '-s', '--format=%s']), 'Accept the official v1.2.3 runtime');
+  assert.equal(f.run(['status', '--porcelain']), '');
+  assert.equal(await acceptOfficialRuntime(f.git, node, api, download), false);
+  assert.deepEqual(downloads.map(url => url.split('/').at(-1)), Array(3).fill('XXMI-PACKAGE-v1.2.3.zip'));
 });
