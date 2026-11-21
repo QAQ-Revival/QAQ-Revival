@@ -5,11 +5,12 @@ function verifyDownstream(directory, name) {
   const read = file => fs.readFileSync(path.join(directory, file), 'utf8');
   const modules = path.join(directory, '.gitmodules');
   if (fs.existsSync(modules)) {
+    // An unmodified dependency is referenced where it is published; only a changed one has an organization fork.
     // A submodule marked update = none is never checked out, so nothing builds from it.
     for (const [, body] of read('.gitmodules').matchAll(/^\s*\[submodule\s+"[^"]*"\]([^[]*)/gm)) {
       const url = /^\s*url\s*=\s*(\S+)/m.exec(body)?.[1] || '';
       if (/^\s*update\s*=\s*none\s*$/m.test(body)) continue;
-      if (!/^https:\/\/github\.com\/QAQ-Revival\/[\w.-]+\.git$/.test(url)) throw Error(`${name} introduces an unmanaged submodule; create and review its organization fork first`);
+      if (!/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+$/.test(url)) throw Error(`${name} takes a submodule from outside GitHub over HTTPS; review ${url || 'its missing address'} first`);
     }
   }
   if (name === 'UnityPy' && /AudioClipConverter/.test(read('UnityPy/export/__init__.py'))) throw Error('UnityPy audio exclusion needs review after the upstream merge');

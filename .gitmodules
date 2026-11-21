@@ -36,7 +36,7 @@
 	branch = main
 [submodule "native/wwmi-package"]
 	path = native/wwmi-package
-	url = https://github.com/QAQ-Revival/WWMI-Package.git
+	url = https://github.com/SpectrumQT/WWMI-Package.git
 	branch = main
 [submodule "native/eff"]
 	path = native/eff

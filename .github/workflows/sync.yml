@@ -1,0 +1,97 @@
+name: Upstream Sync
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      QAQR_GITHUB_APP_ID: ${{ secrets.QAQR_GITHUB_APP_ID }}
+      QAQR_GITHUB_APP_PRIVATE_KEY: ${{ secrets.QAQR_GITHUB_APP_PRIVATE_KEY }}
+    steps:
+      - name: Check out the root repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      # Reads GitHub only. When nothing has moved, the run ends here within seconds.
+      - name: Ask GitHub what is waiting
+        id: status
+        run: node tools/sync.cjs status
+
+      - name: Set up Python for the shader checks
+        if: steps.status.outputs.pending == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      # Exit code 2 means some repositories were held back and the rest went through.
+      - name: Merge, verify and publish
+        id: sync
+        if: steps.status.outputs.pending == 'true'
+        run: |
+          node tools/sync.cjs run
+          if ($LASTEXITCODE -notin 0, 2) { exit $LASTEXITCODE }
+          exit 0
+
+      - name: Report what was held back
+        if: steps.sync.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $title = 'Upstream sync needs attention'
+          $open = gh issue list --repo $env:GITHUB_REPOSITORY --state open --limit 100 --json number,title --jq ".[] | select(.title == `"$title`") | .number" | Select-Object -First 1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $held = if ('${{ steps.sync.outputs.held }}' -eq 'true') { (Get-Content .cache/sync/held.md -Raw).Trim() } else { '' }
+          if (-not $held) {
+            if ($open) { gh issue close $open --repo $env:GITHUB_REPOSITORY --comment 'The latest run went through.' }
+            exit $LASTEXITCODE
+          }
+          $body = @(
+            'The scheduled sync left these repositories as they were. Everything else was merged, verified and published.'
+            ''
+            $held
+            ''
+            'Settle each one in its checkout (merge the upstream branch by hand, or fix what the check reports), commit, and run `node tools/sync.cjs run`: the next run publishes reviewed local commits.'
+            ''
+            "Run: $env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          ) -join "`n"
+          if ($open) { gh issue edit $open --repo $env:GITHUB_REPOSITORY --body $body } else { gh issue create --repo $env:GITHUB_REPOSITORY --title $title --body $body }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          throw 'Some repositories were held back; see the issue'
+
+      # Four runs a day would bury everything else in the Actions list.
+      - name: Keep only this run of the workflow
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $runs = gh api --paginate "repos/$env:GITHUB_REPOSITORY/actions/workflows/sync.yml/runs?status=completed&per_page=100" --jq '.workflow_runs[].id'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($run in $runs) {
+            if ("$run" -ne $env:GITHUB_RUN_ID) { gh api --method DELETE "repos/$env:GITHUB_REPOSITORY/actions/runs/$run" | Out-Null }
+          }
+          exit 0

@@ -33,7 +33,7 @@
     "dependencies": [
       {
         "path": "vendor/minhook",
-        "url": "https://github.com/QAQ-Revival/minhook.git",
+        "url": "https://github.com/TsudaKageyu/minhook.git",
         "branch": "master"
       },
       {
@@ -43,7 +43,7 @@
       },
       {
         "path": "vendor/Ark-Unpacker",
-        "url": "https://github.com/QAQ-Revival/Ark-Unpacker.git",
+        "url": "https://github.com/isHarryh/Ark-Unpacker.git",
         "branch": "v5.x"
       }
     ],
@@ -119,7 +119,7 @@
     "dependencies": [
       {
         "path": "vendor/MegaDownloader-Revival",
-        "url": "https://github.com/QAQ-Revival/MegaDownloader-Revival.git",
+        "url": "https://github.com/a1175815821/MegaDownloader-Revival.git",
         "branch": "main"
       }
     ],

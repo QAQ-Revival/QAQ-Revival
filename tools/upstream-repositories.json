@@ -1,39 +1,24 @@
 {
   "owner": "QAQ-Revival",
+  "owned": [
+    { "name": "MEGA-Worker", "branch": "main", "path": "bridges/mega", "verify": ["build.cjs", "--test"] },
+    { "name": "Arknights-Mod-Tools", "branch": "main", "path": "native/arknights-tools" }
+  ],
   "forks": [
     { "name": "XXMI-Launcher", "upstream": "SpectrumQT/XXMI-Launcher", "branch": "main", "path": "native/xxmi-launcher" },
-    { "name": "MegaDownloader-Revival", "upstream": "a1175815821/MegaDownloader-Revival", "branch": "main", "path": "bridges/mega/vendor/MegaDownloader-Revival" },
-    { "name": "minhook", "upstream": "TsudaKageyu/minhook", "branch": "master", "path": "native/arknights-tools/vendor/minhook" },
     { "name": "UnityPy", "upstream": "K0lb3/UnityPy", "branch": "master", "path": "native/arknights-tools/vendor/UnityPy", "lfs": true },
-    { "name": "Ark-Unpacker", "upstream": "isHarryh/Ark-Unpacker", "branch": "v5.x", "path": "native/arknights-tools/vendor/Ark-Unpacker" },
-    { "name": "Ark-FBS-Py", "upstream": "isHarryh/Ark-FBS-Py", "branch": "dist", "path": "native/arknights-tools/vendor/Ark-Unpacker/src/fbs" },
-    { "name": "XXMI-Libs-Package", "upstream": "SpectrumQT/XXMI-Libs-Package", "branch": "master", "versionTags": "upstream", "path": "native/xxmi-runtime" },
-    { "name": "EFMI-Package", "upstream": "SpectrumQT/EFMI-Package", "branch": "main", "path": "native/efmi-package" },
-    { "name": "XXMI-Libs-Vulkan", "upstream": "myparsleycat/XXMI-Libs-Package-Forked", "branch": "master", "also": ["XXMI-Libs-Package@master"], "optional": true, "versionTags": "upstream", "path": "native/xxmi-runtime-vulkan" },
-    { "name": "wwmi-dx12", "upstream": "lekarsenten/wwmi-dx12", "branch": "main", "optional": true, "versionTags": "upstream", "path": "native/wwmi-dx12" },
-    { "name": "reshade", "upstream": "crosire/reshade", "branch": "wwmi-dx12-sdk", "pinned": true, "path": "native/wwmi-dx12/reshade_addon/sdk" },
-    { "name": "imgui", "upstream": "ocornut/imgui", "branch": "wwmi-dx12-sdk", "pinned": true, "path": "native/wwmi-dx12/reshade_addon/sdk/deps/imgui" },
-    { "name": "WWMI-Package", "upstream": "SpectrumQT/WWMI-Package", "branch": "main", "path": "native/wwmi-package" },
-    { "name": "EFF", "upstream": "ssice-a/EFF", "branch": "main", "optional": true, "path": "native/eff" },
-    { "name": "renodx", "upstream": "clshortfuse/renodx", "branch": "main", "path": "native/renodx", "optional": true },
-    { "name": "reshade", "upstream": "crosire/reshade", "branch": "renodx-sdk", "path": "native/renodx/external/reshade", "optional": true, "pinned": true },
-    { "name": "Streamline", "upstream": "clshortfuse/Streamline", "branch": "patch-1", "path": "native/renodx/external/Streamline", "optional": true },
-    { "name": "gtl", "upstream": "greg7mdp/gtl", "branch": "main", "path": "native/renodx/external/gtl", "optional": true },
-    { "name": "DLSS", "upstream": "NVIDIA/DLSS", "branch": "main", "path": "native/renodx/external/DLSS", "optional": true },
-    { "name": "Detours", "upstream": "microsoft/Detours", "branch": "main", "path": "native/renodx/external/Detours", "optional": true },
-    { "name": "frozen", "upstream": "serge-sans-paille/frozen", "branch": "master", "path": "native/renodx/external/frozen", "optional": true },
-    { "name": "json", "upstream": "nlohmann/json", "branch": "develop", "path": "native/renodx/external/json", "optional": true },
-    { "name": "minhook", "upstream": "TsudaKageyu/minhook", "branch": "master", "path": "native/renodx/external/minhook", "optional": true },
-    { "name": "imgui", "upstream": "ocornut/imgui", "branch": "wwmi-dx12-sdk", "path": "native/renodx/external/reshade/deps/imgui", "optional": true, "pinned": true },
-    { "name": "minhook", "upstream": "TsudaKageyu/minhook", "branch": "master", "path": "native/renodx/external/reshade/deps/minhook", "optional": true },
-    { "name": "stb", "upstream": "nothings/stb", "branch": "master", "path": "native/renodx/external/reshade/deps/stb", "optional": true },
-    { "name": "glad", "upstream": "Dav1dde/glad", "branch": "glad2", "path": "native/renodx/external/reshade/deps/glad", "optional": true },
-    { "name": "utfcpp", "upstream": "nemtrif/utfcpp", "branch": "master", "path": "native/renodx/external/reshade/deps/utfcpp", "optional": true },
-    { "name": "SPIRV-Headers", "upstream": "KhronosGroup/SPIRV-Headers", "branch": "main", "path": "native/renodx/external/reshade/deps/spirv", "optional": true },
-    { "name": "VulkanMemoryAllocator", "upstream": "GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator", "branch": "master", "path": "native/renodx/external/reshade/deps/vma", "optional": true },
-    { "name": "fpng", "upstream": "richgel999/fpng", "branch": "main", "path": "native/renodx/external/reshade/deps/fpng", "optional": true },
-    { "name": "DirectX-Headers", "upstream": "microsoft/DirectX-Headers", "branch": "main", "path": "native/renodx/external/reshade/deps/d3d12", "optional": true },
-    { "name": "OpenXR-SDK", "upstream": "KhronosGroup/OpenXR-SDK", "branch": "main", "path": "native/renodx/external/reshade/deps/openxr", "optional": true },
-    { "name": "simple-lossless-encoder", "upstream": "kampidh/simple-lossless-encoder", "branch": "headers-and-color-profile", "path": "native/renodx/external/reshade/deps/jxl_simple_lossless", "optional": true }
+    { "name": "XXMI-Libs-Package", "upstream": "SpectrumQT/XXMI-Libs-Package", "branch": "master", "versionTags": "upstream", "path": "native/xxmi-runtime", "copies": ["native/wwmi-dx12/third_party/3Dmigoto"], "officialRuntime": "^XXMI-PACKAGE-v[\\d.]+\\.zip$", "verify": ["qaqr/build.cjs", "--verify-only"] },
+    { "name": "EFMI-Package", "upstream": "SpectrumQT/EFMI-Package", "branch": "main", "path": "native/efmi-package", "verify": ["qaqr/build.cjs", "--verify-only"] },
+    { "name": "XXMI-Libs-Vulkan", "upstream": "myparsleycat/XXMI-Libs-Package-Forked", "branch": "master", "also": ["XXMI-Libs-Package@master"], "versionTags": "upstream", "path": "native/xxmi-runtime-vulkan", "verify": ["qaqr/build.cjs", "--verify-only"] },
+    { "name": "wwmi-dx12", "upstream": "lekarsenten/wwmi-dx12", "branch": "main", "versionTags": "upstream", "path": "native/wwmi-dx12", "verify": ["qaqr/build.cjs", "--verify-only"] },
+    { "name": "EFF", "upstream": "ssice-a/EFF", "branch": "main", "path": "native/eff", "verify": ["qaqr/build.cjs", "--verify-only"] },
+    { "name": "renodx", "upstream": "clshortfuse/renodx", "branch": "main", "path": "native/renodx" },
+    { "name": "reshade", "upstream": "crosire/reshade", "branch": "renodx-sdk", "pinned": true, "path": "native/renodx/external/reshade" }
+  ],
+  "tracked": [
+    { "upstream": "SpectrumQT/WWMI-Package", "branch": "main", "path": "native/wwmi-package" },
+    { "upstream": "a1175815821/MegaDownloader-Revival", "branch": "main", "path": "bridges/mega/vendor/MegaDownloader-Revival" },
+    { "upstream": "TsudaKageyu/minhook", "branch": "master", "path": "native/arknights-tools/vendor/minhook" },
+    { "upstream": "isHarryh/Ark-Unpacker", "branch": "v5.x", "path": "native/arknights-tools/vendor/Ark-Unpacker" }
   ]
 }
