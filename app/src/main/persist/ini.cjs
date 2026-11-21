@@ -75,6 +75,45 @@ function applyPersistBridgeToIniContent(content, descriptor, declarations) {
   }
   return nextLines.join("\n");
 }
+const BRIDGE_REFERENCE_PATTERN = /\$\\QAQM\\Persist\\Bridge_([A-Fa-f0-9]+)\\([A-Za-z_][A-Za-z0-9_]*)/g;
+// Bridge variables referenced by INI contents: lower-case namespace -> (lower-case name -> name as written).
+function collectBridgeReferences(contents) {
+  const references = new Map();
+  for (const content of contents) {
+    for (const match of String(content || "").matchAll(BRIDGE_REFERENCE_PATTERN)) {
+      const namespace = `qaqm\\persist\\bridge_${match[1].toLowerCase()}`;
+      if (!references.has(namespace)) references.set(namespace, new Map());
+      const names = references.get(namespace);
+      const normalizedName = match[2].toLowerCase();
+      if (!names.has(normalizedName)) names.set(normalizedName, match[2]);
+    }
+  }
+  return references;
+}
+// A state file is rebuilt from the INI's remaining local declarations. Variables an earlier
+// migration already moved into the state file are no longer declared in the INI, so keep every
+// hosted declaration (with its value) that INIs still reference; drop the rest. Referenced names
+// that are declared nowhere are added with the default 0 so 3DMigoto keeps the commands using them.
+function mergeHostedPersistDeclarations(declarations, existingStateContent, references, namespace) {
+  const merged = [...declarations];
+  const seen = new Set(declarations.map(declaration => declaration.normalizedName));
+  const referenced = references?.get(String(namespace).toLowerCase()) || new Map();
+  for (const declaration of parseLocalPersistDeclarations(existingStateContent)) {
+    if (seen.has(declaration.normalizedName) || !referenced.has(declaration.normalizedName)) continue;
+    seen.add(declaration.normalizedName);
+    merged.push(declaration);
+  }
+  for (const [normalizedName, variableName] of referenced) {
+    if (seen.has(normalizedName)) continue;
+    seen.add(normalizedName);
+    merged.push({
+      variableName,
+      normalizedName,
+      defaultValue: "0"
+    });
+  }
+  return merged;
+}
 function parseIniNamespace(content) {
   const match = String(content || "").match(/^\s*namespace\s*=\s*(.+?)\s*$/im);
   return match ? match[1].trim() : null;
@@ -105,5 +144,7 @@ module.exports = {
   buildPersistBridgeStateContent,
   applyPersistBridgeToIniContent,
   parseIniNamespace,
-  applyExternalBridgeRefsToIniContent
+  applyExternalBridgeRefsToIniContent,
+  collectBridgeReferences,
+  mergeHostedPersistDeclarations
 };

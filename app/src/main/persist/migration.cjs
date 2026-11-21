@@ -14,6 +14,44 @@ const persistIni = require("./ini.cjs");
 const persistLayout = require("./layout.cjs");
 const persistService = require("./service.cjs");
 const persistTracking = require("./tracking.cjs");
+// Reads every INI once, on first use, to find which bridge variables are still referenced.
+function createBridgeReferenceReader(iniFiles) {
+  let references = null;
+  return () => {
+    if (!references) {
+      const contents = [];
+      for (const iniPath of iniFiles) {
+        try {
+          contents.push(fs.readFileSync(iniPath, "utf-8"));
+        } catch (_) {}
+      }
+      references = persistIni.collectBridgeReferences(contents);
+    }
+    return references;
+  };
+}
+// Builds the state file for an INI that still has local persist declarations. An existing state
+// file is merged, not replaced: declarations moved there by an earlier migration stay while INIs
+// still reference them, so adding a variable to an already migrated INI cannot drop older ones.
+function buildMergedPersistStateContent(descriptor, declarations, statePath, readBridgeReferences, d3dxUserConstants) {
+  const existingStateValues = new Map();
+  let stateDeclarations = declarations;
+  if (fs.existsSync(statePath)) {
+    try {
+      const existingStateContent = fs.readFileSync(statePath, "utf-8");
+      for (const declaration of persistIni.parseLocalPersistDeclarations(existingStateContent)) {
+        existingStateValues.set(declaration.normalizedName, declaration.defaultValue);
+      }
+      stateDeclarations = persistIni.mergeHostedPersistDeclarations(declarations, existingStateContent, readBridgeReferences(), descriptor.namespace);
+    } catch (_) {}
+  }
+  for (const declaration of stateDeclarations) {
+    const rawKey = `$\\${descriptor.namespace}\\${declaration.variableName}`;
+    const entry = d3dxUserConstants.get(persistService.normalizeD3dxUserKey(rawKey));
+    if (entry) existingStateValues.set(declaration.normalizedName, entry.value);
+  }
+  return persistIni.buildPersistBridgeStateContent(descriptor, stateDeclarations, existingStateValues);
+}
 function ensurePersistBridgeMigrationForActiveGame(root) {
   if (!root || persistLayout.preparedPersistBridgeRoots.has(root)) return;
   if (!persistTracking.isPersistBridgeEnabled(persistTracking.getPersistBridgeGameIdForRoot(root))) {
@@ -44,6 +82,7 @@ function ensurePersistBridgeMigrationForActiveGame(root) {
     let migratedIniCount = 0;
     let generatedStateCount = 0;
     const iniFiles = modsIniFiles.getIniFiles(modsRoot);
+    const readBridgeReferences = createBridgeReferenceReader(iniFiles);
     const bridgeMappings = [];
     const d3dxUserPath = path.join(root, "d3dx_user.ini");
     const {
@@ -64,13 +103,15 @@ function ensurePersistBridgeMigrationForActiveGame(root) {
               const descriptor2 = persistIni.buildPersistBridgeDescriptor(modsRoot, iniPath);
               const statePath2 = persistLayout.resolvePersistBridgeStatePath(root, descriptor2.stateFileName);
               if (!fs.existsSync(statePath2)) {
+                // The backup may predate variables added after the first migration; keep everything still referenced.
+                const stateDeclarations2 = persistIni.mergeHostedPersistDeclarations(bakDeclarations, "", readBridgeReferences(), descriptor2.namespace);
                 const existingStateValues2 = new Map();
-                for (const declaration of bakDeclarations) {
+                for (const declaration of stateDeclarations2) {
                   const rawKey = `$\\${descriptor2.namespace}\\${declaration.variableName}`;
                   const entry = d3dxUserConstants.get(persistService.normalizeD3dxUserKey(rawKey));
                   if (entry) existingStateValues2.set(declaration.normalizedName, entry.value);
                 }
-                const stateContent2 = persistIni.buildPersistBridgeStateContent(descriptor2, bakDeclarations, existingStateValues2);
+                const stateContent2 = persistIni.buildPersistBridgeStateContent(descriptor2, stateDeclarations2, existingStateValues2);
                 if (persistLayout.writeFileIfChanged(statePath2, stateContent2)) {
                   generatedStateCount += 1;
                 }
@@ -103,22 +144,7 @@ function ensurePersistBridgeMigrationForActiveGame(root) {
       if (declarations.length === 0) continue;
       const descriptor = persistIni.buildPersistBridgeDescriptor(modsRoot, iniPath);
       const statePath = persistLayout.resolvePersistBridgeStatePath(root, descriptor.stateFileName);
-      const existingStateValues = new Map();
-      if (fs.existsSync(statePath)) {
-        try {
-          const existingStateContent = fs.readFileSync(statePath, "utf-8");
-          for (const line of existingStateContent.replace(/\r\n/g, "\n").split("\n")) {
-            const m = line.match(/^\s*global\s+persist\s+\$([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
-            if (m) existingStateValues.set(m[1].toLowerCase(), m[2]);
-          }
-        } catch (_) {}
-      }
-      for (const declaration of declarations) {
-        const rawKey = `$\\${descriptor.namespace}\\${declaration.variableName}`;
-        const entry = d3dxUserConstants.get(persistService.normalizeD3dxUserKey(rawKey));
-        if (entry) existingStateValues.set(declaration.normalizedName, entry.value);
-      }
-      const stateContent = persistIni.buildPersistBridgeStateContent(descriptor, declarations, existingStateValues);
+      const stateContent = buildMergedPersistStateContent(descriptor, declarations, statePath, readBridgeReferences, d3dxUserConstants);
       if (persistLayout.writeFileIfChanged(statePath, stateContent)) {
         generatedStateCount += 1;
       }
@@ -212,6 +238,9 @@ function ensurePersistBridgeMigrationForModDir(root, modDir) {
   try {
     const modsRoot = gamesSettings.getModsPath(persistTracking.getPersistBridgeGameIdForRoot(root)) || path.join(root, "Mods");
     const iniFiles = modsIniFiles.getIniFiles(modDir);
+    // Read references before backups are restored below, while the INIs still point at the bridges.
+    const readBridgeReferences = createBridgeReferenceReader(iniFiles);
+    readBridgeReferences();
     let generatedStateCount = 0;
     const bridgeMappings = [];
     const d3dxUserPath = path.join(root, "d3dx_user.ini");
@@ -247,22 +276,7 @@ function ensurePersistBridgeMigrationForModDir(root, modDir) {
       if (declarations.length === 0) continue;
       const descriptor = persistIni.buildPersistBridgeDescriptor(modsRoot, iniPath);
       const statePath = persistLayout.resolvePersistBridgeStatePath(root, descriptor.stateFileName);
-      const existingStateValues = new Map();
-      if (fs.existsSync(statePath)) {
-        try {
-          const existingStateContent = fs.readFileSync(statePath, "utf-8");
-          for (const line of existingStateContent.replace(/\r\n/g, "\n").split("\n")) {
-            const m = line.match(/^\s*global\s+persist\s+\$([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
-            if (m) existingStateValues.set(m[1].toLowerCase(), m[2]);
-          }
-        } catch (_) {}
-      }
-      for (const declaration of declarations) {
-        const rawKey = `$\\${descriptor.namespace}\\${declaration.variableName}`;
-        const entry = d3dxUserConstants.get(persistService.normalizeD3dxUserKey(rawKey));
-        if (entry) existingStateValues.set(declaration.normalizedName, entry.value);
-      }
-      const stateContent = persistIni.buildPersistBridgeStateContent(descriptor, declarations, existingStateValues);
+      const stateContent = buildMergedPersistStateContent(descriptor, declarations, statePath, readBridgeReferences, d3dxUserConstants);
       if (persistLayout.writeFileIfChanged(statePath, stateContent)) {
         generatedStateCount += 1;
       }
