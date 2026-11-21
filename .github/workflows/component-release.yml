@@ -60,8 +60,12 @@ jobs:
         with:
           python-version: '3.12'
 
+      # The token is for a build that has to ask the GitHub API where a tool is released; unauthenticated
+      # requests from shared runners are refused more often than not.
       - name: Build, check and package
         if: steps.plan.outputs.publish == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           node tooling/tools/publish-component.cjs build source "$env:RUNNER_TEMP/component/${{ steps.plan.outputs.component }}"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

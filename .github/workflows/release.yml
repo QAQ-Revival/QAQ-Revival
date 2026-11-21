@@ -82,7 +82,10 @@ jobs:
       - name: Refresh all five character catalogs before packaging
         run: node tools/update-character-catalogs.cjs
 
+      # The token is for a component build that has to ask the GitHub API where a tool is released.
       - name: Build Windows x64 portable application
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: node tools/build.cjs
 
       # The Electron smoke window is 1440x960. The runner's default 1024x768
