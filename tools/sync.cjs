@@ -497,8 +497,9 @@ function deploy({ targets = [], install = process.env.QAQR_INSTALL_DIR || 'D:/QA
     }
     throw Error((['EPERM', 'EBUSY', 'EACCES'].includes(error.code) ? 'A package is in use; close QAQ-Revival and the games it started. ' : '') + error.message + '. Nothing was deployed.');
   } finally {
-    fs.rmSync(staging, { recursive: true, force: true });
-    fs.rmSync(path.join(cache, 'stage'), { recursive: true, force: true });
+    const cleanup = { recursive: true, force: true, maxRetries: 5, retryDelay: 200 };
+    fs.rmSync(staging, cleanup);
+    fs.rmSync(path.join(cache, 'stage'), cleanup);
   }
   if (Object.keys(built).length) fs.writeFileSync(stateFile, JSON.stringify({ ...deployed, ...built }, null, 2) + '\n');
   return swaps.map(swap => ({ target: swap.target, destination: swap.destination }));
