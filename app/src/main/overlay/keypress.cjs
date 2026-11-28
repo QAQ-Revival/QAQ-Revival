@@ -22,7 +22,7 @@ async function ensureKeypressBridgeForActiveGame() {
     root,
     d3dxPath
   } = env;
-  persistMigration.ensurePersistBridgeMigrationForActiveGame(root);
+  const migrationResult = await persistMigration.ensurePersistBridgeMigrationForActiveGameAsync(root);
   if (persistLayout.preparedKeypressRoots.has(root)) {
     const bridgeDir = persistLayout.getQaqmBridgeDir(root);
     const keypressFile = path.join(bridgeDir, persistLayout.QAQR_KEYPRESS_FILE);
@@ -31,7 +31,7 @@ async function ensureKeypressBridgeForActiveGame() {
     if (bridgeFilesExist) {
       let d3dxHasInclude = false;
       try {
-        const d3dxContent = fs.readFileSync(d3dxPath, "utf-8");
+        const d3dxContent = await fs.promises.readFile(d3dxPath, "utf-8");
         d3dxHasInclude = new RegExp(`^\\s*include\\s*=\\s*${persistLayout.escapeRegExp(persistLayout.QAQR_BRIDGE_DIR)}[/\\\\]${persistLayout.escapeRegExp(persistLayout.QAQR_INCLUDER_FILE)}\\s*$`, "im").test(d3dxContent);
       } catch (_) {
         d3dxHasInclude = true;
@@ -50,8 +50,8 @@ async function ensureKeypressBridgeForActiveGame() {
     const keypressContent = "[System]\ncheck_foreground_window = 0\n";
     try {
       persistLayout.writeFileIfChanged(keypressPath, keypressContent);
-      if (persistTracking.isPersistBridgeEnabled()) {
-        persistTracking.rebuildActivePersistBridgeIncludes(root);
+      if (persistTracking.isPersistBridgeEnabled() && !migrationResult?.rebuiltIncludes) {
+        await persistTracking.rebuildActivePersistBridgeIncludesAsync(root);
       }
       let existingIncluderContent = "";
       if (fs.existsSync(includerPath)) {

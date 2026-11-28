@@ -3,6 +3,7 @@
 const i18n = require("../../shared/i18n/core.cjs");
 module.exports = {
   restorePersistBakFiles,
+  restorePersistBakFilesAsync,
   listIniBackupsForMod,
   restoreIniBackupForMod
 };
@@ -133,6 +134,38 @@ function restorePersistBakFiles(modDir) {
     }
   }
   walk(modDir);
+  return count;
+}
+async function restorePersistBakFilesAsync(modDir) {
+  let count = 0;
+  async function walk(dir) {
+    let entries;
+    try {
+      entries = await fs.promises.readdir(dir, {
+        withFileTypes: true
+      });
+    } catch (_) {
+      return;
+    }
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+      } else if (entry.isFile() && entry.name.endsWith(".qaqm-persistbak")) {
+        const originalPath = fullPath.slice(0, -".qaqm-persistbak".length);
+        try {
+          await fs.promises.rm(originalPath, {
+            force: true
+          });
+          await fs.promises.rename(fullPath, originalPath);
+          count++;
+        } catch (e) {
+          coreLogger.logger.warn(`Failed to restore persist bak: ${fullPath} -> ${originalPath}: ${e?.message || e}`);
+        }
+      }
+    }
+  }
+  await walk(modDir);
   return count;
 }
 function createIniBackupStamp() {

@@ -5,6 +5,7 @@ module.exports = {
   registerIpc,
   getAvailableModFolderName,
   installMultipleModsFromRoot,
+  installMultipleModsFromRootAsync,
   importModFromLocalPath
 };
 const electron = require("electron");
@@ -92,6 +93,35 @@ function installMultipleModsFromRoot(sourceRoot, characterPath, {
   }
   return installed;
 }
+async function installMultipleModsFromRootAsync(sourceRoot, characterPath, {
+  moveSource = false
+} = {}) {
+  const children = listMultiModChildren(sourceRoot);
+  if (children.length < 2) {
+    throw new Error(i18n.t("backend.imports.local.multipleModInstallRequiresAtLeastTwoNonEmptyFolders"));
+  }
+  const installed = [];
+  for (const child of children) {
+    const availableTarget = getAvailableModFolderName(characterPath, child.name);
+    if (moveSource) {
+      await systemFiles.movePathWithFallbackAsync(child.sourcePath, availableTarget.path, true, {
+        countFiles: false
+      });
+    } else {
+      await fs.promises.cp(child.sourcePath, availableTarget.path, {
+        recursive: true
+      });
+    }
+    installed.push({
+      modName: path.basename(availableTarget.path),
+      sourcePath: child.sourcePath,
+      targetPath: availableTarget.path,
+      duplicate: availableTarget.duplicate,
+      duplicateOf: availableTarget.duplicateOf
+    });
+  }
+  return installed;
+}
 async function importModFromLocalPath({
   characterName,
   filePath,
@@ -146,8 +176,8 @@ async function importModFromLocalPath({
     coreLogger.logger.info(`Adding mod: ${availableTarget.name} to ${canonicalCharacterName}`);
     coreLogger.logger.info(`Source file: ${filePath}`);
     const ext = path.extname(filePath).toLowerCase();
-    const sourceStat = fs.statSync(filePath);
-    const disguised = sourceStat.isFile() && archivesDisguised.isDisguisedMp4(filePath);
+    const sourceStat = await fs.promises.stat(filePath);
+    const disguised = sourceStat.isFile() && (typeof modInfo?.disguised === "boolean" ? modInfo.disguised : await archivesDisguised.isDisguisedMp4Async(filePath));
     if (disguised) {
       coreLogger.logger.info("[Disguise] Detected disguised MP4 mod, extracting with decryption...");
       const realModName = await archivesDisguised.extractDisguisedMp4(filePath, targetPath);
@@ -187,7 +217,7 @@ async function importModFromLocalPath({
       };
     } else if (sourceStat.isDirectory()) {
       coreLogger.logger.info("Copying directory");
-      fs.cpSync(filePath, targetPath, {
+      await fs.promises.cp(filePath, targetPath, {
         recursive: true
       });
     } else {
@@ -207,9 +237,7 @@ async function importModFromLocalPath({
         try {
           const env = gamesEnvironment.resolveActiveGameEnvRoot(gameId2);
           if (env?.root && persistTracking.isPersistBridgeEnabled(gameId2)) {
-            for (const modDir of integratedResult.installedModDirs || []) {
-              persistMigration.ensurePersistBridgeMigrationForModDir(env.root, modDir);
-            }
+            await persistMigration.ensurePersistBridgeMigrationForModDirsAsync(env.root, integratedResult.installedModDirs || []);
           }
           if (gameId2 === gamesSettings.getActiveGameScopeId()) await overlayKeypress.ensureKeypressBridgeForActiveGame();
         } catch (e) {
@@ -232,13 +260,15 @@ async function importModFromLocalPath({
       }
     }
     coreLogger.logger.info(`Mod added successfully: ${targetPath}`);
-    const restoredBakCount = modsBackups.restorePersistBakFiles(targetPath);
+    const restoredBakCount = await modsBackups.restorePersistBakFilesAsync(targetPath);
     if (restoredBakCount > 0) {
       coreLogger.logger.info(`Restored ${restoredBakCount} .qaqm-persistbak file(s) in ${targetPath}`);
     }
     try {
       const env = gamesEnvironment.resolveActiveGameEnvRoot(gameId2);
-      if (env?.root && persistTracking.isPersistBridgeEnabled(gameId2)) persistMigration.ensurePersistBridgeMigrationForModDir(env.root, targetPath);
+      if (env?.root && persistTracking.isPersistBridgeEnabled(gameId2)) {
+        await persistMigration.ensurePersistBridgeMigrationForModDirsAsync(env.root, [targetPath]);
+      }
       if (gameId2 === gamesSettings.getActiveGameScopeId()) await overlayKeypress.ensureKeypressBridgeForActiveGame();
     } catch (e) {
       coreLogger.logger.warn("Failed to refresh persist bridge after adding mod:", e?.message || e);

@@ -8,6 +8,7 @@ module.exports = {
   usesManagedPersistBridge,
   normalizeD3dxUserKey,
   readD3dxUserConstants,
+  readD3dxUserConstantsAsync,
   restorePersistStateForMod,
   get persistManager() {
     return persistManager;
@@ -124,55 +125,103 @@ function getD3dxUserIniPath() {
   if (!env) return null;
   return path.join(env.root, "d3dx_user.ini");
 }
+const D3DX_USER_DEFAULT_PREFIX_LINES = ["; AUTOMATICALLY GENERATED FILE - DO NOT EDIT", ";", "; 3DMigoto will overwrite this file whenever any persistent settings are", '; altered by hot key or command list. Tag global variables with the "persist"', "; keyword to save them in this file. Use the post keyword in the [Constants]", "; command list if you need to do any intialisation after this file is loaded.", ";"];
+function parseD3dxUserConstantsLine(line, state) {
+  const trimmed = line.trim();
+  if (/^\[Constants\]$/i.test(trimmed)) {
+    state.sawConstants = true;
+    state.inConstants = true;
+    return;
+  }
+  if (state.inConstants && /^\[[^\]]+\]$/.test(trimmed)) {
+    state.inConstants = false;
+    state.suffixLines.push(line);
+    return;
+  }
+  if (!state.sawConstants) {
+    state.prefixLines.push(line);
+    return;
+  }
+  if (state.inConstants) {
+    if (!trimmed || trimmed.startsWith(";")) return;
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex <= 0) return;
+    const rawKey = trimmed.slice(0, eqIndex).trimEnd();
+    const rawValue = trimmed.slice(eqIndex + 1).trimStart();
+    state.constantsMap.set(normalizeD3dxUserKey(rawKey), {
+      key: rawKey,
+      value: rawValue
+    });
+    return;
+  }
+  state.suffixLines.push(line);
+}
 function readD3dxUserConstants(d3dxUserPath) {
-  const defaultPrefixLines = ["; AUTOMATICALLY GENERATED FILE - DO NOT EDIT", ";", "; 3DMigoto will overwrite this file whenever any persistent settings are", '; altered by hot key or command list. Tag global variables with the "persist"', "; keyword to save them in this file. Use the post keyword in the [Constants]", "; command list if you need to do any intialisation after this file is loaded.", ";"];
   if (!d3dxUserPath || !fs.existsSync(d3dxUserPath)) {
     return {
-      prefixLines: defaultPrefixLines,
+      prefixLines: [...D3DX_USER_DEFAULT_PREFIX_LINES],
       constantsMap: new Map(),
       suffixLines: []
     };
   }
   const lines = fs.readFileSync(d3dxUserPath, "utf-8").split(/\r?\n/);
-  const prefixLines = [];
-  const suffixLines = [];
-  const constantsMap = new Map();
-  let sawConstants = false;
-  let inConstants = false;
-  lines.forEach(line => {
-    const trimmed = line.trim();
-    if (/^\[Constants\]$/i.test(trimmed)) {
-      sawConstants = true;
-      inConstants = true;
-      return;
-    }
-    if (inConstants && /^\[[^\]]+\]$/.test(trimmed)) {
-      inConstants = false;
-      suffixLines.push(line);
-      return;
-    }
-    if (!sawConstants) {
-      prefixLines.push(line);
-      return;
-    }
-    if (inConstants) {
-      if (!trimmed || trimmed.startsWith(";")) return;
-      const assignmentMatch = line.match(/^\s*([^=]+?)\s*=\s*(.*?)\s*$/);
-      if (!assignmentMatch) return;
-      const rawKey = assignmentMatch[1].trim();
-      const rawValue = assignmentMatch[2].trim();
-      constantsMap.set(normalizeD3dxUserKey(rawKey), {
-        key: rawKey,
-        value: rawValue
-      });
-      return;
-    }
-    suffixLines.push(line);
-  });
+  const state = {
+    prefixLines: [],
+    suffixLines: [],
+    constantsMap: new Map(),
+    sawConstants: false,
+    inConstants: false
+  };
+  for (let i = 0; i < lines.length; i++) {
+    parseD3dxUserConstantsLine(lines[i], state);
+  }
   return {
-    prefixLines: prefixLines.length > 0 ? prefixLines : defaultPrefixLines,
-    constantsMap,
-    suffixLines
+    prefixLines: state.prefixLines.length > 0 ? state.prefixLines : [...D3DX_USER_DEFAULT_PREFIX_LINES],
+    constantsMap: state.constantsMap,
+    suffixLines: state.suffixLines
+  };
+}
+async function readD3dxUserConstantsAsync(d3dxUserPath) {
+  if (!d3dxUserPath) {
+    return {
+      prefixLines: [...D3DX_USER_DEFAULT_PREFIX_LINES],
+      constantsMap: new Map(),
+      suffixLines: []
+    };
+  }
+  let raw = "";
+  try {
+    raw = await fs.promises.readFile(d3dxUserPath, "utf-8");
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return {
+        prefixLines: [...D3DX_USER_DEFAULT_PREFIX_LINES],
+        constantsMap: new Map(),
+        suffixLines: []
+      };
+    }
+    throw error;
+  }
+  const lines = raw.split(/\r?\n/);
+  const state = {
+    prefixLines: [],
+    suffixLines: [],
+    constantsMap: new Map(),
+    sawConstants: false,
+    inConstants: false
+  };
+  let lastYield = performance.now();
+  for (let i = 0; i < lines.length; i++) {
+    parseD3dxUserConstantsLine(lines[i], state);
+    if ((i & 4095) === 4095 && performance.now() - lastYield >= 12) {
+      await new Promise(resolve => setImmediate(resolve));
+      lastYield = performance.now();
+    }
+  }
+  return {
+    prefixLines: state.prefixLines.length > 0 ? state.prefixLines : [...D3DX_USER_DEFAULT_PREFIX_LINES],
+    constantsMap: state.constantsMap,
+    suffixLines: state.suffixLines
   };
 }
 function writeD3dxUserConstants(d3dxUserPath, constantsMap, prefixLines = [], suffixLines = []) {
@@ -458,10 +507,7 @@ function registerIpc() {
       }
       const root = path.dirname(modsPath);
       if (persistTracking.isPersistBridgeEnabled()) {
-        for (const modEntry of modDirs) {
-          const modDir = path.join(charDir, modEntry.name);
-          persistMigration.ensurePersistBridgeMigrationForModDir(root, modDir);
-        }
+        await persistMigration.ensurePersistBridgeMigrationForModDirsAsync(root, modDirs.map(modEntry => path.join(charDir, modEntry.name)));
       }
       return {
         success: true,

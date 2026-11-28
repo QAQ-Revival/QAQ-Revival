@@ -131,6 +131,28 @@ function countFilesInPath(targetPath) {
     return 0;
   }
 }
+async function countFilesInPathAsync(targetPath) {
+  try {
+    const stat = await fs.promises.stat(targetPath);
+    if (stat.isFile()) return 1;
+    if (!stat.isDirectory()) return 0;
+    let count = 0;
+    const stack = [targetPath];
+    while (stack.length > 0) {
+      const current = stack.pop();
+      const entries = await fs.promises.readdir(current, {
+        withFileTypes: true
+      });
+      for (const entry of entries) {
+        if (entry.isFile()) count++;
+        else if (entry.isDirectory()) stack.push(path.join(current, entry.name));
+      }
+    }
+    return count;
+  } catch (_) {
+    return 0;
+  }
+}
 async function removePathForOverlayCopy(targetPath, sourceIsDirectory) {
   let stat = null;
   try {
@@ -165,9 +187,6 @@ async function copyDirectoryContentsOverlay(sourceDir, targetDir) {
       copiedFiles += await copyDirectoryContentsOverlay(sourcePath, targetPath);
     } else if (entry.isFile()) {
       await removePathForOverlayCopy(targetPath, false);
-      await fs.promises.mkdir(path.dirname(targetPath), {
-        recursive: true
-      });
       await fs.promises.copyFile(sourcePath, targetPath);
       copiedFiles++;
     }
@@ -185,9 +204,10 @@ async function copyPathForMoveFallback(sourcePath, targetPath, sourceIsDirectory
   return 1;
 }
 async function movePathWithFallbackAsync(sourcePath, targetPath, sourceIsDirectory, {
-  onReadyToRemoveSource = null
+  onReadyToRemoveSource = null,
+  countFiles = true
 } = {}) {
-  const movedFiles = countFilesInPath(sourcePath);
+  const movedFiles = countFiles ? await countFilesInPathAsync(sourcePath) : 0;
   await fs.promises.mkdir(path.dirname(targetPath), {
     recursive: true
   });

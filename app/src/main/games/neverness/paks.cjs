@@ -111,13 +111,12 @@ async function prepareNevernessDx12PakDetectionSource(filePath) {
       });
     } catch (_) {}
   };
-  if (stat.isFile() && archivesDisguised.isDisguisedMp4(filePath)) {
+  if (stat.isFile() && (await archivesDisguised.isDisguisedMp4Async(filePath))) {
     await archivesDisguised.extractDisguisedMp4(filePath, tempDir);
-  } else if (ext === ".zip") {
-    const zip = new AdmZip(filePath);
-    zip.extractAllTo(tempDir, true);
-  } else if (ext === ".rar" || ext === ".7z" || ext === ".exe") {
-    await archivesExtract.extractArchiveWithExternalTool(filePath, tempDir);
+  } else if (ext === ".zip" || ext === ".rar" || ext === ".7z" || ext === ".exe") {
+    await archivesExtract.extractArchiveWithExternalTool(filePath, tempDir, {
+      flatten: false
+    });
   } else {
     fs.copyFileSync(filePath, path.join(tempDir, path.basename(filePath)));
   }
@@ -165,15 +164,7 @@ function extractNevernessDx12Source(filePath) {
       });
     } catch (_) {}
   };
-  if (ext === ".zip") {
-    const zip = new AdmZip(filePath);
-    zip.extractAllTo(tempDir, true);
-    return {
-      sourceDir: tempDir,
-      cleanup
-    };
-  }
-  if (ext === ".rar" || ext === ".7z" || ext === ".exe") {
+  if (ext === ".zip" || ext === ".rar" || ext === ".7z" || ext === ".exe") {
     return {
       sourceDir: tempDir,
       cleanup,

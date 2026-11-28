@@ -7,6 +7,7 @@ module.exports = {
   extractHostedPersistStateFilesFromContent,
   collectHostedPersistStateFilesForModDir,
   rebuildActivePersistBridgeIncludes,
+  rebuildActivePersistBridgeIncludesAsync,
   syncPersistBridgeStateForModDir
 };
 const path = require("path");
@@ -87,18 +88,75 @@ function getPersistBridgeTrackingStateFromValue(state) {
     recentStateFiles
   };
 }
-function writeActivePersistBridgeIncludeFromState(root, state, saveTracking = true) {
-  if (!root) return [];
-  persistLayout.ensureQaqmBridgeDir(root);
-  const normalizedState = setPersistBridgeTrackingState(root, state, saveTracking);
-  const finalStateFiles = isPersistBridgeEnabled(getPersistBridgeGameIdForRoot(root)) ? [...normalizedState.enabledStateFiles, ...normalizedState.recentStateFiles].filter(name => fs.existsSync(persistLayout.resolvePersistBridgeStatePath(root, name))) : [];
-  let content = "";
+function normalizeStateFileLookupKey(name) {
+  return process.platform === "win32" ? String(name || "").toLowerCase() : String(name || "");
+}
+function readExistingStateFileListSync(root) {
+  const stateDir = persistLayout.getPersistBridgeStateDir(root);
+  if (!stateDir || !fs.existsSync(stateDir)) return [];
+  try {
+    return fs.readdirSync(stateDir).filter(name => persistLayout.PERSIST_BRIDGE_STATE_FILE_REGEX.test(name));
+  } catch (_) {
+    return [];
+  }
+}
+async function readExistingStateFileListAsync(root) {
+  const stateDir = persistLayout.getPersistBridgeStateDir(root);
+  if (!stateDir) return [];
+  try {
+    return (await fs.promises.readdir(stateDir)).filter(name => persistLayout.PERSIST_BRIDGE_STATE_FILE_REGEX.test(name));
+  } catch (_) {
+    return [];
+  }
+}
+function hasStateFileInSet(existingSet, fileName) {
+  const normalized = persistLayout.extractPersistBridgeStateFileName(fileName);
+  return !!normalized && existingSet.has(normalizeStateFileLookupKey(normalized));
+}
+function formatPersistBridgeActiveIncludeContent(finalStateFiles) {
+  const blocks = [];
+  const seenTargets = new Set();
   for (const stateFile of finalStateFiles) {
     const includeTarget = persistLayout.getPersistBridgeStateIncludeTarget(stateFile);
     if (!includeTarget) continue;
-    content = persistLayout.ensureIncludeEntry(content, persistLayout.getStateBridgeIncludeSectionName(stateFile), includeTarget);
+    const targetKey = includeTarget.toLowerCase();
+    if (seenTargets.has(targetKey)) continue;
+    seenTargets.add(targetKey);
+    blocks.push(`[${persistLayout.getStateBridgeIncludeSectionName(stateFile)}]\ninclude = ${includeTarget}\n`);
   }
+  return blocks.join("\n");
+}
+function writeActivePersistBridgeIncludeFromState(root, state, saveTracking = true, existingStateFileSet = null) {
+  if (!root) return [];
+  persistLayout.ensureQaqmBridgeDir(root);
+  const normalizedState = setPersistBridgeTrackingState(root, state, saveTracking);
+  const existingSet = existingStateFileSet || new Set(readExistingStateFileListSync(root).map(normalizeStateFileLookupKey));
+  const finalStateFiles = isPersistBridgeEnabled(getPersistBridgeGameIdForRoot(root)) ? [...normalizedState.enabledStateFiles, ...normalizedState.recentStateFiles].filter(name => hasStateFileInSet(existingSet, name)) : [];
+  const content = formatPersistBridgeActiveIncludeContent(finalStateFiles);
   persistLayout.writeFileIfChanged(persistLayout.getQaqmBridgeFilePath(root, persistLayout.PERSIST_ACTIVE_INCLUDE_FILE), content);
+  return finalStateFiles;
+}
+async function writeFileIfChangedAsync(filePath, content) {
+  const normalized = String(content || "").replace(/\r\n/g, "\n");
+  try {
+    const existing = (await fs.promises.readFile(filePath, "utf-8")).replace(/\r\n/g, "\n");
+    if (existing === normalized) return false;
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  await fs.promises.writeFile(filePath, normalized, "utf-8");
+  return true;
+}
+async function writeActivePersistBridgeIncludeFromStateAsync(root, state, saveTracking = true, existingStateFileSet = null) {
+  if (!root) return [];
+  await fs.promises.mkdir(persistLayout.getQaqmBridgeDir(root), {
+    recursive: true
+  });
+  const normalizedState = setPersistBridgeTrackingState(root, state, saveTracking);
+  const existingSet = existingStateFileSet || new Set((await readExistingStateFileListAsync(root)).map(normalizeStateFileLookupKey));
+  const finalStateFiles = isPersistBridgeEnabled(getPersistBridgeGameIdForRoot(root)) ? [...normalizedState.enabledStateFiles, ...normalizedState.recentStateFiles].filter(name => hasStateFileInSet(existingSet, name)) : [];
+  const content = formatPersistBridgeActiveIncludeContent(finalStateFiles);
+  await writeFileIfChangedAsync(persistLayout.getQaqmBridgeFilePath(root, persistLayout.PERSIST_ACTIVE_INCLUDE_FILE), content);
   return finalStateFiles;
 }
 function ensurePersistBridgeTrackingState(root) {
@@ -185,13 +243,97 @@ function rebuildActivePersistBridgeIncludes(root) {
   const existingStateFiles = persistLayout.readPersistBridgeStateFilesFromInclude(activeIncludePath);
   const existingCachedStateFiles = existingStateFiles.filter(stateFile => !enabledStateFiles.has(stateFile));
   const trackedState = getPersistBridgeTrackingState(root);
-  const stateDir = persistLayout.getPersistBridgeStateDir(root);
-  const savedFiles = fs.existsSync(stateDir) ? fs.readdirSync(stateDir).filter(name => persistLayout.PERSIST_BRIDGE_STATE_FILE_REGEX.test(name)) : [];
-  const recentStateFiles = normalizePersistBridgeStateFileList([...trackedState.recentStateFiles, ...trackedState.enabledStateFiles, ...existingCachedStateFiles, ...savedFiles]).filter(name => !enabledStateFiles.has(name) && fs.existsSync(persistLayout.resolvePersistBridgeStatePath(root, name)));
+  const savedFiles = readExistingStateFileListSync(root);
+  const savedFileSet = new Set(savedFiles.map(normalizeStateFileLookupKey));
+  const recentStateFiles = normalizePersistBridgeStateFileList([...trackedState.recentStateFiles, ...trackedState.enabledStateFiles, ...existingCachedStateFiles, ...savedFiles]).filter(name => !enabledStateFiles.has(name) && hasStateFileInSet(savedFileSet, name));
   return writeActivePersistBridgeIncludeFromState(root, {
     enabledStateFiles: Array.from(enabledStateFiles).sort((left, right) => left.localeCompare(right)),
     recentStateFiles
-  });
+  }, true, savedFileSet);
+}
+function isEnabledRelativeIniPath(modsRoot, iniPath) {
+  const rel = path.relative(modsRoot, iniPath);
+  if (!rel || rel.startsWith("..")) return false;
+  const parts = rel.split(/[\\/]+/).filter(Boolean);
+  if (parts.length < 3) return false;
+  return !parts[1].startsWith("DISABLED_");
+}
+async function rebuildActivePersistBridgeIncludesAsync(root, {
+  iniContentsByPath = null
+} = {}) {
+  if (!root) return [];
+  const enabledStateFiles = new Set();
+  const modsRoot = gamesSettings.getModsPath(getPersistBridgeGameIdForRoot(root)) || path.join(root, "Mods");
+  let lastYield = performance.now();
+  const maybeYield = async () => {
+    if (performance.now() - lastYield >= 12) {
+      await new Promise(resolve => setImmediate(resolve));
+      lastYield = performance.now();
+    }
+  };
+  if (iniContentsByPath instanceof Map) {
+    for (const [iniPath, content] of iniContentsByPath) {
+      if (!isEnabledRelativeIniPath(modsRoot, iniPath)) continue;
+      for (const stateFile of extractHostedPersistStateFilesFromContent(content)) {
+        enabledStateFiles.add(stateFile);
+      }
+      await maybeYield();
+    }
+  } else {
+    try {
+      const characterDirs = (await fs.promises.readdir(modsRoot, {
+        withFileTypes: true
+      })).filter(entry => entry.isDirectory());
+      for (const characterDir of characterDirs) {
+        const charPath = path.join(modsRoot, characterDir.name);
+        let modDirs = [];
+        try {
+          modDirs = (await fs.promises.readdir(charPath, {
+            withFileTypes: true
+          })).filter(entry => entry.isDirectory() && !entry.name.startsWith("DISABLED_"));
+        } catch (_) {
+          continue;
+        }
+        for (const modDir of modDirs) {
+          const iniFiles = await modsIniFiles.getIniFilesAsync(path.join(charPath, modDir.name));
+          for (const iniPath of iniFiles) {
+            try {
+              const content = await fs.promises.readFile(iniPath, "utf-8");
+              for (const stateFile of extractHostedPersistStateFilesFromContent(content)) {
+                enabledStateFiles.add(stateFile);
+              }
+            } catch (_) {}
+            await maybeYield();
+          }
+        }
+      }
+    } catch (e) {
+      if (e?.code !== "ENOENT") {
+        coreLogger.logger.warn("Failed to rebuild active persist bridge set:", e?.message || e);
+      }
+    }
+  }
+  const activeIncludePath = persistLayout.getQaqmBridgeFilePath(root, persistLayout.PERSIST_ACTIVE_INCLUDE_FILE);
+  let includeText = "";
+  try {
+    includeText = await fs.promises.readFile(activeIncludePath, "utf-8");
+  } catch (_) {}
+  const existingStateFiles = [];
+  for (const line of includeText.replace(/\r\n/g, "\n").split("\n")) {
+    const match = line.match(/^\s*include\s*=\s*(.+?)\s*$/i);
+    if (!match) continue;
+    const fileName = persistLayout.extractPersistBridgeStateFileName(match[1]);
+    if (fileName && !existingStateFiles.includes(fileName)) existingStateFiles.push(fileName);
+  }
+  const existingCachedStateFiles = existingStateFiles.filter(stateFile => !enabledStateFiles.has(stateFile));
+  const trackedState = getPersistBridgeTrackingState(root);
+  const savedFiles = await readExistingStateFileListAsync(root);
+  const savedFileSet = new Set(savedFiles.map(normalizeStateFileLookupKey));
+  const recentStateFiles = normalizePersistBridgeStateFileList([...trackedState.recentStateFiles, ...trackedState.enabledStateFiles, ...existingCachedStateFiles, ...savedFiles]).filter(name => !enabledStateFiles.has(name) && hasStateFileInSet(savedFileSet, name));
+  return writeActivePersistBridgeIncludeFromStateAsync(root, {
+    enabledStateFiles: Array.from(enabledStateFiles).sort((left, right) => left.localeCompare(right)),
+    recentStateFiles
+  }, true, savedFileSet);
 }
 function syncPersistBridgeStateForModDir(modDirPath, gameId = gamesSettings.getActiveGameScopeId()) {
   if (!isPersistBridgeEnabled(gameId)) return {

@@ -49,7 +49,7 @@ function registerIpc() {
         };
       }
       const items = [];
-      const entries = fs.readdirSync(folderPath, {
+      const entries = await fs.promises.readdir(folderPath, {
         withFileTypes: true
       });
       for (const entry of entries) {
@@ -67,7 +67,7 @@ function registerIpc() {
             importsBatchScan.pushBatchItem(items, importsBatchScan.batchDirectoryPlanItem(entryPath) || importsBatchScan.createBatchFolderItem(entryPath));
           } else {
             const innerItems = [];
-            const foundInner = importsBatchScan.batchScanDir(entryPath, innerItems);
+            const foundInner = await importsBatchScan.batchScanDirAsync(entryPath, innerItems);
             if (foundInner) {
               items.push(...innerItems);
             } else {
@@ -75,7 +75,7 @@ function registerIpc() {
             }
           }
         } else if (entry.isFile()) {
-          const item = importsBatchScan.batchArchiveItem(entryPath, true);
+          const item = await importsBatchScan.batchArchiveItemAsync(entryPath, true);
           const loosePakItem = item ? null : importsBatchScan.batchLoosePakItem(entryPath);
           importsBatchScan.pushBatchItem(items, item || loosePakItem);
         }
@@ -112,7 +112,7 @@ function registerIpc() {
       };
       return {
         filePaths: result.filePaths,
-        items: importsBatchScan.scanBatchPaths(result.filePaths)
+        items: await importsBatchScan.scanBatchPathsAsync(result.filePaths)
       };
     } catch (error) {
       return {
@@ -126,7 +126,7 @@ function registerIpc() {
   }) => {
     try {
       return {
-        items: importsBatchScan.scanBatchPaths(paths)
+        items: await importsBatchScan.scanBatchPathsAsync(paths)
       };
     } catch (error) {
       return {
@@ -174,7 +174,7 @@ function registerIpc() {
           results.push(managedResult);
           continue;
         }
-        const disguised = sourceStat.isFile() && archivesDisguised.isDisguisedMp4(filePath);
+        const disguised = sourceStat.isFile() && (typeof item.disguised === "boolean" ? item.disguised : await archivesDisguised.isDisguisedMp4Async(filePath));
         let realName = null;
         if (sourceStat.isFile() && importsBatchScan.isLargeArchiveForExternalExtraction(filePath, sourceStat)) {
           const message = importsBatchScan.formatLargeArchiveExternalExtractMessage(filePath);
@@ -443,6 +443,9 @@ function registerIpc() {
         });
         characterName = installTarget.characterName || characterName;
         modName = charactersSkins.assertSafeAppearancePathSegment(modName || "Mod", i18n.t("backend.validation.modName"));
+        sendBatchItemProgress(idx, 0, progressWeights[idx], {
+          modName
+        });
         if (gameId2 === "arknights" && !item.installAsMultipleMods && !item.installAsIntegratedPackage && !item.expectedIntegratedPackage) {
           const result = await importsLocal.importModFromLocalPath({ characterName, filePath: item.tempPath || filePath, modInfo: { ...item, name: modName }, gameIdOverride: gameId2 });
           results.push({ modName, characterName, ...result });
@@ -555,11 +558,11 @@ function registerIpc() {
             });
             continue;
           }
-          const installed = importsLocal.installMultipleModsFromRoot(multipleSourcePath, multipleCharPath, {
+          const installed = await importsLocal.installMultipleModsFromRootAsync(multipleSourcePath, multipleCharPath, {
             moveSource: !!preparedPath
           });
-          installed.forEach(entry => {
-            modsBackups.restorePersistBakFiles(entry.targetPath);
+          for (const entry of installed) {
+            await modsBackups.restorePersistBakFilesAsync(entry.targetPath);
             const appearance2 = modsAppearance.assignInstalledModAppearance({
               characterName,
               modName: entry.modName,
@@ -572,10 +575,10 @@ function registerIpc() {
             if (gameId2 === "arknights") entry.targetPath = require("../games/arknights/service.cjs").prepareImportedMod(entry.targetPath);
             modsConflicts.clearConflictCache(characterName, gameId2);
             installedPaths.push(entry.targetPath);
-          });
+          }
           if (preparedPath && fs.existsSync(preparedPath)) {
             try {
-              fs.rmSync(preparedPath, {
+              await fs.promises.rm(preparedPath, {
                 recursive: true,
                 force: true
               });
@@ -633,11 +636,13 @@ function registerIpc() {
         const tempPath = item.tempPath || null;
         if (tempPath && fs.existsSync(tempPath)) {
           systemFiles.assertDirectoryHasAnyFile(tempPath, "Prepared mod import");
-          systemFiles.moveDirectoryWithFallback(tempPath, targetPath);
+          await systemFiles.movePathWithFallbackAsync(tempPath, targetPath, true, {
+            countFiles: false
+          });
         } else {
           const ext = path.extname(filePath).toLowerCase();
-          const sourceStat = fs.statSync(filePath);
-          const disguised = sourceStat.isFile() && archivesDisguised.isDisguisedMp4(filePath);
+          const sourceStat = await fs.promises.stat(filePath);
+          const disguised = sourceStat.isFile() && (typeof item.disguised === "boolean" ? item.disguised : await archivesDisguised.isDisguisedMp4Async(filePath));
           if (disguised) {
             await archivesDisguised.extractDisguisedMp4(filePath, targetPath);
           } else if (ext === ".zip") {
@@ -657,7 +662,7 @@ function registerIpc() {
             });
             continue;
           } else if (sourceStat.isDirectory()) {
-            fs.cpSync(filePath, targetPath, {
+            await fs.promises.cp(filePath, targetPath, {
               recursive: true
             });
           } else {
@@ -706,7 +711,7 @@ function registerIpc() {
         }
         systemFiles.assertDirectoryHasAnyFile(targetPath, "Mod import");
         modsConflicts.clearConflictCache(characterName, gameId2);
-        const batchRestoredCount = modsBackups.restorePersistBakFiles(targetPath);
+        const batchRestoredCount = await modsBackups.restorePersistBakFilesAsync(targetPath);
         if (batchRestoredCount > 0) {
           coreLogger.logger.info(`Restored ${batchRestoredCount} .qaqm-persistbak file(s) in ${targetPath}`);
         }
@@ -733,7 +738,7 @@ function registerIpc() {
       } catch (e) {
         if (targetPath) {
           try {
-            fs.rmSync(targetPath, {
+            await fs.promises.rm(targetPath, {
               recursive: true,
               force: true
             });
@@ -760,9 +765,7 @@ function registerIpc() {
     try {
       const env = gamesEnvironment.resolveActiveGameEnvRoot(gameId2);
       if (env?.root && persistTracking.isPersistBridgeEnabled(gameId2)) {
-        for (const p of installedPaths) {
-          persistMigration.ensurePersistBridgeMigrationForModDir(env.root, p);
-        }
+        await persistMigration.ensurePersistBridgeMigrationForModDirsAsync(env.root, installedPaths);
       }
       if (gameId2 === gamesSettings.getActiveGameScopeId()) await overlayKeypress.ensureKeypressBridgeForActiveGame();
     } catch (_) {}

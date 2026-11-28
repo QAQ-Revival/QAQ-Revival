@@ -10,6 +10,7 @@ module.exports = {
   run7zSync,
   getEncryptedExportArchiveSource,
   isDisguisedMp4,
+  isDisguisedMp4Async,
   peekDisguisedModName,
   extractDisguisedMp4
 };
@@ -31,12 +32,66 @@ const EXPORT_ENCRYPT_VIDEO_DIR = path.join(electron.app.getPath("videos"), "QAQ-
 const EXPORT_ENCRYPT_LONG_VIDEO_DIR = path.join(EXPORT_ENCRYPT_VIDEO_DIR, "长视频");
 const EXPORT_ENCRYPT_LONG_VIDEO_THRESHOLD = 512 * 1024 * 1024;
 const EXPORT_ENCRYPT_DIRECT_7Z_THRESHOLD = 1024 * 1024 * 1024;
+function isStandardZipPrefix(buf, bytesRead = buf.length) {
+  if (bytesRead < 4) return false;
+  const sig = buf.readUInt32LE(0);
+  return sig === 67324752 || sig === 101010256 || sig === 134695760;
+}
 function findDisguiseMagic(filePath) {
   try {
     const fd = fs.openSync(filePath, "r");
-    const stat = fs.fstatSync(fd);
-    if (!stat.isFile()) {
+    try {
+      const stat = fs.fstatSync(fd);
+      if (!stat.isFile() || stat.size < DISGUISE_MAGIC.length) {
+        return -1;
+      }
+      const head = Buffer.alloc(DISGUISE_MAGIC.length);
+      const headRead = fs.readSync(fd, head, 0, head.length, 0);
+      if (headRead === DISGUISE_MAGIC.length && head.equals(DISGUISE_MAGIC)) {
+        return 0;
+      }
+      if (isStandardZipPrefix(head, headRead)) {
+        return -1;
+      }
+      const fileSize = stat.size;
+      const chunkSize = 4 * 1024 * 1024;
+      const overlap = DISGUISE_MAGIC.length - 1;
+      let pos = fileSize;
+      let carry = Buffer.alloc(0);
+      while (pos > 0) {
+        const readLen = Math.min(chunkSize, pos);
+        pos -= readLen;
+        const chunk = Buffer.alloc(readLen + carry.length);
+        fs.readSync(fd, chunk, 0, readLen, pos);
+        carry.copy(chunk, readLen);
+        const idx = chunk.lastIndexOf(DISGUISE_MAGIC);
+        if (idx !== -1) {
+          return pos + idx;
+        }
+        carry = chunk.subarray(0, Math.min(overlap, chunk.length));
+      }
+    } finally {
       fs.closeSync(fd);
+    }
+  } catch (_) {}
+  return -1;
+}
+async function findDisguiseMagicAsync(filePath) {
+  let handle = null;
+  try {
+    handle = await fs.promises.open(filePath, "r");
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.size < DISGUISE_MAGIC.length) {
+      return -1;
+    }
+    const head = Buffer.alloc(DISGUISE_MAGIC.length);
+    const {
+      bytesRead: headRead
+    } = await handle.read(head, 0, head.length, 0);
+    if (headRead === DISGUISE_MAGIC.length && head.equals(DISGUISE_MAGIC)) {
+      return 0;
+    }
+    if (isStandardZipPrefix(head, headRead)) {
       return -1;
     }
     const fileSize = stat.size;
@@ -44,21 +99,26 @@ function findDisguiseMagic(filePath) {
     const overlap = DISGUISE_MAGIC.length - 1;
     let pos = fileSize;
     let carry = Buffer.alloc(0);
+    let chunksRead = 0;
     while (pos > 0) {
       const readLen = Math.min(chunkSize, pos);
       pos -= readLen;
       const chunk = Buffer.alloc(readLen + carry.length);
-      fs.readSync(fd, chunk, 0, readLen, pos);
+      await handle.read(chunk, 0, readLen, pos);
       carry.copy(chunk, readLen);
       const idx = chunk.lastIndexOf(DISGUISE_MAGIC);
       if (idx !== -1) {
-        fs.closeSync(fd);
         return pos + idx;
       }
       carry = chunk.subarray(0, Math.min(overlap, chunk.length));
+      chunksRead++;
+      if ((chunksRead & 3) === 0) {
+        await yieldToEventLoop();
+      }
     }
-    fs.closeSync(fd);
-  } catch (_) {}
+  } catch (_) {} finally {
+    if (handle) await handle.close().catch(() => {});
+  }
   return -1;
 }
 function decodeV2ToTempZip(filePath, tempDir = electron.app.getPath("temp")) {
@@ -111,8 +171,8 @@ function getPercentLabel(done, total) {
 function yieldToEventLoop() {
   return new Promise(resolve => setImmediate(resolve));
 }
-async function decodeV2ToTempZipAsync(filePath, tempDir = electron.app.getPath("temp"), onProgress = null) {
-  const magicOffset = findDisguiseMagic(filePath);
+async function decodeV2ToTempZipAsync(filePath, tempDir = electron.app.getPath("temp"), onProgress = null, precomputedMagicOffset = null) {
+  const magicOffset = Number.isInteger(precomputedMagicOffset) ? precomputedMagicOffset : await findDisguiseMagicAsync(filePath);
   if (magicOffset < 0) return null;
   const dataOffset = magicOffset + DISGUISE_MAGIC.length;
   const stat = await fs.promises.stat(filePath);
@@ -226,8 +286,8 @@ function peekStoredOuterZipEntryNameFromDisguise(mp4Path) {
   const nameBuffer = decodeXorRangeFromFileSync(mp4Path, dataOffset + 30, nameLength, 30);
   return nameBuffer.toString("utf-8").replace(/\\/g, "/");
 }
-async function tryExtractStoredOuterZipEntryFromDisguiseAsync(mp4Path, tempDir, onProgress = null) {
-  const magicOffset = findDisguiseMagic(mp4Path);
+async function tryExtractStoredOuterZipEntryFromDisguiseAsync(mp4Path, tempDir, onProgress = null, precomputedMagicOffset = null) {
+  const magicOffset = Number.isInteger(precomputedMagicOffset) ? precomputedMagicOffset : await findDisguiseMagicAsync(mp4Path);
   if (magicOffset < 0) return null;
   const dataOffset = magicOffset + DISGUISE_MAGIC.length;
   const header = decodeXorRangeFromFileSync(mp4Path, dataOffset, 30, 0);
@@ -559,14 +619,72 @@ function getEncryptedExportArchiveSource(modPath) {
     preserveRoot: false
   };
 }
+const MAX_ADMZIP_PROBE_BYTES = 64 * 1024 * 1024;
+function run7zListAsync(sevenZipPath, args, timeoutMs = 1e4) {
+  return new Promise(resolve => {
+    let settled = false;
+    let timer = null;
+    const finish = result => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve(result);
+    };
+    let child;
+    try {
+      child = child_process.spawn(sevenZipPath, args, {
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "pipe"]
+      });
+    } catch (_) {
+      finish({
+        code: -1,
+        stdout: ""
+      });
+      return;
+    }
+    const stdoutChunks = [];
+    let stdoutBytes = 0;
+    const maxStdoutBytes = 16 * 1024 * 1024;
+    timer = setTimeout(() => {
+      try {
+        child.kill();
+      } catch (_) {}
+      finish({
+        code: -1,
+        stdout: ""
+      });
+    }, timeoutMs);
+    child.stdout.on("data", chunk => {
+      if (stdoutBytes < maxStdoutBytes) {
+        stdoutChunks.push(chunk);
+        stdoutBytes += chunk.length;
+      }
+    });
+    child.stderr.on("data", () => {});
+    child.on("error", () => finish({
+      code: -1,
+      stdout: ""
+    }));
+    child.on("close", code => {
+      finish({
+        code: code ?? -1,
+        stdout: Buffer.concat(stdoutChunks).toString("utf-8")
+      });
+    });
+  });
+}
 function isDisguisedMp4(filePath) {
   try {
     if (findDisguiseMagic(filePath) >= 0) return true;
-    try {
-      const zip = new AdmZip(filePath);
-      const entries = zip.getEntries();
-      if (entries.some(e => e.entryName.endsWith(".7z"))) return true;
-    } catch (_) {}
+    const stat = fs.statSync(filePath);
+    if (stat.size <= MAX_ADMZIP_PROBE_BYTES) {
+      try {
+        const zip = new AdmZip(filePath);
+        const entries = zip.getEntries();
+        if (entries.some(e => e.entryName.endsWith(".7z"))) return true;
+      } catch (_) {}
+    }
     try {
       const sevenZipPath = archivesZip.get7zaPath();
       const output = child_process.execFileSync(sevenZipPath, ["l", "-slt", filePath], {
@@ -580,6 +698,26 @@ function isDisguisedMp4(filePath) {
     } catch (_) {
       return false;
     }
+  } catch (_) {
+    return false;
+  }
+}
+async function isDisguisedMp4Async(filePath) {
+  try {
+    if ((await findDisguiseMagicAsync(filePath)) >= 0) return true;
+    const sevenZipPath = archivesZip.get7zaPath();
+    const listRes = await run7zListAsync(sevenZipPath, ["l", "-slt", filePath], 1e4);
+    if (listRes.code === 0) {
+      return parse7zSltPaths(listRes.stdout).some(entry => entry.endsWith(".7z"));
+    }
+    const stat = await fs.promises.stat(filePath);
+    if (stat.size <= MAX_ADMZIP_PROBE_BYTES) {
+      try {
+        const zip = new AdmZip(filePath);
+        return zip.getEntries().some(e => e.entryName.endsWith(".7z"));
+      } catch (_) {}
+    }
+    return false;
   } catch (_) {
     return false;
   }
@@ -669,7 +807,7 @@ async function extractDisguisedMp4(mp4Path, targetPath, {
   let tmpXorZip = null;
   let sevenzPath = null;
   let sevenzName = null;
-  const magicOff = findDisguiseMagic(mp4Path);
+  const magicOff = await findDisguiseMagicAsync(mp4Path);
   if (magicOff >= 0) {
     coreLogger.logger.info(`[Disguise] Detected v2 XOR format (magic at offset ${magicOff}), decoding...`);
     emitDisguiseProgress(onProgress, {
@@ -677,13 +815,13 @@ async function extractDisguisedMp4(mp4Path, targetPath, {
       stage: "detect",
       message: i18n.t("backend.archives.disguised.readingOuterArchive")
     });
-    const directOuterEntry = await tryExtractStoredOuterZipEntryFromDisguiseAsync(mp4Path, tmpDir, onProgress);
+    const directOuterEntry = await tryExtractStoredOuterZipEntryFromDisguiseAsync(mp4Path, tmpDir, onProgress, magicOff);
     if (directOuterEntry) {
       sevenzPath = directOuterEntry.sevenzPath;
       sevenzName = directOuterEntry.sevenzName;
       coreLogger.logger.info(`[Disguise] Extracted outer ZIP entry directly: ${sevenzPath}`);
     } else {
-      tmpXorZip = await decodeV2ToTempZipAsync(mp4Path, tmpDir, onProgress);
+      tmpXorZip = await decodeV2ToTempZipAsync(mp4Path, tmpDir, onProgress, magicOff);
       if (!tmpXorZip) throw new Error(i18n.t("backend.archives.disguised.xorDecodeFailed"));
       workFile = tmpXorZip;
       coreLogger.logger.info(`[Disguise] XOR decoded to: ${tmpXorZip}`);

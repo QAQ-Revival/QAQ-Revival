@@ -10,12 +10,15 @@ module.exports = {
   createBatchFolderItem,
   batchIsModFolder,
   batchArchiveItem,
+  batchArchiveItemAsync,
   getMultiModPackageStats,
   isAmbiguousIntegratedModsSource,
   batchIntegratedPackageItem,
   batchDirectoryPlanItem,
   batchScanDir,
-  scanBatchPaths
+  batchScanDirAsync,
+  scanBatchPaths,
+  scanBatchPathsAsync
 };
 const path = require("path");
 const fs = require("fs");
@@ -309,6 +312,30 @@ function batchArchiveItem(filePath, allowExtensionlessDisguised = false) {
     } : null)
   };
 }
+async function batchArchiveItemAsync(filePath, allowExtensionlessDisguised = false) {
+  const ext = path.extname(filePath).toLowerCase();
+  const shouldProbeDisguised = ext === ".mp4" || ext === ".zip" || allowExtensionlessDisguised && !ext;
+  if (!BATCH_ARCHIVE_EXTS.has(ext) && !shouldProbeDisguised) return null;
+  const disguised = shouldProbeDisguised && (await archivesDisguised.isDisguisedMp4Async(filePath));
+  if (!BATCH_ARCHIVE_EXTS.has(ext) && !disguised) return null;
+  let fileSize = 0;
+  try {
+    fileSize = (await fs.promises.stat(filePath)).size;
+  } catch (_) {
+    fileSize = 0;
+  }
+  return {
+    name: archivesNames.getModArchiveName(filePath),
+    path: filePath,
+    type: ext ? ext.slice(1) : "disguised",
+    disguised,
+    fileSize,
+    largeArchive: isLargeArchiveForExternalExtraction(filePath, fileSize ? {
+      isFile: () => true,
+      size: fileSize
+    } : null)
+  };
+}
 function batchDirectoryLooksLikeModRoot(dirPath) {
   if (batchIsModFolder(dirPath)) return true;
   try {
@@ -496,6 +523,87 @@ function scanBatchPaths(paths) {
       }
     } else if (stat.isFile()) {
       const item = batchArchiveItem(p, true);
+      const loosePakItem = item ? null : batchLoosePakItem(p);
+      pushBatchItem(items, item || loosePakItem);
+    }
+  }
+  return items;
+}
+async function batchScanDirAsync(dirPath, items, maxDepth = 5) {
+  if (maxDepth <= 0) return false;
+  let entries;
+  try {
+    entries = await fs.promises.readdir(dirPath, {
+      withFileTypes: true
+    });
+  } catch {
+    return false;
+  }
+  let found = false;
+  for (const entry of entries) {
+    const entryPath = path.join(dirPath, entry.name);
+    const managedItem = installManaged.buildManagedDropScanItem(entryPath);
+    if (managedItem) {
+      pushBatchItem(items, managedItem);
+      found = true;
+      continue;
+    }
+    if (entry.isDirectory()) {
+      const integratedPackageItem = batchIntegratedPackageItem(entryPath);
+      if (integratedPackageItem) {
+        pushBatchItem(items, integratedPackageItem);
+        found = true;
+      } else if (batchIsModFolder(entryPath)) {
+        pushBatchItem(items, batchDirectoryPlanItem(entryPath) || createBatchFolderItem(entryPath));
+        found = true;
+      } else {
+        const foundInner = await batchScanDirAsync(entryPath, items, maxDepth - 1);
+        if (foundInner) found = true;
+      }
+    } else if (entry.isFile()) {
+      const item = await batchArchiveItemAsync(entryPath, false);
+      const loosePakItem = item ? null : batchLoosePakItem(entryPath);
+      if (item || loosePakItem) {
+        pushBatchItem(items, item || loosePakItem);
+        found = true;
+      }
+    }
+  }
+  return found;
+}
+async function scanBatchPathsAsync(paths) {
+  const items = [];
+  if (!Array.isArray(paths) || paths.length === 0) return items;
+  for (const p of paths) {
+    let stat;
+    try {
+      stat = await fs.promises.stat(p);
+    } catch {
+      continue;
+    }
+    const managedItem = installManaged.buildManagedDropScanItem(p);
+    if (managedItem) {
+      pushBatchItem(items, managedItem);
+      continue;
+    }
+    if (stat.isDirectory()) {
+      const name = path.basename(p);
+      const planItem = batchDirectoryPlanItem(p);
+      if (planItem) {
+        pushBatchItem(items, planItem);
+      } else {
+        const innerItems = [];
+        const foundInner = await batchScanDirAsync(p, innerItems);
+        if (foundInner) {
+          items.push(...innerItems);
+        } else {
+          items.push(createBatchFolderItem(p, {
+            name
+          }));
+        }
+      }
+    } else if (stat.isFile()) {
+      const item = await batchArchiveItemAsync(p, true);
       const loosePakItem = item ? null : batchLoosePakItem(p);
       pushBatchItem(items, item || loosePakItem);
     }
