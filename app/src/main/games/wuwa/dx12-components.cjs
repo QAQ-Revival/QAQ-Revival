@@ -26,6 +26,8 @@ const PACKAGES = {
 };
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const exists = file => fs.existsSync(file);
+// An add-on has three or four upstream version parts and may append a QAQR revision.
+const ADDON_VERSION = /^\d+(?:\.\d+){2,4}$/;
 const newer = (a, b) => {
   const left = a.split('.').map(Number),
     right = b.split('.').map(Number);
@@ -246,7 +248,7 @@ function createWuwaDx12Packages({
   // The add-on built from the organization fork. It ships with QAQR, so it has nothing to download.
   getPackage.fork = () => {
     const bundle = loadFork();
-    if (!bundle?.files['wwmi_dx12.addon64'] || !/^\d+(?:\.\d+){2,4}$/.test(bundle.manifest.version || '')) return null;
+    if (!bundle?.files['wwmi_dx12.addon64'] || !ADDON_VERSION.test(bundle.manifest.version || '')) return null;
     const entries = new Map();
     for (const [name, file] of Object.entries(bundle.files)) if (name === 'wwmi_dx12.addon64' || name.startsWith('wwmi_dx12/')) entries.set(name, fs.readFileSync(file));
     entries.version = bundle.manifest.version;
@@ -516,7 +518,8 @@ function createWuwaDx12Components({
     validate = async () => {},
     commit = async () => {}
   } = {}) {
-    if (!Object.hasOwn(PACKAGES, kind) || !/^\d+\.\d+\.\d+$/.test(bundle.version || '')) throw Error(i18n.t("backend.wuwaDx12Components.invalidUpdateInfo"));
+    const versionPattern = kind === 'addon' ? ADDON_VERSION : /^\d+\.\d+\.\d+$/;
+    if (!Object.hasOwn(PACKAGES, kind) || !versionPattern.test(bundle.version || '')) throw Error(i18n.t("backend.wuwaDx12Components.invalidUpdateInfo"));
     const source = describe(paths, kind);
     if (source.source !== 'managed') {
       await commit();

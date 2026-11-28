@@ -239,7 +239,7 @@ test('a released add-on replaces the QAQR build in use only with the game closed
     return Object.assign(new Map([...f.bundles.addon].map(([name, value]) => [name, name === 'wwmi_dx12.addon64' ? bytes : value])),
       { version, build: 'a'.repeat(12), addonHash: crypto.createHash('sha256').update(bytes).digest('hex'), bytes });
   };
-  const held = build('qaqr build', '2026.10.4'), next = build('qaqr next', '2026.10.5');
+  const held = build('qaqr build', '2026.11.2.9'), next = build('qaqr next', '2026.11.3.1.10');
   f.bundles.addon.version = '2026.10.3';
   let fork = held, downloads = 0, running = false, enabled = true;
   const packages = Object.assign(async kind => f.bundles[kind], { fork: () => fork, state: () => ({ components: {}, errors: {} }) });
